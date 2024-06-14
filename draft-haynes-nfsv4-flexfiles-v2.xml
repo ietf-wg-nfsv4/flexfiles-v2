@@ -203,12 +203,12 @@
         on the underlying storage devices.
       </dd>
 
-      <dt>loose coupling</dt>
+      <dt>loose coupling:</dt>
       <dd>
         when the control protocol is a storage protocol.
       </dd>
 
-      <dt>(file) metadata</dt>
+      <dt>(file) metadata:</dt>
       <dd>
         the part of the file system object that contains various
         descriptive data relevant to the file object, as opposed to
@@ -216,7 +216,7 @@
         modification, access time, EOF position, etc.
       </dd>
 
-      <dt>metadata server (MDS)</dt>
+      <dt>metadata server (MDS):</dt>
       <dd>
         the pNFS server that provides metadata information for a file
         system object.  It is also responsible for generating, recalling,
@@ -332,17 +332,19 @@
     issues.  To implement the tightly coupled model, a control protocol
     has to be defined.  As the flexible file layout imposes no special
     requirements on the client, the control protocol will need to provide:
+  </t>
 
-    <list style='numbers'>
-      <t>
-        management of both security and LAYOUTCOMMITs and
-      </t>
+  <ol>
+    <li>
+      management of both security and LAYOUTCOMMITs and
+    </li>
 
-      <t>
-        a global stateid model and management of these stateids.
-      </t>
-    </list>
+    <li>
+      a global stateid model and management of these stateids.
+    </li>
+  </ol>
 
+  <t>
     When implementing the loosely coupled model, the only control protocol
     will be a version of NFS, with no ability to provide a global stateid
     model or to prevent clients from using layouts inappropriately.
@@ -579,31 +581,33 @@
       There is, however, no way for a storage device to indicate over an
       NFS protocol that it can definitively participate in a tightly
       coupled model:
+    </t>
 
-      <list style='symbols'>
-        <t>
-          Storage devices implementing the NFSv3 and NFSv4.0 protocols
-          are always treated as loosely coupled.
-        </t>
+    <ul>
+      <li>
+        Storage devices implementing the NFSv3 and NFSv4.0 protocols
+        are always treated as loosely coupled.
+      </li>
 
-        <t>
-          NFSv4.1+ storage devices that do not return the
-          EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID are
-          indicating that they are to be treated as loosely coupled.
-          From the locking viewpoint, they are treated in the same way
-          as NFSv4.0 storage devices.
-        </t>
+      <li>
+        NFSv4.1+ storage devices that do not return the
+        EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID are
+        indicating that they are to be treated as loosely coupled.
+        From the locking viewpoint, they are treated in the same way
+        as NFSv4.0 storage devices.
+      </li>
 
-        <t>
-          NFSv4.1+ storage devices that do identify themselves with
-          the EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID can
-          potentially be tightly coupled.  They would use a back-end
-          control protocol to implement the global stateid model
-          as described in <xref target="RFC8881" format="default"
-          sectionFormat="of" />.
-        </t>
-      </list>
+      <li>
+        NFSv4.1+ storage devices that do identify themselves with
+        the EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID can
+        potentially be tightly coupled.  They would use a back-end
+        control protocol to implement the global stateid model
+        as described in <xref target="RFC8881" format="default"
+        sectionFormat="of" />.
+      </li>
+    </ul>
 
+    <t>
       A storage device would have to be either discovered or advertised
       over the control protocol to enable a tightly coupled model.
     </t>
@@ -624,63 +628,63 @@
       <t>
         Given this basic structure, locking-related operations are handled as
         follows:
-
-        <list style='symbols'>
-          <t>
-            OPENs are dealt with by the metadata server.  Stateids are
-            selected by the metadata server and associated with the client ID
-            describing the client's connection to the metadata server.  The
-            metadata server may need to interact with the storage device to
-            locate the file to be opened, but no locking-related functionality
-            need be used on the storage device.
-          </t>
-
-          <t>
-            OPEN_DOWNGRADE and CLOSE only require local execution on the
-            metadata server.
-          </t>
-
-          <t>
-            Advisory byte-range locks can be implemented locally on the
-            metadata server.  As in the case of OPENs, the stateids associated
-            with byte-range locks are assigned by the metadata server and only
-            used on the metadata server.
-          </t>
-
-          <t>
-            Delegations are assigned by the metadata server that initiates
-            recalls when conflicting OPENs are processed.  No storage device
-            involvement is required.
-          </t>
-
-          <t>
-            TEST_STATEID and FREE_STATEID are processed locally on the
-            metadata server, without storage device involvement.
-          </t>
-        </list>
       </t>
+
+      <ul>
+        <li>
+          OPENs are dealt with by the metadata server.  Stateids are
+          selected by the metadata server and associated with the client ID
+          describing the client's connection to the metadata server.  The
+          metadata server may need to interact with the storage device to
+          locate the file to be opened, but no locking-related functionality
+          need be used on the storage device.
+        </li>
+
+        <li>
+          OPEN_DOWNGRADE and CLOSE only require local execution on the
+          metadata server.
+        </li>
+
+        <li>
+          Advisory byte-range locks can be implemented locally on the
+          metadata server.  As in the case of OPENs, the stateids associated
+          with byte-range locks are assigned by the metadata server and only
+          used on the metadata server.
+        </li>
+
+        <li>
+          Delegations are assigned by the metadata server that initiates
+          recalls when conflicting OPENs are processed.  No storage device
+          involvement is required.
+        </li>
+
+        <li>
+          TEST_STATEID and FREE_STATEID are processed locally on the
+          metadata server, without storage device involvement.
+        </li>
+      </ul>
 
       <t>
         All I/O operations to the storage device are done using the anonymous
         stateid.  Thus, the storage device has no information about the
         openowner and lockowner responsible for issuing a particular I/O
         operation.  As a result:
-
-        <list style='symbols'>
-          <t>
-            Mandatory byte-range locking cannot be supported because the
-            storage device has no way of distinguishing I/O done on behalf of
-            the lock owner from those done by others.
-          </t>
-
-          <t>
-            Enforcement of share reservations is the responsibility of the
-            client.  Even though I/O is done using the anonymous stateid, the
-            client must ensure that it has a valid stateid associated with the
-            openowner.
-          </t>
-        </list>
       </t>
+
+      <ul>
+        <li>
+          Mandatory byte-range locking cannot be supported because the
+          storage device has no way of distinguishing I/O done on behalf of
+          the lock owner from those done by others.
+        </li>
+
+        <li>
+          Enforcement of share reservations is the responsibility of the
+          client.  Even though I/O is done using the anonymous stateid, the
+          client must ensure that it has a valid stateid associated with the
+          openowner.
+        </li>
+      </ul>
 
       <t>
         In the event that a stateid is revoked, the metadata server is
@@ -714,78 +718,81 @@
       <t>
         Given this basic structure, locking-related operations are handled as
         follows:
-
-        <list style='symbols'>
-          <t>
-            OPENs are dealt with primarily on the metadata server.  Stateids
-            are selected by the metadata server and associated with the client
-            ID describing the client's connection to the metadata server.  The
-            metadata server needs to interact with the storage device to
-            locate the file to be opened and to make the storage device aware
-            of the association between the metadata-server-chosen stateid and
-            the client and openowner that it represents.
-            <vspace blankLines="1" />
-            OPEN_DOWNGRADE and CLOSE are executed initially on the metadata
-            server, but the state change made must be propagated to the
-            storage device.
-          </t>
-
-          <t>
-            Advisory byte-range locks can be implemented locally on the
-            metadata server.  As in the case of OPENs, the stateids associated
-            with byte-range locks are assigned by the metadata server and are
-            available for use on the metadata server.  Because I/O operations
-            are allowed to present lock stateids, the metadata server needs
-            the ability to make the storage device aware of the association
-            between the metadata-server-chosen stateid and the corresponding
-            open stateid it is associated with.
-          </t>
-
-          <t>
-            Mandatory byte-range locks can be supported when both the metadata
-            server and the storage devices have the appropriate support.  As
-            in the case of advisory byte-range locks, these are assigned by
-            the metadata server and are available for use on the metadata
-            server.  To enable mandatory lock enforcement on the storage
-            device, the metadata server needs the ability to make the storage
-            device aware of the association between the metadata-server-chosen
-            stateid and the client, openowner, and lock (i.e., lockowner,
-            byte-range, and lock-type) that it represents.  Because I/O
-            operations are allowed to present lock stateids, this information
-            needs to be propagated to all storage devices to which I/O might
-            be directed rather than only to storage device that contain the
-            locked region.
-          </t>
-
-          <t>
-            Delegations are assigned by the metadata server that initiates
-            recalls when conflicting OPENs are processed.  Because I/O
-            operations are allowed to present delegation stateids, the
-            metadata server requires the ability
-            <list style='numbers'>
-              <t>
-                to make the storage
-                device aware of the association between the metadata-server-chosen
-                stateid and the filehandle and delegation type it represents
-              </t>
-              <t>
-                to break such an association.
-              </t>
-            </list>
-          </t>
-
-          <t>
-            TEST_STATEID is processed locally on the metadata server, without
-            storage device involvement.
-          </t>
-
-          <t>
-            FREE_STATEID is processed on the metadata server, but the metadata
-            server requires the ability to propagate the request to the
-            corresponding storage devices.
-          </t>
-        </list>
       </t>
+
+      <ul>
+        <li>
+          OPENs are dealt with primarily on the metadata server.  Stateids
+          are selected by the metadata server and associated with the client
+          ID describing the client's connection to the metadata server.  The
+          metadata server needs to interact with the storage device to
+          locate the file to be opened and to make the storage device aware
+          of the association between the metadata-server-chosen stateid and
+          the client and openowner that it represents.
+          OPEN_DOWNGRADE and CLOSE are executed initially on the metadata
+          server, but the state change made must be propagated to the
+          storage device.
+        </li>
+
+        <li>
+          Advisory byte-range locks can be implemented locally on the
+          metadata server.  As in the case of OPENs, the stateids associated
+          with byte-range locks are assigned by the metadata server and are
+          available for use on the metadata server.  Because I/O operations
+          are allowed to present lock stateids, the metadata server needs
+          the ability to make the storage device aware of the association
+          between the metadata-server-chosen stateid and the corresponding
+          open stateid it is associated with.
+        </li>
+
+        <li>
+          Mandatory byte-range locks can be supported when both the metadata
+          server and the storage devices have the appropriate support.  As
+          in the case of advisory byte-range locks, these are assigned by
+          the metadata server and are available for use on the metadata
+          server.  To enable mandatory lock enforcement on the storage
+          device, the metadata server needs the ability to make the storage
+          device aware of the association between the metadata-server-chosen
+          stateid and the client, openowner, and lock (i.e., lockowner,
+          byte-range, and lock-type) that it represents.  Because I/O
+          operations are allowed to present lock stateids, this information
+          needs to be propagated to all storage devices to which I/O might
+          be directed rather than only to storage device that contain the
+          locked region.
+        </li>
+
+        <li>
+          Delegations are assigned by the metadata server that initiates
+          recalls when conflicting OPENs are processed.  Because I/O
+          operations are allowed to present delegation stateids, the
+          metadata server requires the ability:
+        </li>
+
+        <li>
+          <ol>
+            <li>
+              to make the storage device aware of the association between
+              the metadata-server-chosen stateid and the filehandle and
+              delegation type it represents
+            </li>
+
+            <li>
+              to break such an association.
+            </li>
+          </ol>
+        </li>
+
+        <li>
+          TEST_STATEID is processed locally on the metadata server, without
+          storage device involvement.
+        </li>
+
+        <li>
+          FREE_STATEID is processed on the metadata server, but the metadata
+          server requires the ability to propagate the request to the
+          corresponding storage devices.
+        </li>
+      </ul>
 
       <t>
         Because the client will possess and use stateids valid on the storage
@@ -1317,17 +1324,17 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
     <t>
       This specification of the ffds_stateid restricts both models for
       NFSv4.x storage protocols:
+    </t>
 
-      <list style='hanging'>
-        <t hangText='loosely couple:'>
-          the stateid has to be an anonymous stateid
-        </t>
+    <dl newline="false" spacing="normal">
+      <dt>loosely couple:</dt>
+      <dd>the stateid has to be an anonymous stateid</dd>
 
-        <t hangText='tightly couple:'>
-          the stateid has to be a global stateid
-        </t>
-      </list>
+      <dt>tightly couple:</dt>
+      <dd>the stateid has to be a global stateid</dd>
+    </dl>
 
+    <t>
       A number of issues stem from a mismatch between the fact that
       ffds_stateid is defined as a single item while ffds_fh_vers is
       defined as an array.  It is possible for each open file on the
@@ -1379,35 +1386,39 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       ffl_flags is a bitmap that allows the metadata server to inform
       the client of particular conditions that may result from more or
       less tight coupling of the storage devices.
-
-      <list style='hanging'>
-        <t hangText='FF_FLAGS_NO_LAYOUTCOMMIT:'>
-           can be set to indicate that the client is not required to
-           send LAYOUTCOMMIT to the metadata server.
-        </t>
-
-        <t hangText='F_FLAGS_NO_IO_THRU_MDS:'>
-           can be set to indicate that the client should not send I/O
-           operations to the metadata server.  That is, even if the
-           client could determine that there was a network disconnect
-           to a storage device, the client should not try to proxy the
-           I/O through the metadata server.
-        </t>
-
-        <t hangText='FF_FLAGS_NO_READ_IO:'>
-           can be set to indicate that the client should not send READ
-           requests with the layouts of iomode LAYOUTIOMODE4_RW.  Instead,
-           it should request a layout of iomode LAYOUTIOMODE4_READ from
-           the metadata server.
-        </t>
-
-        <t hangText='FF_FLAGS_WRITE_ONE_MIRROR:'>
-           can be set to indicate that the client only needs to update
-           one of the mirrors (see <xref target="ss_write_mirror"
-           format="default" sectionFormat="of" />).
-        </t>
-      </list>
     </t>
+
+    <dl newline="false" spacing="normal">
+      <dt>FF_FLAGS_NO_LAYOUTCOMMIT:</dt>
+      <dd>
+         can be set to indicate that the client is not required to
+         send LAYOUTCOMMIT to the metadata server.
+      </dd>
+
+      <dt>F_FLAGS_NO_IO_THRU_MDS:</dt>
+      <dd>
+         can be set to indicate that the client should not send I/O
+         operations to the metadata server.  That is, even if the
+         client could determine that there was a network disconnect
+         to a storage device, the client should not try to proxy the
+         I/O through the metadata server.
+      </dd>
+
+      <dt>FF_FLAGS_NO_READ_IO:</dt>
+      <dd>
+         can be set to indicate that the client should not send READ
+         requests with the layouts of iomode LAYOUTIOMODE4_RW.  Instead,
+         it should request a layout of iomode LAYOUTIOMODE4_READ from
+         the metadata server.
+      </dd>
+
+      <dt>FF_FLAGS_WRITE_ONE_MIRROR:</dt>
+      <dd>
+         can be set to indicate that the client only needs to update
+         one of the mirrors (see <xref target="ss_write_mirror"
+         format="default" sectionFormat="of" />).
+      </dd>
+    </dl>
 
     <section anchor="layout_get" numbered="true" removeInRFC="false" toc="default">
       <name>Error Codes from LAYOUTGET</name>
@@ -1418,27 +1429,30 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
         LAYOUTGET that returns an error of either NFS4ERR_LAYOUTTRYLATER,
         NFS4ERR_LAYOUTUNAVAILABLE, and NFS4ERR_DELAY.  Within the context
         of this document:
-
-        <list style='hanging'>
-          <t hangText='NFS4ERR_LAYOUTUNAVAILABLE:'>
-            there is no layout available and the I/O is to go to the
-            metadata server.  Note that it is possible to have had a
-            layout before a recall and not after.
-          </t>
-
-          <t hangText='NFS4ERR_LAYOUTTRYLATER:'>
-            there is some issue preventing the layout from being granted.
-            If the client already has an appropriate layout, it should
-            continue with I/O to the storage devices.
-          </t>
-
-          <t hangText='NFS4ERR_DELAY:'>
-            there is some issue preventing the layout from being granted.
-            If the client already has an appropriate layout, it should
-            not continue with I/O to the storage devices.
-          </t>
-        </list>
       </t>
+
+      <dl newline="false" spacing="normal">
+        <dt>NFS4ERR_LAYOUTUNAVAILABLE:</dt>
+        <dd>
+          there is no layout available and the I/O is to go to the
+          metadata server.  Note that it is possible to have had a
+          layout before a recall and not after.
+        </dd>
+
+        <dt>NFS4ERR_LAYOUTTRYLATER:</dt>
+        <dd>
+          there is some issue preventing the layout from being granted.
+          If the client already has an appropriate layout, it should
+          continue with I/O to the storage devices.
+        </dd>
+
+        <dt>NFS4ERR_DELAY:</dt>
+        <dd>
+          there is some issue preventing the layout from being granted.
+          If the client already has an appropriate layout, it should
+          not continue with I/O to the storage devices.
+        </dd>
+      </dl>
     </section>
 
     <section anchor="layout_no_io" numbered="true" removeInRFC="false" toc="default">
@@ -1783,22 +1797,22 @@ N: stripe number
       <t>
         In order to avoid situations in which stale data is read from
         replicas to which writes have not been propagated:
-
-        <list style='symbols'>
-          <t>
-            A client that has outstanding unstable writes made to single
-            node (metadata server or storage device) <bcp14>MUST</bcp14>
-            do all reads from that same node.
-          </t>
-
-          <t>
-            When writes are flushed to the server (for example, to
-            implement close-to-open semantics), a COMMIT must be done
-            by the client to ensure that up-to-date written data will
-            be available irrespective of the particular replica read.
-          </t>
-        </list>
       </t>
+
+      <ul>
+        <li>
+          A client that has outstanding unstable writes made to single
+          node (metadata server or storage device) <bcp14>MUST</bcp14>
+          do all reads from that same node.
+        </li>
+
+        <li>
+          When writes are flushed to the server (for example, to
+          implement close-to-open semantics), a COMMIT must be done
+          by the client to ensure that up-to-date written data will
+          be available irrespective of the particular replica read.
+        </li>
+      </ul>
     </section>
   </section>
 
@@ -2304,30 +2318,30 @@ N: stripe number
     sectionFormat="of" /> discusses reasons independent of layout type
     for recalling a layout, the flexible file layout type metadata server
     should recall outstanding layouts in the following cases:
-
-    <list style='symbols'>
-      <t>
-        When the file's security policy changes, i.e., ACLs or permission
-        mode bits are set.
-      </t>
-
-      <t>
-        When the file's layout changes, rendering outstanding layouts
-        invalid.
-      </t>
-
-      <t>
-        When existing layouts are inconsistent with the need to enforce
-        locking constraints.
-      </t>
-
-      <t>
-        When existing layouts are inconsistent with the
-        requirements regarding resilvering as described in <xref
-        target="ss_resilvering" format="default" sectionFormat="of" />.
-      </t>
-    </list>
   </t>
+
+  <ul>
+    <li>
+      When the file's security policy changes, i.e., ACLs or permission
+      mode bits are set.
+    </li>
+
+    <li>
+      When the file's layout changes, rendering outstanding layouts
+      invalid.
+    </li>
+
+    <li>
+      When existing layouts are inconsistent with the need to enforce
+      locking constraints.
+    </li>
+
+    <li>
+      When existing layouts are inconsistent with the
+      requirements regarding resilvering as described in <xref
+      target="ss_resilvering" format="default" sectionFormat="of" />.
+    </li>
+  </ul>
 
   <section anchor="CB_RECALL_ANY" numbered="true" removeInRFC="false" toc="default">
     <name>CB_RECALL_ANY</name>
@@ -2557,36 +2571,54 @@ N: stripe number
     introduced the "pNFS Layout Types Registry"; new layout type
     numbers in this registry need to be assigned by IANA.  This document
     defines the protocol associated with an existing layout type number:
-    LAYOUT4_FLEX_FILES (see <xref target='layoutlist' format="default"
-    sectionFormat="of" />).
+    LAYOUT4_FLEX_FILES (see <xref target='layoutlist' />).
   </t>
 
-  <texttable title="Layout Type Assignments" anchor="layoutlist">
-    <ttcol>Layout Type Name</ttcol>
-    <ttcol>Value</ttcol>
-    <ttcol>RFC</ttcol>
-    <ttcol>How</ttcol>
-    <ttcol>Minor Versions</ttcol>
-    <c>LAYOUT4_FLEX_FILES_V2</c> <c>0x6</c> <c>RFCTBD10</c> <c>L</c> <c>1</c>
-  </texttable>
+  <table anchor="layoutlist">
+    <name>Layout Type Assignments</name>
+    <thead>
+      <tr>
+        <th>Layout Type Name</th>
+        <th>Value</th>
+        <th>RFC</th>
+        <th>How</th>
+        <th>Minor Versions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>LAYOUT4_FLEX_FILES_V2</td> <td>0x6</td> <td>RFCTBD10</td> <td>L</td> <td>1</td>
+      </tr>
+    </tbody>
+  </table>
 
   <t>
     <xref target="RFC8881" format="default" sectionFormat="of" /> also
     introduced the "NFSv4 Recallable Object Types Registry".  This document
     defines new recallable objects for RCA4_TYPE_MASK_FF2_LAYOUT_MIN and
-    RCA4_TYPE_MASK_FF2_LAYOUT_MAX (see <xref target='recalllist'
-    format="default" sectionFormat="of" />).
+    RCA4_TYPE_MASK_FF2_LAYOUT_MAX (see <xref target='recalllist' />).
   </t>
 
-  <texttable title="Recallable Object Type Assignments" anchor="recalllist">
-    <ttcol>Recallable Object Type Name</ttcol>
-    <ttcol>Value</ttcol>
-    <ttcol>RFC</ttcol>
-    <ttcol>How</ttcol>
-    <ttcol>Minor Versions</ttcol>
-    <c>RCA4_TYPE_MASK_FF2_LAYOUT_MIN</c> <c>20</c> <c>RFCTBD10</c> <c>L</c> <c>1</c>
-    <c>RCA4_TYPE_MASK_FF2_LAYOUT_MAX</c> <c>21</c> <c>RFCTBD10</c> <c>L</c> <c>1</c>
-  </texttable>
+  <table anchor="recalllist">
+    <name>Recallable Object Type Assignments</name>
+    <thead>
+      <tr>
+        <th>Recallable Object Type Name</th>
+        <th>Value</th>
+        <th>RFC</th>
+        <th>How</th>
+        <th>Minor Versions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>RCA4_TYPE_MASK_FF2_LAYOUT_MIN</td> <td>20</td> <td>RFCTBD10</td> <td>L</td> <td>1</td>
+      </tr>
+      <tr>
+        <td>RCA4_TYPE_MASK_FF2_LAYOUT_MAX</td> <td>21</td> <td>RFCTBD10</td> <td>L</td> <td>1</td>
+      </tr>
+    </tbody>
+  </table>
 </section>
 
 </middle>
