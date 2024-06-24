@@ -39,8 +39,9 @@
       The flexible file layout type is defined in this document as an
       extension to pNFS that allows the use of storage devices that
       require only a limited degree of interaction with the metadata
-      server and use already-existing protocols.  Client-side mirroring
-      is also added to provide replication of files.
+      server and use already-existing protocols.  Data protection
+      is also added to provide integrity. Both Client-side mirroring
+      and the Mojette algorithm are used for data protection.
     </t>
   </abstract>
 
@@ -89,7 +90,7 @@
     the metadata server and the storage devices.  Instead, the storage
     devices are configured such that the metadata server has full access
     rights to the data file system and then the metadata server uses
-    synthetic ids to control client access to individual files.
+    synthetic ids to control client access to individual data files.
   </t>
 
   <t>
