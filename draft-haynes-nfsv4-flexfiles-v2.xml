@@ -827,35 +827,27 @@
     of the flexible file layout type.  The XDR description is embedded in
     this document in a way that makes it simple for the reader to extract
     into a ready-to-compile form.  The reader can feed this document
-    into the following shell script to produce the machine-readable XDR
-    description of the flexible file layout type:
+    into the shell script in <xref target='code_extract' /> to produce
+    the machine-readable XDR description of the flexible file layout type.
   </t>
 
-  <t>
-    &lt;CODE BEGINS&gt;
-  </t>
-
-  <figure>
-    <artwork>
+  <figure anchor='code_extract'>
+    <sourcecode type='bash'>
 #!/bin/sh
 grep '^ *///' $* | sed 's?^ */// ??' | sed 's?^ *///$??'
-    </artwork>
+    </sourcecode>
   </figure>
-
-  <t>
-    &lt;CODE ENDS&gt;
-  </t>
 
   <t>
     That is, if the above script is stored in a file called "extract.sh"
     and this document is in a file called "spec.txt", then the reader can
-    do:
+    run the script as in <xref target='sh_extract' />.
   </t>
 
-  <figure>
-    <artwork>
+  <figure anchor='sh_extract'>
+    <sourcecode type='bash'>
 sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
-    </artwork>
+    </sourcecode>
   </figure>
 
   <t>
@@ -887,13 +879,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       to the terms of that document.
     </t>
 
-    <t>
-      &lt;CODE BEGINS&gt;
-    </t>
-
     <figure>
-      <artwork>
-
+      <sourcecode type='xdr'>
 /// /*
 ///  * Copyright (c) 2024 IETF Trust and the persons identified
 ///  * as authors of the code.  All rights reserved.
@@ -949,12 +936,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
 ///  * %#include &lt;rpc_prot.x&gt;
 ///  */
 ///
-      </artwork>
+      </sourcecode>
     </figure>
-
-    <t>
-      &lt;CODE ENDS&gt;
-    </t>
   </section>
 </section>
 
@@ -973,17 +956,14 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
     <name>ff_device_addr4</name>
 
     <t>
-      The ff_device_addr4 data structure is returned by the server as the
+      The ff_device_addr4 data structure (see <xref
+      target='code_ff_device_addr4' />) is returned by the server as the
       layout-type-specific opaque field da_addr_body in the device_addr4
       structure by a successful GETDEVICEINFO operation.
     </t>
 
-    <t>
-      &lt;CODE BEGINS&gt;
-    </t>
-
-    <figure>
-      <artwork>
+    <figure anchor='code_ff_device_addr4'>
+      <sourcecode type='xdr'>
    /// struct ff_device_versions4 {
    ///         uint32_t        ffdv_version;
    ///         uint32_t        ffdv_minorversion;
@@ -998,12 +978,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
    ///         ff_device_versions4 ffda_versions&lt;&gt;;
    /// };
    ///
-      </artwork>
+      </sourcecode>
     </figure>
-
-    <t>
-      &lt;CODE ENDS&gt;
-    </t>
 
     <t>
       The ffda_netaddrs field is used to locate the storage device.
@@ -1130,15 +1106,12 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
 
   <t>
     The original layouttype4 introduced in <xref target="RFC5662"
-    format="default" sectionFormat="of" /> is modified to be:
+    format="default" sectionFormat="of" /> is modified to as in <xref
+    target='code_layout4' />.
   </t>
 
-  <t>
-    &lt;CODE BEGINS&gt;
-  </t>
-
-  <figure>
-    <artwork>
+  <figure anchor='code_layout4'>
+    <sourcecode type='xdr'>
        enum layouttype4 {
            LAYOUT4_NFSV4_1_FILES   = 1,
            LAYOUT4_OSD2_OBJECTS    = 2,
@@ -1157,12 +1130,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
            layoutiomode4           lo_iomode;
            layout_content4         lo_content;
        };
-    </artwork>
+    </sourcecode>
   </figure>
-
-  <t>
-    &lt;CODE END&gt;
-  </t>
 
   <t>
     This document defines structures associated with the layouttype4
@@ -1177,12 +1146,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
   <section anchor="ff_layout" numbered="true" removeInRFC="false" toc="default">
     <name>ff_layout4</name>
 
-    <t>
-      &lt;CODE BEGINS&gt;
-    </t>
-
-    <figure>
-      <artwork>
+    <figure anchor='code_ff_layout4'>
+      <sourcecode type='xdr'>
    /// const FF_FLAGS_NO_LAYOUTCOMMIT   = 0x00000001;
    /// const FF_FLAGS_NO_IO_THRU_MDS    = 0x00000002;
    /// const FF_FLAGS_NO_READ_IO        = 0x00000004;
@@ -1213,24 +1178,20 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
    ///     uint32_t                ffl_stats_collect_hint;
    /// };
    ///
-      </artwork>
+      </sourcecode>
     </figure>
 
     <t>
-      &lt;CODE END&gt;
+      The ff_layout4 structure (see <xref target='code_ff_layout4' />)
+      specifies a layout in that portion of the data file described in the
+      current layout segment.  It is either a single instance or a set of
+      mirrored copies of that portion of the data file.  When mirroring
+      is in effect, it protects against loss of data in layout segments.
     </t>
 
     <t>
-      The ff_layout4 structure specifies a layout in that portion of the
-      data file described in the current layout segment.  It is either
-      a single instance or a set of mirrored copies of that portion of
-      the data file.  When mirroring is in effect, it protects against
-      loss of data in layout segments.
-    </t>
-
-    <t>
-      While not explicitly shown in the above XDR, each layout4
-      element returned in the logr_layout array of LAYOUTGET4res
+      While not explicitly shown in <xref target='code_ff_layout4' />, each
+      layout4 element returned in the logr_layout array of LAYOUTGET4res
       (see Section 18.43.2 of <xref target="RFC8881" format="default"
       sectionFormat="of" />) describes a layout segment.  Hence, each
       ff_layout4 also describes a layout segment.  It is possible that the
@@ -1845,15 +1806,11 @@ N: stripe number
     layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
     layout-type-specific information to the server.  It is defined
     in Section 18.44.1 of <xref target="RFC8881" format="default"
-    sectionFormat="of" /> as follows:
+    sectionFormat="of" /> (also shown in <xref target='code_layoutreturn_file4' />).
   </t>
 
-  <t>
-    &lt;CODE BEGINS&gt;
-  </t>
-
-  <figure>
-    <artwork>
+  <figure anchor='code_layoutreturn_file4'>
+    <sourcecode type='xdr'>
       /* Constants used for LAYOUTRETURN and CB_LAYOUTRECALL */
       const LAYOUT4_RET_REC_FILE      = 1;
       const LAYOUT4_RET_REC_FSID      = 2;
@@ -1887,12 +1844,8 @@ N: stripe number
            layoutiomode4           lora_iomode;
            layoutreturn4           lora_layoutreturn;
    };
-    </artwork>
+    </sourcecode>
   </figure>
-
-  <t>
-    &lt;CODE END&gt;
-  </t>
 
   <t>
     If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
@@ -1912,12 +1865,8 @@ N: stripe number
     <section anchor="ff_ioerr" numbered="true" removeInRFC="false" toc="default">
       <name>ff_ioerr4</name>
 
-      <t>
-        &lt;CODE BEGINS&gt;
-      </t>
-
-      <figure>
-        <artwork>
+      <figure anchor='code_ff_ioerr4'>
+        <sourcecode type='xdr'>
    /// struct ff_ioerr4 {
    ///         offset4        ffie_offset;
    ///         length4        ffie_length;
@@ -1925,35 +1874,23 @@ N: stripe number
    ///         device_error4  ffie_errors&lt;&gt;;
    /// };
    ///
-        </artwork>
+        </sourcecode>
       </figure>
 
       <t>
-        &lt;CODE END&gt;
-      </t>
-
-      <t>
         Recall that <xref target="RFC7862" format="default"
-        sectionFormat="of" /> defines device_error4 as:
+        sectionFormat="of" /> defines device_error4 as in <xref target='code_device_error4' />:
       </t>
 
-      <t>
-        &lt;CODE BEGINS&gt;
-      </t>
-
-      <figure>
-        <artwork>
+      <figure anchor='code_device_error4'>
+        <sourcecode type='xdr'>
    struct device_error4 {
            deviceid4       de_deviceid;
            nfsstat4        de_status;
            nfs_opnum4      de_opnum;
    };
-        </artwork>
+        </sourcecode>
       </figure>
-
-      <t>
-        &lt;CODE END&gt;
-      </t>
 
       <t>
         The ff_ioerr4 structure is used to return error indications
@@ -1983,12 +1920,8 @@ N: stripe number
     <section numbered="true" removeInRFC="false" toc="default">
       <name>ff_io_latency4</name>
 
-      <t>
-        &lt;CODE BEGINS&gt;
-      </t>
-
-      <figure>
-        <artwork>
+      <figure anchor='code_ff_io_latency4'>
+        <sourcecode type='xdr'>
    /// struct ff_io_latency4 {
    ///         uint64_t       ffil_ops_requested;
    ///         uint64_t       ffil_bytes_requested;
@@ -1999,16 +1932,13 @@ N: stripe number
    ///         nfstime4       ffil_aggregate_completion_time;
    /// };
    ///
-        </artwork>
+        </sourcecode>
       </figure>
 
       <t>
-        &lt;CODE END&gt;
-      </t>
-
-      <t>
-        Both operation counts and bytes transferred are kept in
-        the ff_io_latency4.  As seen in ff_layoutupdate4 (see <xref
+        Both operation counts and bytes transferred are kept in the
+        ff_io_latency4 (see <xref target='code_ff_io_latency4'
+        />.  As seen in ff_layoutupdate4 (see <xref
         target='ss_return_ff_layoutupdate' format="default"
         sectionFormat="of" />), READ and WRITE operations are aggregated
         separately.  READ operations are used for the ff_io_latency4
@@ -2051,12 +1981,8 @@ N: stripe number
     <section anchor="ss_return_ff_layoutupdate" numbered="true" removeInRFC="false" toc="default">
       <name>ff_layoutupdate4</name>
 
-      <t>
-        &lt;CODE BEGINS&gt;
-      </t>
-
-      <figure>
-        <artwork>
+      <figure anchor='code_ff_layoutupdate4'>
+        <sourcecode type='xdr'>
    /// struct ff_layoutupdate4 {
    ///         netaddr4       ffl_addr;
    ///         nfs_fh4        ffl_fhandle;
@@ -2066,12 +1992,8 @@ N: stripe number
    ///         bool           ffl_local;
    /// };
    ///
-        </artwork>
+        </sourcecode>
       </figure>
-
-      <t>
-        &lt;CODE END&gt;
-      </t>
 
       <t>
         ffl_addr differentiates which network address the client is
@@ -2090,12 +2012,8 @@ N: stripe number
     <section numbered="true" removeInRFC="false" toc="default">
       <name>ff_iostats4</name>
 
-      <t>
-        &lt;CODE BEGINS&gt;
-      </t>
-
-      <figure>
-        <artwork>
+      <figure anchor='code_ff_iostats4'>
+        <sourcecode type='xdr'>
    /// struct ff_iostats4 {
    ///         offset4           ffis_offset;
    ///         length4           ffis_length;
@@ -2106,33 +2024,22 @@ N: stripe number
    ///         ff_layoutupdate4  ffis_layoutupdate;
    /// };
    ///
-        </artwork>
+        </sourcecode>
       </figure>
 
       <t>
-        &lt;CODE END&gt;
+        <xref target="RFC7862" format="default" sectionFormat="of" />
+        defines io_info4 as in <xref target='code_io_info4' />.
       </t>
 
-      <t>
-        <xref target="RFC7862" format="default" sectionFormat="of" /> defines io_info4 as:
-      </t>
-
-      <t>
-        &lt;CODE BEGINS&gt;
-      </t>
-
-      <figure>
-        <artwork>
+      <figure anchor='code_io_info4'>
+        <sourcecode type='xdr'>
    struct io_info4 {
            uint64_t        ii_count;
            uint64_t        ii_bytes;
    };
-        </artwork>
+        </sourcecode>
       </figure>
-
-      <t>
-        &lt;CODE END&gt;
-      </t>
 
       <t>
         With pNFS, data transfers are performed directly between the
@@ -2179,23 +2086,15 @@ N: stripe number
   <section anchor="ff_layoutreturn4" numbered="true" removeInRFC="false" toc="default">
     <name>ff_layoutreturn4</name>
 
-    <t>
-      &lt;CODE BEGINS&gt;
-    </t>
-
-    <figure>
-      <artwork>
+    <figure anchor='code_ff_layoutreturn4'>
+      <sourcecode type='xdr'>
    /// struct ff_layoutreturn4 {
    ///         ff_ioerr4     fflr_ioerr_report&lt;&gt;;
    ///         ff_iostats4   fflr_iostats_report&lt;&gt;;
    /// };
    ///
-      </artwork>
+      </sourcecode>
     </figure>
-
-    <t>
-      &lt;CODE END&gt;
-    </t>
 
     <t>
       When data file I/O operations fail, fflr_ioerr_report&lt;&gt;
@@ -2249,25 +2148,17 @@ N: stripe number
 
   <t>
     The layouthint4 type is defined in the <xref target="RFC8881"
-    format="default" sectionFormat="of" /> as follows:
+    format="default" sectionFormat="of" /> as in <xref target='code_layouthint4' />.
   </t>
 
-  <t>
-    &lt;CODE BEGINS&gt;
-  </t>
-
-  <figure>
-    <artwork>
+  <figure anchor='code_layouthint4'>
+    <sourcecode type='xdr'>
    struct layouthint4 {
        layouttype4        loh_type;
        opaque             loh_body&lt;&gt;;
    };
-    </artwork>
+    </sourcecode>
   </figure>
-
-  <t>
-    &lt;CODE END&gt;
-  </t>
 
   <t>
     The layouthint4 structure is used by the client to pass a hint about
@@ -2280,12 +2171,8 @@ N: stripe number
 <section numbered="true" removeInRFC="false" toc="default">
   <name>ff_layouthint4</name>
 
-  <t>
-    &lt;CODE BEGINS&gt;
-  </t>
-
-  <figure>
-    <artwork>
+  <figure anchor='code_ff_layouthint4'>
+    <sourcecode type='xdr'>
    /// union ff_mirrors_hint switch (bool ffmc_valid) {
    ///     case TRUE:
    ///         uint32_t    ffmc_mirrors;
@@ -2297,12 +2184,8 @@ N: stripe number
    ///     ff_mirrors_hint    fflh_mirrors_hint;
    /// };
    ///
-    </artwork>
+    </sourcecode>
   </figure>
-
-  <t>
-    &lt;CODE END&gt;
-  </t>
 
   <t>
     This type conveys hints for the desired data map.  All parameters
@@ -2355,26 +2238,18 @@ N: stripe number
       Registry".
     </t>
 
-    <t>
-      &lt;CODE BEGINS&gt;
-    </t>
-
-    <figure>
-      <artwork>
-   /// const RCA4_TYPE_MASK_FF2_LAYOUT_MIN     = 16;
-   /// const RCA4_TYPE_MASK_FF2_LAYOUT_MAX     = 17;
+    <figure anchor='code_CB_RECALL_ANY4args'>
+      <sourcecode type='xdr'>
+   /// const RCA4_TYPE_MASK_FF2_LAYOUT_MIN     = 20;
+   /// const RCA4_TYPE_MASK_FF2_LAYOUT_MAX     = 21;
    ///
 
    struct  CB_RECALL_ANY4args      {
        uint32_t        craa_layouts_to_keep;
        bitmap4         craa_type_mask;
    };
-      </artwork>
+      </sourcecode>
     </figure>
-
-    <t>
-      &lt;CODE END&gt;
-    </t>
 
     <t>
       Typically, CB_RECALL_ANY will be used to recall client state
@@ -2382,26 +2257,19 @@ N: stripe number
       bitmap specifies the type of resources that are recalled, and the
       craa_layouts_to_keep value specifies how many of the recalled
       flexible file layouts the client is allowed to keep.  The mask
-      flags for the flexible file layout type are defined as follows:
+      flags for the flexible file layout type are defined as in <xref
+      target='code_ff_cb_recall_any_mask' />.
     </t>
 
-    <t>
-      &lt;CODE BEGINS&gt;
-    </t>
-
-    <figure>
-      <artwork>
+    <figure anchor='code_ff_cb_recall_any_mask'>
+      <sourcecode type='xdr'>
    /// enum ff_cb_recall_any_mask {
-   ///     PNFS_FF_RCA4_TYPE_MASK_READ = 16,
-   ///     PNFS_FF_RCA4_TYPE_MASK_RW   = 17
+   ///     PNFS_FF_RCA4_TYPE_MASK_READ = 20,
+   ///     PNFS_FF_RCA4_TYPE_MASK_RW   = 21
    /// };
    ///
-      </artwork>
+      </sourcecode>
     </figure>
-
-    <t>
-      &lt;CODE END&gt;
-    </t>
 
     <t>
       The flags represent the iomode of the recalled layouts.
@@ -2686,6 +2554,16 @@ N: stripe number
   <t>
     Christoph Helwig was instrumental in making sure Flex Files v2
     was applicable to more than the Mojette Transformation.
+  </t>
+</section>
+
+<section numbered="true" removeInRFC="true" toc="default">
+  <name>RFC Editor Notes</name>
+
+  <t>
+    [RFC Editor: prior to publishing this document as an RFC, please
+    replace all occurrences of RFCTBD10 with RFCxxxx where xxxx is the
+    RFC number of this document]
   </t>
 </section>
 
