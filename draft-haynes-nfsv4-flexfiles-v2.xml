@@ -1375,28 +1375,98 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
    /// typedef uint32_t            ff_flags4;
    ///
 
-   /// struct ff_data_server4 {
+   /// /*
+   ///  * NFsv4.0, NFSv4.1, and NFSv4.2 can all
+   ///  * have unique stateids for the file.
+   ///  */
+   /// struct ff2_file_info4 {
+   ///     stateid4                fffi_stateid;
+   ///     nfs_fh4                 fffi_fh_vers;
+   /// };
+   ///
+   /// /*
+   ///  * For now, allow all protection types to
+   ///  * be in the same flags space.
+   ///  */
+   /// const FF2_DS_FLAGS_ACTIVE        = 0x00000001;
+   /// const FF2_DS_FLAGS_SPARE         = 0x00000002;
+   /// const FF2_DS_FLAGS_REPAIR        = 0x00000004;
+   /// typedef uint32_t            ff2_ds_flags4;
+   ///
+   /// struct ff2_data_server4 {
    ///     deviceid4               ffds_deviceid;
    ///     uint32_t                ffds_efficiency;
-   ///     stateid4                ffds_stateid;
-   ///     nfs_fh4                 ffds_fh_vers&lt;&gt;;
+   ///     ff2_file_info4          ffds_file_info&lt;&gt;;
    ///     fattr4_owner            ffds_user;
    ///     fattr4_owner_group      ffds_group;
+   ///     ff2_ds_flags4           ffds_flags;
    /// };
    ///
-
-   /// struct ff_mirror4 {
-   ///     ff_data_server4         ffm_data_servers&lt;&gt;;
+   /// struct ff2_mirror4 {
+   ///     ff2_data_server4        ffm_data_servers&lt;&gt;;
+   ///     ff2_protection_type     ffds_protection;
    /// };
    ///
-
-   /// struct ff_layout4 {
+   ///
+   /// // X_Y: Need X+Y to write
+   /// // Can lose Y files
+   /// // So Y spares
+   /// enum ff2_mojette_faulty_devices {
+   ///         FF2_MOJETTE_FAULTY_DEVICES_2_1       = 0x1;
+   ///         FF2_MOJETTE_FAULTY_DEVICES_4_1       = 0x2;
+   ///         FF2_MOJETTE_FAULTY_DEVICES_4_2       = 0x3;
+   ///         FF2_MOJETTE_FAULTY_DEVICES_8_1       = 0x4;
+   ///         FF2_MOJETTE_FAULTY_DEVICES_8_2       = 0x5;
+   ///         FF2_MOJETTE_FAULTY_DEVICES_8_3       = 0x6;
+   ///         FF2_MOJETTE_FAULTY_DEVICES_8_4       = 0x7;
+   /// };
+   ///
+   /// //
+   /// // Need to define projection header for READ/WRITE
+   /// //
+   ///
+   /// union ff2_protection_data switch (ff2_protection_type fpd_type) {
+   ///     case FF2_PROTECTION_TYPE_MOJETTE:
+   ///         uint32_t                        fpd_mojette_rsize;
+   ///         uint32_t                        fpd_mojette_wsize;
+   ///         ff2_mojette_faulty_devices      fpd_mojette_potection_configuration;
+   ///     case FF2_PROTECTION_TYPE_MIRRORED:
+   ///         void;
+   /// };
+   ///
+   /// struct ff2_layout4 {
    ///     length4                 ffl_stripe_unit;
-   ///     ff_mirror4              ffl_mirrors&lt;&gt;;
+   ///     ff2_mirror4             ffl_mirrors&lt;&gt;;
    ///     ff_flags4               ffl_flags;
    ///     uint32_t                ffl_stats_collect_hint;
+   ///     ff2_protection_data     ffl_protection_data;
    /// };
+
    ///
+   ///
+   ///
+
+   struct ff_data_server4 {
+       deviceid4               ffds_deviceid;
+       uint32_t                ffds_efficiency;
+       stateid4                ffds_stateid;
+       nfs_fh4                 ffds_fh_vers&lt;&gt;;
+       fattr4_owner            ffds_user;
+       fattr4_owner_group      ffds_group;
+   };
+
+
+   struct ff_mirror4 {
+       ff_data_server4         ffm_data_servers&lt;&gt;;
+   };
+
+
+   struct ff_layout4 {
+       length4                 ffl_stripe_unit;
+       ff_mirror4              ffl_mirrors&lt;&gt;;
+       ff_flags4               ffl_flags;
+       uint32_t                ffl_stats_collect_hint;
+   };
       </sourcecode>
     </figure>
 
@@ -2392,17 +2462,34 @@ N: stripe number
 
   <figure anchor='code_ff_layouthint4'>
     <sourcecode type='xdr'>
-   /// union ff_mirrors_hint switch (bool ffmc_valid) {
-   ///     case TRUE:
-   ///         uint32_t    ffmc_mirrors;
-   ///     case FALSE:
+   /// union ff2_mirrors_hint switch (ff2_protection_type ffmh_type) {
+   ///     case FF2_PROTECTION_TYPE_MOJETTE:
+   ///         void;
+   ///     case FF2_PROTECTION_TYPE_MIRRORED:
    ///         void;
    /// };
-   ///
-   /// struct ff_layouthint4 {
-   ///     ff_mirrors_hint    fflh_mirrors_hint;
+   /// 
+   /// /*
+   ///  * We could have this be simply ff2_protection_type
+   ///  * for the client to state what protection algorithm
+   ///  * it wants.
+   ///  */
+   /// struct ff2_layouthint4 {
+   ///     ff2_protection_type fflh_supported_types&lt;&gt;;
+   ///     ff2_mirrors_hint fflh_mirrors_hint;
    /// };
-   ///
+
+   union ff_mirrors_hint switch (bool ffmc_valid) {
+       case TRUE:
+           uint32_t    ffmc_mirrors;
+       case FALSE:
+           void;
+   };
+   
+   struct ff_layouthint4 {
+       ff_mirrors_hint    fflh_mirrors_hint;
+   };
+   
     </sourcecode>
   </figure>
 
@@ -2798,6 +2885,19 @@ N: stripe number
     replace all occurrences of RFCTBD10 with RFCxxxx where xxxx is the
     RFC number of this document]
   </t>
+</section>
+
+<section numbered="true" removeInRFC="true" toc="default">
+  <name>Open Action Items</name>
+
+  <ol>
+    <li>How to describe projection header?</li>
+    <li>It is Little Endian, so not good for XDR?</li>
+    <li>If we add XDR, how does v3 handle it?</li>
+    <li>IANA registration for new Protection Types</li>
+    <li>Proxy registration</li>
+    <li>TLS</li>
+  </ol>
 </section>
 
 </back>
