@@ -1439,7 +1439,6 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
    ///     ff2_mirror4             ffl_mirrors&lt;&gt;;
    ///     ff_flags4               ffl_flags;
    ///     uint32_t                ffl_stats_collect_hint;
-   ///     ff2_protection_data     ffl_protection_data;
    /// };
 
    ///
