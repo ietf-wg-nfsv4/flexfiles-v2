@@ -1,34 +1,34 @@
 <?xml version='1.0' encoding='utf-8'?>
-<!DOCTYPE rfc SYSTEM "rfc2629-xhtml.ent">
-<?xml-stylesheet type="text/xsl" href="rfc2629.xslt"?>
+<!DOCTYPE rfc SYSTEM 'rfc2629-xhtml.ent'>
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt'?>
 
 <rfc
- category="std"
- docName="draft-haynes-nfsv4-flexfiles-v2-VERSIONVAR"
- ipr="trust200902"
- obsoletes=""
- scripts="Common,Latin"
- sortRefs="true"
- submissionType="IETF"
- symRefs="true"
- tocDepth="3"
- tocInclude="true"
- updates="8435"
- version="3"
- xml:lang="en">
+ category='std'
+ docName='draft-haynes-nfsv4-flexfiles-v2-VERSIONVAR'
+ ipr='trust200902'
+ obsoletes=''
+ scripts='Common,Latin'
+ sortRefs='true'
+ submissionType='IETF'
+ symRefs='true'
+ tocDepth='3'
+ tocInclude='true'
+ updates='8435'
+ version='3'
+ xml:lang='en'>
 
 <front>
-  <title abbrev="flexfilesv2">
+  <title abbrev='flexfilesv2'>
     Parallel NFS (pNFS) Flexible File Layout Version 2
   </title>
-  <seriesInfo name="Internet-Draft" value="draft-haynes-nfsv4-flexfiles-v2-VERSIONVAR"/>
-  <author fullname="Thomas Haynes" initials="T." surname="Haynes">
-    <organization abbrev="Hammerspace">Hammerspace</organization>
+  <seriesInfo name='Internet-Draft' value='draft-haynes-nfsv4-flexfiles-v2-VERSIONVAR'/>
+  <author fullname='Thomas Haynes' initials='T.' surname='Haynes'>
+    <organization abbrev='Hammerspace'>Hammerspace</organization>
     <address>
       <email>loghyr@hammerspace.com</email>
     </address>
   </author>
-  <date year="YEARVAR" month="MONTHVAR" day="DAYVAR"/>
+  <date year='YEARVAR' month='MONTHVAR' day='DAYVAR'/>
   <area>Transport</area>
   <workgroup>Network File System Version 4</workgroup>
   <keyword>NFSv4</keyword>
@@ -45,13 +45,13 @@
     </t>
   </abstract>
 
-  <note removeInRFC="true">
+  <note removeInRFC='true'>
     <t>
       Discussion of this draft takes place on the NFSv4 working group
       mailing list (nfsv4@ietf.org), which is archived at <eref
-      target="https://mailarchive.ietf.org/arch/browse/nfsv4/"/>.
+      target='https://mailarchive.ietf.org/arch/browse/nfsv4/'/>.
       Working Group information can be found at <eref
-      target="https://datatracker.ietf.org/wg/nfsv4/about/"/>.
+      target='https://datatracker.ietf.org/wg/nfsv4/about/'/>.
     </t>
 
     <t>
@@ -70,7 +70,7 @@
 
 <middle>
 
-<section anchor="sec_intro" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_intro' numbered='true' removeInRFC='false' toc='default'>
   <name>Introduction</name>
   <t>
     In Parallel NFS (pNFS), the metadata server returns layout type
@@ -78,11 +78,11 @@
     different layout types for different storage systems and methods
     of arranging data on storage devices.  This document defines the
     flexible file layout type used with file-based data servers that
-    are accessed using the NFS protocols: NFSv3 <xref target="RFC1813"
-    format="default" sectionFormat="of" />, NFSv4.0 <xref target="RFC7530"
-    format="default" sectionFormat="of" />, NFSv4.1 <xref target="RFC8881"
-    format="default" sectionFormat="of" />, and NFSv4.2 <xref
-    target="RFC7862" format="default" sectionFormat="of" />.
+    are accessed using the NFS protocols: NFSv3 <xref target='RFC1813'
+    format='default' sectionFormat='of' />, NFSv4.0 <xref target='RFC7530'
+    format='default' sectionFormat='of' />, NFSv4.1 <xref target='RFC8881'
+    format='default' sectionFormat='of' />, and NFSv4.2 <xref
+    target='RFC7862' format='default' sectionFormat='of' />.
   </t>
 
   <t>
@@ -91,9 +91,9 @@
     metadata server and NFSv4.1+ storage devices.  An implementation
     can either define its own proprietary mechanism or it could define
     a control protocol in a Standards Track document.  The requirements
-    for a control protocol are specified in <xref target="RFC8881"
-    format="default" sectionFormat="of" /> and clarified in <xref
-    target="RFC8434" format="default" sectionFormat="of" />.
+    for a control protocol are specified in <xref target='RFC8881'
+    format='default' sectionFormat='of' /> and clarified in <xref
+    target='RFC8434' format='default' sectionFormat='of' />.
   </t>
 
   <t>
@@ -118,9 +118,9 @@
     of the file.
   </t>
 
-  <section anchor="sec_defs" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_defs' numbered='true' removeInRFC='false' toc='default'>
     <name>Definitions</name>
-    <dl newline="false" spacing="normal">
+    <dl newline='false' spacing='normal'>
       <dt>control communication requirements:</dt>
       <dd>
         the specification for information on layouts, stateids, file
@@ -171,8 +171,8 @@
       <dt>file layout type:</dt>
       <dd>
         a layout type in which the storage devices are accessed via
-        the NFS protocol (see Section 13 of <xref target="RFC8881"
-        format="default" sectionFormat="of" />).
+        the NFS protocol (see Section 13 of <xref target='RFC8881'
+        format='default' sectionFormat='of' />).
       </dd>
 
       <dt>gid:</dt>
@@ -197,9 +197,9 @@
       <dd>
         a sub-division of a layout.  That sub-division might be by
         the layout iomode (see Sections 3.3.20 and 12.2.9 of <xref
-        target="RFC8881" format="default" sectionFormat="of" />), a
-        striping pattern (see Section 13.3 of <xref target="RFC8881"
-        format="default" sectionFormat="of" />), or requested byte range.
+        target='RFC8881' format='default' sectionFormat='of' />), a
+        striping pattern (see Section 13.3 of <xref target='RFC8881'
+        format='default' sectionFormat='of' />), or requested byte range.
       </dd>
 
       <dt>layout stateid:</dt>
@@ -207,9 +207,9 @@
         a 128-bit quantity returned by a server that uniquely defines
         the layout state provided by the server for a specific layout
         that describes a layout type and file (see Section 12.5.2 of
-        <xref target="RFC8881" format="default" sectionFormat="of" />).
-        Further, Section 12.5.3 of <xref target="RFC8881" format="default"
-        sectionFormat="of" /> describes differences in handling between
+        <xref target='RFC8881' format='default' sectionFormat='of' />).
+        Further, Section 12.5.3 of <xref target='RFC8881' format='default'
+        sectionFormat='of' /> describes differences in handling between
         layout stateids and other stateid types.
       </dd>
 
@@ -291,8 +291,8 @@
       <dt>storage device:</dt>
       <dd>
         the target to which clients may direct I/O requests when they hold
-        an appropriate layout.  See Section 2.1 of <xref target="RFC8434"
-        format="default" sectionFormat="of" /> for further discussion of
+        an appropriate layout.  See Section 2.1 of <xref target='RFC8434'
+        format='default' sectionFormat='of' /> for further discussion of
         the difference between a data server and a storage device.
       </dd>
 
@@ -331,7 +331,7 @@
     </dl>
 
   </section>
-  <section numbered="true" removeInRFC="false" toc="default">
+  <section numbered='true' removeInRFC='false' toc='default'>
     <name>Requirements Language</name>
     <t>
       The key words &quot;<bcp14>MUST</bcp14>&quot;, &quot;<bcp14>MUST
@@ -343,19 +343,19 @@
       RECOMMENDED</bcp14>&quot;, &quot;<bcp14>MAY</bcp14>&quot;,
       and &quot;<bcp14>OPTIONAL</bcp14>&quot; in this
       document are to be interpreted as described in BCP&nbsp;14 <xref
-      target="RFC2119" format="default" sectionFormat="of" /> <xref
-      target="RFC8174" format="default" sectionFormat="of" /> when,
+      target='RFC2119' format='default' sectionFormat='of' /> <xref
+      target='RFC8174' format='default' sectionFormat='of' /> when,
       and only when, they appear in all capitals, as shown here.
     </t>
   </section>
 </section>
 
-<section anchor="sec_css" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_css' numbered='true' removeInRFC='false' toc='default'>
   <name>Coupling of Storage Devices</name>
   <t>
     A server implementation may choose either a loosely coupled model or
     a tightly coupled model between the metadata server and the storage
-    devices.  <xref target="RFC8434" format="default" sectionFormat="of" />
+    devices.  <xref target='RFC8434' format='default' sectionFormat='of' />
     describes the general problems facing pNFS implementations.  This
     document details how the new flexible file layout type addresses these
     issues.  To implement the tightly coupled model, a control protocol
@@ -381,14 +381,14 @@
     how security, state, and locking are to be managed.
   </t>
 
-  <section anchor='sec_layoutcommit' numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_layoutcommit' numbered='true' removeInRFC='false' toc='default'>
     <name>LAYOUTCOMMIT</name>
     <t>
       Regardless of the coupling model, the metadata server has the
       responsibility, upon receiving a LAYOUTCOMMIT (see Section 18.42
-      of <xref target="RFC8881" format="default" sectionFormat="of" />)
+      of <xref target='RFC8881' format='default' sectionFormat='of' />)
       to ensure that the semantics of pNFS are respected (see Section 3.1
-      of <xref target="RFC8434" format="default" sectionFormat="of" />).
+      of <xref target='RFC8434' format='default' sectionFormat='of' />).
       These do include a requirement that data written to a data storage
       device be stable before the occurrence of the LAYOUTCOMMIT.
     </t>
@@ -406,7 +406,7 @@
     </t>
   </section>
 
-  <section anchor='sec_sec_models' numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_sec_models' numbered='true' removeInRFC='false' toc='default'>
     <name>Fencing Clients from the Storage Device</name>
     <t>
       With loosely coupled storage devices, the metadata server uses
@@ -414,9 +414,9 @@
       where the uid owner of the data file is allowed read/write access
       and the gid owner is allowed read-only access.  As part of the
       layout (see ffds_user and ffds_group in <xref target='ff_layout'
-      format="default" sectionFormat="of" />), the client is provided
+      format='default' sectionFormat='of' />), the client is provided
       with the user and group to be used in the Remote Procedure Call
-      (RPC) <xref target="RFC5531" format="default" sectionFormat="of"
+      (RPC) <xref target='RFC5531' format='default' sectionFormat='of'
       /> credentials needed to access the data file.  Fencing off of
       clients is achieved by the metadata server changing the synthetic
       uid and/or gid owners of the data file on the storage device
@@ -458,8 +458,8 @@
       In the case of tight coupling, fencing is the responsibility of the
       control protocol and is not described in detail in this document.
       However, implementations of the tightly coupled locking model
-      (see <xref target='ss_locking' format="default"
-      sectionFormat="of" />) will need a way to prevent access by certain
+      (see <xref target='ss_locking' format='default'
+      sectionFormat='of' />) will need a way to prevent access by certain
       clients to specific files by invalidating the corresponding
       stateids on the storage device.  In such a scenario, the client
       will be given an error of NFS4ERR_BAD_STATEID.
@@ -475,15 +475,15 @@
       or deny the client further access to the file.
     </t>
 
-    <section anchor='sec_uid_gid' numbered="true" removeInRFC="false" toc="default">
+    <section anchor='sec_uid_gid' numbered='true' removeInRFC='false' toc='default'>
       <name>Implementation Notes for Synthetic uids/gids</name>
       <t>
         The selection method for the synthetic uids and gids to be used
         for fencing in loosely coupled storage devices is strictly an
         implementation issue.  That is, an administrator might restrict
         a range of such ids available to the Lightweight Directory
-        Access Protocol (LDAP) 'uid' field <xref target="RFC4519"
-        format="default" sectionFormat="of" />.  The administrator might
+        Access Protocol (LDAP) 'uid' field <xref target='RFC4519'
+        format='default' sectionFormat='of' />.  The administrator might
         also be able to choose an id that would never be used to grant
         access.  Then, when the metadata server had a request to access
         a file, a SETATTR would be sent to the storage device to set the
@@ -517,10 +517,10 @@
       </t>
      </section>
 
-     <section anchor='ss_uid_examples' numbered="true" removeInRFC="false" toc="default">
+     <section anchor='ss_uid_examples' numbered='true' removeInRFC='false' toc='default'>
        <name>Example of using Synthetic uids/gids</name>
       <t>
-        The user loghyr creates a file "ompha.c" on the metadata server,
+        The user loghyr creates a file 'ompha.c' on the metadata server,
         which then creates a corresponding data file on the storage
         device.
       </t>
@@ -602,7 +602,7 @@
     </section>
   </section>
 
-  <section anchor='ss_locking' numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ss_locking' numbered='true' removeInRFC='false' toc='default'>
     <name>State and Locking Models</name>
 
     <t>
@@ -631,8 +631,8 @@
         the EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID can
         potentially be tightly coupled.  They would use a back-end
         control protocol to implement the global stateid model
-        as described in <xref target="RFC8881" format="default"
-        sectionFormat="of" />.
+        as described in <xref target='RFC8881' format='default'
+        sectionFormat='of' />.
       </li>
     </ul>
 
@@ -641,7 +641,7 @@
       over the control protocol to enable a tightly coupled model.
     </t>
 
-    <section anchor='ss_lclm' numbered="true" removeInRFC="false" toc="default">
+    <section anchor='ss_lclm' numbered='true' removeInRFC='false' toc='default'>
       <name>Loosely Coupled Locking Model</name>
 
       <t>
@@ -733,7 +733,7 @@
       </t>
     </section>
 
-    <section anchor='ss_tclm' numbered="true" removeInRFC="false" toc="default">
+    <section anchor='ss_tclm' numbered='true' removeInRFC='false' toc='default'>
       <name>Tightly Coupled Locking Model</name>
 
       <t>
@@ -846,18 +846,18 @@
   </section>
 </section>
 
-<section anchor="sec_protection" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_protection' numbered='true' removeInRFC='false' toc='default'>
   <name>Client-Side Protection Modes</name>
 
-  <section anchor="sec_csm" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_csm' numbered='true' removeInRFC='false' toc='default'>
     <name>Client-Side Mirroring</name>
   </section>
 
-  <section anchor="sec_nsmt" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_nsmt' numbered='true' removeInRFC='false' toc='default'>
     <name>Non-Systematic Mojette Transform</name>
   </section>
 
-  <section anchor="sec_smt" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_smt' numbered='true' removeInRFC='false' toc='default'>
     <name>Systematic Mojette Transform</name>
 
     <t>
@@ -869,7 +869,7 @@
       or 8KB.
     </t>
 
-    <section anchor="sec_sys_dbr" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='sec_sys_dbr' numbered='true' removeInRFC='false' toc='default'>
       <name>Data Block Representation</name>
 
       <t>
@@ -880,7 +880,7 @@
       </t>
     </section>
 
-    <section anchor="sec_sys_esmt" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='sec_sys_esmt' numbered='true' removeInRFC='false' toc='default'>
       <name>Encoding with the Systematic Mojette Transform</name>
 
       <t>
@@ -888,7 +888,7 @@
         a file system block:
       </t>
 
-      <dl newline="false" spacing="normal">
+      <dl newline='false' spacing='normal'>
         <dt>Initialization:</dt>
         <dd>
           Each file system block is treated as a 2D grid of data elements
@@ -934,7 +934,7 @@ Projection(b, p_i, q_i) = \sum_{k=0}^{Q-1} \sum_{l=0}^{P-1} \text{Data}(k, l) * 
 
     </section>
 
-    <section anchor="sec_sys_dsmt" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='sec_sys_dsmt' numbered='true' removeInRFC='false' toc='default'>
       <name>Decoding with the Systematic Mojette Transform</name>
 
       <t>
@@ -942,7 +942,7 @@ Projection(b, p_i, q_i) = \sum_{k=0}^{Q-1} \sum_{l=0}^{P-1} \text{Data}(k, l) * 
         Transform, the following steps are followed:
       </t>
 
-      <dl newline="false" spacing="normal">
+      <dl newline='false' spacing='normal'>
         <dt>Identify Missing Data:</dt>
         <dd>
           Determine which data blocks are missing. Let
@@ -968,7 +968,7 @@ Projection(b, p_i, q_i) = \sum_{k=0}^{Q-1} \sum_{l=0}^{P-1} \text{Data}(k, l) * 
       </dl>
     </section>
 
-    <section numbered="true" removeInRFC="false" toc="default">
+    <section numbered='true' removeInRFC='false' toc='default'>
       <name>Example</name>
 
       <t>
@@ -983,7 +983,7 @@ Projection(b, p_i, q_i) = \sum_{k=0}^{Q-1} \sum_{l=0}^{P-1} \text{Data}(k, l) * 
       </t>
 
     </section>
-    <section numbered="true" removeInRFC="false" toc="default">
+    <section numbered='true' removeInRFC='false' toc='default'>
       <name>Conclusion</name>
 
       <t>
@@ -997,10 +997,10 @@ Projection(b, p_i, q_i) = \sum_{k=0}^{Q-1} \sum_{l=0}^{P-1} \text{Data}(k, l) * 
     </section>
   </section>
 
-  <section anchor="sec_benefits" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_benefits' numbered='true' removeInRFC='false' toc='default'>
     <name>Benefits of Systematic vs. Non-Systematic Mojette Transform</name>
 
-    <dl newline="false" spacing="normal">
+    <dl newline='false' spacing='normal'>
       <dt>Redundancy Reduction:</dt>
       <dd>
         Systematic Mojette coding reduces redundancy by integrating the
@@ -1027,22 +1027,22 @@ Projection(b, p_i, q_i) = \sum_{k=0}^{Q-1} \sum_{l=0}^{P-1} \text{Data}(k, l) * 
     </t>
   </section>
 
-  <section anchor="sec_rs" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_rs' numbered='true' removeInRFC='false' toc='default'>
     <name>Reed-Solomon</name>
   </section>
 
-  <section anchor="sec_wh" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_wh' numbered='true' removeInRFC='false' toc='default'>
     <name>Write Holes</name>
   </section>
 
 </section>
 
-<section anchor='sec_xdr_desc' numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_xdr_desc' numbered='true' removeInRFC='false' toc='default'>
   <name>XDR Description of the Flexible File Layout Type</name>
 
   <t>
     This document contains the External Data Representation (XDR) <xref
-    target="RFC4506" format="default" sectionFormat="of" /> description
+    target='RFC4506' format='default' sectionFormat='of' /> description
     of the flexible file layout type.  The XDR description is embedded in
     this document in a way that makes it simple for the reader to extract
     into a ready-to-compile form.  The reader can feed this document
@@ -1058,8 +1058,8 @@ grep '^ *///' $* | sed 's?^ */// ??' | sed 's?^ *///$??'
   </figure>
 
   <t>
-    That is, if the above script is stored in a file called "extract.sh"
-    and this document is in a file called "spec.txt", then the reader can
+    That is, if the above script is stored in a file called 'extract.sh'
+    and this document is in a file called 'spec.txt', then the reader can
     run the script as in <xref target='sh_extract' />.
   </t>
 
@@ -1071,7 +1071,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
 
   <t>
     The effect of the script is to remove leading white space from each
-    line, plus a sentinel sequence of "///".
+    line, plus a sentinel sequence of '///'.
   </t>
 
   <t>
@@ -1081,20 +1081,20 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
 
   <t>
     Note that the XDR code contained in this document depends on
-    types from the NFSv4.1 nfs4_prot.x file <xref target="RFC5662"
-    format="default" sectionFormat="of" />.  This includes both nfs types
+    types from the NFSv4.1 nfs4_prot.x file <xref target='RFC5662'
+    format='default' sectionFormat='of' />.  This includes both nfs types
     that end with a 4, such as offset4, length4, etc., as well as more
     generic types such as uint32_t and uint64_t.
   </t>
 
-  <section anchor='sec_code_copyright' numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_code_copyright' numbered='true' removeInRFC='false' toc='default'>
     <name>Code Components Licensing Notice</name>
 
     <t>
       Both the XDR description and the scripts used for extracting the XDR
       description are Code Components as described in Section 4 of
-      "Trust Legal Provisions (TLP)" <xref target="LEGAL" format="default"
-      sectionFormat="of" />.  These Code Components are licensed according
+      'Trust Legal Provisions (TLP)' <xref target='LEGAL' format='default'
+      sectionFormat='of' />.  These Code Components are licensed according
       to the terms of that document.
     </t>
 
@@ -1123,7 +1123,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
 ///  *   software without specific prior written permission.
 ///  *
 ///  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
-///  *   AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+///  *   AND CONTRIBUTORS 'AS IS' AND ANY EXPRESS OR IMPLIED
 ///  *   WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 ///  *   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
 ///  *   FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
@@ -1160,18 +1160,18 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
   </section>
 </section>
 
-<section numbered="true" removeInRFC="false" toc="default">
+<section numbered='true' removeInRFC='false' toc='default'>
   <name>Device Addressing and Discovery</name>
 
   <t>
     Data operations to a storage device require the client to know the
     network address of the storage device.  The NFSv4.1+ GETDEVICEINFO
-    operation (Section 18.40 of <xref target="RFC8881" format="default"
-    sectionFormat="of" />) is used by the client to retrieve that
+    operation (Section 18.40 of <xref target='RFC8881' format='default'
+    sectionFormat='of' />) is used by the client to retrieve that
     information.
   </t>
 
-  <section anchor="sec_ff_device_addr" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_ff_device_addr' numbered='true' removeInRFC='false' toc='default'>
     <name>ff_device_addr4</name>
 
     <t>
@@ -1215,8 +1215,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       If ffdv_version equals 3, then the server <bcp14>MUST</bcp14>
       set ffdv_minorversion to 0 and ffdv_tightly_coupled to false.
       The client <bcp14>MUST</bcp14> then access the storage device
-      using the NFSv3 protocol <xref target="RFC1813" format="default"
-      sectionFormat="of" />.  If ffdv_version equals 4, then the server
+      using the NFSv3 protocol <xref target='RFC1813' format='default'
+      sectionFormat='of' />.  If ffdv_version equals 4, then the server
       <bcp14>MUST</bcp14> set ffdv_minorversion to one of the NFSv4
       minor version numbers, and the client <bcp14>MUST</bcp14> access
       the storage device using NFSv4 with the specified minor version.
@@ -1230,7 +1230,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       as to which device it is version incompatible.  However, if the
       client waits until it retrieves the layout from the metadata server,
       it can at that time clearly identify the storage device in question
-      (see <xref target='ss_version' format="default" sectionFormat="of"
+      (see <xref target='ss_version' format='default' sectionFormat='of'
       />).
     </t>
 
@@ -1253,12 +1253,12 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       That is, the writes <bcp14>MUST</bcp14> be committed by the client
       to stable storage via issuing WRITEs with stable_how == FILE_SYNC
       or by issuing a COMMIT after WRITEs with stable_how != FILE_SYNC
-      (see Section 3.3.7 of <xref target="RFC1813" format="default"
-      sectionFormat="of" />).
+      (see Section 3.3.7 of <xref target='RFC1813' format='default'
+      sectionFormat='of' />).
     </t>
   </section>
 
-  <section numbered="true" removeInRFC="false" toc="default">
+  <section numbered='true' removeInRFC='false' toc='default'>
     <name>Storage Device Multipathing</name>
 
     <t>
@@ -1310,8 +1310,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       accessed over NFSv4.1 or a higher minor version, the two storage
       device addresses will support the implementation of client ID
       or session trunking (the latter is <bcp14>RECOMMENDED</bcp14>)
-      as defined in <xref target="RFC8881" format="default"
-      sectionFormat="of" />.  The two storage device addresses will share
+      as defined in <xref target='RFC8881' format='default'
+      sectionFormat='of' />.  The two storage device addresses will share
       the same server owner or major ID of the server owner.  It is not
       always necessary for the two storage device addresses to designate
       the same storage device with trunking being used.  For example,
@@ -1320,12 +1320,12 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
   </section>
 </section>
 
-<section numbered="true" removeInRFC="false" toc="default">
+<section numbered='true' removeInRFC='false' toc='default'>
   <name>Flexible File Layout Type</name>
 
   <t>
-    The original layouttype4 introduced in <xref target="RFC5662"
-    format="default" sectionFormat="of" /> is modified to as in <xref
+    The original layouttype4 introduced in <xref target='RFC5662'
+    format='default' sectionFormat='of' /> is modified to as in <xref
     target='code_layout4' />.
   </t>
 
@@ -1354,15 +1354,15 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
 
   <t>
     This document defines structures associated with the layouttype4
-    value LAYOUT4_FLEX_FILES.  <xref target="RFC8881" format="default"
-    sectionFormat="of" /> specifies the loc_body structure as an XDR
-    type "opaque".  The opaque layout is uninterpreted by the generic
+    value LAYOUT4_FLEX_FILES.  <xref target='RFC8881' format='default'
+    sectionFormat='of' /> specifies the loc_body structure as an XDR
+    type 'opaque'.  The opaque layout is uninterpreted by the generic
     pNFS client layers but is interpreted by the flexible file layout
     type implementation.  This section defines the structure of this
     otherwise opaque value, ff_layout4.
   </t>
 
-  <section anchor="ff_layout" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ff_layout' numbered='true' removeInRFC='false' toc='default'>
     <name>ff_layout4</name>
 
     <figure anchor='code_ff_layout4'>
@@ -1480,8 +1480,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
     <t>
       While not explicitly shown in <xref target='code_ff_layout4' />, each
       layout4 element returned in the logr_layout array of LAYOUTGET4res
-      (see Section 18.43.2 of <xref target="RFC8881" format="default"
-      sectionFormat="of" />) describes a layout segment.  Hence, each
+      (see Section 18.43.2 of <xref target='RFC8881' format='default'
+      sectionFormat='of' />) describes a layout segment.  Hence, each
       ff_layout4 also describes a layout segment.  It is possible that the
       file is concatenated from more than one layout segment.  Each layout
       segment <bcp14>MAY</bcp14> represent different striping parameters.
@@ -1494,7 +1494,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       ffm_data_servers.  If the number of stripes is one, then the
       value for ffl_stripe_unit <bcp14>MUST</bcp14> default to zero.
       The only supported mapping scheme is sparse and is detailed in <xref
-      target='sec_sparseStriping' format="default" sectionFormat="of" />.
+      target='sec_sparseStriping' format='default' sectionFormat='of' />.
       Note that there is an assumption here that both the stripe unit
       size and the number of stripes are the same across all mirrors.
     </t>
@@ -1502,7 +1502,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
     <t>
       The ffl_mirrors field is the array of mirrored storage devices
       that provide the storage for the current stripe; see <xref
-      target='fig_ff_layout' format="default" sectionFormat="of" />.
+      target='fig_ff_layout' format='default' sectionFormat='of' />.
     </t>
 
     <t>
@@ -1511,7 +1511,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       The time is in seconds.
     </t>
 
-    <figure anchor="fig_ff_layout">
+    <figure anchor='fig_ff_layout'>
       <artwork>
             +-----------+
             |           |
@@ -1556,7 +1556,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       ffdv_tightly_coupled provided for the device.  The array allows for
       server implementations that have different filehandles for different
       combinations of version, minor version, and coupling strength.
-      See <xref target='ss_version' format="default" sectionFormat="of" />
+      See <xref target='ss_version' format='default' sectionFormat='of' />
       for how to handle versioning issues between the client and storage
       devices.
     </t>
@@ -1576,7 +1576,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       NFSv4.x storage protocols:
     </t>
 
-    <dl newline="false" spacing="normal">
+    <dl newline='false' spacing='normal'>
       <dt>loosely couple:</dt>
       <dd>the stateid has to be an anonymous stateid</dd>
 
@@ -1603,7 +1603,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       access the data files.  For tightly coupled storage devices,
       the user and group on the storage device will be the same as on
       the metadata server; that is, if ffdv_tightly_coupled (see <xref
-      target='sec_ff_device_addr' format="default" sectionFormat="of" />)
+      target='sec_ff_device_addr' format='default' sectionFormat='of' />)
       is set, then the client <bcp14>MUST</bcp14> ignore both ffds_user
       and ffds_group.
     </t>
@@ -1611,7 +1611,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
     <t>
       The allowed values for both ffds_user and ffds_group are specified
       as owner and owner_group, respectively, in Section 5.9 of <xref
-      target="RFC8881" format="default" sectionFormat="of" />.  For NFSv3
+      target='RFC8881' format='default' sectionFormat='of' />.  For NFSv3
       compatibility, user and group strings that consist of decimal
       numeric values with no leading zeros can be given a special
       interpretation by clients and servers that choose to provide
@@ -1628,8 +1628,8 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       and not per device as the metric may change due to perceived load,
       availability to the metadata server, etc.  Higher values denote
       higher perceived utility.  The way the client can select the best
-      mirror to access is discussed in <xref target="ss_select_mirror"
-      format="default" sectionFormat="of" />.
+      mirror to access is discussed in <xref target='ss_select_mirror'
+      format='default' sectionFormat='of' />.
     </t>
 
     <t>
@@ -1638,7 +1638,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       less tight coupling of the storage devices.
     </t>
 
-    <dl newline="false" spacing="normal">
+    <dl newline='false' spacing='normal'>
       <dt>FF_FLAGS_NO_LAYOUTCOMMIT:</dt>
       <dd>
          can be set to indicate that the client is not required to
@@ -1665,23 +1665,23 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       <dt>FF_FLAGS_WRITE_ONE_MIRROR:</dt>
       <dd>
          can be set to indicate that the client only needs to update
-         one of the mirrors (see <xref target="ss_write_mirror"
-         format="default" sectionFormat="of" />).
+         one of the mirrors (see <xref target='ss_write_mirror'
+         format='default' sectionFormat='of' />).
       </dd>
     </dl>
 
-    <section anchor="layout_get" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='layout_get' numbered='true' removeInRFC='false' toc='default'>
       <name>Error Codes from LAYOUTGET</name>
 
       <t>
-        <xref target="RFC8881" format="default" sectionFormat="of" />
+        <xref target='RFC8881' format='default' sectionFormat='of' />
         provides little guidance as to how the client is to proceed with a
         LAYOUTGET that returns an error of either NFS4ERR_LAYOUTTRYLATER,
         NFS4ERR_LAYOUTUNAVAILABLE, and NFS4ERR_DELAY.  Within the context
         of this document:
       </t>
 
-      <dl newline="false" spacing="normal">
+      <dl newline='false' spacing='normal'>
         <dt>NFS4ERR_LAYOUTUNAVAILABLE:</dt>
         <dd>
           there is no layout available and the I/O is to go to the
@@ -1705,7 +1705,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       </dl>
     </section>
 
-    <section anchor="layout_no_io" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='layout_no_io' numbered='true' removeInRFC='false' toc='default'>
       <name>Client Interactions with FF_FLAGS_NO_IO_THRU_MDS</name>
 
       <t>
@@ -1718,23 +1718,23 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
     </section>
   </section>
 
-  <section numbered="true" removeInRFC="false" toc="default">
+  <section numbered='true' removeInRFC='false' toc='default'>
     <name>LAYOUTCOMMIT</name>
 
     <t>
       The flexible file layout does not use lou_body inside the
       loca_layoutupdate argument to LAYOUTCOMMIT.  If lou_type is
       LAYOUT4_FLEX_FILES, the lou_body field <bcp14>MUST</bcp14> have
-      a zero length (see Section 18.42.1 of <xref target="RFC8881"
-      format="default" sectionFormat="of" />).
+      a zero length (see Section 18.42.1 of <xref target='RFC8881'
+      format='default' sectionFormat='of' />).
     </t>
   </section>
 
-  <section  anchor="layout_inter" numbered="true" removeInRFC="false" toc="default">
+  <section  anchor='layout_inter' numbered='true' removeInRFC='false' toc='default'>
     <name>Interactions between Devices and Layouts</name>
 
     <t>
-      In <xref target="RFC8881" format="default" sectionFormat="of" />,
+      In <xref target='RFC8881' format='default' sectionFormat='of' />,
       the file layout type is defined such that the relationship
       between multipathing and filehandles can result in either 0, 1,
       or N filehandles (see Section 13.3).  Some rationales for this
@@ -1751,7 +1751,7 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
     </t>
   </section>
 
-  <section anchor="ss_version" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ss_version' numbered='true' removeInRFC='false' toc='default'>
     <name>Handling Version Errors</name>
 
     <t>
@@ -1761,15 +1761,15 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
       access a storage device with any of the supplied combinations
       of ffdv_version, ffdv_minorversion, and ffdv_tightly_coupled.
       However, due to the limitations of reporting errors in GETDEVICEINFO
-      (see Section 18.40 in <xref target="RFC8881" format="default"
-      sectionFormat="of" />), the client is not able to specify which
+      (see Section 18.40 in <xref target='RFC8881' format='default'
+      sectionFormat='of' />), the client is not able to specify which
       specific device it cannot communicate with over one of the provided
       ffdv_version and ffdv_minorversion combinations.  Using ff_ioerr4
       (<xref target='ff_ioerr' />) inside either the LAYOUTRETURN
-      (see Section 18.44 of <xref target="RFC8881" format="default"
-      sectionFormat="of" />) or the LAYOUTERROR (see Section 15.6 of
-      <xref target="RFC7862" format="default" sectionFormat="of" /> and
-      <xref target='sec_layouterror' format="default" sectionFormat="of"
+      (see Section 18.44 of <xref target='RFC8881' format='default'
+      sectionFormat='of' />) or the LAYOUTERROR (see Section 15.6 of
+      <xref target='RFC7862' format='default' sectionFormat='of' /> and
+      <xref target='sec_layouterror' format='default' sectionFormat='of'
       /> of this document), the client can isolate the problematic
       storage device.
     </t>
@@ -1789,21 +1789,21 @@ sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
   </section>
 </section>
 
-<section anchor="sec_sparseStriping" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_sparseStriping' numbered='true' removeInRFC='false' toc='default'>
   <name>Striping via Sparse Mapping</name>
 
   <t>
     While other layout types support both dense and sparse mapping
     of logical offsets to physical offsets within a file (see, for
-    example, Section 13.4 of <xref target="RFC8881" format="default"
-    sectionFormat="of" />), the flexible file layout type only supports
+    example, Section 13.4 of <xref target='RFC8881' format='default'
+    sectionFormat='of' />), the flexible file layout type only supports
     a sparse mapping.
   </t>
 
   <t>
     With sparse mappings, the logical offset within a file (L) is also the
     physical offset on the storage device.  As detailed in Section 13.4.4
-    of <xref target="RFC8881" format="default" sectionFormat="of" />,
+    of <xref target='RFC8881' format='default' sectionFormat='of' />,
     this results in holes across each storage device that does not
     contain the current stripe index.
   </t>
@@ -1824,7 +1824,7 @@ N: stripe number
   </figure>
 </section>
 
-<section anchor="sec_io_errors" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_io_errors' numbered='true' removeInRFC='false' toc='default'>
   <name>Recovering from Client I/O Errors</name>
 
   <t>
@@ -1833,8 +1833,8 @@ N: stripe number
     server to recover from the I/O errors.  When the LAYOUT4_FLEX_FILES
     layout type is used, the client <bcp14>MUST</bcp14> report the
     I/O errors to the server at LAYOUTRETURN time using the ff_ioerr4
-    structure (see <xref target="ff_ioerr" format="default"
-    sectionFormat="of" />).
+    structure (see <xref target='ff_ioerr' format='default'
+    sectionFormat='of' />).
   </t>
 
   <t>
@@ -1864,7 +1864,7 @@ N: stripe number
   </t>
 </section>
 
-<section anchor="sec_mirror" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_mirror' numbered='true' removeInRFC='false' toc='default'>
   <name>Mirroring</name>
 
   <t>
@@ -1876,14 +1876,14 @@ N: stripe number
     of the file contents <bcp14>MUST</bcp14> appear identical.  Note,
     this is a constraint of the selected XDR representation in which each
     mirrored copy of the layout segment has the same striping pattern (see
-    <xref target='fig_ff_layout' format="default" sectionFormat="of" />).
+    <xref target='fig_ff_layout' format='default' sectionFormat='of' />).
   </t>
 
   <t>
     The metadata server is responsible for determining the number
     of mirrored copies and the location of each mirror.  While the
     client may provide a hint to how many copies it wants (see <xref
-    target='sec_layout_hint' format="default" sectionFormat="of" />),
+    target='sec_layout_hint' format='default' sectionFormat='of' />),
     the metadata server can ignore that hint; in any event, the client
     has no means to dictate either the storage device (which also means
     the coupling and/or protocol levels to access the layout segments)
@@ -1899,16 +1899,16 @@ N: stripe number
     the layout.  Thus, the metadata server <bcp14>MUST</bcp14> update
     that copy until the client is presented it in a layout.  If the
     FF_FLAGS_WRITE_ONE_MIRROR is set in ffl_flags, the client need
-    only update one of the mirrors (see <xref target="ss_write_mirror"
-    format="default" sectionFormat="of" />).  If the client is writing
+    only update one of the mirrors (see <xref target='ss_write_mirror'
+    format='default' sectionFormat='of' />).  If the client is writing
     to the layout segments via the metadata server, then the metadata
     server <bcp14>MUST</bcp14> update all copies of the mirror.  As seen
-    in <xref target='ss_resilvering' format="default" sectionFormat="of"
+    in <xref target='ss_resilvering' format='default' sectionFormat='of'
     />, during the resilvering, the layout is recalled, and the client
     has to make modifications via the metadata server.
   </t>
 
-  <section anchor="ss_select_mirror" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ss_select_mirror' numbered='true' removeInRFC='false' toc='default'>
     <name>Selecting a Mirror</name>
 
     <t>
@@ -1939,10 +1939,10 @@ N: stripe number
     </t>
   </section>
 
-  <section anchor="ss_write_mirror" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ss_write_mirror' numbered='true' removeInRFC='false' toc='default'>
     <name>Writing to Mirrors</name>
 
-    <section numbered="true" removeInRFC="false" toc="default">
+    <section numbered='true' removeInRFC='false' toc='default'>
       <name>Single Storage Device Updates Mirrors</name>
 
       <t>
@@ -1954,17 +1954,17 @@ N: stripe number
         updating one of the mirrors, then it <bcp14>MUST</bcp14> inform
         the client that the original WRITE had an error.  The client
         then <bcp14>MUST</bcp14> inform the metadata server (see <xref
-        target="ss_write_errors" format="default" sectionFormat="of"
+        target='ss_write_errors' format='default' sectionFormat='of'
         />).  The client's responsibility with respect to COMMIT is
-        explained in <xref target="ss_write_commits" format="default"
-        sectionFormat="of" />.  The client may choose any one of the
+        explained in <xref target='ss_write_commits' format='default'
+        sectionFormat='of' />.  The client may choose any one of the
         mirrors and may use ffds_efficiency as described in <xref
-        target="ss_select_mirror" format="default" sectionFormat="of"
+        target='ss_select_mirror' format='default' sectionFormat='of'
         /> when making this choice.
       </t>
     </section>
 
-    <section numbered="true" removeInRFC="false" toc="default">
+    <section numbered='true' removeInRFC='false' toc='default'>
       <name>Client Updates All Mirrors</name>
 
       <t>
@@ -1985,7 +1985,7 @@ N: stripe number
       </t>
     </section>
 
-    <section anchor="ss_write_errors" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='ss_write_errors' numbered='true' removeInRFC='false' toc='default'>
       <name>Handling Write Errors</name>
 
       <t>
@@ -2025,7 +2025,7 @@ N: stripe number
       </t>
     </section>
 
-    <section anchor="ss_write_commits" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='ss_write_commits' numbered='true' removeInRFC='false' toc='default'>
       <name>Handling Write COMMITs</name>
 
       <t>
@@ -2066,7 +2066,7 @@ N: stripe number
     </section>
   </section>
 
-  <section anchor="ss_resilvering" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ss_resilvering' numbered='true' removeInRFC='false' toc='default'>
     <name>Metadata Server Resilvering of the File</name>
 
     <t>
@@ -2087,14 +2087,14 @@ N: stripe number
   </section>
 </section>
 
-<section numbered="true" removeInRFC="false" toc="default">
+<section numbered='true' removeInRFC='false' toc='default'>
   <name>Flexible File Layout Type Return</name>
 
   <t>
     layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
     layout-type-specific information to the server.  It is defined
-    in Section 18.44.1 of <xref target="RFC8881" format="default"
-    sectionFormat="of" /> (also shown in <xref target='code_layoutreturn_file4' />).
+    in Section 18.44.1 of <xref target='RFC8881' format='default'
+    sectionFormat='of' /> (also shown in <xref target='code_layoutreturn_file4' />).
   </t>
 
   <figure anchor='code_layoutreturn_file4'>
@@ -2139,7 +2139,7 @@ N: stripe number
     If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
     lr_returntype is LAYOUTRETURN4_FILE, then the lrf_body opaque value
     is defined by ff_layoutreturn4 (see <xref target='ff_layoutreturn4'
-    format="default" sectionFormat="of" />).  This allows the client
+    format='default' sectionFormat='of' />).  This allows the client
     to report I/O error information or layout usage statistics back
     to the metadata server as defined below.  Note that while the data
     structures are built on concepts introduced in NFSv4.2, the effective
@@ -2147,10 +2147,10 @@ N: stripe number
     allows for an NFSv4.1 metadata server to utilize the data.
   </t>
 
-  <section anchor="ss_return_errors" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ss_return_errors' numbered='true' removeInRFC='false' toc='default'>
     <name>I/O Error Reporting</name>
 
-    <section anchor="ff_ioerr" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='ff_ioerr' numbered='true' removeInRFC='false' toc='default'>
       <name>ff_ioerr4</name>
 
       <figure anchor='code_ff_ioerr4'>
@@ -2166,8 +2166,8 @@ N: stripe number
       </figure>
 
       <t>
-        Recall that <xref target="RFC7862" format="default"
-        sectionFormat="of" /> defines device_error4 as in <xref target='code_device_error4' />:
+        Recall that <xref target='RFC7862' format='default'
+        sectionFormat='of' /> defines device_error4 as in <xref target='code_device_error4' />:
       </t>
 
       <figure anchor='code_device_error4'>
@@ -2189,7 +2189,7 @@ N: stripe number
         and byte range within the file in which the error occurred;
         ffie_errors represents the operation and type of error.
         The use of device_error4 is described in Section 15.6 of <xref
-        target="RFC7862" format="default" sectionFormat="of" />.
+        target='RFC7862' format='default' sectionFormat='of' />.
       </t>
 
       <t>
@@ -2202,10 +2202,10 @@ N: stripe number
     </section>
   </section>
 
-  <section anchor="ss_return_stats" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ss_return_stats' numbered='true' removeInRFC='false' toc='default'>
     <name>Layout Usage Statistics</name>
 
-    <section numbered="true" removeInRFC="false" toc="default">
+    <section numbered='true' removeInRFC='false' toc='default'>
       <name>ff_io_latency4</name>
 
       <figure anchor='code_ff_io_latency4'>
@@ -2227,12 +2227,12 @@ N: stripe number
         Both operation counts and bytes transferred are kept in the
         ff_io_latency4 (see <xref target='code_ff_io_latency4'
         />.  As seen in ff_layoutupdate4 (see <xref
-        target='ss_return_ff_layoutupdate' format="default"
-        sectionFormat="of" />), READ and WRITE operations are aggregated
+        target='ss_return_ff_layoutupdate' format='default'
+        sectionFormat='of' />), READ and WRITE operations are aggregated
         separately.  READ operations are used for the ff_io_latency4
         ffl_read.  Both WRITE and COMMIT operations are used for the
-        ff_io_latency4 ffl_write.  "Requested" counters track what the
-        client is attempting to do, and "completed" counters track what
+        ff_io_latency4 ffl_write.  'Requested' counters track what the
+        client is attempting to do, and 'completed' counters track what
         was done.  There is no requirement that the client only report
         completed results that have matching requested results from the
         reported period.
@@ -2247,8 +2247,8 @@ N: stripe number
       </t>
 
       <t>
-        In Section 3.3.1 of <xref target="RFC8881" format="default"
-        sectionFormat="of" />, the nfstime4 is defined as the number of
+        In Section 3.3.1 of <xref target='RFC8881' format='default'
+        sectionFormat='of' />, the nfstime4 is defined as the number of
         seconds and nanoseconds since midnight or zero hour January 1,
         1970 Coordinated Universal Time (UTC).  The use of nfstime4 in
         ff_io_latency4 is to store time since the start of the first
@@ -2266,7 +2266,7 @@ N: stripe number
       </t>
     </section>
 
-    <section anchor="ss_return_ff_layoutupdate" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='ss_return_ff_layoutupdate' numbered='true' removeInRFC='false' toc='default'>
       <name>ff_layoutupdate4</name>
 
       <figure anchor='code_ff_layoutupdate4'>
@@ -2292,12 +2292,12 @@ N: stripe number
         time period over which the statistics were collected.  If true,
         ffl_local indicates that the I/O was serviced by the client's
         cache.  This flag allows the client to inform the metadata server
-        about "hot" access to a file it would not normally be allowed
+        about 'hot' access to a file it would not normally be allowed
         to report on.
       </t>
     </section>
 
-    <section numbered="true" removeInRFC="false" toc="default">
+    <section numbered='true' removeInRFC='false' toc='default'>
       <name>ff_iostats4</name>
 
       <figure anchor='code_ff_iostats4'>
@@ -2316,7 +2316,7 @@ N: stripe number
       </figure>
 
       <t>
-        <xref target="RFC7862" format="default" sectionFormat="of" />
+        <xref target='RFC7862' format='default' sectionFormat='of' />
         defines io_info4 as in <xref target='code_io_info4' />.
       </t>
 
@@ -2341,9 +2341,9 @@ N: stripe number
 
       <t>
         Since it is not feasible for the client to report every I/O that
-        used the layout, the client <bcp14>MAY</bcp14> identify "hot"
+        used the layout, the client <bcp14>MAY</bcp14> identify 'hot'
         byte ranges for which to report I/O statistics.  The definition
-        and/or configuration mechanism of what is considered "hot"
+        and/or configuration mechanism of what is considered 'hot'
         and the size of the reported byte range are out of the scope of
         this document.  For client implementation, providing reasonable
         default values and an optional run-time management interface to
@@ -2371,7 +2371,7 @@ N: stripe number
     </section>
   </section>
 
-  <section anchor="ff_layoutreturn4" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='ff_layoutreturn4' numbered='true' removeInRFC='false' toc='default'>
     <name>ff_layoutreturn4</name>
 
     <figure anchor='code_ff_layoutreturn4'>
@@ -2400,43 +2400,43 @@ N: stripe number
   </section>
 </section>
 
-<section anchor="sec_layouterror" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_layouterror' numbered='true' removeInRFC='false' toc='default'>
   <name>Flexible File Layout Type LAYOUTERROR</name>
 
   <t>
     If the client is using NFSv4.2 to communicate with the
     metadata server, then instead of waiting for a LAYOUTRETURN
     to send error information to the metadata server (see <xref
-    target='ss_return_errors' format="default" sectionFormat="of"
+    target='ss_return_errors' format='default' sectionFormat='of'
     />), it <bcp14>MAY</bcp14> use LAYOUTERROR (see Section 15.6 of
-    <xref target="RFC7862" format="default" sectionFormat="of" />) to
+    <xref target='RFC7862' format='default' sectionFormat='of' />) to
     communicate that information.  For the flexible file layout type,
     this means that LAYOUTERROR4args is treated the same as ff_ioerr4.
   </t>
 </section>
 
-<section anchor="sec_layoutstats" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_layoutstats' numbered='true' removeInRFC='false' toc='default'>
   <name>Flexible File Layout Type LAYOUTSTATS</name>
 
   <t>
     If the client is using NFSv4.2 to communicate with the metadata
     server, then instead of waiting for a LAYOUTRETURN to send I/O
     statistics to the metadata server (see <xref target='ss_return_stats'
-    format="default" sectionFormat="of" />), it <bcp14>MAY</bcp14>
-    use LAYOUTSTATS (see Section 15.7 of <xref target="RFC7862"
-    format="default" sectionFormat="of" />) to communicate that
+    format='default' sectionFormat='of' />), it <bcp14>MAY</bcp14>
+    use LAYOUTSTATS (see Section 15.7 of <xref target='RFC7862'
+    format='default' sectionFormat='of' />) to communicate that
     information.  For the flexible file layout type, this means that
     LAYOUTSTATS4args.lsa_layoutupdate is overloaded with the same contents
     as in ffis_layoutupdate.
   </t>
 </section>
 
-<section anchor="sec_layout_hint" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_layout_hint' numbered='true' removeInRFC='false' toc='default'>
   <name>Flexible File Layout Type Creation Hint</name>
 
   <t>
-    The layouthint4 type is defined in the <xref target="RFC8881"
-    format="default" sectionFormat="of" /> as in <xref target='code_layouthint4' />.
+    The layouthint4 type is defined in the <xref target='RFC8881'
+    format='default' sectionFormat='of' /> as in <xref target='code_layouthint4' />.
   </t>
 
   <figure anchor='code_layouthint4'>
@@ -2456,7 +2456,7 @@ N: stripe number
   </t>
 </section>
 
-<section numbered="true" removeInRFC="false" toc="default">
+<section numbered='true' removeInRFC='false' toc='default'>
   <name>ff_layouthint4</name>
 
   <figure anchor='code_ff_layouthint4'>
@@ -2499,12 +2499,12 @@ N: stripe number
   </t>
 </section>
 
-<section numbered="true" removeInRFC="false" toc="default">
+<section numbered='true' removeInRFC='false' toc='default'>
   <name>Recalling a Layout</name>
 
   <t>
-    While Section 12.5.5 of <xref target="RFC8881" format="default"
-    sectionFormat="of" /> discusses reasons independent of layout type
+    While Section 12.5.5 of <xref target='RFC8881' format='default'
+    sectionFormat='of' /> discusses reasons independent of layout type
     for recalling a layout, the flexible file layout type metadata server
     should recall outstanding layouts in the following cases:
   </t>
@@ -2528,19 +2528,19 @@ N: stripe number
     <li>
       When existing layouts are inconsistent with the
       requirements regarding resilvering as described in <xref
-      target="ss_resilvering" format="default" sectionFormat="of" />.
+      target='ss_resilvering' format='default' sectionFormat='of' />.
     </li>
   </ul>
 
-  <section anchor="CB_RECALL_ANY" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='CB_RECALL_ANY' numbered='true' removeInRFC='false' toc='default'>
     <name>CB_RECALL_ANY</name>
 
     <t>
       The metadata server can use the CB_RECALL_ANY callback operation
       to notify the client to return some or all of its layouts.  Section
-      22.3 of <xref target="RFC8881" format="default" sectionFormat="of" />
-      defines the allowed types of the "NFSv4 Recallable Object Types
-      Registry".
+      22.3 of <xref target='RFC8881' format='default' sectionFormat='of' />
+      defines the allowed types of the 'NFSv4 Recallable Object Types
+      Registry'.
     </t>
 
     <figure anchor='code_CB_RECALL_ANY4args'>
@@ -2593,7 +2593,7 @@ N: stripe number
   </section>
 </section>
 
-<section anchor="sec_fencing" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_fencing' numbered='true' removeInRFC='false' toc='default'>
   <name>Client Fencing</name>
 
   <t>
@@ -2601,14 +2601,14 @@ N: stripe number
     expired or when clients fail to return recalled layouts within a
     lease period, the server <bcp14>MAY</bcp14> revoke client layouts
     and reassign these resources to other clients (see Section 12.5.5
-    of <xref target="RFC8881" format="default" sectionFormat="of" />).
+    of <xref target='RFC8881' format='default' sectionFormat='of' />).
     To avoid data corruption, the metadata server <bcp14>MUST</bcp14>
     fence off the revoked clients from the respective data files as
-    described in <xref target='sec_sec_models' format="default" sectionFormat="of" />.
+    described in <xref target='sec_sec_models' format='default' sectionFormat='of' />.
   </t>
 </section>
 
-<section anchor="sec_security" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_security' numbered='true' removeInRFC='false' toc='default'>
   <name>Security Considerations</name>
 
   <t>
@@ -2621,8 +2621,8 @@ N: stripe number
     NFS being used.  The flexible file layout further divides the data
     protocol into metadata and data paths.  The security properties
     of the metadata path are equivalent to those of NFSv4.1x (see
-    Sections 1.7.1 and 2.2.1 of <xref target="RFC8881" format="default"
-    sectionFormat="of" />).  And the security properties of the data
+    Sections 1.7.1 and 2.2.1 of <xref target='RFC8881' format='default'
+    sectionFormat='of' />).  And the security properties of the data
     path are equivalent to those of the version of NFS used to access
     the storage device, with the provision that the metadata server
     is responsible for authenticating client access to the data file.
@@ -2682,12 +2682,12 @@ N: stripe number
     from getting an error on I/Os done after the client was fenced off.
   </t>
 
-  <section anchor="sec_security_tls" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_security_tls' numbered='true' removeInRFC='false' toc='default'>
     <name>Transport Layer Security</name>
 
   </section>
 
-  <section anchor="sec_security_krb5" numbered="true" removeInRFC="false" toc="default">
+  <section anchor='sec_security_krb5' numbered='true' removeInRFC='false' toc='default'>
     <name>RPCSEC_GSS and Security Services</name>
 
     <t>
@@ -2701,19 +2701,19 @@ N: stripe number
       model, the issues are different depending on the coupling model.
     </t>
 
-    <section anchor="sec_security_krb5_lc" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='sec_security_krb5_lc' numbered='true' removeInRFC='false' toc='default'>
       <name>Loosely Coupled</name>
 
       <t>
-        RPCSEC_GSS version 3 (RPCSEC_GSSv3) <xref target="RFC7861"
-        format="default" sectionFormat="of" /> contains facilities that
+        RPCSEC_GSS version 3 (RPCSEC_GSSv3) <xref target='RFC7861'
+        format='default' sectionFormat='of' /> contains facilities that
         would allow it to be used to authorize the client to the storage
         device on behalf of the metadata server.  Doing so would require
         that each of the metadata server, storage device, and client would
         need to implement RPCSEC_GSSv3 using an RPC-application-defined
         structured privilege assertion in a manner described in
-        Section 4.9.1 of <xref target="RFC7862" format="default"
-        sectionFormat="of" />.  The specifics necessary to do so are not
+        Section 4.9.1 of <xref target='RFC7862' format='default'
+        sectionFormat='of' />.  The specifics necessary to do so are not
         described in this document.  This is principally because any
         such specification would require extensive implementation work
         on a wide range of storage devices, which would be unlikely to
@@ -2729,7 +2729,7 @@ N: stripe number
       </t>
     </section>
 
-    <section anchor="sec_security_krb5_tc" numbered="true" removeInRFC="false" toc="default">
+    <section anchor='sec_security_krb5_tc' numbered='true' removeInRFC='false' toc='default'>
       <name>Tightly Coupled</name>
 
       <t>
@@ -2739,8 +2739,8 @@ N: stripe number
         any RPC credentials.  As a result, there are no security
         issues related to using RPCSEC_GSS with a tightly coupled
         system.  For example, if Kerberos V5 Generic Security Service
-        Application Program Interface (GSS-API) <xref target="RFC4121"
-        format="default" sectionFormat="of" /> is used as the security
+        Application Program Interface (GSS-API) <xref target='RFC4121'
+        format='default' sectionFormat='of' /> is used as the security
         mechanism, then the storage device could use a control protocol
         to validate the RPC credentials to the metadata server.
       </t>
@@ -2748,18 +2748,18 @@ N: stripe number
   </section>
 </section>
 
-<section anchor="sec_iana" numbered="true" removeInRFC="false" toc="default">
+<section anchor='sec_iana' numbered='true' removeInRFC='false' toc='default'>
   <name>IANA Considerations</name>
 
   <t>
-    <xref target="RFC8881" format="default" sectionFormat="of" />
-    introduced the "pNFS Layout Types Registry"; new layout type
+    <xref target='RFC8881' format='default' sectionFormat='of' />
+    introduced the 'pNFS Layout Types Registry'; new layout type
     numbers in this registry need to be assigned by IANA.  This document
     defines the protocol associated with an existing layout type number:
     LAYOUT4_FLEX_FILES (see <xref target='layoutlist' />).
   </t>
 
-  <table anchor="layoutlist">
+  <table anchor='layoutlist'>
     <name>Layout Type Assignments</name>
     <thead>
       <tr>
@@ -2778,13 +2778,13 @@ N: stripe number
   </table>
 
   <t>
-    <xref target="RFC8881" format="default" sectionFormat="of" /> also
-    introduced the "NFSv4 Recallable Object Types Registry".  This document
+    <xref target='RFC8881' format='default' sectionFormat='of' /> also
+    introduced the 'NFSv4 Recallable Object Types Registry'.  This document
     defines new recallable objects for RCA4_TYPE_MASK_FF2_LAYOUT_MIN and
     RCA4_TYPE_MASK_FF2_LAYOUT_MAX (see <xref target='recalllist' />).
   </t>
 
-  <table anchor="recalllist">
+  <table anchor='recalllist'>
     <name>Recallable Object Type Assignments</name>
     <thead>
       <tr>
@@ -2816,51 +2816,51 @@ N: stripe number
   <references>
     <name>Normative References</name>
 
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.4121.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.4506.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.5531.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.5662.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.7530.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.7861.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.7862.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.8174.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.8434.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.8435.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.8881.xml"/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.4121.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.4506.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.5531.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.5662.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.7530.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.7861.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.7862.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.8174.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.8434.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.8435.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.8881.xml'/>
   </references>
 
   <references>
     <name>Informative References</name>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.1813.xml"/>
-    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-       href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.4519.xml"/>
-    <reference anchor="LEGAL" target="http://trustee.ietf.org/docs/IETF-Trust-License-Policy.pdf">
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.1813.xml'/>
+    <xi:include xmlns:xi='http://www.w3.org/2001/XInclude'
+       href='https://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.4519.xml'/>
+    <reference anchor='LEGAL' target='http://trustee.ietf.org/docs/IETF-Trust-License-Policy.pdf'>
       <front>
-        <title abbrev="Legal Provisions">Legal Provisions Relating to IETF Documents</title>
+        <title abbrev='Legal Provisions'>Legal Provisions Relating to IETF Documents</title>
         <author>
           <organization>IETF Trust</organization>
         </author>
-        <date month="November" year="2008"/>
+        <date month='November' year='2008'/>
       </front>
     </reference>
   </references>
 </references>
 
-<section numbered="true" removeInRFC="false" toc="default">
+<section numbered='true' removeInRFC='false' toc='default'>
   <name>Acknowledgments</name>
   <t>
     The following from Hammerspace were instrumental in driving
@@ -2876,7 +2876,7 @@ N: stripe number
   </t>
 </section>
 
-<section numbered="true" removeInRFC="true" toc="default">
+<section numbered='true' removeInRFC='true' toc='default'>
   <name>RFC Editor Notes</name>
 
   <t>
@@ -2886,13 +2886,14 @@ N: stripe number
   </t>
 </section>
 
-<section numbered="true" removeInRFC="true" toc="default">
+<section numbered='true' removeInRFC='true' toc='default'>
   <name>Open Action Items</name>
 
   <ol>
     <li>How to describe projection header?</li>
     <li>It is Little Endian, so not good for XDR?</li>
     <li>If we add XDR, how does v3 handle it?</li>
+    <li>This is a disk format ...</li>
     <li>IANA registration for new Protection Types</li>
     <li>Proxy registration</li>
     <li>TLS</li>
@@ -2900,5 +2901,4 @@ N: stripe number
 </section>
 
 </back>
-
 </rfc>
