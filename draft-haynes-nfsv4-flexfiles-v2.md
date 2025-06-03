@@ -850,10 +850,6 @@ this otherwise opaque value, ff_layout4.
    ///     nfs_fh4                 fffi_fh_vers;
    /// };
    ///
-   /// /*
-   ///  * For now, allow all protection types to
-   ///  * be in the same flags space.
-   ///  */
    /// const FF2_DS_FLAGS_ACTIVE        = 0x00000001;
    /// const FF2_DS_FLAGS_SPARE         = 0x00000002;
    /// const FF2_DS_FLAGS_REPAIR        = 0x00000004;
@@ -868,47 +864,30 @@ this otherwise opaque value, ff_layout4.
    ///     ff2_ds_flags4           ffds_flags;
    /// };
    ///
-   /// struct ff2_mirror4 {
-   ///     ff2_data_server4        ffm_data_servers<>;
-   ///     ff2_protection_type     ffds_protection;
+   /// enum ffv2_striping {
+   ///     FFV2_STRIPING_NONE = 0,
+   ///     FFV2_STRIPING_SPARSE = 1,
+   ///     FFV2_STRIPING_DENSE = 2
    /// };
    ///
-   /// // X_Y: Need X+Y to write
-   /// // Can lose Y files
-   /// // So Y spares
-   /// enum ff2_mojette_faulty_devices {
-   ///         FF2_MOJETTE_FAULTY_DEVICES_2_1       = 0x1;
-   ///         FF2_MOJETTE_FAULTY_DEVICES_4_1       = 0x2;
-   ///         FF2_MOJETTE_FAULTY_DEVICES_4_2       = 0x3;
-   ///         FF2_MOJETTE_FAULTY_DEVICES_8_1       = 0x4;
-   ///         FF2_MOJETTE_FAULTY_DEVICES_8_2       = 0x5;
-   ///         FF2_MOJETTE_FAULTY_DEVICES_8_3       = 0x6;
-   ///         FF2_MOJETTE_FAULTY_DEVICES_8_4       = 0x7;
+   /// struct ffv2_stripes4 {
+   ///         ffv2_data_server4       ffs_data_servers<>;
+   /// };
+   /// 
+   /// struct ffv2_mirror4 {
+   ///         ffv2_coding_type_data4  ffm_coding_type_data;
+   ///         ffv2_key4               ffm_key;
+   ///         ffv2_striping           ffm_striping;
+   ///         uint32_t                ffm_striping_unit_size; // The minimum stripe unit size is 64 bytes.
+   ///         uint32_t                ffm_client_id;
+   ///         ffv2_stripes4           ffm_stripes<>; // Length of this array is the stripe count
    /// };
    ///
-   /// //
-   /// // Need to define projection header for READ/WRITE
-   /// //
-   ///
-   /// union ff2_protection_data switch (ff2_protection_type fpd_type) {
-   ///     case FF2_PROTECTION_TYPE_MOJETTE:
-   ///         uint32_t                        fpd_mojette_rsize;
-   ///         uint32_t                        fpd_mojette_wsize;
-   ///         ff2_mojette_faulty_devices      fpd_mojette_potection_configuration;
-   ///     case FF2_PROTECTION_TYPE_MIRRORED:
-   ///         void;
+   /// struct ffv2_layout4 {
+   ///        ffv2_mirror4            ffl_mirrors<>;
+   ///        ffv2_flags4             ffl_flags;
+   ///        uint32_t                ffl_stats_collect_hint;
    /// };
-   ///
-   /// struct ff2_layout4 {
-   ///     length4                 ffl_stripe_unit;
-   ///     ff2_mirror4             ffl_mirrors<>;
-   ///     ff_flags4               ffl_flags;
-   ///     uint32_t                ffl_stats_collect_hint;
-   ///     ff2_protection_data     ffl_protection_data;
-   /// };
-   ///
-   ///
-   ///
 ~~~
 {: #fig-ff_layout4v2 title="The flex files layout type v2"}
 
@@ -936,6 +915,10 @@ this otherwise opaque value, ff_layout4.
    };
 ~~~
 {: #fig-ff_layout4 title="The flex files layout type v1"}
+
+Note: In {{fig-ff_layout4v2}} ffv2_coding_type_data4 is an enumerated union
+with the payload of each arm being defined by the protection type. ffm_client_id
+tells the client which id to use when interacting with the data servers.
 
 The ff_layout4 structure (see {{fig-ff_layout4}}) specifies a layout in that
 portion of the data file described in the current layout segment.  It
