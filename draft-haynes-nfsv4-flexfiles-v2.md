@@ -297,7 +297,7 @@ protocol will need to provide:
 
 1. management of both security and LAYOUTCOMMITs and
 
-1. a global stateid model and management of these stateids.
+2. a global stateid model and management of these stateids.
 
 When implementing the loosely coupled model, the only control
 protocol will be a version of NFS, with no ability to provide a
@@ -608,7 +608,7 @@ follows:
        the metadata-server-chosen stateid and the filehandle and
        delegation type it represents
 
-   1.  to break such an association.
+   2.  to break such an association.
 
 -  TEST_STATEID is processed locally on the metadata server, without
    storage device involvement.
@@ -1929,12 +1929,12 @@ This section is to be removed before publishing as an RFC.
 
 1.  How to describe projection header?
 
-1.  It is Little Endian, so not good for XDR?
+2.  It is Little Endian, so not good for XDR?
 
-1.  If we add XDR, how does v3 handle it?
+3.  If we add XDR, how does v3 handle it?
 
-1.  IANA registration for new Protection Types
+4.  IANA registration for new Protection Types
 
-1.  Proxy registration
+5.  Proxy registration
 
-1.  TLS
+6.  TLS
