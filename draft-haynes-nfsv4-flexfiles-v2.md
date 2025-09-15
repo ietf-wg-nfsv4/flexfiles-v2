@@ -873,7 +873,7 @@ this otherwise opaque value, ff_layout4.
    /// struct ffv2_stripes4 {
    ///         ffv2_data_server4       ffs_data_servers<>;
    /// };
-   /// 
+   ///
    /// struct ffv2_mirror4 {
    ///         ffv2_coding_type_data4  ffm_coding_type_data;
    ///         ffv2_key4               ffm_key;
@@ -1904,6 +1904,8 @@ Christoph Helwig was instrumental in making sure Flex Files v2 was
 applicable to more than the Mojette Transformation.
 
 Pierre Evenou provided the sections for the Mojette Transformation.
+
+Chris Inacio and Brian Pawlowski helped guide this process.
 
 # Open Action Items
 {:numbered="false"}
