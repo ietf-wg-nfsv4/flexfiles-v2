@@ -29,7 +29,9 @@ normative:
   RFC7530:
   RFC7861:
   RFC7862:
+  RFC7863:
   RFC8174:
+  RFC8178:
   RFC8434:
   RFC8435:
   RFC8881:
@@ -47,7 +49,7 @@ flexible file layout type is defined in this document as an extension
 to pNFS that allows the use of storage devices that require only a
 limited degree of interaction with the metadata server and use
 already-existing protocols.  Data protection is also added to provide
-integrity.  Both Client-side mirroring and the Mojette algorithm are
+integrity.  Both Client-side mirroring and the Erasure Coding algorithms are
 used for data protection.
 
 --- note_Note_to_Readers
@@ -57,14 +59,14 @@ on the NFSv4 working group mailing list (nfsv4@ietf.org),
 which is archived at
 [](https://mailarchive.ietf.org/arch/search/?email_list=nfsv4). Source
 code and issues list for this draft can be found at
-[](https://github.com/ietf-wg-nfsv4/uncacheable).
+[](https://github.com/ietf-wg-nfsv4/flexfiles-v2).
 
 Working Group information can be found at [](https://github.com/ietf-wg-nfsv4).
 
 This draft is currently a work in progress.  It needs to be
 determined if we want to copy v1 text to v2 or if we want just a diff
 of the new content.  For right now, we are copying the v1 text and
-adding the new v1 text.  Also, expect sections to move as we push the
+adding the new v2 text.  Also, expect sections to move as we push the
 emphasis from flex files to protection types.
 
 _As a WIP, the XDR extraction may not yet work._
@@ -73,13 +75,13 @@ _As a WIP, the XDR extraction may not yet work._
 
 # Introduction
 
-In Parallel NFS (pNFS), the metadata server returns layout type
-structures that describe where file data is located.  There are
-different layout types for different storage systems and methods of
-arranging data on storage devices.  This document defines the
-flexible file layout type used with file-based data servers that are
-accessed using the NFS protocols: NFSv3 {{RFC1813}}, NFSv4.0 {{RFC7530}},
-NFSv4.1 {{RFC8881}}, and NFSv4.2 {{RFC7862}}.
+In Parallel NFS (pNFS) (see Section 12 of {{RFC8881}}), the metadata
+server returns layout type structures that describe where file data is
+located.  There are different layout types for different storage systems
+and methods of arranging data on storage devices.  {{RFC8435}} defined
+the Flexible File Version 1 Layout Type used with file-based data
+servers that are accessed using the NFS protocols: NFSv3 {{RFC1813}},
+NFSv4.0 {{RFC7530}}, NFSv4.1 {{RFC8881}}, and NFSv4.2 {{RFC7862}}.
 
 To provide a global state model equivalent to that of the files
 layout type, a back-end control protocol might be implemented between
@@ -107,7 +109,32 @@ can use the LAYOUTERROR operation to inform the metadata server,
 which is then responsible for the repairing of the mirrored copies of
 the file.
 
+This client side mirroring provides for replication of data but does
+not provide for integrity of data.  In the event of an error, an user
+would be able to repair the file by silvering the mirror contents.
+I.e., they would pick one of the mirror instances and replicate it to
+the other instance locations.
+
+However, lacking integrity checks, silent corruptions are not able to
+be detected and the choice of what constitutes the good copy is
+difficult.  This document updates the Flexible File Layout Type to
+version 2 by providing data integrity for erasure coding.  Data
+blocks are transformed into a header and a chunk.  It introduces new
+operations that allow the client to rollback writes to the data file.
+
+Using the process detailed in {{RFC8178}}, the revisions in this
+document become an extension of NFSv4.2 {{RFC7862}}.  They are built on
+top of the external data representation (XDR) {{RFC4506}} generated
+from {{RFC7863}}.
+
+
 ##  Definitions
+
+chunk:
+
+:  One of the resulting chunks to be exchanged with a data server after
+a transformation has been applied to a data block.  The resulting chunk
+may be a different size than the data block.
 
 control communication requirements:
 
@@ -128,9 +155,28 @@ client-side mirroring:
 :  a feature in which the client, not the server, is responsible for
 updating all of the mirrored copies of a layout segment.
 
-erasure encoding:
+data block:
 
-: tbd
+:  A block of data in the client's cache for a file.
+
+data file:
+
+:  The data portion of the file, stored on the data server.
+
+replication of data:
+
+:  Data replication is making and storing multiple copies of data in
+different locations.
+
+Erasure Coding:
+
+:  A data protection scheme where a block of data is replicated into
+fragments and additional redundant fragments are added to achieve parity.
+The new chunks are stored in different locations.
+
+Client Side Erasure Coding:
+
+:  A file based integrity method where copies are maintained in parallel.
 
 (file) data:
 
@@ -274,7 +320,9 @@ uid:
 
 write hole:
 
-: TBD
+:  A write hole is a data corruption scenario where either two clients
+are trying to write to the same chunk or one client is overwriting an
+existing chunk of data.
 
 wsize:
 
@@ -286,25 +334,23 @@ wsize:
 
 #  Coupling of Storage Devices
 
-A server implementation may choose either a loosely coupled model or
-a tightly coupled model between the metadata server and the storage
-devices.  {{RFC8434}} describes the general problems facing pNFS
-implementations.  This document details how the new flexible file
-layout type addresses these issues.  To implement the tightly coupled
-model, a control protocol has to be defined.  As the flexible file
-layout imposes no special requirements on the client, the control
-protocol will need to provide:
+A server implementation may choose either a loosely coupled model or a
+tightly coupled model between the metadata server and the storage devices.
+{{RFC8434}} describes the general problems facing pNFS implementations.
+This document details how the new flexible file layout type addresses
+these issues.  To implement the tightly coupled model, a control protocol
+has to be defined.  As the flexible file layout imposes no special
+requirements on the client, the control protocol will need to provide:
 
 1. management of both security and LAYOUTCOMMITs and
 
 2. a global stateid model and management of these stateids.
 
-When implementing the loosely coupled model, the only control
-protocol will be a version of NFS, with no ability to provide a
-global stateid model or to prevent clients from using layouts
-inappropriately.  To enable client use in that environment, this
-document will specify how security, state, and locking are to be
-managed.
+When implementing the loosely coupled model, the only control protocol
+will be a version of NFS, with no ability to provide a global stateid
+model or to prevent clients from using layouts inappropriately.  To enable
+client use in that environment, this document will specify how security,
+state, and locking are to be managed.
 
 ##  LAYOUTCOMMIT
 
@@ -317,26 +363,26 @@ the LAYOUTCOMMIT.
 
 It is the responsibility of the client to make sure the data file is
 stable before the metadata server begins to query the storage devices
-about the changes to the file.  If any WRITE to a storage device did
-not result with stable_how equal to FILE_SYNC, a LAYOUTCOMMIT to the
-metadata server MUST be preceded by a COMMIT to the storage devices
-written to.  Note that if the client has not done a COMMIT to the
-storage device, then the LAYOUTCOMMIT might not be synchronized to
-the last WRITE operation to the storage device.
+about the changes to the file.  If any WRITE to a storage device did not
+result with stable_how equal to FILE_SYNC, a LAYOUTCOMMIT to the metadata
+server MUST be preceded by a COMMIT to the storage devices written to.
+Note that if the client has not done a COMMIT to the storage device, then
+the LAYOUTCOMMIT might not be synchronized to the last WRITE operation
+to the storage device.
 
 ##  Fencing Clients from the Storage Device
 
-With loosely coupled storage devices, the metadata server uses
-synthetic uids (user ids) and gids (group ids) for the data file,
-where the uid owner of the data file is allowed read/write access and
-the gid owner is allowed read-only access.  As part of the layout
-(see ffds_user and ffds_group in {{sec_ff_layout}}), the client is
-provided with the user and group to be used in the Remote Procedure Call
-(RPC) {{RFC5531}} credentials needed to access the data file.  Fencing off
-of clients is achieved by the metadata server changing the synthetic uid
-and/or gid owners of the data file on the storage device to implicitly
-revoke the outstanding RPC credentials.  A client presenting the wrong
-credential for the desired access will get an NFS4ERR_ACCESS error.
+With loosely coupled storage devices, the metadata server uses synthetic
+uids (user ids) and gids (group ids) for the data file, where the uid
+owner of the data file is allowed read/write access and the gid owner
+is allowed read-only access.  As part of the layout (see ffds_user and
+ffds_group in {{sec_ff_layout}}), the client is provided with the user
+and group to be used in the Remote Procedure Call (RPC) {{RFC5531}}
+credentials needed to access the data file.  Fencing off of clients is
+achieved by the metadata server changing the synthetic uid and/or gid
+owners of the data file on the storage device to implicitly revoke the
+outstanding RPC credentials.  A client presenting the wrong credential
+for the desired access will get an NFS4ERR_ACCESS error.
 
 With this loosely coupled model, the metadata server is not able to fence
 off a single client; it is forced to fence off all clients.  However,
@@ -359,60 +405,57 @@ or some other technique.
 
 With tightly coupled storage devices, the metadata server sets the
 user and group owners, mode bits, and Access Control List (ACL) of
-the data file to be the same as the metadata file.  And the client
-must authenticate with the storage device and go through the same
-authorization process it would go through via the metadata server.
-In the case of tight coupling, fencing is the responsibility of the
-control protocol and is not described in detail in this document.
-However, implementations of the tightly coupled locking model (see
-{{sec-state-locking}}) will need a way to prevent access by certain clients to
-specific files by invalidating the corresponding stateids on the
-storage device.  In such a scenario, the client will be given an
-error of NFS4ERR_BAD_STATEID.
+the data file to be the same as the metadata file.  And the client must
+authenticate with the storage device and go through the same authorization
+process it would go through via the metadata server.  In the case of
+tight coupling, fencing is the responsibility of the control protocol and
+is not described in detail in this document.  However, implementations
+of the tightly coupled locking model (see {{sec-state-locking}}) will
+need a way to prevent access by certain clients to specific files by
+invalidating the corresponding stateids on the storage device.  In such
+a scenario, the client will be given an error of NFS4ERR_BAD_STATEID.
 
-The client need not know the model used between the metadata server
-and the storage device.  It need only react consistently to any
-errors in interacting with the storage device.  It should both return
-the layout and error to the metadata server and ask for a new layout.
-At that point, the metadata server can either hand out a new layout,
-hand out no layout (forcing the I/O through it), or deny the client
-further access to the file.
+The client need not know the model used between the metadata server and
+the storage device.  It need only react consistently to any errors in
+interacting with the storage device.  It should both return the layout
+and error to the metadata server and ask for a new layout.  At that point,
+the metadata server can either hand out a new layout, hand out no layout
+(forcing the I/O through it), or deny the client further access to
+the file.
 
 ###  Implementation Notes for Synthetic uids/gids
 
 The selection method for the synthetic uids and gids to be used for
-fencing in loosely coupled storage devices is strictly an
-implementation issue.  That is, an administrator might restrict a
-range of such ids available to the Lightweight Directory Access
-Protocol (LDAP) 'uid' field {{RFC4519}}.  The administrator might also
-be able to choose an id that would never be used to grant access.
-Then, when the metadata server had a request to access a file, a
-SETATTR would be sent to the storage device to set the owner and
-group of the data file.  The user and group might be selected in a
-round-robin fashion from the range of available ids.
+fencing in loosely coupled storage devices is strictly an implementation
+issue.  That is, an administrator might restrict a range of such ids
+available to the Lightweight Directory Access Protocol (LDAP) 'uid' field
+{{RFC4519}}.  The administrator might also be able to choose an id that
+would never be used to grant access.  Then, when the metadata server had
+a request to access a file, a SETATTR would be sent to the storage device
+to set the owner and group of the data file.  The user and group might
+be selected in a round-robin fashion from the range of available ids.
 
-Those ids would be sent back as ffds_user and ffds_group to the
-client, who would present them as the RPC credentials to the storage
-device.  When the client is done accessing the file and the metadata
-server knows that no other client is accessing the file, it can reset
-the owner and group to restrict access to the data file.
+Those ids would be sent back as ffds_user and ffds_group to the client,
+who would present them as the RPC credentials to the storage device.
+When the client is done accessing the file and the metadata server knows
+that no other client is accessing the file, it can reset the owner and
+group to restrict access to the data file.
 
 When the metadata server wants to fence off a client, it changes the
 synthetic uid and/or gid to the restricted ids.  Note that using a
-restricted id ensures that there is a change of owner and at least
-one id available that never gets allowed access.
+restricted id ensures that there is a change of owner and at least one
+id available that never gets allowed access.
 
-Under an AUTH_SYS security model, synthetic uids and gids of 0 SHOULD
-be avoided.  These typically either grant super access to files on a
-storage device or are mapped to an anonymous id.  In the first case,
-even if the data file is fenced, the client might still be able to
-access the file.  In the second case, multiple ids might be mapped to
-the anonymous ids.
+Under an AUTH_SYS security model, synthetic uids and gids of 0 SHOULD be
+avoided.  These typically either grant super access to files on a storage
+device or are mapped to an anonymous id.  In the first case, even if the
+data file is fenced, the client might still be able to access the file.
+In the second case, multiple ids might be mapped to the anonymous ids.
 
 ###  Example of using Synthetic uids/gids
 
-The user loghyr creates a file "ompha.c" on the metadata server,
-which then creates a corresponding data file on the storage device.
+The user loghyr creates a file "ompha.c" on the metadata server, which
+then creates a corresponding data file on the storage device.
 
 The metadata server entry may look like:
 
@@ -429,87 +472,83 @@ synthetic uid/gid to deny access:
 ~~~
 {: #fig-data-ompha title="Data's view of ompha.c"}
 
-When the file is opened on a client and accessed, the user will try
-to get a layout for the data file.  Since the layout knows nothing
-about the user (and does not care), it does not matter whether the
-user loghyr or garbo opens the file.  The client has to present an
-uid of 19452 to get write permission.  If it presents any other value
-for the uid, then it must give a gid of 28418 to get read access.
+When the file is opened on a client and accessed, the user will try to
+get a layout for the data file.  Since the layout knows nothing about
+the user (and does not care), it does not matter whether the user loghyr
+or garbo opens the file.  The client has to present an uid of 19452
+to get write permission.  If it presents any other value for the uid,
+then it must give a gid of 28418 to get read access.
 
 Further, if the metadata server decides to fence the file, it should
-change the uid and/or gid such that these values neither match
-earlier values for that file nor match a predictable change based on
-an earlier fencing.
+change the uid and/or gid such that these values neither match earlier
+values for that file nor match a predictable change based on an earlier
+fencing.
 
 ~~~ shell
 -rw-r-----    1 19453   28419    1697 Dec  4 11:31 data_ompha.c
 ~~~
 {: #fig-fenced-ompha title="Fenced Data's view of ompha.c"}
 
-The set of synthetic gids on the storage device should be selected
-such that there is no mapping in any of the name services used by the
-storage device, i.e., each group should have no members.
+The set of synthetic gids on the storage device should be selected such
+that there is no mapping in any of the name services used by the storage
+device, i.e., each group should have no members.
 
 If the layout segment has an iomode of LAYOUTIOMODE4_READ, then the
 metadata server should return a synthetic uid that is not set on the
 storage device.  Only the synthetic gid would be valid.
 
 The client is thus solely responsible for enforcing file permissions
-in a loosely coupled model.  To allow loghyr write access, it will
-send an RPC to the storage device with a credential of 1066:1067.  To
-allow garbo read access, it will send an RPC to the storage device
-with a credential of 1067:1067.  The value of the uid does not matter
-as long as it is not the synthetic uid granted when getting the
-layout.
+in a loosely coupled model.  To allow loghyr write access, it will send
+an RPC to the storage device with a credential of 1066:1067.  To allow
+garbo read access, it will send an RPC to the storage device with a
+credential of 1067:1067.  The value of the uid does not matter as long
+as it is not the synthetic uid granted when getting the layout.
 
 While pushing the enforcement of permission checking onto the client
 may seem to weaken security, the client may already be responsible
 for enforcing permissions before modifications are sent to a server.
-With cached writes, the client is always responsible for tracking who
-is modifying a file and making sure to not coalesce requests from
-multiple users into one request.
+With cached writes, the client is always responsible for tracking who is
+modifying a file and making sure to not coalesce requests from multiple
+users into one request.
 
 ##  State and Locking Models {#sec-state-locking}
 
 An implementation can always be deployed as a loosely coupled model.
-There is, however, no way for a storage device to indicate over an
-NFS protocol that it can definitively participate in a tightly
-coupled model:
+There is, however, no way for a storage device to indicate over an NFS
+protocol that it can definitively participate in a tightly coupled model:
 
 -  Storage devices implementing the NFSv3 and NFSv4.0 protocols are
    always treated as loosely coupled.
 
 -  NFSv4.1+ storage devices that do not return the
-   EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID are indicating
-   that they are to be treated as loosely coupled.  From the locking
-   viewpoint, they are treated in the same way as NFSv4.0 storage
-   devices.
+   EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID are indicating that
+   they are to be treated as loosely coupled.  From the locking viewpoint,
+   they are treated in the same way as NFSv4.0 storage devices.
 
 -  NFSv4.1+ storage devices that do identify themselves with the
    EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID can potentially
    be tightly coupled.  They would use a back-end control protocol to
    implement the global stateid model as described in {{RFC8881}}.
 
-A storage device would have to be either discovered or advertised
-over the control protocol to enable a tightly coupled model.
+A storage device would have to be either discovered or advertised over
+the control protocol to enable a tightly coupled model.
 
 ###  Loosely Coupled Locking Model
 
-When locking-related operations are requested, they are primarily
-dealt with by the metadata server, which generates the appropriate
-stateids.  When an NFSv4 version is used as the data access protocol,
-the metadata server may make stateid-related requests of the storage
-devices.  However, it is not required to do so, and the resulting
-stateids are known only to the metadata server and the storage
-device.
+When locking-related operations are requested, they are primarily dealt
+with by the metadata server, which generates the appropriate stateids.
+When an NFSv4 version is used as the data access protocol, the metadata
+server may make stateid-related requests of the storage devices.  However,
+it is not required to do so, and the resulting stateids are known only
+to the metadata server and the storage device.
 
-Given this basic structure, locking-related operations are handled as
-follows:
+Given this basic structure, locking-related operations are handled
+as follows:
 
 -  OPENs are dealt with by the metadata server.  Stateids are
-   selected by the metadata server and associated with the client ID
-   describing the client's connection to the metadata server.  The
-   metadata server may need to interact with the storage device to
+   selected by the metadata server and associated with the client
+   ID describing the client's connection to the metadata server.
+   The metadata server may need to interact with the storage device to
    locate the file to be opened, but no locking-related functionality
    need be used on the storage device.
 
@@ -529,9 +568,9 @@ follows:
    metadata server, without storage device involvement.
 
 All I/O operations to the storage device are done using the anonymous
-stateid.  Thus, the storage device has no information about the
-openowner and lockowner responsible for issuing a particular I/O
-operation.  As a result:
+stateid.  Thus, the storage device has no information about the openowner
+and lockowner responsible for issuing a particular I/O operation.
+As a result:
 
 -  Mandatory byte-range locking cannot be supported because the
    storage device has no way of distinguishing I/O done on behalf of
@@ -542,67 +581,65 @@ operation.  As a result:
    client must ensure that it has a valid stateid associated with the
    openowner.
 
-In the event that a stateid is revoked, the metadata server is
-responsible for preventing client access, since it has no way of
-being sure that the client is aware that the stateid in question has
-been revoked.
+In the event that a stateid is revoked, the metadata server is responsible
+for preventing client access, since it has no way of being sure that
+the client is aware that the stateid in question has been revoked.
 
 As the client never receives a stateid generated by a storage device,
-there is no client lease on the storage device and no prospect of
-lease expiration, even when access is via NFSv4 protocols.  Clients
-will have leases on the metadata server.  In dealing with lease
-expiration, the metadata server may need to use fencing to prevent
-revoked stateids from being relied upon by a client unaware of the
-fact that they have been revoked.
+there is no client lease on the storage device and no prospect of lease
+expiration, even when access is via NFSv4 protocols.  Clients will
+have leases on the metadata server.  In dealing with lease expiration,
+the metadata server may need to use fencing to prevent revoked stateids
+from being relied upon by a client unaware of the fact that they have
+been revoked.
 
 ###  Tightly Coupled Locking Model
 
-When locking-related operations are requested, they are primarily
-dealt with by the metadata server, which generates the appropriate
-stateids.  These stateids must be made known to the storage device
-using control protocol facilities, the details of which are not
-discussed in this document.
+When locking-related operations are requested, they are primarily dealt
+with by the metadata server, which generates the appropriate stateids.
+These stateids must be made known to the storage device using control
+protocol facilities, the details of which are not discussed in this
+document.
 
-Given this basic structure, locking-related operations are handled as
-follows:
+Given this basic structure, locking-related operations are handled
+as follows:
 
 -  OPENs are dealt with primarily on the metadata server.  Stateids
    are selected by the metadata server and associated with the client
-   ID describing the client's connection to the metadata server.  The
-   metadata server needs to interact with the storage device to
-   locate the file to be opened and to make the storage device aware
-   of the association between the metadata-server-chosen stateid and
-   the client and openowner that it represents.  OPEN_DOWNGRADE and
-   CLOSE are executed initially on the metadata server, but the state
-   change made must be propagated to the storage device.
+   ID describing the client's connection to the metadata server.
+   The metadata server needs to interact with the storage device to
+   locate the file to be opened and to make the storage device aware of
+   the association between the metadata-server-chosen stateid and the
+   client and openowner that it represents.  OPEN_DOWNGRADE and CLOSE
+   are executed initially on the metadata server, but the state change
+   made must be propagated to the storage device.
 
 -  Advisory byte-range locks can be implemented locally on the
    metadata server.  As in the case of OPENs, the stateids associated
    with byte-range locks are assigned by the metadata server and are
    available for use on the metadata server.  Because I/O operations
-   are allowed to present lock stateids, the metadata server needs
-   the ability to make the storage device aware of the association
-   between the metadata-server-chosen stateid and the corresponding
-   open stateid it is associated with.
+   are allowed to present lock stateids, the metadata server needs the
+   ability to make the storage device aware of the association between
+   the metadata-server-chosen stateid and the corresponding open stateid
+   it is associated with.
 
 -  Mandatory byte-range locks can be supported when both the metadata
-   server and the storage devices have the appropriate support.  As
-   in the case of advisory byte-range locks, these are assigned by
-   the metadata server and are available for use on the metadata
-   server.  To enable mandatory lock enforcement on the storage
-   device, the metadata server needs the ability to make the storage
-   device aware of the association between the metadata-server-chosen
-   stateid and the client, openowner, and lock (i.e., lockowner,
-   byte-range, and lock-type) that it represents.  Because I/O
-   operations are allowed to present lock stateids, this information
-   needs to be propagated to all storage devices to which I/O might
-   be directed rather than only to storage device that contain the
-   locked region.
+   server and the storage devices have the appropriate support.  As in
+   the case of advisory byte-range locks, these are assigned by the
+   metadata server and are available for use on the metadata server.
+   To enable mandatory lock enforcement on the storage device, the
+   metadata server needs the ability to make the storage device aware
+   of the association between the metadata-server-chosen stateid and
+   the client, openowner, and lock (i.e., lockowner, byte-range, and
+   lock-type) that it represents.  Because I/O operations are allowed
+   to present lock stateids, this information needs to be propagated to
+   all storage devices to which I/O might be directed rather than only
+   to storage device that contain the locked region.
 
 -  Delegations are assigned by the metadata server that initiates
-   recalls when conflicting OPENs are processed.  Because I/O
-   operations are allowed to present delegation stateids, the
-   metadata server requires the ability:
+   recalls when conflicting OPENs are processed.  Because I/O operations
+   are allowed to present delegation stateids, the metadata server
+   requires the ability:
 
    1.  to make the storage device aware of the association between
        the metadata-server-chosen stateid and the filehandle and
@@ -619,19 +656,17 @@ follows:
 
 Because the client will possess and use stateids valid on the storage
 device, there will be a client lease on the storage device, and the
-possibility of lease expiration does exist.  The best approach for
-the storage device is to retain these locks as a courtesy.  However,
-if it does not do so, control protocol facilities need to provide the
-means to synchronize lock state between the metadata server and
-storage device.
+possibility of lease expiration does exist.  The best approach for the
+storage device is to retain these locks as a courtesy.  However, if it
+does not do so, control protocol facilities need to provide the means
+to synchronize lock state between the metadata server and storage device.
 
 Clients will also have leases on the metadata server that are subject
 to expiration.  In dealing with lease expiration, the metadata server
 would be expected to use control protocol facilities enabling it to
 invalidate revoked stateids on the storage device.  In the event the
 client is not responsive, the metadata server may need to use fencing
-to prevent revoked stateids from being acted upon by the storage
-device.
+to prevent revoked stateids from being acted upon by the storage device.
 
 #  Client-Side Protection Modes
 
@@ -1902,8 +1937,6 @@ Monchanin, Pierre Evenou, and Brian Pawlowski.
 
 Christoph Helwig was instrumental in making sure Flex Files v2 was
 applicable to more than the Mojette Transformation.
-
-Pierre Evenou provided the sections for the Mojette Transformation.
 
 Chris Inacio and Brian Pawlowski helped guide this process.
 
