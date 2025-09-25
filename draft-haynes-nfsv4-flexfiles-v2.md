@@ -1939,20 +1939,3 @@ Christoph Helwig was instrumental in making sure Flex Files v2 was
 applicable to more than the Mojette Transformation.
 
 Chris Inacio and Brian Pawlowski helped guide this process.
-
-# Open Action Items
-{:numbered="false"}
-
-This section is to be removed before publishing as an RFC.
-
-1.  How to describe projection header?
-
-2.  It is Little Endian, so not good for XDR?
-
-3.  If we add XDR, how does v3 handle it?
-
-4.  IANA registration for new Protection Types
-
-5.  Proxy registration
-
-6.  TLS
