@@ -8,3 +8,6 @@ draft*.html
 *.patch
 *.mbox
 *.x
+.targets.mk
+lib/
+versioned/
