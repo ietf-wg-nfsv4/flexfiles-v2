@@ -45,12 +45,12 @@ informative:
 
 Parallel NFS (pNFS) allows a separation between the metadata (onto a
 metadata server) and data (onto a storage device) for a file.  The
-flexible file layout type is defined in this document as an extension
-to pNFS that allows the use of storage devices that require only a
-limited degree of interaction with the metadata server and use
-already-existing protocols.  Data protection is also added to provide
-integrity.  Both Client-side mirroring and the Erasure Coding algorithms are
-used for data protection.
+Flexible File Layout Type Version 2 is defined in this document as
+an extension to pNFS that allows the use of storage devices that
+require only a limited degree of interaction with the metadata
+server and use already-existing protocols.  Data protection is also
+added to provide integrity.  Both Client-side mirroring and the
+Erasure Coding algorithms are used for data protection.
 
 --- note_Note_to_Readers
 
@@ -951,38 +951,39 @@ this otherwise opaque value, ff_layout4.
 ~~~
 {: #fig-ff_layout4 title="The flex files layout type v1"}
 
-Note: In {{fig-ff_layout4v2}} ffv2_coding_type_data4 is an enumerated union
-with the payload of each arm being defined by the protection type. ffm_client_id
-tells the client which id to use when interacting with the data servers.
+Note: In {{fig-ff_layout4v2}} ffv2_coding_type_data4 is an enumerated
+union with the payload of each arm being defined by the protection
+type. ffm_client_id tells the client which id to use when interacting
+with the data servers.
 
-The ff_layout4 structure (see {{fig-ff_layout4}}) specifies a layout in that
-portion of the data file described in the current layout segment.  It
-is either a single instance or a set of mirrored copies of that
-portion of the data file.  When mirroring is in effect, it protects
-against loss of data in layout segments.
+The ff_layout4 structure (see {{fig-ff_layout4}}) specifies a layout
+in that portion of the data file described in the current layout
+segment.  It is either a single instance or a set of mirrored copies
+of that portion of the data file.  When mirroring is in effect, it
+protects against loss of data in layout segments.
 
-While not explicitly shown in {{fig-ff_layout4}}, each layout4 element
-returned in the logr_layout array of LAYOUTGET4res (see
+While not explicitly shown in {{fig-ff_layout4}}, each layout4
+element returned in the logr_layout array of LAYOUTGET4res (see
 Section 18.43.2 of {{RFC8881}}) describes a layout segment.  Hence,
-each ff_layout4 also describes a layout segment.  It is possible that
-the file is concatenated from more than one layout segment.  Each
-layout segment MAY represent different striping parameters.
+each ff_layout4 also describes a layout segment.  It is possible
+that the file is concatenated from more than one layout segment.
+Each layout segment MAY represent different striping parameters.
 
 The ffl_stripe_unit field is the stripe unit size in use for the
 current layout segment.  The number of stripes is given inside each
 mirror by the number of elements in ffm_data_servers.  If the number
-of stripes is one, then the value for ffl_stripe_unit MUST default to
-zero.  The only supported mapping scheme is sparse and is detailed in
-{{sec-striping}}.  Note that there is an assumption here that both the
-stripe unit size and the number of stripes are the same across all
-mirrors.
+of stripes is one, then the value for ffl_stripe_unit MUST default
+to zero.  The only supported mapping scheme is sparse and is detailed
+in {{sec-striping}}.  Note that there is an assumption here that
+both the stripe unit size and the number of stripes are the same
+across all mirrors.
 
 The ffl_mirrors field is the array of mirrored storage devices that
 provide the storage for the current stripe; see {{fig-parallel-fileystem}}.
 
-The ffl_stats_collect_hint field provides a hint to the client on how
-often the server wants it to report LAYOUTSTATS for a file.  The time
-is in seconds.
+The ffl_stats_collect_hint field provides a hint to the client on
+how often the server wants it to report LAYOUTSTATS for a file.
+The time is in seconds.
 
 ~~~
             +-----------+
@@ -1012,27 +1013,27 @@ The ffs_mirrors field represents an array of state information for
 each mirrored copy of the current layout segment.  Each element is
 described by a ff_mirror4 type.
 
-ffds_deviceid provides the deviceid of the storage device holding the
-data file.
+ffds_deviceid provides the deviceid of the storage device holding
+the data file.
 
-ffds_fh_vers is an array of filehandles of the data file matching the
-available NFS versions on the given storage device.  There MUST be
-exactly as many elements in ffds_fh_vers as there are in
+ffds_fh_vers is an array of filehandles of the data file matching
+the available NFS versions on the given storage device.  There MUST
+be exactly as many elements in ffds_fh_vers as there are in
 ffda_versions.  Each element of the array corresponds to a particular
-combination of ffdv_version, ffdv_minorversion, and
-ffdv_tightly_coupled provided for the device.  The array allows for
-server implementations that have different filehandles for different
-combinations of version, minor version, and coupling strength.  See
-{{sec-version-errors}} for how to handle versioning issues between the client
-and storage devices.
+combination of ffdv_version, ffdv_minorversion, and ffdv_tightly_coupled
+provided for the device.  The array allows for server implementations
+that have different filehandles for different combinations of
+version, minor version, and coupling strength.  See {{sec-version-errors}}
+for how to handle versioning issues between the client and storage
+devices.
 
-For tight coupling, ffds_stateid provides the stateid to be used by
-the client to access the file.  For loose coupling and an NFSv4
-storage device, the client will have to use an anonymous stateid to
-perform I/O on the storage device.  With no control protocol, the
-metadata server stateid cannot be used to provide a global stateid
-model.  Thus, the server MUST set the ffds_stateid to be the
-anonymous stateid.
+For tight coupling, ffds_stateid provides the stateid to be used
+by the client to access the file.  For loose coupling and an NFSv4
+storage device, the client will have to use an anonymous stateid
+to perform I/O on the storage device.  With no control protocol,
+the metadata server stateid cannot be used to provide a global
+stateid model.  Thus, the server MUST set the ffds_stateid to be
+the anonymous stateid.
 
 This specification of the ffds_stateid restricts both models for
 NFSv4.x storage protocols:
@@ -1060,23 +1061,23 @@ the synthetic user and group to be used in the RPC credentials that
 the client presents to the storage device to access the data files.
 For tightly coupled storage devices, the user and group on the
 storage device will be the same as on the metadata server; that is,
-if ffdv_tightly_coupled (see {{sec-ff_device_addr4}}) is set, then the client
-MUST ignore both ffds_user and ffds_group.
+if ffdv_tightly_coupled (see {{sec-ff_device_addr4}}) is set, then
+the client MUST ignore both ffds_user and ffds_group.
 
-The allowed values for both ffds_user and ffds_group are specified as
-owner and owner_group, respectively, in Section 5.9 of {{RFC8881}}.
+The allowed values for both ffds_user and ffds_group are specified
+as owner and owner_group, respectively, in Section 5.9 of {{RFC8881}}.
 For NFSv3 compatibility, user and group strings that consist of
 decimal numeric values with no leading zeros can be given a special
 interpretation by clients and servers that choose to provide such
 support.  The receiver may treat such a user or group string as
-representing the same user as would be represented by an NFSv3 uid or
-gid having the corresponding numeric value.  Note that if using
-Kerberos for security, the expectation is that these values will be a
-name@domain string.
+representing the same user as would be represented by an NFSv3 uid
+or gid having the corresponding numeric value.  Note that if using
+Kerberos for security, the expectation is that these values will
+be a name@domain string.
 
-ffds_efficiency describes the metadata server's evaluation as to the
-effectiveness of each mirror.  Note that this is per layout and not
-per device as the metric may change due to perceived load,
+ffds_efficiency describes the metadata server's evaluation as to
+the effectiveness of each mirror.  Note that this is per layout and
+not per device as the metric may change due to perceived load,
 availability to the metadata server, etc.  Higher values denote
 higher perceived utility.  The way the client can select the best
 mirror to access is discussed in {{sec-select-mirror}}.
@@ -1092,54 +1093,56 @@ LAYOUTCOMMIT to the metadata server.
 
 F_FLAGS_NO_IO_THRU_MDS
 
-:  can be set to indicate that the client should not send I/O operations
-to the metadata server.  That is, even if the client could determine
-that there was a network disconnect to a storage device, the client
-should not try to proxy the I/O through the metadata server.
+:  can be set to indicate that the client should not send I/O
+operations to the metadata server.  That is, even if the client
+could determine that there was a network disconnect to a storage
+device, the client should not try to proxy the I/O through the
+metadata server.
 
 FF_FLAGS_NO_READ_IO
 
-:  can be set to indicate that the client should not send READ requests
-with the layouts of iomode LAYOUTIOMODE4_RW.  Instead, it should request
-a layout of iomode LAYOUTIOMODE4_READ from the metadata server.
+:  can be set to indicate that the client should not send READ
+requests with the layouts of iomode LAYOUTIOMODE4_RW.  Instead, it
+should request a layout of iomode LAYOUTIOMODE4_READ from the
+metadata server.
 
 FF_FLAGS_WRITE_ONE_MIRROR
 
-:  can be set to indicate that the client only needs to update one of
-the mirrors (see {{sec-write-mirrors}}).
+:  can be set to indicate that the client only needs to update one
+of the mirrors (see {{sec-write-mirrors}}).
 
 ###  Error Codes from LAYOUTGET
 
-{{RFC8881}} provides little guidance as to how the client is to proceed
-with a LAYOUTGET that returns an error of either
+{{RFC8881}} provides little guidance as to how the client is to
+proceed with a LAYOUTGET that returns an error of either
 NFS4ERR_LAYOUTTRYLATER, NFS4ERR_LAYOUTUNAVAILABLE, and NFS4ERR_DELAY.
 Within the context of this document:
 
 NFS4ERR_LAYOUTUNAVAILABLE
 
 :  there is no layout available and the I/O is to go to the metadata
-server.  Note that it is possible to have had a layout before a recall
-and not after.
+server.  Note that it is possible to have had a layout before a
+recall and not after.
 
 NFS4ERR_LAYOUTTRYLATER
 
-:  there is some issue preventing the layout from being granted.  If the
-client already has an appropriate layout, it should continue with I/O
-to the storage devices.
+:  there is some issue preventing the layout from being granted.
+If the client already has an appropriate layout, it should continue
+with I/O to the storage devices.
 
 NFS4ERR_DELAY
 
-:  there is some issue preventing the layout from being granted.  If the
-client already has an appropriate layout, it should not continue with
-I/O to the storage devices.
+:  there is some issue preventing the layout from being granted.
+If the client already has an appropriate layout, it should not
+continue with I/O to the storage devices.
 
 ###  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
 
 Even if the metadata server provides the FF_FLAGS_NO_IO_THRU_MDS
 flag, the client can still perform I/O to the metadata server.  The
-flag functions as a hint.  The flag indicates to the client that the
-metadata server prefers to separate the metadata I/O from the data I/
-O, most likely for performance reasons.
+flag functions as a hint.  The flag indicates to the client that
+the metadata server prefers to separate the metadata I/O from the
+data I/ O, most likely for performance reasons.
 
 ##  LAYOUTCOMMIT
 
@@ -1150,44 +1153,45 @@ Section 18.42.1 of {{RFC8881}}).
 
 ##  Interactions between Devices and Layouts
 
-The file layout type is defined such that the
-relationship between multipathing and filehandles can result in
-either 0, 1, or N filehandles (see Section 13.3 of {{RFC8881}}).  Some rationales
-for this are clustered servers that share the same filehandle or
-allow for multiple read-only copies of the file on the same storage
-device.  In the flexible file layout type, while there is an array of
-filehandles, they are independent of the multipathing being used.  If
-the metadata server wants to provide multiple read-only copies of the
-same file on the same storage device, then it should provide multiple
-mirrored instances, each with a different ff_device_addr4.  The
-client can then determine that, since the each of the ffds_fh_vers
+The file layout type is defined such that the relationship between
+multipathing and filehandles can result in either 0, 1, or N
+filehandles (see Section 13.3 of {{RFC8881}}).  Some rationales for
+this are clustered servers that share the same filehandle or allow
+for multiple read-only copies of the file on the same storage device.
+In the flexible file layout type, while there is an array of
+filehandles, they are independent of the multipathing being used.
+If the metadata server wants to provide multiple read-only copies
+of the same file on the same storage device, then it should provide
+multiple mirrored instances, each with a different ff_device_addr4.
+The client can then determine that, since the each of the ffds_fh_vers
 are different, there are multiple copies of the file for the current
 layout segment available.
 
 ##  Handling Version Errors {#sec-version-errors}
 
 When the metadata server provides the ffda_versions array in the
-ff_device_addr4 (see {{sec-ff_device_addr4}}), the client is able to determine
-whether or not it can access a storage device with any of the
-supplied combinations of ffdv_version, ffdv_minorversion, and
-ffdv_tightly_coupled.  However, due to the limitations of reporting
-errors in GETDEVICEINFO (see Section 18.40 in {{RFC8881}}), the client
-is not able to specify which specific device it cannot communicate
-with over one of the provided ffdv_version and ffdv_minorversion
-combinations.  Using ff_ioerr4 ({{sec-ff_ioerr4}}) inside either the
-LAYOUTRETURN (see Section 18.44 of {{RFC8881}}) or the LAYOUTERROR (see
-Section 15.6 of {{RFC7862}} and {{sec-LAYOUTERROR}} of this document), the
-client can isolate the problematic storage device.
+ff_device_addr4 (see {{sec-ff_device_addr4}}), the client is able
+to determine whether or not it can access a storage device with any
+of the supplied combinations of ffdv_version, ffdv_minorversion,
+and ffdv_tightly_coupled.  However, due to the limitations of
+reporting errors in GETDEVICEINFO (see Section 18.40 in {{RFC8881}}),
+the client is not able to specify which specific device it cannot
+communicate with over one of the provided ffdv_version and
+ffdv_minorversion combinations.  Using ff_ioerr4 ({{sec-ff_ioerr4}})
+inside either the LAYOUTRETURN (see Section 18.44 of {{RFC8881}})
+or the LAYOUTERROR (see Section 15.6 of {{RFC7862}} and {{sec-LAYOUTERROR}}
+of this document), the client can isolate the problematic storage
+device.
 
 The error code to return for LAYOUTRETURN and/or LAYOUTERROR is
 NFS4ERR_MINOR_VERS_MISMATCH.  It does not matter whether the mismatch
 is a major version (e.g., client can use NFSv3 but not NFSv4) or
 minor version (e.g., client can use NFSv4.1 but not NFSv4.2), the
-error indicates that for all the supplied combinations for
-ffdv_version and ffdv_minorversion, the client cannot communicate
-with the storage device.  The client can retry the GETDEVICEINFO to
-see if the metadata server can provide a different combination, or it
-can fall back to doing the I/O through the metadata server.
+error indicates that for all the supplied combinations for ffdv_version
+and ffdv_minorversion, the client cannot communicate with the storage
+device.  The client can retry the GETDEVICEINFO to see if the
+metadata server can provide a different combination, or it can fall
+back to doing the I/O through the metadata server.
 
 #  Striping via Sparse Mapping {#sec-striping}
 
@@ -1197,9 +1201,9 @@ Section 13.4 of {{RFC8881}}), the flexible file layout type only
 supports a sparse mapping.
 
 With sparse mappings, the logical offset within a file (L) is also
-the physical offset on the storage device.  As detailed in
-Section 13.4.4 of {{RFC8881}}, this results in holes across each
-storage device that does not contain the current stripe index.
+the physical offset on the storage device.  As detailed in Section
+13.4.4 of {{RFC8881}}, this results in holes across each storage
+device that does not contain the current stripe index.
 
 ~~~
 L: logical offset within the file
@@ -1225,76 +1229,77 @@ server at LAYOUTRETURN time using the ff_ioerr4 structure (see
 {{sec-ff_ioerr4}}).
 
 The metadata server analyzes the error and determines the required
-recovery operations such as recovering media failures or
-reconstructing missing data files.
+recovery operations such as recovering media failures or reconstructing
+missing data files.
 
-The metadata server MUST recall any outstanding layouts to allow it
-exclusive write access to the stripes being recovered and to prevent
-other clients from hitting the same error condition.  In these cases,
-the server MUST complete recovery before handing out any new layouts
-to the affected byte ranges.
+The metadata server MUST recall any outstanding layouts to allow
+it exclusive write access to the stripes being recovered and to
+prevent other clients from hitting the same error condition.  In
+these cases, the server MUST complete recovery before handing out
+any new layouts to the affected byte ranges.
 
 Although the client implementation has the option to propagate a
 corresponding error to the application that initiated the I/O
-operation and drop any unwritten data, the client should attempt to
-retry the original I/O operation by either requesting a new layout or
-sending the I/O via regular NFSv4.1+ READ or WRITE operations to the
-metadata server.  The client SHOULD attempt to retrieve a new layout
-and retry the I/O operation using the storage device first and only
-retry the I/O operation via the metadata server if the error
-persists.
+operation and drop any unwritten data, the client should attempt
+to retry the original I/O operation by either requesting a new
+layout or sending the I/O via regular NFSv4.1+ READ or WRITE
+operations to the metadata server.  The client SHOULD attempt to
+retrieve a new layout and retry the I/O operation using the storage
+device first and only retry the I/O operation via the metadata
+server if the error persists.
 
 #  Mirroring
 
 The flexible file layout type has a simple model in place for the
-mirroring of the file data constrained by a layout segment.  There is
-no assumption that each copy of the mirror is stored identically on
-the storage devices.  For example, one device might employ
+mirroring of the file data constrained by a layout segment.  There
+is no assumption that each copy of the mirror is stored identically
+on the storage devices.  For example, one device might employ
 compression or deduplication on the data.  However, the over-the-wire
-transfer of the file contents MUST appear identical.  Note, this is a
-constraint of the selected XDR representation in which each mirrored
-copy of the layout segment has the same striping pattern (see
-{{fig-parallel-fileystem}}).
+transfer of the file contents MUST appear identical.  Note, this
+is a constraint of the selected XDR representation in which each
+mirrored copy of the layout segment has the same striping pattern
+(see {{fig-parallel-fileystem}}).
 
 The metadata server is responsible for determining the number of
 mirrored copies and the location of each mirror.  While the client
-may provide a hint to how many copies it wants (see {{sec-layouthint}}), the
-metadata server can ignore that hint; in any event, the client has no
-means to dictate either the storage device (which also means the
-coupling and/or protocol levels to access the layout segments) or the
-location of said storage device.
+may provide a hint to how many copies it wants (see {{sec-layouthint}}),
+the metadata server can ignore that hint; in any event, the client
+has no means to dictate either the storage device (which also means
+the coupling and/or protocol levels to access the layout segments)
+or the location of said storage device.
 
 The updating of mirrored layout segments is done via client-side
 mirroring.  With this approach, the client is responsible for making
-sure modifications are made on all copies of the layout segments it
-is informed of via the layout.  If a layout segment is being
-resilvered to a storage device, that mirrored copy will not be in the
-layout.  Thus, the metadata server MUST update that copy until the
-client is presented it in a layout.  If the FF_FLAGS_WRITE_ONE_MIRROR
+sure modifications are made on all copies of the layout segments
+it is informed of via the layout.  If a layout segment is being
+resilvered to a storage device, that mirrored copy will not be in
+the layout.  Thus, the metadata server MUST update that copy until
+the client is presented it in a layout.  If the FF_FLAGS_WRITE_ONE_MIRROR
 is set in ffl_flags, the client need only update one of the mirrors
-(see {{sec-write-mirrors}}).  If the client is writing to the layout segments
-via the metadata server, then the metadata server MUST update all
-copies of the mirror.  As seen in {{sec-mds-resilvering}}, during the
-resilvering, the layout is recalled, and the client has to make
-modifications via the metadata server.
+(see {{sec-write-mirrors}}).  If the client is writing to the layout
+segments via the metadata server, then the metadata server MUST
+update all copies of the mirror.  As seen in {{sec-mds-resilvering}},
+during the resilvering, the layout is recalled, and the client has
+to make modifications via the metadata server.
 
 ##  Selecting a Mirror {#sec-select-mirror}
 
-When the metadata server grants a layout to a client, it MAY let the
-client know how fast it expects each mirror to be once the request
-arrives at the storage devices via the ffds_efficiency member.  While
-the algorithms to calculate that value are left to the metadata
-server implementations, factors that could contribute to that
-calculation include speed of the storage device, physical memory
-available to the device, operating system version, current load, etc.
+When the metadata server grants a layout to a client, it MAY let
+the client know how fast it expects each mirror to be once the
+request arrives at the storage devices via the ffds_efficiency
+member.  While the algorithms to calculate that value are left to
+the metadata server implementations, factors that could contribute
+to that calculation include speed of the storage device, physical
+memory available to the device, operating system version, current
+load, etc.
 
 However, what should not be involved in that calculation is a
 perceived network distance between the client and the storage device.
-The client is better situated for making that determination based on
-past interaction with the storage device over the different available
-network interfaces between the two; that is, the metadata server
-might not know about a transient outage between the client and
-storage device because it has no presence on the given subnet.
+The client is better situated for making that determination based
+on past interaction with the storage device over the different
+available network interfaces between the two; that is, the metadata
+server might not know about a transient outage between the client
+and storage device because it has no presence on the given subnet.
 
 As such, it is the client that decides which mirror to access for
 reading the file.  The requirements for writing to mirrored layout
@@ -1304,33 +1309,33 @@ segments are presented below.
 
 ###  Single Storage Device Updates Mirrors
 
-If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is set, the client
-only needs to update one of the copies of the layout segment.  For
-this case, the storage device MUST ensure that all copies of the
-mirror are updated when any one of the mirrors is updated.  If the
-storage device gets an error when updating one of the mirrors, then
-it MUST inform the client that the original WRITE had an error.  The
-client then MUST inform the metadata server (see {{sec-write-errors}}).  The
-client's responsibility with respect to COMMIT is explained in
-{{sec-write-commits}}.  The client may choose any one of the mirrors and may
-use ffds_efficiency as described in {{sec-select-mirror}} when making this
-choice.
+If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is set, the
+client only needs to update one of the copies of the layout segment.
+For this case, the storage device MUST ensure that all copies of
+the mirror are updated when any one of the mirrors is updated.  If
+the storage device gets an error when updating one of the mirrors,
+then it MUST inform the client that the original WRITE had an error.
+The client then MUST inform the metadata server (see {{sec-write-errors}}).
+The client's responsibility with respect to COMMIT is explained in
+{{sec-write-commits}}.  The client may choose any one of the mirrors
+and may use ffds_efficiency as described in {{sec-select-mirror}}
+when making this choice.
 
 ###  Client Updates All Mirrors
 
 If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is not set, the
 client is responsible for updating all mirrored copies of the layout
-segments that it is given in the layout.  A single failed update is
-sufficient to fail the entire operation.  If all but one copy is
-updated successfully and the last one provides an error, then the
-client needs to inform the metadata server about the error.  The
-client can use either LAYOUTRETURN or LAYOUTERROR to inform the
+segments that it is given in the layout.  A single failed update
+is sufficient to fail the entire operation.  If all but one copy
+is updated successfully and the last one provides an error, then
+the client needs to inform the metadata server about the error.
+The client can use either LAYOUTRETURN or LAYOUTERROR to inform the
 metadata server that the update failed to that storage device.  If
-the client is updating the mirrors serially, then it SHOULD stop at
-the first error encountered and report that to the metadata server.
-If the client is updating the mirrors in parallel, then it SHOULD
-wait until all storage devices respond so that it can report all
-errors encountered during the update.
+the client is updating the mirrors serially, then it SHOULD stop
+at the first error encountered and report that to the metadata
+server.  If the client is updating the mirrors in parallel, then
+it SHOULD wait until all storage devices respond so that it can
+report all errors encountered during the update.
 
 ###  Handling Write Errors {#sec-write-errors}
 
@@ -1345,64 +1350,64 @@ updates that were not committed to all mirrors, then it MUST resend
 those updates to all mirrors.
 
 There is no provision in the protocol for the metadata server to
-directly determine that the client has or has not recovered from an
-error.  For example, if a storage device was network partitioned from
-the client and the client reported the error to the metadata server,
-then the network partition would be repaired, and all of the copies
-would be successfully updated.  There is no mechanism for the client
-to report that fact, and the metadata server is forced to repair the
-file across the mirror.
+directly determine that the client has or has not recovered from
+an error.  For example, if a storage device was network partitioned
+from the client and the client reported the error to the metadata
+server, then the network partition would be repaired, and all of
+the copies would be successfully updated.  There is no mechanism
+for the client to report that fact, and the metadata server is
+forced to repair the file across the mirror.
 
-If the client supports NFSv4.2, it can use LAYOUTERROR and
-LAYOUTRETURN to provide hints to the metadata server about the
-recovery efforts.  A LAYOUTERROR on a file is for a non-fatal error.
-A subsequent LAYOUTRETURN without a ff_ioerr4 indicates that the
-client successfully replayed the I/O to all mirrors.  Any
-LAYOUTRETURN with a ff_ioerr4 is an error that the metadata server
-needs to repair.  The client MUST be prepared for the LAYOUTERROR to
-trigger a CB_LAYOUTRECALL if the metadata server determines it needs
-to start repairing the file.
+If the client supports NFSv4.2, it can use LAYOUTERROR and LAYOUTRETURN
+to provide hints to the metadata server about the recovery efforts.
+A LAYOUTERROR on a file is for a non-fatal error.  A subsequent
+LAYOUTRETURN without a ff_ioerr4 indicates that the client successfully
+replayed the I/O to all mirrors.  Any LAYOUTRETURN with a ff_ioerr4
+is an error that the metadata server needs to repair.  The client
+MUST be prepared for the LAYOUTERROR to trigger a CB_LAYOUTRECALL
+if the metadata server determines it needs to start repairing the
+file.
 
 ###  Handling Write COMMITs {#sec-write-commits}
 
 When stable writes are done to the metadata server or to a single
-replica (if allowed by the use of FF_FLAGS_WRITE_ONE_MIRROR), it is
-the responsibility of the receiving node to propagate the written
+replica (if allowed by the use of FF_FLAGS_WRITE_ONE_MIRROR), it
+is the responsibility of the receiving node to propagate the written
 data stably, before replying to the client.
 
 In the corresponding cases in which unstable writes are done, the
 receiving node does not have any such obligation, although it may
 choose to asynchronously propagate the updates.  However, once a
-COMMIT is replied to, all replicas must reflect the writes that have
-been done, and this data must have been committed to stable storage
-on all replicas.
+COMMIT is replied to, all replicas must reflect the writes that
+have been done, and this data must have been committed to stable
+storage on all replicas.
 
 In order to avoid situations in which stale data is read from
 replicas to which writes have not been propagated:
 
--  A client that has outstanding unstable writes made to single node
-   (metadata server or storage device) MUST do all reads from that
-   same node.
+-  A client that has outstanding unstable writes made to single
+   node (metadata server or storage device) MUST do all reads from
+   that same node.
 
 -  When writes are flushed to the server (for example, to implement
-   close-to-open semantics), a COMMIT must be done by the client to
-   ensure that up-to-date written data will be available irrespective
-   of the particular replica read.
+   close-to-open semantics), a COMMIT must be done by the client
+   to ensure that up-to-date written data will be available
+   irrespective of the particular replica read.
 
 ##  Metadata Server Resilvering of the File {#sec-mds-resilvering}
 
 The metadata server may elect to create a new mirror of the layout
 segments at any time.  This might be to resilver a copy on a storage
 device that was down for servicing, to provide a copy of the layout
-segments on storage with different storage performance
-characteristics, etc.  As the client will not be aware of the new
-mirror and the metadata server will not be aware of updates that the
-client is making to the layout segments, the metadata server MUST
-recall the writable layout segment(s) that it is resilvering.  If the
-client issues a LAYOUTGET for a writable layout segment that is in
-the process of being resilvered, then the metadata server can deny
-that request with an NFS4ERR_LAYOUTUNAVAILABLE.  The client would
-then have to perform the I/O through the metadata server.
+segments on storage with different storage performance characteristics,
+etc.  As the client will not be aware of the new mirror and the
+metadata server will not be aware of updates that the client is
+making to the layout segments, the metadata server MUST recall the
+writable layout segment(s) that it is resilvering.  If the client
+issues a LAYOUTGET for a writable layout segment that is in the
+process of being resilvered, then the metadata server can deny that
+request with an NFS4ERR_LAYOUTUNAVAILABLE.  The client would then
+have to perform the I/O through the metadata server.
 
 #  Flexible File Layout Type Return {#sec-layouthint}
 
@@ -1449,13 +1454,13 @@ Section 18.44.1 of {{RFC8881}} (also shown in {{fig-LAYOUTRETURN}}).
 
 If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
 lr_returntype is LAYOUTRETURN4_FILE, then the lrf_body opaque value
-is defined by ff_layoutreturn4 (see {{sec-ff_layoutreturn4}}).  This allows the
-client to report I/O error information or layout usage statistics
-back to the metadata server as defined below.  Note that while the
-data structures are built on concepts introduced in NFSv4.2, the
-effective discriminated union (lora_layout_type combined with
-ff_layoutreturn4) allows for an NFSv4.1 metadata server to utilize
-the data.
+is defined by ff_layoutreturn4 (see {{sec-ff_layoutreturn4}}).  This
+allows the client to report I/O error information or layout usage
+statistics back to the metadata server as defined below.  Note that
+while the data structures are built on concepts introduced in
+NFSv4.2, the effective discriminated union (lora_layout_type combined
+with ff_layoutreturn4) allows for an NFSv4.1 metadata server to
+utilize the data.
 
 ##  I/O Error Reporting {#sec-io-error}
 
@@ -1483,14 +1488,14 @@ Recall that {{RFC7862}} defines device_error4 as in {{fig-device_error4}}:
 ~~~
 {: #fig-device_error4 title="device_error4"}
 
-The ff_ioerr4 structure is used to return error indications for data
-files that generated errors during data transfers.  These are hints
-to the metadata server that there are problems with that file.  For
-each error, ffie_errors.de_deviceid, ffie_offset, and ffie_length
+The ff_ioerr4 structure is used to return error indications for
+data files that generated errors during data transfers.  These are
+hints to the metadata server that there are problems with that file.
+For each error, ffie_errors.de_deviceid, ffie_offset, and ffie_length
 represent the storage device and byte range within the file in which
-the error occurred; ffie_errors represents the operation and type of
-error.  The use of device_error4 is described in Section 15.6 of
-{{RFC7862}}.
+the error occurred; ffie_errors represents the operation and type
+of error.  The use of device_error4 is described in Section 15.6
+of {{RFC7862}}.
 
 Even though the storage device might be accessed via NFSv3 and
 reports back NFSv3 errors to the client, the client is responsible
@@ -1517,27 +1522,28 @@ operations.
 {: #fig-ff_io_latency4 title="ff_io_latency4"}
 
 Both operation counts and bytes transferred are kept in the
-ff_io_latency4 (see {{fig-ff_io_latency4}}.  As seen in ff_layoutupdate4 (see
-{{sec-ff_layoutupdate4}}), READ and WRITE operations are aggregated separately.
-READ operations are used for the ff_io_latency4 ffl_read.  Both WRITE
-and COMMIT operations are used for the ff_io_latency4 ffl_write.
-"Requested" counters track what the client is attempting to do, and
-"completed" counters track what was done.  There is no requirement
-that the client only report completed results that have matching
-requested results from the reported period.
+ff_io_latency4 (see {{fig-ff_io_latency4}}.  As seen in ff_layoutupdate4
+(see {{sec-ff_layoutupdate4}}), READ and WRITE operations are
+aggregated separately.  READ operations are used for the ff_io_latency4
+ffl_read.  Both WRITE and COMMIT operations are used for the
+ff_io_latency4 ffl_write.  "Requested" counters track what the
+client is attempting to do, and "completed" counters track what was
+done.  There is no requirement that the client only report completed
+results that have matching requested results from the reported
+period.
 
 ffil_bytes_not_delivered is used to track the aggregate number of
 bytes requested but not fulfilled due to error conditions.
-ffil_total_busy_time is the aggregate time spent with outstanding RPC
-calls. ffil_aggregate_completion_time is the sum of all round-trip
+ffil_total_busy_time is the aggregate time spent with outstanding
+RPC calls. ffil_aggregate_completion_time is the sum of all round-trip
 times for completed RPC calls.
 
-In Section 3.3.1 of {{RFC8881}}, the nfstime4 is defined as the number
-of seconds and nanoseconds since midnight or zero hour January 1,
-1970 Coordinated Universal Time (UTC).  The use of nfstime4 in
-ff_io_latency4 is to store time since the start of the first I/O from
-the client after receiving the layout.  In other words, these are to
-be decoded as duration and not as a date and time.
+In Section 3.3.1 of {{RFC8881}}, the nfstime4 is defined as the
+number of seconds and nanoseconds since midnight or zero hour January
+1, 1970 Coordinated Universal Time (UTC).  The use of nfstime4 in
+ff_io_latency4 is to store time since the start of the first I/O
+from the client after receiving the layout.  In other words, these
+are to be decoded as duration and not as a date and time.
 
 Note that LAYOUTSTATS are cumulative, i.e., not reset each time the
 operation is sent.  If two LAYOUTSTATS operations for the same file
@@ -1564,12 +1570,12 @@ data.
 ffl_addr differentiates which network address the client is connected
 to on the storage device.  In the case of multipathing, ffl_fhandle
 indicates which read-only copy was selected. ffl_read and ffl_write
-convey the latencies for both READ and WRITE operations,
-respectively.  ffl_duration is used to indicate the time period over
-which the statistics were collected.  If true, ffl_local indicates
-that the I/O was serviced by the client's cache.  This flag allows
-the client to inform the metadata server about "hot" access to a file
-it would not normally be allowed to report on.
+convey the latencies for both READ and WRITE operations, respectively.
+ffl_duration is used to indicate the time period over which the
+statistics were collected.  If true, ffl_local indicates that the
+I/O was serviced by the client's cache.  This flag allows the client
+to inform the metadata server about "hot" access to a file it would
+not normally be allowed to report on.
 
 ###  ff_iostats4
 
@@ -1605,23 +1611,23 @@ optimize the data storage location.  ff_iostats4 MAY be used by the
 client to report I/O statistics back to the metadata server upon
 returning the layout.
 
-Since it is not feasible for the client to report every I/O that used
-the layout, the client MAY identify "hot" byte ranges for which to
-report I/O statistics.  The definition and/or configuration mechanism
-of what is considered "hot" and the size of the reported byte range
-are out of the scope of this document.  For client implementation,
-providing reasonable default values and an optional run-time
-management interface to control these parameters is suggested.  For
-example, a client can define the default byte-range resolution to be
-1 MB in size and the thresholds for reporting to be 1 MB/second or 10
-I/O operations per second.
+Since it is not feasible for the client to report every I/O that
+used the layout, the client MAY identify "hot" byte ranges for which
+to report I/O statistics.  The definition and/or configuration
+mechanism of what is considered "hot" and the size of the reported
+byte range are out of the scope of this document.  For client
+implementation, providing reasonable default values and an optional
+run-time management interface to control these parameters is
+suggested.  For example, a client can define the default byte-range
+resolution to be 1 MB in size and the thresholds for reporting to
+be 1 MB/second or 10 I/O operations per second.
 
 For each byte range, ffis_offset and ffis_length represent the
 starting offset of the range and the range length in bytes.
 ffis_read.ii_count, ffis_read.ii_bytes, ffis_write.ii_count, and
-ffis_write.ii_bytes represent the number of contiguous READ and WRITE
-I/Os and the respective aggregate number of bytes transferred within
-the reported byte range.
+ffis_write.ii_bytes represent the number of contiguous READ and
+WRITE I/Os and the respective aggregate number of bytes transferred
+within the reported byte range.
 
 The combination of ffis_deviceid and ffl_addr uniquely identifies
 both the storage path and the network route to it.  Finally,
@@ -1640,38 +1646,39 @@ multiple read-only copies of the file on the same storage device.
 {: #fig-ff_layoutreturn4 title="ff_layoutreturn4"}
 
 When data file I/O operations fail, fflr_ioerr_report<> is used to
-report these errors to the metadata server as an array of elements of
-type ff_ioerr4.  Each element in the array represents an error that
-occurred on the data file identified by ffie_errors.de_deviceid.  If
-no errors are to be reported, the size of the fflr_ioerr_report<>
+report these errors to the metadata server as an array of elements
+of type ff_ioerr4.  Each element in the array represents an error
+that occurred on the data file identified by ffie_errors.de_deviceid.
+If no errors are to be reported, the size of the fflr_ioerr_report<>
 array is set to zero.  The client MAY also use fflr_iostats_report<>
 to report a list of I/O statistics as an array of elements of type
-ff_iostats4.  Each element in the array represents statistics for a
-particular byte range.  Byte ranges are not guaranteed to be disjoint
-and MAY repeat or intersect.
+ff_iostats4.  Each element in the array represents statistics for
+a particular byte range.  Byte ranges are not guaranteed to be
+disjoint and MAY repeat or intersect.
 
 #  Flexible File Layout Type LAYOUTERROR {#sec-LAYOUTERROR}
 
 If the client is using NFSv4.2 to communicate with the metadata
 server, then instead of waiting for a LAYOUTRETURN to send error
-information to the metadata server (see {{sec-io-error}}), it MAY use
-LAYOUTERROR (see Section 15.6 of {{RFC7862}}) to communicate that
-information.  For the flexible file layout type, this means that
-LAYOUTERROR4args is treated the same as ff_ioerr4.
+information to the metadata server (see {{sec-io-error}}), it MAY
+use LAYOUTERROR (see Section 15.6 of {{RFC7862}}) to communicate
+that information.  For the flexible file layout type, this means
+that LAYOUTERROR4args is treated the same as ff_ioerr4.
 
 #  Flexible File Layout Type LAYOUTSTATS
 
 If the client is using NFSv4.2 to communicate with the metadata
 server, then instead of waiting for a LAYOUTRETURN to send I/O
-statistics to the metadata server (see {{sec-layout-stats}}), it MAY use
-LAYOUTSTATS (see Section 15.7 of {{RFC7862}}) to communicate that
-information.  For the flexible file layout type, this means that
-LAYOUTSTATS4args.lsa_layoutupdate is overloaded with the same
+statistics to the metadata server (see {{sec-layout-stats}}), it
+MAY use LAYOUTSTATS (see Section 15.7 of {{RFC7862}}) to communicate
+that information.  For the flexible file layout type, this means
+that LAYOUTSTATS4args.lsa_layoutupdate is overloaded with the same
 contents as in ffis_layoutupdate.
 
 #  Flexible File Layout Type Creation Hint
 
-The layouthint4 type is defined in the {{RFC8881}} as in {{fig-layouthint4-v1}}.
+The layouthint4 type is defined in the {{RFC8881}} as in
+{{fig-layouthint4-v1}}.
 
 ~~~ xdr
    struct layouthint4 {
@@ -1721,16 +1728,16 @@ opaque value is defined by the ff_layouthint4 type.
 ~~~
 {: #fig-ff_layouthint4-v2 title="ff_layouthint4 v2"}
 
-This type conveys hints for the desired data map.  All parameters are
-optional so the client can give values for only the parameter it
-cares about.
+This type conveys hints for the desired data map.  All parameters
+are optional so the client can give values for only the parameter
+it cares about.
 
 #  Recalling a Layout
 
-While Section 12.5.5 of {{RFC8881}} discusses reasons independent of
-layout type for recalling a layout, the flexible file layout type
-metadata server should recall outstanding layouts in the following
-cases:
+While Section 12.5.5 of {{RFC8881}} discusses reasons independent
+of layout type for recalling a layout, the flexible file layout
+type metadata server should recall outstanding layouts in the
+following cases:
 
 -  When the file's security policy changes, i.e., ACLs or permission
    mode bits are set.
@@ -1746,9 +1753,9 @@ cases:
 
 ##  CB_RECALL_ANY
 
-The metadata server can use the CB_RECALL_ANY callback operation to
-notify the client to return some or all of its layouts.  Section 22.3
-of {{RFC8881}} defines the allowed types of the "NFSv4 Recallable
+The metadata server can use the CB_RECALL_ANY callback operation
+to notify the client to return some or all of its layouts.  Section
+22.3 of {{RFC8881}} defines the allowed types of the "NFSv4 Recallable
 Object Types Registry".
 
 ~~~ xdr
@@ -1766,8 +1773,8 @@ Object Types Registry".
 ~~~
 {: #fig-CB_RECALL_ANY4args title="CB_RECALL_ANY4args XDR"}
 
-Typically, CB_RECALL_ANY will be used to recall client state when the
-server needs to reclaim resources.  The craa_type_mask bitmap
+Typically, CB_RECALL_ANY will be used to recall client state when
+the server needs to reclaim resources.  The craa_type_mask bitmap
 specifies the type of resources that are recalled, and the
 craa_layouts_to_keep value specifies how many of the recalled
 flexible file layouts the client is allowed to keep.  The mask flags
@@ -1783,56 +1790,58 @@ for the flexible file layout type are defined as in {{fig-mask-flags}}.
 {: #fig-mask-flags title="Recall Mask Flags for v2"}
 
 The flags represent the iomode of the recalled layouts.  In response,
-the client SHOULD return layouts of the recalled iomode that it needs
-the least, keeping at most craa_layouts_to_keep flexible file
+the client SHOULD return layouts of the recalled iomode that it
+needs the least, keeping at most craa_layouts_to_keep flexible file
 layouts.
 
 The PNFS_FF_RCA4_TYPE_MASK_READ flag notifies the client to return
 layouts of iomode LAYOUTIOMODE4_READ.  Similarly, the
 PNFS_FF_RCA4_TYPE_MASK_RW flag notifies the client to return layouts
-of iomode LAYOUTIOMODE4_RW.  When both mask flags are set, the client
-is notified to return layouts of either iomode.
+of iomode LAYOUTIOMODE4_RW.  When both mask flags are set, the
+client is notified to return layouts of either iomode.
 
 #  Client Fencing
 
 In cases where clients are uncommunicative and their lease has
 expired or when clients fail to return recalled layouts within a
-lease period, the server MAY revoke client layouts and reassign these
-resources to other clients (see Section 12.5.5 of {{RFC8881}}).  To
-avoid data corruption, the metadata server MUST fence off the revoked
-clients from the respective data files as described in Section 2.2.
+lease period, the server MAY revoke client layouts and reassign
+these resources to other clients (see Section 12.5.5 of {{RFC8881}}).
+To avoid data corruption, the metadata server MUST fence off the
+revoked clients from the respective data files as described in
+Section 2.2.
 
 #  Security Considerations
 
 The combination of components in a pNFS system is required to
 preserve the security properties of NFSv4.1+ with respect to an
-entity accessing data via a client.  The pNFS feature partitions the
-NFSv4.1+ file system protocol into two parts: the control protocol
-and the data protocol.  As the control protocol in this document is
-NFS, the security properties are equivalent to the version of NFS
-being used.  The flexible file layout further divides the data
-protocol into metadata and data paths.  The security properties of
-the metadata path are equivalent to those of NFSv4.1x (see Sections
-1.7.1 and 2.2.1 of {{RFC8881}}).  And the security properties of the
-data path are equivalent to those of the version of NFS used to
-access the storage device, with the provision that the metadata
-server is responsible for authenticating client access to the data
-file.  The metadata server provides appropriate credentials to the
-client to access data files on the storage device.  It is also
-responsible for revoking access for a client to the storage device.
+entity accessing data via a client.  The pNFS feature partitions
+the NFSv4.1+ file system protocol into two parts: the control
+protocol and the data protocol.  As the control protocol in this
+document is NFS, the security properties are equivalent to the
+version of NFS being used.  The flexible file layout further divides
+the data protocol into metadata and data paths.  The security
+properties of the metadata path are equivalent to those of NFSv4.1x
+(see Sections 1.7.1 and 2.2.1 of {{RFC8881}}).  And the security
+properties of the data path are equivalent to those of the version
+of NFS used to access the storage device, with the provision that
+the metadata server is responsible for authenticating client access
+to the data file.  The metadata server provides appropriate credentials
+to the client to access data files on the storage device.  It is
+also responsible for revoking access for a client to the storage
+device.
 
 The metadata server enforces the file access control policy at
 LAYOUTGET time.  The client should use RPC authorization credentials
 for getting the layout for the requested iomode ((LAYOUTIOMODE4_READ
-or LAYOUTIOMODE4_RW), and the server verifies the permissions and ACL
-for these credentials, possibly returning NFS4ERR_ACCESS if the
+or LAYOUTIOMODE4_RW), and the server verifies the permissions and
+ACL for these credentials, possibly returning NFS4ERR_ACCESS if the
 client is not allowed the requested iomode.  If the LAYOUTGET
-operation succeeds, the client receives, as part of the layout, a set
-of credentials allowing it I/O access to the specified data files
-corresponding to the requested iomode.  When the client acts on I/O
-operations on behalf of its local users, it MUST authenticate and
-authorize the user by issuing respective OPEN and ACCESS calls to the
-metadata server, similar to having NFSv4 data delegations.
+operation succeeds, the client receives, as part of the layout, a
+set of credentials allowing it I/O access to the specified data
+files corresponding to the requested iomode.  When the client acts
+on I/O operations on behalf of its local users, it MUST authenticate
+and authorize the user by issuing respective OPEN and ACCESS calls
+to the metadata server, similar to having NFSv4 data delegations.
 
 The combination of filehandle, synthetic uid, and gid in the layout
 is the way that the metadata server enforces access control to the
@@ -1840,22 +1849,21 @@ data server.  The client only has access to filehandles of file
 objects and not directory objects.  Thus, given a filehandle in a
 layout, it is not possible to guess the parent directory filehandle.
 Further, as the data file permissions only allow the given synthetic
-uid read/write permission and the given synthetic gid read
-permission, knowing the synthetic ids of one file does not
-necessarily allow access to any other data file on the storage
-device.
+uid read/write permission and the given synthetic gid read permission,
+knowing the synthetic ids of one file does not necessarily allow
+access to any other data file on the storage device.
 
 The metadata server can also deny access at any time by fencing the
 data file, which means changing the synthetic ids.  In turn, that
 forces the client to return its current layout and get a new layout
 if it wants to continue I/O to the data file.
 
-If access is allowed, the client uses the corresponding (read-only or
-read/write) credentials to perform the I/O operations at the data
-file's storage devices.  When the metadata server receives a request
-to change a file's permissions or ACL, it SHOULD recall all layouts
-for that file and then MUST fence off any clients still holding
-outstanding layouts for the respective files by implicitly
+If access is allowed, the client uses the corresponding (read-only
+or read/write) credentials to perform the I/O operations at the
+data file's storage devices.  When the metadata server receives a
+request to change a file's permissions or ACL, it SHOULD recall all
+layouts for that file and then MUST fence off any clients still
+holding outstanding layouts for the respective files by implicitly
 invalidating the previously distributed credential on all data file
 comprising the file in question.  It is REQUIRED that this be done
 before committing to the new permissions and/or ACL.  By requesting
@@ -1877,21 +1885,21 @@ model, the issues are different depending on the coupling model.
 
 RPCSEC_GSS version 3 (RPCSEC_GSSv3) {{RFC7861}} contains facilities
 that would allow it to be used to authorize the client to the storage
-device on behalf of the metadata server.  Doing so would require that
-each of the metadata server, storage device, and client would need to
-implement RPCSEC_GSSv3 using an RPC-application-defined structured
-privilege assertion in a manner described in Section 4.9.1 of
-{{RFC7862}}.  The specifics necessary to do so are not described in
-this document.  This is principally because any such specification
-would require extensive implementation work on a wide range of
-storage devices, which would be unlikely to result in a widely usable
-specification for a considerable time.
+device on behalf of the metadata server.  Doing so would require
+that each of the metadata server, storage device, and client would
+need to implement RPCSEC_GSSv3 using an RPC-application-defined
+structured privilege assertion in a manner described in Section
+4.9.1 of {{RFC7862}}.  The specifics necessary to do so are not
+described in this document.  This is principally because any such
+specification would require extensive implementation work on a wide
+range of storage devices, which would be unlikely to result in a
+widely usable specification for a considerable time.
 
 As a result, the layout type described in this document will not
 provide support for use of RPCSEC_GSS together with the loosely
 coupled model.  However, future layout types could be specified,
-which would allow such support, either through the use of
-RPCSEC_GSSv3 or in other ways.
+which would allow such support, either through the use of RPCSEC_GSSv3
+or in other ways.
 
 ###  Tightly Coupled
 
@@ -1900,17 +1908,17 @@ is exactly the same as used to access the data file.  The storage
 device can use the control protocol to validate any RPC credentials.
 As a result, there are no security issues related to using RPCSEC_GSS
 with a tightly coupled system.  For example, if Kerberos V5 Generic
-Security Service Application Program Interface (GSS-API) {{RFC4121}} is
-used as the security mechanism, then the storage device could use a
-control protocol to validate the RPC credentials to the metadata
-server.
+Security Service Application Program Interface (GSS-API) {{RFC4121}}
+is used as the security mechanism, then the storage device could
+use a control protocol to validate the RPC credentials to the
+metadata server.
 
 #  IANA Considerations
 
 {{RFC8881}} introduced the "pNFS Layout Types Registry"; new layout
 type numbers in this registry need to be assigned by IANA.  This
-document defines the protocol associated with an existing layout type
-number: LAYOUT4_FLEX_FILES (see {{tbl_layout_types}}).
+document defines the protocol associated with an existing layout
+type number: LAYOUT4_FLEX_FILES (see {{tbl_layout_types}}).
 
  | Layout Type Name      | Value | RFC      | How | Minor Versions |
  |---
@@ -1919,8 +1927,8 @@ number: LAYOUT4_FLEX_FILES (see {{tbl_layout_types}}).
 
 {{RFC8881}} also introduced the "NFSv4 Recallable Object Types
 Registry".  This document defines new recallable objects for
-RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX (see
-{{tbl_recallables}}).
+RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
+(see {{tbl_recallables}}).
 
  | Recallable Object Type Name   | Value | RFC      |How| Minor Versions    |
  |---
