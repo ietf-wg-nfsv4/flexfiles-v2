@@ -36,8 +36,14 @@ normative:
   RFC8435:
   RFC8881:
 
-
 informative:
+  Plank97:
+    title: A Tutorial on Reed-Solomon Coding for Fault-Tolerance in RAID-like System
+    author:
+    - ins: J. Plank
+      name: J. Plank
+      target: http://web.eecs.utk.edu/~jplank/plank/papers/CS-96-332.htm
+    date: September 1997
   RFC1813:
   RFC4519:
 
@@ -126,7 +132,6 @@ Using the process detailed in {{RFC8178}}, the revisions in this
 document become an extension of NFSv4.2 {{RFC7862}}.  They are built on
 top of the external data representation (XDR) {{RFC4506}} generated
 from {{RFC7863}}.
-
 
 ##  Definitions
 
@@ -668,12 +673,6 @@ invalidate revoked stateids on the storage device.  In the event the
 client is not responsive, the metadata server may need to use fencing
 to prevent revoked stateids from being acted upon by the storage device.
 
-#  Client-Side Protection Modes
-
-##  Client-Side Mirroring
-
-Do I want this?
-
 #  XDR Description of the Flexible File Layout Type
 
 This document contains the External Data Representation (XDR)
@@ -936,11 +935,9 @@ this otherwise opaque value, ff_layout4.
        fattr4_owner_group      ffds_group;
    };
 
-
    struct ff_mirror4 {
        ff_data_server4         ffm_data_servers<>;
    };
-
 
    struct ff_layout4 {
        length4                 ffl_stripe_unit;
@@ -986,26 +983,27 @@ how often the server wants it to report LAYOUTSTATS for a file.
 The time is in seconds.
 
 ~~~
-            +-----------+
-            |           |
-            |           |
-            |   File    |
-            |           |
-            |           |
-            +-----+-----+
-                  |
-     +------------+------------+
-     |                         |
-+----+-----+             +-----+----+
-| Mirror 1 |             | Mirror 2 |
-+----+-----+             +-----+----+
-     |                         |
-+-----------+            +-----------+
-|+-----------+           |+-----------+
-||+-----------+          ||+-----------+
-+||  Storage  |          +||  Storage  |
- +|  Devices  |           +|  Devices  |
-  +-----------+            +-----------+
+                +-----------+
+                |           |
+                |           |
+                |   File    |
+                |           |
+                |           |
+                +-----+-----+
+                      |
+     +-------------+-----+----------------+
+     |                   |                |
++----+-----+       +-----+----+       +---+----------+
+| Mirror 1 |       | Mirror 2 |       | Mirror 3     |
+| MIRRORED |       | MIRRORED |       | REED_SOLOMON |
++----+-----+       +-----+----+       +---+----------+
+     |                   |                |
++-----------+      +-----------+      +-----------+
+|+-----------+     |+-----------+     |+-----------+
+||+-----------+    ||+-----------+    ||+-----------+
++||  Storage  |    +||  Storage  |    +||  Storage  |
+ +|  Devices  |     +|  Devices  |     +|  Devices  |
+  +-----------+      +-----------+      +-----------+
 ~~~
 {: #fig-parallel-fileystem title="The Relationship between MDS and DSes"}
 
@@ -1248,7 +1246,9 @@ retrieve a new layout and retry the I/O operation using the storage
 device first and only retry the I/O operation via the metadata
 server if the error persists.
 
-#  Mirroring
+#  Client-Side Protection Modes
+
+##  Client-Side Mirroring
 
 The flexible file layout type has a simple model in place for the
 mirroring of the file data constrained by a layout segment.  There
@@ -1282,7 +1282,7 @@ update all copies of the mirror.  As seen in {{sec-mds-resilvering}},
 during the resilvering, the layout is recalled, and the client has
 to make modifications via the metadata server.
 
-##  Selecting a Mirror {#sec-select-mirror}
+###  Selecting a Mirror {#sec-select-mirror}
 
 When the metadata server grants a layout to a client, it MAY let
 the client know how fast it expects each mirror to be once the
@@ -1305,9 +1305,9 @@ As such, it is the client that decides which mirror to access for
 reading the file.  The requirements for writing to mirrored layout
 segments are presented below.
 
-##  Writing to Mirrors {#sec-write-mirrors}
+###  Writing to Mirrors {#sec-write-mirrors}
 
-###  Single Storage Device Updates Mirrors
+####  Single Storage Device Updates Mirrors
 
 If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is set, the
 client only needs to update one of the copies of the layout segment.
@@ -1321,7 +1321,7 @@ The client's responsibility with respect to COMMIT is explained in
 and may use ffds_efficiency as described in {{sec-select-mirror}}
 when making this choice.
 
-###  Client Updates All Mirrors
+####  Client Updates All Mirrors
 
 If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is not set, the
 client is responsible for updating all mirrored copies of the layout
@@ -1337,7 +1337,7 @@ server.  If the client is updating the mirrors in parallel, then
 it SHOULD wait until all storage devices respond so that it can
 report all errors encountered during the update.
 
-###  Handling Write Errors {#sec-write-errors}
+####  Handling Write Errors {#sec-write-errors}
 
 When the client reports a write error to the metadata server, the
 metadata server is responsible for determining if it wants to remove
@@ -1368,7 +1368,7 @@ MUST be prepared for the LAYOUTERROR to trigger a CB_LAYOUTRECALL
 if the metadata server determines it needs to start repairing the
 file.
 
-###  Handling Write COMMITs {#sec-write-commits}
+####  Handling Write COMMITs {#sec-write-commits}
 
 When stable writes are done to the metadata server or to a single
 replica (if allowed by the use of FF_FLAGS_WRITE_ONE_MIRROR), it
@@ -1394,7 +1394,7 @@ replicas to which writes have not been propagated:
    to ensure that up-to-date written data will be available
    irrespective of the particular replica read.
 
-##  Metadata Server Resilvering of the File {#sec-mds-resilvering}
+###  Metadata Server Resilvering of the File {#sec-mds-resilvering}
 
 The metadata server may elect to create a new mirror of the layout
 segments at any time.  This might be to resilver a copy on a storage
