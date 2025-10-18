@@ -2536,6 +2536,16 @@ RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
  | RCA4_TYPE_MASK_FF2_LAYOUT_MAX | 21    | RFCTBD10 |L  | 1        |
 {: #tbl_recallables title="Recallable Object Type Assignments"}
 
+This document introduces the 'Flexible File Version 2 Layout Type
+Erasure Coding Type Registry'.  This document defines the
+FFV2_CODING_MIRRORED type for Client-Side Mirroring (see
+{{tbl-coding-types}}).
+
+ | Erasure Coding Type Name | Value | RFC      | How | Minor Versions    |
+ | ---
+ | FFV2_CODING_MIRRORED     | 1     | RFCTBD10 | L   | 2        |
+{: #tbl-coding-types title="Flexible File Version 2 Layout Type Erasure Coding Type Assignments"}
+
 # Acknowledgments
 {:numbered="false"}
 
