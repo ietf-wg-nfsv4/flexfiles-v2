@@ -375,7 +375,7 @@ Note that if the client has not done a COMMIT to the storage device, then
 the LAYOUTCOMMIT might not be synchronized to the last WRITE operation
 to the storage device.
 
-##  Fencing Clients from the Storage Device
+##  Fencing Clients from the Storage Device {#sec-Fencing-Clients}
 
 With loosely coupled storage devices, the metadata server uses synthetic
 uids (user ids) and gids (group ids) for the data file, where the uid
@@ -1808,7 +1808,7 @@ lease period, the server MAY revoke client layouts and reassign
 these resources to other clients (see Section 12.5.5 of {{RFC8881}}).
 To avoid data corruption, the metadata server MUST fence off the
 revoked clients from the respective data files as described in
-Section 2.2.
+{{sec-Fencing-Clients}}.
 
 #  Security Considerations
 
