@@ -700,13 +700,16 @@ sh extract.sh < spec.txt > flex_files2_prot.x
 The effect of the script is to remove leading blank space from each
 line, plus a sentinel sequence of "///".
 
-The embedded XDR file header follows.  Subsequent XDR descriptions
-with the sentinel sequence are embedded throughout the document.
+XDR descriptions with the sentinel sequence are embedded throughout
+the document.
 
 Note that the XDR code contained in this document depends on types
 from the NFSv4.1 nfs4_prot.x file {{RFC5662}}.  This includes both nfs
 types that end with a 4, such as offset4, length4, etc., as well as
 more generic types such as uint32_t and uint64_t.
+
+While the XDR can be appended to that from {{RFC7863}}, the various
+code snippets belong in their respective areas of that XDR.
 
 #  Device Addressing and Discovery
 
