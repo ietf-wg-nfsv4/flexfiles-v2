@@ -1810,6 +1810,603 @@ To avoid data corruption, the metadata server MUST fence off the
 revoked clients from the respective data files as described in
 {{sec-Fencing-Clients}}.
 
+#  New NFSv4.2 Error Values
+
+~~~ xdr
+   ///
+   /// /* Erasure Coding errors start here */
+   ///
+   /// NFS4ERR_XATTR2BIG      = 10096,/* xattr value is too big  */
+   /// NFS4ERR_CODING_NOT_SUPPORTED
+   ///    = 10097,/* Coding Type unsupported  */
+   /// NFS4ERR_PAYLOAD_NOT_CONSISTENT= 10098/* payload inconsitent  */
+   ///
+~~~ 
+{: #fig-errors-xdr title="Errors XDR" }
+
+The new error codes are shown in {{fig-errors-xdr}}.
+
+## Error Definitions
+
+ | Error                          | Number | Description   |
+ |---
+ | NFS4ERR_CODING_NOT_SUPPORTED   | 10097  | {{sec-NFS4ERR_CODING_NOT_SUPPORTED}} |
+ | NFS4ERR_PAYLOAD_NOT_CONSISTENT | 10098  | {sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}} |
+{: #tbl-protocol-errors title="X"}
+
+### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
+
+The client requested a ffv2_coding_type4 which the metadata server
+does not support.  I.e., if the client sends a layout_hint requesting
+an erasure coding type that the metadata server does not support,
+this error code can be returned.  The client might have to send the
+layout_hint several times to determine the overlapping set of
+supported erasure coding types.
+
+### NFS4ERR_PAYLOAD_NOT_CONSISTENT (Error Code 10098) {#sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}
+
+The client encountered a payload in which the blocks were inconsistent
+and stays inconsistent.  As the client can not tell if another
+client is actively writing, it informs the metadata server of this
+error via LAYOUTERROR4.  The metadata server can then arrange for
+repair of the file.
+
+## Operations and Their Valid Errors
+
+The operations and their valid errors are presented in
+{{tbl-ops-and-errors}}.  All error codes not defined in this document
+are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
+
+ | Operation             | Errors                                   |
+ | ---
+ | | |
+{: #tbl-ops-and-errors title="Operations and Their Valid Errors"}
+
+## Callback Operations and Their Valid Errors
+
+The callback operations and their valid errors are presented in
+{{tbl-cb-ops-and-errors}}.  All error codes not defined in this document
+are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
+
+ | Callback Operation| Errors                                       |
+ | ---
+ | CB_CHUNK_REPAIR | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DEADSESSION, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_ISDIR, NFS4ERR_LOCKED, NFS4ERR_NOTSUPP, NFS4ERR_OLD_STATEID, NFS4ERR_SERVERFAULT, NFS4ERR_STALE,          |
+{: #tbl-cb-ops-and-errors title="Callback Operations and Their Valid Errors"}
+
+## Errors and the Operations That Use Them
+
+The operations and their valid errors are presented in
+{{tbl-errors-and-ops}}.  All operations not defined in this document
+are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
+
+ | Error                            | Operations                  |
+ | ---
+ | NFS4ERR_CODING_NOT_SUPPORTED     | CB_CHUNK_REPAIR, LAYOUTGET  |
+{: #tbl-errors-and-ops title="Errors and the Operations That Use Them"}
+
+# EXCHGID4_FLAG_USE_PNFS_DS
+
+~~~ xdr
+   /// const EXCHGID4_FLAG_USE_ERASURE_DS      = 0x00100000;
+~~~
+{: #fig-EXCHGID4_FLAG_USE_PNFS_DS title="The EXCHGID4_FLAG_USE_PNFS_DS" }
+
+When a data server connects to a metadata server it can via
+EXCHANGE_ID (see Section 18.35 of {{RFC8881}}) state its pNFS role.
+The data server can use EXCHGID4_FLAG_USE_ERASURE_DS (see
+{{fig-EXCHGID4_FLAG_USE_PNFS_DS}}) to indicate that it supports the
+new NFSv4.2 operations introduced in this document.  Section 13.1
+of {{RFC8881}} describes the interaction of the various pNFS roles
+masked by EXCHGID4_FLAG_MASK_PNFS.  However, that does not mask out
+EXCHGID4_FLAG_USE_ERASURE_DS.  I.e., EXCHGID4_FLAG_USE_ERASURE_DS can
+be used in combination with all of the pNFS flags.
+
+If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
+EXCHANGE_ID operation, then it MUST support all of the operations
+in {{tbl-protocol-ops}}.  Further, this support is orthogonal to the
+Erasure Coding Type selected.  The data server is unaware of which type
+is driving the I/O.
+
+# New NFSv4.2 Attributes
+
+## Attribute 88: fattr4_coding_block_size
+
+~~~ xdr
+   /// typedef size_t                    fattr4_coding_block_size;
+   ///
+   /// const FATTR4_CODING_BLOCK_SIZE  = 88;
+   ///
+~~~
+{: #fig-fattr4_coding_block_size title="XDR for fattr4_coding_block_size" }
+
+The new attribute fattr4_coding_block_size (see
+{{fig-fattr4_coding_block_size}}) is an OPTIONAL to NFSv4.2 attribute
+which MUST be supported if the metadata server supports the Flexible
+File Version 2 Layout Type.  By querying it, the client can determine
+the data block size it is to use when coding the data blocks to
+chunks.
+
+# New NFSv4.2 Common Data Structures
+
+## chunk_guard4 {#sec-chunk_guard4}
+
+~~~ xdr
+   /// struct chunk_guard4 {
+   ///     uint32_t   cg_gen_id;
+   ///     uint32_t   cg_client_id;
+   /// };
+~~~
+{: #fig-chunk_guard4 title="XDR for chunk_guard4" }
+
+The chunk_guard4 (see {{fig-chunk_guard4}}) is effectively a 64 bit
+value, with the upper 32 bits, cg_gen_id, being the current generation
+id of the chunk on the DS and the lower 32 bits, cg_client_id, being
+an unique id established when the client did the EXCHANGE_ID operation
+(see Section 18.35 of {{RFC8881}}) with the metadata server.  The
+lower 32 bits are set passed back in the LAYOUTGET operation (see
+Section 18.43 of {{RFC8881}}) as the fml_client_id (see Section
+2.9).
+
+## chunk_owner4
+
+~~~ xdr
+   /// struct chunk_owner4 {
+   ///     chunk_guard4   co_guard;
+   ///     uint32_t       co_id;
+   /// };
+~~~
+{: #fig-chunk_owner4 title="XDR for chunk_owner4" }
+
+The chunk_owner4 (see {{fig-chunk_owner4}}) is used to determine
+when and by whom a block was written.  The co_id is used to identify
+the block and MUST be the index of the chunk within the file.  I.e.,
+it is the offset of the start of the chunk divided by the chunk
+length.  The co_guard is a chunk_guard4 (see {{sec-chunk_guard4}}),
+used to identify a given transaction.
+
+The co_guard is like the change attribute (see Section 5.8.1.4 of
+{{RFC8881}}) in that each chunk write by a given client has to have
+an unique co_guard.  I.e., it can be determined which transaction
+across all data files that a chunk corresponds.
+
+# New NFSv4.2 Operations
+
+~~~ xdr
+   ///
+   /// /* New operations for Erasure Coding start here */
+   ///
+   ///  OP_CHUNK_COMMIT        = 77,
+   ///  OP_CHUNK_ERROR         = 78,
+   ///  OP_CHUNK_FINALIZE      = 79,
+   ///  OP_CHUNK_HEADER_READ   = 80,
+   ///  OP_CHUNK_LOCK          = 81,
+   ///  OP_CHUNK_READ          = 82,
+   ///  OP_CHUNK_REPAIRED      = 83,
+   ///  OP_CHUNK_ROLLBACK      = 84,
+   ///  OP_CHUNK_UNLOCK        = 85,
+   ///  OP_CHUNK_WRITE         = 86,
+   ///  OP_CHUNK_WRITE_REPAIR  = 87,
+   ///
+~~~
+{: #fig-ops-xdr title="Operations XDR" }
+
+   | Operation              | Number | Target Server     | Description |
+   | ---
+   | CHUNK_COMMIT           | 77     | DS                | {{sec-CHUNK_COMMIT}} |
+   | CHUNK_ERROR            | 78     | MDS               | {{sec-CHUNK_ERROR}} |
+   | CHUNK_FINALIZE         | 79     | DS                | {{sec-CHUNK_FINALIZE}} |
+   | CHUNK_HEADER_READ      | 80     | DS                | {{sec-CHUNK_HEADER_READ}} |
+   | CHUNK_LOCK             | 81     | DS                | {{sec-CHUNK_LOCK}} |
+   | CHUNK_READ             | 82     | DS                | {{sec-CHUNK_READ}} |
+   | CHUNK_REPAIRED         | 83     | MDS               | {{sec-CHUNK_REPAIRED}} |
+   | CHUNK_ROLLBACK         | 84     | DS                | {{sec-CHUNK_ROLLBACK}} |
+   | CHUNK_UNLOCK           | 85     | DS                | {{sec-CHUNK_UNLOCK}} |
+   | CHUNK_WRITE            | 86     | DS                | {{sec-CHUNK_WRITE}} |
+   | CHUNK_WRITE_REPAIR     | 87     | DS                | {{sec-CHUNK_WRITE_REPAIR}} |
+{: #tbl-protocol-ops title="Protocol OPs"}
+
+## Operation 77: CHUNK_COMMIT - Activate Cached Chunk Data {#sec-CHUNK_COMMIT}
+
+### ARGUMENTS
+
+~~~ xdr
+   /// struct CHUNK_COMMIT4args {
+   ///     /* CURRENT_FH: file */
+   ///     offset4         cca_offset;
+   ///     count4          cca_count;
+   ///     chunk_owner4    cca_chunks<>;
+   /// };
+~~~
+{: #fig-CHUNK_COMMIT4args title="XDR for CHUNK_COMMIT4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// struct CHUNK_COMMIT4resok {
+   ///     verifier4       ccr_writeverf;
+   /// };
+~~~
+{: #fig-CHUNK_COMMIT4resok title="XDR for CHUNK_COMMIT4resok" }
+
+~~~ xdr
+   /// union CHUNK_COMMIT4res switch (nfsstat4 ccr_status) {
+   ///     case NFS4_OK:
+   ///         CHUNK_COMMIT4resok   ccr_resok4;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_COMMIT4res title="XDR for CHUNK_COMMIT4res" }
+
+### DESCRIPTION
+
+CHUNK_COMMIT is COMMIT (see Section 18.3 of {{RFC8881}}) with
+additional semantics over the chunk_owner activating the blocks.
+As such, all of the normal semantics of COMMIT directly apply.
+
+The main difference between the two operations is that CHUNK_COMMIT
+works on blocks and not a raw data stream.  As such cca_offset is
+the starting block offset in the file and not the byte offset in
+the file.  Some erasure coding types can have different block sizes
+depending on the block type.  Further, cca_count is a count of
+blocks to activate and not bytes to activate.
+
+Further, while it may appear that the combination of cca_offset and
+cca_count are redundant to cca_chunks, the purpose of cca_chunks
+is to allow the data server to differentiate between potentially
+multiple pending blocks.
+
+## Operation 78: CHUNK_ERROR - Report Error on Cached Chunk Data {#sec-CHUNK_ERROR}
+
+### ARGUMENTS
+
+### RESULTS
+
+### DESCRIPTION
+
+## Operation 79: CHUNK_FINALIZE - XXX Error on Cached Chunk Data {#sec-CHUNK_FINALIZE}
+
+### ARGUMENTS
+
+### RESULTS
+
+### DESCRIPTION
+
+## Operation 80: CHUNK_HEADER_READ - Read Chunk Header from File {#sec-CHUNK_HEADER_READ}
+
+### ARGUMENTS
+
+~~~ xdr
+   /// struct CHUNK_HEADER_READ4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4    chra_stateid;
+   ///     offset4     chra_offset;
+   ///     count4      chra_count;
+   /// };
+~~~
+{: #fig-CHUNK_HEADER_READ4args title="XDR for CHUNK_HEADER_READ4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// struct CHUNK_HEADER_READ4resok {
+   ///     bool            chrr_eof;
+   ///     chunk_owner4    chrr_chunks<>;
+   /// };
+~~~
+{: #fig-CHUNK_HEADER_READ4resok title="XDR for CHUNK_HEADER_READ4resok" }
+
+~~~ xdr
+   /// union CHUNK_HEADER_READ4res switch (nfsstat4 chrr_status) {
+   ///     case NFS4_OK:
+   ///         CHUNK_HEADER_READ4resok     chrr_resok4;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_HEADER_READ4res title="XDR for CHUNK_HEADER_READ4resok" }
+
+### DESCRIPTION
+
+CHUNK_HEADER_READ differs from CHUNK_READ in that it only reads chunk
+headers in the desired data range.
+
+## Operation 81: CHUNK_LOCK - Lock Cached Chunk Data {#sec-CHUNK_LOCK}
+   
+### ARGUMENTS
+   
+### RESULTS
+   
+### DESCRIPTION
+
+## Operation 82: CHUNK_READ - Read Chunks from File {#sec-CHUNK_READ}
+
+### ARGUMENTS
+                   
+~~~ xdr
+   /// struct CHUNK_READ4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4    cra_stateid; 
+   ///     offset4     cra_offset;
+   ///     count4      cra_count;
+   /// };
+~~~
+{: #fig-CHUNK_READ4args title="XDR for CHUNK_READ4args" }
+
+### RESULTS
+
+~~~ xdr    
+   /// struct read_chunk4 {
+   ///     uint32_t        cr_crc; 
+   ///     uint32_t        cr_effective_len;
+   ///     chunk_owner4    cr_owner;
+   ///     uint32_t        cr_payload_id;   
+   ///     opaque          cr_chunk<>;
+   /// };
+~~~ 
+{: #fig-read_chunk4 title="XDR for read_chunk4" }
+
+~~~ xdr
+   /// struct CHUNK_READ4resok {
+   ///     bool        crr_eof;
+   ///     read_chunk4 crr_chunks<>;
+   /// };  
+~~~                
+{: #fig-CHUNK_READ4resok title="XDR for CHUNK_READ4resok" }
+           
+~~~ xdr    
+   /// union CHUNK_READ4res switch (nfsstat4 crr_status) {
+   ///     case NFS4_OK: 
+   ///          CHUNK_READ4resok     crr_resok4;
+   ///     default:
+   ///          void;
+   /// };
+~~~
+{: #fig-CHUNK_READ4res title="XDR for CHUNK_READ4res" }
+
+### DESCRIPTION
+
+CHUNK_READ is READ (see Section 18.22 of {{RFC8881}}) with additional
+semantics over the chunk_owner.  As such, all of the normal semantics
+of READ directly apply.
+
+The main difference between the two operations is that CHUNK_READ
+works on blocks and not a raw data stream.  As such cra_offset is
+the starting block offset in the file and not the byte offset in
+the file.  Some erasure coding types can have different block sizes
+depending on the block type.  Further, cra_count is a count of
+blocks to read and not bytes to read.
+
+When reading a set of blocks across the data servers, it can be the
+case that some data servers do not have any data at that location.
+In that case, the server either returns crr_eof if the cra_offset
+exceeds the number of blocks that the data server is aware or it
+returns an empty block for that block.
+
+For example, in {{fig-example-CHUNK_READ4args}}, the client asks
+for 4 blocks starting with the 3rd block in the file.  The second
+data server responds as in {{fig-example-CHUNK_READ4resok}}.  The
+client would read this as there is valid data for blocks 2 and 4,
+there is a hole at block 3, and there is no data for block 5.  The
+data server MUST calculate a valid cr_crc for block 3 based on the
+generated fields.
+
+~~~
+                   Data Server 2
+           +--------------------------------+
+           | CHUNK_READ4args                |
+           +--------------------------------+
+           | cra_stateid: 0                 |
+           | cra_offset: 2                  |
+           | cra_count: 4                   |
+           +----------+---------------------+
+~~~
+{: #fig-example-CHUNK_READ4args title="Example: CHUNK_READ4args parameters" }
+
+~~~
+                   Data Server 2
+           +--------------------------------+
+           | CHUNK_READ4resok               |
+           +--------------------------------+
+           | crr_eof: true                  |
+           | crr_chunks[0]:                 |
+           |     cr_crc: 0x3faddace         |
+           |     cr_owner:                  |
+           |         co_chunk_id: 2         |
+           |         co_guard:              |
+           |             cg_gen_id   : 3    |
+           |             cg_client_id: 6    |
+           |     cr_payload_id: 1           |
+           |     cr_chunk: ....             |
+           | crr_chunks[0]:                 |
+           |     cr_crc: 0xdeade4e5         |
+           |     cr_owner:                  |
+           |         co_chunk_id: 3         |
+           |         co_guard:              |
+           |             cg_gen_id   : 0    |
+           |             cg_client_id: 0    |
+           |     cr_payload_id: 1           |
+           |     cr_chunk: 0000...00000     |
+           | crr_chunks[0]:                 |
+           |     cr_crc: 0x7778abcd         |
+           |     cr_owner:                  |
+           |         co_chunk_id: 4         |
+           |         co_guard:              |
+           |             cg_gen_id   : 3    |
+           |             cg_client_id: 6    |
+           |     cr_payload_id: 1           |
+           |     cr_chunk: ....             |
+           +--------------------------------+
+~~~
+{: #fig-example-CHUNK_READ4resok title="Example: Resulting CHUNK_READ4resok reply" }
+
+## Operation 83: CHUNK_REPAIRED - Error Repaired on Cached Chunk Data {#sec-CHUNK_REPAIRED}
+
+### ARGUMENTS
+
+### RESULTS
+
+### DESCRIPTION
+
+## Operation 84: CHUNK_ROLLBACK - Rollback Changes on Cached Chunk Data {#sec-CHUNK_ROLLBACK}
+
+### ARGUMENTS
+
+### RESULTS
+
+### DESCRIPTION
+
+## Operation 85: CHUNK_UNLOCK - Unlock on Cached Chunk Data {#sec-CHUNK_UNLOCK}
+
+### ARGUMENTS
+
+### RESULTS
+
+### DESCRIPTION
+
+## Operation 86: CHUNK_WRITE - Write Chunks to File {#sec-CHUNK_WRITE}
+   
+### ARGUMENTS
+   
+~~~ xdr
+   /// union write_chunk_guard4 (bool cwg_check) {       
+   ///     case TRUE:
+   ///         chunk_guard4   cwg_guard;
+   ///     case FALSE:
+   ///         void;
+   /// };
+~~~
+{: #fig-write_chunk_guard4 title="XDR for write_chunk_guard4" }
+
+~~~ xdr
+   /// struct CHUNK_WRITE4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4           cwa_stateid;
+   ///     offset4            cwa_offset;
+   ///     stable_how4        cwa_stable;
+   ///     chunk_owner4       cwa_owner;
+   ///     uint32_t           cwa_payload_id;
+   ///     write_chunk_guard4 cwa_guard;
+   ///     uint32_t           cwa_chunk_size;
+   ///     uint32_t           cwa_crc32s<>;
+   ///     opaque             cwa_chunks<>;
+   /// };
+~~~
+{: #fig-CHUNK_WRITE4args title="XDR for CHUNK_WRITE4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// struct CHUNK_WRITE4resok {
+   ///     count4          cwr_count;
+   ///     stable_how4     cwr_committed;
+   ///     verifier4       cwr_writeverf;
+   ///     chunk_owner4    cwr_owners<>;
+   /// };
+~~~
+{: #fig-CHUNK_WRITE4resok title="XDR for CHUNK_WRITE4resok" }
+
+~~~ xdr
+   /// union CHUNK_WRITE4res switch (nfsstat4 cwr_status) {
+   ///     case NFS4_OK:
+   ///         CHUNK_WRITE4resok    cwr_resok4;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_WRITE4res title="XDR for CHUNK_WRITE4res" }
+
+### DESCRIPTION
+
+CHUNK_WRITE is WRITE (see Section 18.32 of {{RFC8881}}) with
+additional semantics over the chunk_owner and the activation of
+blocks.  As such, all of the normal semantics of WRITE directly
+apply.
+
+The main difference between the two operations is that CHUNK_WRITE
+works on blocks and not a raw data stream.  As such cwa_offset is
+the starting block offset in the file and not the byte offset in
+the file.  Some erasure coding types can have different block sizes
+depending on the block type.  Further, cwr_count is a count of
+written blocks and not written bytes.
+
+If cwa_stable is FILE_SYNC4, the data server MUST commit the written
+header and block data plus all file system metadata to stable storage
+before returning results.  This corresponds to the NFSv2 protocol
+semantics.  Any other behavior constitutes a protocol violation.
+If cwa_stable is DATA_SYNC4, then the data server MUST commit all
+of the header and block data to stable storage and enough of the
+metadata to retrieve the data before returning.  The data server
+implementer is free to implement DATA_SYNC4 in the same fashion as
+FILE_SYNC4, but with a possible performance drop.  If cwa_stable
+is UNSTABLE4, the data server is free to commit any part of the
+header and block data and the metadata to stable storage, including
+all or none, before returning a reply to the client.  There is no
+guarantee whether or when any uncommitted data will subsequently
+be committed to stable storage.  The only guarantees made by the
+data server are that it will not destroy any data without changing
+the value of writeverf and that it will not commit the data and
+metadata at a level less than that requested by the client.
+
+The activation of header and block data interacts with the co_activated
+for each of the written blocks.  If the data is not committed to
+stable storage then the co_activated field MUST NOT be set to true.
+Once the data is committed to stable storage, then the data server
+can set the block's co_activated if one of these conditions apply:
+
+*  it is the first write to that block and the
+CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY flag is set
+
+*  the CHUNK_COMMIT is issued later for that block.
+
+There are subtle interactions with write holes caused by racing
+clients.  One client could win the race in each case, but because
+it used a cwa_stable of UNSTABLE4, the subsequent writes from the
+second client with a cwa_stable of FILE_SYNC4 can be awarded the
+co_activated being set to true for each of the blocks in the payload.
+
+Finally, the interaction of cwa_stable can cause a client to
+mistakenly believe that by the time it gets the response of
+co_activated of false, that the blocks are not activated.  A
+subsequent CHUNK_READ or HEADER_READ might show that the co_activated
+is true without any interaction by the client via CHUNK_COMMIT.
+
+#### Guarding the Write
+
+A guarded CHUNK_WRITE is when the writing of a block MUST fail if
+cwa_guard.cwg_check is set and the target chunk does not have both
+the same gen_id cwa_guard.as the cwg_guard.cg_gen_id and the same
+cwa_guard.cg_gen_id as the cwa_guard.cwg_guard.cg_gen_id.  This is
+useful in read-update-write scenarios.  The client reads a block,
+updates it, and is prepared to write it back.  It guards the write
+such that if another writer has modified the block, the data server
+will reject the modification.
+
+As the chunk_guard4 (see {{fig-chunk_guard4}} does not have a
+chunk_id and the CHUNK_WRITE applies to all blocks in the range of
+cwa_offset to the length of cwa_data, then each of the target blocks
+MUST have the same cg_gen_id and cg_client_id.  The client SHOULD
+present the smallest set of blocks as possible to meet this
+requirement.
+
+
+   // Is the DS supposed to vet all blocks first or proceed to the first
+   // error?  Or do all blocks and return an array of errors?  (This
+   // last one is a no-go.)  Also, if we do the vet first, what happens
+   // if a CHUNK_WRITE comes in after the vetting?  Are we to lock the
+   // file during this process.  Even if we do that, we still have the
+   // issue of multiple DSes.
+   //
+   // -- TH
+
+## Operation 88: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk Data {#sec-CHUNK_WRITE_REPAIR}
+
+### ARGUMENTS
+
+### RESULTS
+
+### DESCRIPTION
+
 #  Security Considerations
 
 The combination of components in a pNFS system is required to
