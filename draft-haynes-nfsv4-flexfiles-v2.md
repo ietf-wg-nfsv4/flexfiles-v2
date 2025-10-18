@@ -2539,11 +2539,13 @@ RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
 # Acknowledgments
 {:numbered="false"}
 
-The following from Hammerspace were instrumental in driving Flex
-Files v2: David Flynn, Trond Myklebust, Didier Feron, Jean-Pierre
-Monchanin, Pierre Evenou, and Brian Pawlowski.
+The following from Hammerspace were instrumental in driving Flexible
+File Version 2 Layout Type: David Flynn, Trond Myklebust, Didier
+Feron, Jean-Pierre Monchanin, Pierre Evenou, and Brian Pawlowski.
 
-Christoph Helwig was instrumental in making sure Flex Files v2 was
-applicable to more than the Mojette Transformation.
+Christoph Helwig was instrumental in making sure the Flexible File
+Version 2 Layout Type was applicable to more than the Mojette
+Transformation.
 
-Chris Inacio and Brian Pawlowski helped guide this process.
+Chris Inacio, Brian Pawlowski, and Gorry Fairhurst helped guide
+this process.
