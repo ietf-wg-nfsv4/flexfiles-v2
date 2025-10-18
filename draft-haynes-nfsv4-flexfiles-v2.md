@@ -1547,6 +1547,102 @@ process of being resilvered, then the metadata server can deny that
 request with an NFS4ERR_LAYOUTUNAVAILABLE.  The client would then
 have to perform the I/O through the metadata server.
 
+# Mixing of Coding Types
+
+Multiple coding types can be present in a Flexible File Version 2
+Layout Type layout.  The ffv2_layout4 has an array of ffv2_mirror4,
+each of which has a ffv2_coding_type4.  The main reason to allow
+for this is to provide for either the assimilation of a non-erasure
+coded file to an erasure coded file or the exporting of an erasure
+coded file to a non-erasure coded file.
+
+Assume there is an additional ffv2_coding_type4 of FFV2_CODING_REED_SOLOMON
+and it needs 8 active chunks.  The user wants to actively assimilate
+a regular file.  As such, a layout might be as represented in
+{{fig-example_mixing}}}.  As this is an assimilation, most of the
+data reads will be satisfied by READ (see Section 18.22 of [RFC8881])
+calls to index 0.  However, as this is also an active file, there
+could also be CHUNK_READ (see {{sec-CHUNK_READ}}) calls to the other
+indexes.
+
+~~~
+            +---------------------------------------------------+
+            | ffv2_layout4:                                     |
+            +---------------------------------------------------+
+            |     ffl_mirrors[0]:                               |
+            |         ffm_data_servers:                         |
+            |             ffv2_data_server4[0]                  |
+            |                 ffds_flags: 0                     |
+            |         ffm_coding: FFV2_CODING_MIRRORED          |
+            +---------------------------------------------------+
+            |     ffl_mirrors[1]:                               |
+            |         ffm_data_servers:                         |
+            |             ffv2_data_server4[0]                  |
+            |                 ffds_flags: FFV2_DS_FLAGS_ACTIVE  |
+            |             ffv2_data_server4[1]                  |
+            |                 ffds_flags: FFV2_DS_FLAGS_ACTIVE  |
+            |             ffv2_data_server4[2]                  |
+            |                 ffds_flags: FFV2_DS_FLAGS_ACTIVE  |
+            |             ffv2_data_server4[3]                  |
+            |                 ffds_flags: FFV2_DS_FLAGS_ACTIVE  |
+            |             ffv2_data_server4[4]                  |
+            |                 ffds_flags: FFV2_DS_FLAGS_PARITY  |
+            |             ffv2_data_server4[5]                  |
+            |                 ffds_flags: FFV2_DS_FLAGS_PARITY  |
+            |             ffv2_data_server4[6]                  |
+            |                 ffds_flags: FFV2_DS_FLAGS_SPARE   |
+            |             ffv2_data_server4[7]                  |
+            |                 ffds_flags: FFV2_DS_FLAGS_SPARE   |
+            |     ffm_coding: FFV2_CODING_REED_SOLOMON          |
+            +---------------------------------------------------+
+~~~
+{: #fig-example_mixing title="Example of Mixed Coding Types in a Layout" }
+
+When performing I/O via a FFV2_CODING_MIRRORED coding type, the
+non- transformed data will be used, Whereas with other coding types,
+a metadata header and transformed block will be sent.  Further,
+when reading data from the instance files, the client MUST be
+prepared to have one of the coding types supply data and the other
+type not to supply data.  I.e., the CHUNK_READ call to the data
+servers in mirror 1 might return rlr_eof set to true (see
+{{fig-read_chunk4}}), which indicates that there is no data, where
+the READ call to the data server in mirror 0 might return eof to
+be false, which indicates that there is data.  The client MUST
+determine that there is in fact data.  An example use case is the
+active assimilation of a file to ensure integrity.  As the client
+is helping to translated the file to the new coding scheme, it is
+actively modifying the file.  As such, it might be sequentially
+reading the file in order to translate.  The READ calls to mirror
+0 would be returning data and the CHUNK_READ calls to mirror 1 would
+not be returning data.  As the client overwrites the file, the WRITE
+call and WRITE_SWAP_CHUNK call would have data sent to all of the
+data servers.  Finally, if the client reads back a section which
+had been modified earlier, both the READ and CHUNK_READ calls would
+return data.
+
+# NFSv4.2 Operations Allowed to Data Files
+
+   // In Flexible File Version 1 Layout Type, the emphasis was on NFSv3
+   // DSes.  We limited the operations that clients could send to data
+   // files to be COMMIT, READ, and WRITE.  We further limited the MDS
+   // to GETATTR, SETATTR, CREATE, and REMOVE.  (Funny enough, this is
+   // not mandated here.)  We need to call this out in this
+   // draft and also we need to limit the NFSv4.2 operations.  Besides
+   // the ones created here, consider: READ, WRITE, and COMMIT for
+   // mirroring types and ALLOCATE, CLONE, COPY, DEALLOCATE, GETFH,
+   // PUTFH, READ_PLUS, RESTOREFH, SAVEFH, SEEK, and SEQUENCE for all
+   // types.
+   //
+   // -- TH
+   // Of special merit is SETATTR.  Do we want to allow the clients to
+   // be able to truncate the data files?  Which also brings up
+   // DEALLOCATE.  Perhaps we want CHUNK_DEALLOCATE?  That way we can
+   // swap out chunks with the client file.  CHUNK_DEALLOCATE_GUARD.
+   // Really need to determine capabilities of XFS swap!
+   //
+   // -- TH
+
+
 #  Flexible File Layout Type Return {#sec-layouthint}
 
 layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
