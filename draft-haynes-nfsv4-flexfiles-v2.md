@@ -903,7 +903,7 @@ data.  As such, it does not need operations like CHUNK_WRITE (see
 ~~~
 {: #fig-ffv2_flags4 title="The ffv2_flags4" }
 
-The ff2_flags4 in {{fig-ffv2_flags4}}  is a bitmap that allows the
+The ffv2_flags4 in {{fig-ffv2_flags4}}  is a bitmap that allows the
 metadata server to inform the client of particular conditions that
 may result from more or less tight coupling of the storage devices.
 
@@ -1025,13 +1025,29 @@ erasure coding type specific fields.  I.e., this is how the coding type
 can communicate the need for counts of active, spare, parity, and repair
 types of chunks.
 
+~~~ xdr
+   /// enum ffv2_striping {
+   ///     FFV2_STRIPING_NONE = 0,
+   ///     FFV2_STRIPING_SPARSE = 1,
+   ///     FFV2_STRIPING_DENSE = 2
+   /// };
+   ///
+   /// struct ffv2_stripes4 {
+   ///         ffv2_data_server4       ffs_data_servers<>;
+   /// };
+~~~
+{: #fig-ffv2_stripes4 title="The stripes v2"}
+
 ## ffv2_mirror4
 
 ~~~ xdr
    /// struct ffv2_mirror4 {
-   ///     ffv2_coding_type_data4   ffm_coding_type_data;
-   ///     uint32_t                 ffm_client_id;
-   ///     ffv2_data_server4        ffm_data_servers<>;
+   ///         ffv2_coding_type_data4  ffm_coding_type_data;
+   ///         ffv2_key4               ffm_key;
+   ///         ffv2_striping           ffm_striping;
+   ///         uint32_t                ffm_striping_unit_size; // The minimum stripe unit size is 64 bytes.
+   ///         uint32_t                ffm_client_id;
+   ///         ffv2_stripes4           ffm_stripes<>; // Length of this array is the stripe count
    /// };
 ~~~
 {: #fig-ffv2_mirror4 title="The ffv2_mirror4" }
@@ -1076,59 +1092,6 @@ The ffv2_layouthint4 (in {{fig-ffv2_layouthint4}}) describes the
 layout_hint (see Section 5.12.4 of {{RFC8881}}) that the client can
 provide to the metadata server.
 
-
-~~~ xdr
-   ///
-   /// /*
-   ///  * NFsv4.0, NFSv4.1, and NFSv4.2 can all
-   ///  * have unique stateids for the file.
-   ///  */
-   /// struct ff2_file_info4 {
-   ///     stateid4                fffi_stateid;
-   ///     nfs_fh4                 fffi_fh_vers;
-   /// };
-   ///
-   /// const FF2_DS_FLAGS_ACTIVE        = 0x00000001;
-   /// const FF2_DS_FLAGS_SPARE         = 0x00000002;
-   /// const FF2_DS_FLAGS_REPAIR        = 0x00000004;
-   /// typedef uint32_t            ff2_ds_flags4;
-   ///
-   /// struct ff2_data_server4 {
-   ///     deviceid4               ffds_deviceid;
-   ///     uint32_t                ffds_efficiency;
-   ///     ff2_file_info4          ffds_file_info<>;
-   ///     fattr4_owner            ffds_user;
-   ///     fattr4_owner_group      ffds_group;
-   ///     ff2_ds_flags4           ffds_flags;
-   /// };
-   ///
-   /// enum ffv2_striping {
-   ///     FFV2_STRIPING_NONE = 0,
-   ///     FFV2_STRIPING_SPARSE = 1,
-   ///     FFV2_STRIPING_DENSE = 2
-   /// };
-   ///
-   /// struct ffv2_stripes4 {
-   ///         ffv2_data_server4       ffs_data_servers<>;
-   /// };
-   ///
-   /// struct ffv2_mirror4 {
-   ///         ffv2_coding_type_data4  ffm_coding_type_data;
-   ///         ffv2_key4               ffm_key;
-   ///         ffv2_striping           ffm_striping;
-   ///         uint32_t                ffm_striping_unit_size; // The minimum stripe unit size is 64 bytes.
-   ///         uint32_t                ffm_client_id;
-   ///         ffv2_stripes4           ffm_stripes<>; // Length of this array is the stripe count
-   /// };
-   ///
-   /// struct ffv2_layout4 {
-   ///        ffv2_mirror4            ffl_mirrors<>;
-   ///        ffv2_flags4             ffl_flags;
-   ///        uint32_t                ffl_stats_collect_hint;
-   /// };
-~~~
-{: #fig-ff_layout4v2 title="The flex files layout type v2"}
-
 ~~~ xdr
    struct ff_data_server4 {
        deviceid4               ffds_deviceid;
@@ -1152,7 +1115,7 @@ provide to the metadata server.
 ~~~
 {: #fig-ff_layout4 title="The flex files layout type v1"}
 
-Note: In {{fig-ff_layout4v2}} ffv2_coding_type_data4 is an enumerated
+Note: In {{fig-ffv2_layout4}} ffv2_coding_type_data4 is an enumerated
 union with the payload of each arm being defined by the protection
 type. ffm_client_id tells the client which id to use when interacting
 with the data servers.
@@ -1873,7 +1836,7 @@ opaque value is defined by the ff_layouthint4 type.
 #  ff_layouthint4
 
 ~~~ xdr
-   /// union ff2_mirrors_hint switch (ff2_protection_type ffmh_type) {
+   /// union ffv2_mirrors_hint switch (ffv2_protection_type ffmh_type) {
    ///     case FF2_PROTECTION_TYPE_MOJETTE:
    ///         void;
    ///     case FF2_PROTECTION_TYPE_MIRRORED:
@@ -1881,13 +1844,13 @@ opaque value is defined by the ff_layouthint4 type.
    /// };
    ///
    /// /*
-   ///  * We could have this be simply ff2_protection_type
+   ///  * We could have this be simply ffv2_protection_type
    ///  * for the client to state what protection algorithm
    ///  * it wants.
    ///  */
-   /// struct ff2_layouthint4 {
-   ///     ff2_protection_type fflh_supported_types<>;
-   ///     ff2_mirrors_hint fflh_mirrors_hint;
+   /// struct ffv2_layouthint4 {
+   ///     ffv2_protection_type fflh_supported_types<>;
+   ///     ffv2_mirrors_hint fflh_mirrors_hint;
    /// };
 
    union ff_mirrors_hint switch (bool ffmc_valid) {
