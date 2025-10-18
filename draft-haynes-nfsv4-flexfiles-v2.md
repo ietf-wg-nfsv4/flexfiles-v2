@@ -1831,7 +1831,7 @@ The new error codes are shown in {{fig-errors-xdr}}.
  | Error                          | Number | Description   |
  |---
  | NFS4ERR_CODING_NOT_SUPPORTED   | 10097  | {{sec-NFS4ERR_CODING_NOT_SUPPORTED}} |
- | NFS4ERR_PAYLOAD_NOT_CONSISTENT | 10098  | {sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}} |
+ | NFS4ERR_PAYLOAD_NOT_CONSISTENT | 10098  | {{sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}} |
 {: #tbl-protocol-errors title="X"}
 
 ### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
