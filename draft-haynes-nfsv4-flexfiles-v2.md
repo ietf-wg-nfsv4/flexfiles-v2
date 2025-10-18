@@ -381,7 +381,7 @@ With loosely coupled storage devices, the metadata server uses synthetic
 uids (user ids) and gids (group ids) for the data file, where the uid
 owner of the data file is allowed read/write access and the gid owner
 is allowed read-only access.  As part of the layout (see ffds_user and
-ffds_group in {{sec_ff_layout}}), the client is provided with the user
+ffds_group in {{sec-ffv2_layout}}), the client is provided with the user
 and group to be used in the Remote Procedure Call (RPC) {{RFC5531}}
 credentials needed to access the data file.  Fencing off of clients is
 achieved by the metadata server changing the synthetic uid and/or gid
@@ -834,7 +834,7 @@ storage device addresses to designate the same storage device with
 trunking being used.  For example, the data could be read-only, and
 the data consist of exact replicas.
 
-#  Flexible File Layout Type
+#  Flexible File Version 2 Layout Type
 
 The original layouttype4 introduced in {{RFC5662}} is modified to as in
 {{fig-orig-layout}}.
@@ -844,7 +844,8 @@ The original layouttype4 introduced in {{RFC5662}} is modified to as in
            LAYOUT4_NFSV4_1_FILES   = 1,
            LAYOUT4_OSD2_OBJECTS    = 2,
            LAYOUT4_BLOCK_VOLUME    = 3,
-           LAYOUT4_FLEX_FILES      = 4
+           LAYOUT4_FLEX_FILES      = 4,
+           LAYOUT4_FLEX_FILES_V2   = 5
        };
 
        struct layout_content4 {
@@ -868,15 +869,215 @@ generic pNFS client layers but is interpreted by the flexible file
 layout type implementation.  This section defines the structure of
 this otherwise opaque value, ff_layout4.
 
-##  ff_layout4 {#sec_ff_layout}
+## ffv2_coding_type4
 
 ~~~ xdr
-   /// const FF_FLAGS_NO_LAYOUTCOMMIT   = 0x00000001;
-   /// const FF_FLAGS_NO_IO_THRU_MDS    = 0x00000002;
-   /// const FF_FLAGS_NO_READ_IO        = 0x00000004;
-   /// const FF_FLAGS_WRITE_ONE_MIRROR  = 0x00000008;
+   /// enum ffv2_coding_type4 {
+   ///     FFV2_CODING_MIRRORED       = 0x1;
+   /// };
+~~~
+{: #fig-ffv2_coding_type4 title="The coding type"}
+
+The ffv2_coding_type4 (see {{fig-ffv2_coding_type4}}) encompasses
+a new IANA registry for 'Flexible Files Version 2 Erasure Coding
+Type Registry'.  I.e., instead of defining a new Layout Type for
+each Erasure Coding, we define a new Erasure Coding Type.  Except
+for FFV2_CODING_MIRRORED, each of the types is expected to employ
+the new operations in this document.
+
+FFV2_CODING_MIRRORED offers replication of data and not integrity of
+data.  As such, it does not need operations like CHUNK_WRITE (see
+{{sec-CHUNK_WRITE}}.
+
+##  ffv2_layout4 {#sec-ffv2_layout}
+
+### ffv2_flags4 {#sec-ffv2_flags4}
+~~~ xdr
+   /// const FFV2_FLAGS_NO_LAYOUTCOMMIT   = FF_FLAGS_NO_LAYOUTCOMMIT;
+   /// const FFV2_FLAGS_NO_IO_THRU_MDS    = FF_FLAGS_NO_IO_THRU_MDS;
+   /// const FFV2_FLAGS_NO_READ_IO        = FF_FLAGS_NO_READ_IO;
+   /// const FFV2_FLAGS_WRITE_ONE_MIRROR  = FF_FLAGS_WRITE_ONE_MIRROR;
+   /// const FFV2_FLAGS_ONLY_ONE_WRITER   = 0x00000010;
    ///
-   /// typedef uint32_t            ff_flags4;
+   /// typedef uint32_t            ffv2_flags4;
+~~~
+{: #fig-ffv2_flags4 title="The ffv2_flags4" }
+
+The ff2_flags4 in {{fig-ffv2_flags4}}  is a bitmap that allows the
+metadata server to inform the client of particular conditions that
+may result from more or less tight coupling of the storage devices.
+
+FFV2_FLAGS_NO_LAYOUTCOMMIT:
+
+:  can be set to indicate that the client is not required to send
+LAYOUTCOMMIT to the metadata server.
+
+FFV2_FLAGS_NO_IO_THRU_MDS:
+
+:  can be set to indicate that the client should not send I/O
+operations to the metadata server.  That is, even if the client
+could determine that there was a network disconnect to a storage
+device, the client should not try to proxy the I/O through the
+metadata server.
+
+FFV2_FLAGS_NO_READ_IO:
+
+:  can be set to indicate that the client should not send READ
+requests with the layouts of iomode LAYOUTIOMODE4_RW.  Instead, it
+should request a layout of iomode LAYOUTIOMODE4_READ from the
+metadata server.
+
+FFV2_FLAGS_WRITE_ONE_MIRROR:
+
+:  can be set to indicate that the client only needs to update one
+of the mirrors (see {{sec-CSM}}).
+
+FFV2_FLAGS_ONLY_ONE_WRITER:
+
+:  can be set to indicate that the client only needs to use a
+CHUNK_WRITE to update the chunks in the data file.  I.e., keep the
+ability to rollback in case of a write hole caused by overwriting.
+If this flag is not set, then the client MUST write chunks with
+CHUNK_WRITE with the cwa_guard set in order to prevent collision
+across the data servers.
+
+## ffv2_file_info4
+
+~~~ xdr
+   /// struct ffv2_file_info4 {
+   ///     stateid4                fffi_stateid;
+   ///     nfs_fh4                 fffi_fh_vers;
+   /// };
+~~~
+{: #fig-ffv2_file_info4 title="The ffv2_file_info4" }
+
+The ffv2_file_info4 is a new structure to help with the stateid
+issue discussed in Section 5.1 of {{RFC8435}}.  I.e., in version 1
+of the Flexible File Layout Type, there was the singleton ffds_stateid
+combined with the ffds_fh_vers array.  I.e., each NFSv4 version has
+its own stateid.  In {{fig-ffv2_file_info4}}, each NFSv4 filehandle
+has a one-to-one correspondence to a stateid.
+
+## ffv2_ds_flags4
+
+~~~ xdr
+   /// const FFV2_DS_FLAGS_ACTIVE        = 0x00000001;
+   /// const FFV2_DS_FLAGS_SPARE         = 0x00000002;
+   /// const FFV2_DS_FLAGS_PARITY        = 0x00000004;
+   /// const FFV2_DS_FLAGS_REPAIR        = 0x00000008;
+   /// typedef uint32_t            ffv2_ds_flags4;
+~~~
+{: #fig-ffv2_ds_flags4 title="The ffv2_ds_flags4" }
+
+The ffv2_ds_flags4 (in {{fig-ffv2_ds_flags4}}) flags details the
+state of the data servers.  With Erasure Coding algorithms, there
+are both Systematic and Non-Systematic approaches.  In the Systematic,
+the bits for integrity are placed amoungst the resulting transformed
+chunk.  Such an implementation would typically see FFV2_DS_FLAGS_ACTIVE
+and FFV2_DS_FLAGS_SPARE data servers.  The FFV2_DS_FLAGS_SPARE ones
+allow the client to repair a payload without enaging the metadata
+server.  I.e., if one of the FFV2_DS_FLAGS_ACTIVE did not respond
+to a WRITE_BLOCK, the client could fail the chunk to the
+FFV2_DS_FLAGS_SPARE data server.
+
+With the Non-Systematic approach, the data and integrity live on
+different data servers.  Such an implementation would typically see
+FFV2_DS_FLAGS_ACTIVE and FFV2_DS_FLAGS_PARITY data servers.  If the
+implementation wanted to allow for local repair, it would also use
+FFV2_DS_FLAGS_SPARE.
+
+The FFV2_DS_FLAGS_REPAIR flag can be used by the metadata server
+to inform the client that the indicated data server is a replacement
+data server as far as existing data is concerned.  [TDH - Fill in]
+
+See {{Plank97}} for further reference to storage layouts for coding.
+
+## ffv2_data_server4
+
+~~~ xdr
+   /// struct ffv2_data_server4 {
+   ///     deviceid4               ffds_deviceid;
+   ///     uint32_t                ffds_efficiency;
+   ///     ffv2_file_info4         ffds_file_info<>;
+   ///     fattr4_owner            ffds_user;
+   ///     fattr4_owner_group      ffds_group;
+   ///     ffv2_ds_flags4          ffds_flags;
+   /// };
+~~~
+{: #fig-ffv2_data_server4 title="The ffv2_data_server4" }
+
+The ffv2_data_server4 (in {{fig-ffv2_data_server4}}) describes a data
+file and how to access it via the different NFS protocols.
+
+## ffv2_coding_type_data4
+
+~~~ xdr
+   /// union ffv2_coding_type_data4 switch
+   ///         (ffv2_coding_type4 fctd_coding) {
+   ///     case FFV2_CODING_MIRRORED:
+   ///         void;
+   /// };
+~~~
+{: #fig-ffv2_coding_type_data4 title="The ffv2_coding_type_data4" }
+
+The ffv2_coding_type_data4 (in {{fig-ffv2_coding_type_data4}}) describes
+erasure coding type specific fields.  I.e., this is how the coding type
+can communicate the need for counts of active, spare, parity, and repair
+types of chunks.
+
+## ffv2_mirror4
+
+~~~ xdr
+   /// struct ffv2_mirror4 {
+   ///     ffv2_coding_type_data4   ffm_coding_type_data;
+   ///     uint32_t                 ffm_client_id;
+   ///     ffv2_data_server4        ffm_data_servers<>;
+   /// };
+~~~
+{: #fig-ffv2_mirror4 title="The ffv2_mirror4" }
+
+The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) describes the Flexible
+File Layout Version 2 specific fields.  The ffm_client_id tells the
+client which id to use when interacting with the data servers.
+
+[TDH - Nuke ffm_client_id?]
+
+## ffv2_layout4
+
+~~~ xdr
+   /// struct ffv2_layout4 {
+   ///     length4                 ffl_stripe_unit;
+   ///     ffv2_mirror4            ffl_mirrors<>;
+   ///     ffv2_flags4             ffl_flags;
+   ///     uint32_t                ffl_stats_collect_hint;
+   /// };
+~~~
+{: #fig-ffv2_layout4 title="The ffv2_layout4" }
+
+The ffv2_layout4 (in {{fig-ffv2_layout4}}) describes the Flexible
+File Layout Version 2.
+
+## ffv2_layouthint4
+
+~~~ xdr
+   /// union ffv2_mirrors_hint switch (ffv2_coding_type4 ffmh_type) {
+   ///     case FFV2_CODING_MIRRORED:
+   ///         void;
+   /// };
+   ///
+   /// struct ffv2_layouthint4 {
+   ///     ffv2_coding_type4 fflh_supported_types<>;
+   ///     ffv2_mirrors_hint fflh_mirrors_hint;
+   /// };
+~~~
+{: #fig-ffv2_layouthint4 title="The ffv2_layouthint4" }
+
+The ffv2_layouthint4 (in {{fig-ffv2_layouthint4}}) describes the
+layout_hint (see Section 5.12.4 of {{RFC8881}}) that the client can
+provide to the metadata server.
+
+
+~~~ xdr
    ///
    /// /*
    ///  * NFsv4.0, NFSv4.1, and NFSv4.2 can all
@@ -1083,35 +1284,6 @@ availability to the metadata server, etc.  Higher values denote
 higher perceived utility.  The way the client can select the best
 mirror to access is discussed in {{sec-select-mirror}}.
 
-ffl_flags is a bitmap that allows the metadata server to inform the
-client of particular conditions that may result from more or less
-tight coupling of the storage devices.
-
-FF_FLAGS_NO_LAYOUTCOMMIT
-
-:  can be set to indicate that the client is not required to send
-LAYOUTCOMMIT to the metadata server.
-
-F_FLAGS_NO_IO_THRU_MDS
-
-:  can be set to indicate that the client should not send I/O
-operations to the metadata server.  That is, even if the client
-could determine that there was a network disconnect to a storage
-device, the client should not try to proxy the I/O through the
-metadata server.
-
-FF_FLAGS_NO_READ_IO
-
-:  can be set to indicate that the client should not send READ
-requests with the layouts of iomode LAYOUTIOMODE4_RW.  Instead, it
-should request a layout of iomode LAYOUTIOMODE4_READ from the
-metadata server.
-
-FF_FLAGS_WRITE_ONE_MIRROR
-
-:  can be set to indicate that the client only needs to update one
-of the mirrors (see {{sec-write-mirrors}}).
-
 ###  Error Codes from LAYOUTGET
 
 {{RFC8881}} provides little guidance as to how the client is to
@@ -1251,7 +1423,7 @@ server if the error persists.
 
 #  Client-Side Protection Modes
 
-##  Client-Side Mirroring
+##  Client-Side Mirroring {#sec-CSM}
 
 The flexible file layout type has a simple model in place for the
 mirroring of the file data constrained by a layout segment.  There
@@ -1824,7 +1996,7 @@ revoked clients from the respective data files as described in
    ///    = 10097,/* Coding Type unsupported  */
    /// NFS4ERR_PAYLOAD_NOT_CONSISTENT= 10098/* payload inconsitent  */
    ///
-~~~ 
+~~~
 {: #fig-errors-xdr title="Errors XDR" }
 
 The new error codes are shown in {{fig-errors-xdr}}.
@@ -1949,6 +2121,8 @@ an unique id established when the client did the EXCHANGE_ID operation
 lower 32 bits are set passed back in the LAYOUTGET operation (see
 Section 18.43 of {{RFC8881}}) as the fml_client_id (see Section
 2.9).
+
+[TDH: fix the section]
 
 ## chunk_owner4
 
@@ -2115,21 +2289,21 @@ CHUNK_HEADER_READ differs from CHUNK_READ in that it only reads chunk
 headers in the desired data range.
 
 ## Operation 81: CHUNK_LOCK - Lock Cached Chunk Data {#sec-CHUNK_LOCK}
-   
+
 ### ARGUMENTS
-   
+
 ### RESULTS
-   
+
 ### DESCRIPTION
 
 ## Operation 82: CHUNK_READ - Read Chunks from File {#sec-CHUNK_READ}
 
 ### ARGUMENTS
-                   
+
 ~~~ xdr
    /// struct CHUNK_READ4args {
    ///     /* CURRENT_FH: file */
-   ///     stateid4    cra_stateid; 
+   ///     stateid4    cra_stateid;
    ///     offset4     cra_offset;
    ///     count4      cra_count;
    /// };
@@ -2138,28 +2312,28 @@ headers in the desired data range.
 
 ### RESULTS
 
-~~~ xdr    
+~~~ xdr
    /// struct read_chunk4 {
-   ///     uint32_t        cr_crc; 
+   ///     uint32_t        cr_crc;
    ///     uint32_t        cr_effective_len;
    ///     chunk_owner4    cr_owner;
-   ///     uint32_t        cr_payload_id;   
+   ///     uint32_t        cr_payload_id;
    ///     opaque          cr_chunk<>;
    /// };
-~~~ 
+~~~
 {: #fig-read_chunk4 title="XDR for read_chunk4" }
 
 ~~~ xdr
    /// struct CHUNK_READ4resok {
    ///     bool        crr_eof;
    ///     read_chunk4 crr_chunks<>;
-   /// };  
-~~~                
+   /// };
+~~~
 {: #fig-CHUNK_READ4resok title="XDR for CHUNK_READ4resok" }
-           
-~~~ xdr    
+
+~~~ xdr
    /// union CHUNK_READ4res switch (nfsstat4 crr_status) {
-   ///     case NFS4_OK: 
+   ///     case NFS4_OK:
    ///          CHUNK_READ4resok     crr_resok4;
    ///     default:
    ///          void;
@@ -2268,11 +2442,11 @@ generated fields.
 ### DESCRIPTION
 
 ## Operation 86: CHUNK_WRITE - Write Chunks to File {#sec-CHUNK_WRITE}
-   
+
 ### ARGUMENTS
-   
+
 ~~~ xdr
-   /// union write_chunk_guard4 (bool cwg_check) {       
+   /// union write_chunk_guard4 (bool cwg_check) {
    ///     case TRUE:
    ///         chunk_guard4   cwg_guard;
    ///     case FALSE:
