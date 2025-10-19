@@ -380,14 +380,15 @@ to the storage device.
 With loosely coupled storage devices, the metadata server uses synthetic
 uids (user ids) and gids (group ids) for the data file, where the uid
 owner of the data file is allowed read/write access and the gid owner
-is allowed read-only access.  As part of the layout (see ffds_user and
-ffds_group in {{sec-ffv2_layout}}), the client is provided with the user
-and group to be used in the Remote Procedure Call (RPC) {{RFC5531}}
-credentials needed to access the data file.  Fencing off of clients is
-achieved by the metadata server changing the synthetic uid and/or gid
-owners of the data file on the storage device to implicitly revoke the
-outstanding RPC credentials.  A client presenting the wrong credential
-for the desired access will get an NFS4ERR_ACCESS error.
+is allowed read-only access.  As part of the layout (see ffv2ds_user
+and ffv2ds_group in {{sec-ffv2_layout}}), the client is provided
+with the user and group to be used in the Remote Procedure Call
+(RPC) {{RFC5531}} credentials needed to access the data file.
+Fencing off of clients is achieved by the metadata server changing
+the synthetic uid and/or gid owners of the data file on the storage
+device to implicitly revoke the outstanding RPC credentials.  A
+client presenting the wrong credential for the desired access will
+get an NFS4ERR_ACCESS error.
 
 With this loosely coupled model, the metadata server is not able to fence
 off a single client; it is forced to fence off all clients.  However,
@@ -440,11 +441,11 @@ a request to access a file, a SETATTR would be sent to the storage device
 to set the owner and group of the data file.  The user and group might
 be selected in a round-robin fashion from the range of available ids.
 
-Those ids would be sent back as ffds_user and ffds_group to the client,
-who would present them as the RPC credentials to the storage device.
-When the client is done accessing the file and the metadata server knows
-that no other client is accessing the file, it can reset the owner and
-group to restrict access to the data file.
+Those ids would be sent back as ffv2ds_user and ffv2ds_group to the
+client, who would present them as the RPC credentials to the storage
+device.  When the client is done accessing the file and the metadata
+server knows that no other client is accessing the file, it can
+reset the owner and group to restrict access to the data file.
 
 When the metadata server wants to fence off a client, it changes the
 synthetic uid and/or gid to the restricted ids.  Note that using a
@@ -720,9 +721,10 @@ retrieve that information.
 
 ##  ff_device_addr4 {#sec-ff_device_addr4}
 
-The ff_device_addr4 data structure (see {{fig-ff_device_addr4}}) is returned by the
-server as the layout-type-specific opaque field da_addr_body in the
-device_addr4 structure by a successful GETDEVICEINFO operation.
+The ff_device_addr4 data structure (see {{fig-ff_device_addr4}})
+is returned by the server as the layout-type-specific opaque field
+da_addr_body in the device_addr4 structure by a successful GETDEVICEINFO
+operation.
 
 ~~~ xdr
    /// struct ff_device_versions4 {
@@ -953,10 +955,10 @@ across the data servers.
 
 The ffv2_file_info4 is a new structure to help with the stateid
 issue discussed in Section 5.1 of {{RFC8435}}.  I.e., in version 1
-of the Flexible File Layout Type, there was the singleton ffds_stateid
-combined with the ffds_fh_vers array.  I.e., each NFSv4 version has
-its own stateid.  In {{fig-ffv2_file_info4}}, each NFSv4 filehandle
-has a one-to-one correspondence to a stateid.
+of the Flexible File Layout Type, there was the singleton ffv2ds_stateid
+combined with the ffv2ds_fh_vers array.  I.e., each NFSv4 version
+has its own stateid.  In {{fig-ffv2_file_info4}}, each NFSv4
+filehandle has a one-to-one correspondence to a stateid.
 
 ## ffv2_ds_flags4
 
@@ -996,12 +998,12 @@ See {{Plank97}} for further reference to storage layouts for coding.
 
 ~~~ xdr
    /// struct ffv2_data_server4 {
-   ///     deviceid4               ffds_deviceid;
-   ///     uint32_t                ffds_efficiency;
-   ///     ffv2_file_info4         ffds_file_info<>;
-   ///     fattr4_owner            ffds_user;
-   ///     fattr4_owner_group      ffds_group;
-   ///     ffv2_ds_flags4          ffds_flags;
+   ///     deviceid4               ffv2ds_deviceid;
+   ///     uint32_t                ffv2ds_efficiency;
+   ///     ffv2_file_info4         ffv2ds_file_info<>;
+   ///     fattr4_owner            ffv2ds_user;
+   ///     fattr4_owner_group      ffv2ds_group;
+   ///     ffv2_ds_flags4          ffv2ds_flags;
    /// };
 ~~~
 {: #fig-ffv2_data_server4 title="The ffv2_data_server4" }
@@ -1178,12 +1180,12 @@ The ffs_mirrors field represents an array of state information for
 each mirrored copy of the current layout segment.  Each element is
 described by a ff_mirror4 type.
 
-ffds_deviceid provides the deviceid of the storage device holding
+ffv2ds_deviceid provides the deviceid of the storage device holding
 the data file.
 
-ffds_fh_vers is an array of filehandles of the data file matching
+ffv2ds_fh_vers is an array of filehandles of the data file matching
 the available NFS versions on the given storage device.  There MUST
-be exactly as many elements in ffds_fh_vers as there are in
+be exactly as many elements in ffv2ds_fh_vers as there are in
 ffda_versions.  Each element of the array corresponds to a particular
 combination of ffdv_version, ffdv_minorversion, and ffdv_tightly_coupled
 provided for the device.  The array allows for server implementations
@@ -1192,15 +1194,15 @@ version, minor version, and coupling strength.  See {{sec-version-errors}}
 for how to handle versioning issues between the client and storage
 devices.
 
-For tight coupling, ffds_stateid provides the stateid to be used
+For tight coupling, ffv2ds_stateid provides the stateid to be used
 by the client to access the file.  For loose coupling and an NFSv4
 storage device, the client will have to use an anonymous stateid
 to perform I/O on the storage device.  With no control protocol,
 the metadata server stateid cannot be used to provide a global
-stateid model.  Thus, the server MUST set the ffds_stateid to be
+stateid model.  Thus, the server MUST set the ffv2ds_stateid to be
 the anonymous stateid.
 
-This specification of the ffds_stateid restricts both models for
+This specification of the ffv2ds_stateid restricts both models for
 NFSv4.x storage protocols:
 
 loosely couple
@@ -1212,7 +1214,7 @@ tightly couple
 :  the stateid has to be a global stateid
 
 A number of issues stem from a mismatch between the fact that
-ffds_stateid is defined as a single item while ffds_fh_vers is
+ffv2ds_stateid is defined as a single item while ffv2ds_fh_vers is
 defined as an array.  It is possible for each open file on the
 storage device to require its own open stateid.  Because there are
 established loosely coupled implementations of the version of the
@@ -1221,15 +1223,15 @@ been addressed here.  It is possible for future layout types to be
 defined that address these issues, should it become important to
 provide multiple stateids for the same underlying file.
 
-For loosely coupled storage devices, ffds_user and ffds_group provide
-the synthetic user and group to be used in the RPC credentials that
-the client presents to the storage device to access the data files.
-For tightly coupled storage devices, the user and group on the
-storage device will be the same as on the metadata server; that is,
-if ffdv_tightly_coupled (see {{sec-ff_device_addr4}}) is set, then
-the client MUST ignore both ffds_user and ffds_group.
+For loosely coupled storage devices, ffv2ds_user and ffv2ds_group
+provide the synthetic user and group to be used in the RPC credentials
+that the client presents to the storage device to access the data
+files.  For tightly coupled storage devices, the user and group on
+the storage device will be the same as on the metadata server; that
+is, if ffdv_tightly_coupled (see {{sec-ff_device_addr4}}) is set,
+then the client MUST ignore both ffv2ds_user and ffv2ds_group.
 
-The allowed values for both ffds_user and ffds_group are specified
+The allowed values for both ffv2ds_user and ffv2ds_group are specified
 as owner and owner_group, respectively, in Section 5.9 of {{RFC8881}}.
 For NFSv3 compatibility, user and group strings that consist of
 decimal numeric values with no leading zeros can be given a special
@@ -1240,7 +1242,7 @@ or gid having the corresponding numeric value.  Note that if using
 Kerberos for security, the expectation is that these values will
 be a name@domain string.
 
-ffds_efficiency describes the metadata server's evaluation as to
+ffv2ds_efficiency describes the metadata server's evaluation as to
 the effectiveness of each mirror.  Note that this is per layout and
 not per device as the metric may change due to perceived load,
 availability to the metadata server, etc.  Higher values denote
@@ -1299,7 +1301,7 @@ filehandles, they are independent of the multipathing being used.
 If the metadata server wants to provide multiple read-only copies
 of the same file on the same storage device, then it should provide
 multiple mirrored instances, each with a different ff_device_addr4.
-The client can then determine that, since the each of the ffds_fh_vers
+The client can then determine that, since the each of the ffv2ds_fh_vers
 are different, there are multiple copies of the file for the current
 layout segment available.
 
@@ -1424,7 +1426,7 @@ to make modifications via the metadata server.
 
 When the metadata server grants a layout to a client, it MAY let
 the client know how fast it expects each mirror to be once the
-request arrives at the storage devices via the ffds_efficiency
+request arrives at the storage devices via the ffv2ds_efficiency
 member.  While the algorithms to calculate that value are left to
 the metadata server implementations, factors that could contribute
 to that calculation include speed of the storage device, physical
@@ -1456,7 +1458,7 @@ then it MUST inform the client that the original WRITE had an error.
 The client then MUST inform the metadata server (see {{sec-write-errors}}).
 The client's responsibility with respect to COMMIT is explained in
 {{sec-write-commits}}.  The client may choose any one of the mirrors
-and may use ffds_efficiency as described in {{sec-select-mirror}}
+and may use ffv2ds_efficiency as described in {{sec-select-mirror}}
 when making this choice.
 
 ####  Client Updates All Mirrors
@@ -1587,30 +1589,30 @@ can reconstruct the missing chunk.
 ### Encoding a Data Block
 
 ~~~
-                     +-------------+
-                     | data block  |
-                     +-------+-----+
-                             |
-                             |
-       +---------------------+-------------------------------+
-       |            Erasure Encoding (Transform Forward)     |
-       +---+----------------------+---------------------+----+
-           |                      |                     |
-           |                      |                     |
-       +---+------------+     +---+------------+     +--+-------------+
-       | HEADER         | ... | HEADER         | ... | HEADER         |
-       +----------------+     +----------------+     +----------------+
-       | guard:         | ... | guard:         | ... | guard:         |
-       |   gen_id   : 3 | ... |   gen_id   : 3 | ... |   gen_id   : 3 |
-       |   client_id: 6 | ... |   client_id: 6 | ... |   client_id: 6 |
-       | payload_id : 0 | ... | payload_id : M | ... | payload_id : 5 |
-       | crc32   :      | ... | crc32   :      | ... | crc32   :      |
-       +----------------+     +----------------+     +----------------+
-       | CHUNK          | ... | CHUNK          | ... | CHUNK          |
-       +----------------+     +----------------+     +----------------+
-       | data: ....     | ... | data: ....     | ... | data: ....     |
-       +----------------+     +----------------+     +----------------+
-         Data Server 1          Data Server N          Data Server 6
+                 +-------------+
+                 | data block  |
+                 +-------+-----+
+                         |
+                         |
+   +---------------------+-------------------------------+
+   |            Erasure Encoding (Transform Forward)     |
+   +---+----------------------+---------------------+----+
+       |                      |                     |
+       |                      |                     |
+   +---+------------+     +---+------------+     +--+-------------+
+   | HEADER         | ... | HEADER         | ... | HEADER         |
+   +----------------+     +----------------+     +----------------+
+   | guard:         | ... | guard:         | ... | guard:         |
+   |   gen_id   : 3 | ... |   gen_id   : 3 | ... |   gen_id   : 3 |
+   |   client_id: 6 | ... |   client_id: 6 | ... |   client_id: 6 |
+   | payload_id : 0 | ... | payload_id : M | ... | payload_id : 5 |
+   | crc32   :      | ... | crc32   :      | ... | crc32   :      |
+   +----------------+     +----------------+     +----------------+
+   | CHUNK          | ... | CHUNK          | ... | CHUNK          |
+   +----------------+     +----------------+     +----------------+
+   | data: ....     | ... | data: ....     | ... | data: ....     |
+   +----------------+     +----------------+     +----------------+
+     Data Server 1          Data Server N          Data Server 6
 ~~~
 {: #fig-encoding-data-block title="Encoding a Data Block" }
 
@@ -1622,24 +1624,24 @@ single transaction, a more accurate description of a CHUNK_WRITE
 might be as in {{fig-example-chunk-write-args}}.
 
 ~~~
-           +------------------------------------+
-           | CHUNK_WRITEargs                    |
-           +------------------------------------+
-           | cwa_stateid: 0                     |
-           | cwa_offset: 1                      |
-           | cwa_stable: FILE_SYNC4             |
-           | cwa_payload_id: 0                  |
-           | cwa_owner:                         |
-           |            co_guard:               |
-           |                cg_gen_id   : 3     |
-           |                cg_client_id: 6     |
-           | cwa_chunk_size  :  1048            |
-           | cwa_crc32s:                        |
-           |         [0]:  0x32ef89             |
-           |         [1]:  0x56fa89             |
-           |         [2]:  0x7693af             |
-           | cwa_chunks  :  ......              |
-           +------------------------------------+
+  +------------------------------------+
+  | CHUNK_WRITEargs                    |
+  +------------------------------------+
+  | cwa_stateid: 0                     |
+  | cwa_offset: 1                      |
+  | cwa_stable: FILE_SYNC4             |
+  | cwa_payload_id: 0                  |
+  | cwa_owner:                         |
+  |            co_guard:               |
+  |                cg_gen_id   : 3     |
+  |                cg_client_id: 6     |
+  | cwa_chunk_size  :  1048            |
+  | cwa_crc32s:                        |
+  |         [0]:  0x32ef89             |
+  |         [1]:  0x56fa89             |
+  |         [2]:  0x7693af             |
+  | cwa_chunks  :  ......              |
+  +------------------------------------+
 ~~~
 {: #fig-example-chunk-write-args title="Example of CHUNK_WRITE_args" }
 
@@ -1655,48 +1657,48 @@ illustrates the results.  The payload sequence id is implicit in
 the CHUNK_WRITEargs.
 
 ~~~
-           +-------------------------------+
-           | CHUNK_WRITEresok              |
-           +-------------------------------+
-           | cwr_count: 3                  |
-           | cwr_committed: FILE_SYNC4     |
-           | cwr_writeverf: 0xf1234abc     |
-           | cwr_owners[0]:                |
-           |        co_chunk_id: 1         |
-           |        co_guard:              |
-           |            cg_gen_id   : 3    |
-           |            cg_client_id: 6    |
-           | cwr_owners[1]:                |
-           |        co_chunk_id: 2         |
-           |        co_guard:              |
-           |            cg_gen_id   : 3    |
-           |            cg_client_id: 6    |
-           | cwr_owners[2]:                |
-           |        co_chunk_id: 3         |
-           |        co_guard:              |
-           |            cg_gen_id   : 3    |
-           |            cg_client_id: 6    |
-           +-------------------------------+
+  +-------------------------------+
+  | CHUNK_WRITEresok              |
+  +-------------------------------+
+  | cwr_count: 3                  |
+  | cwr_committed: FILE_SYNC4     |
+  | cwr_writeverf: 0xf1234abc     |
+  | cwr_owners[0]:                |
+  |        co_chunk_id: 1         |
+  |        co_guard:              |
+  |            cg_gen_id   : 3    |
+  |            cg_client_id: 6    |
+  | cwr_owners[1]:                |
+  |        co_chunk_id: 2         |
+  |        co_guard:              |
+  |            cg_gen_id   : 3    |
+  |            cg_client_id: 6    |
+  | cwr_owners[2]:                |
+  |        co_chunk_id: 3         |
+  |        co_guard:              |
+  |            cg_gen_id   : 3    |
+  |            cg_client_id: 6    |
+  +-------------------------------+
 ~~~
 {: #fig-example-chunk-write-res title="Example of CHUNK_WRITE_res" }
 
 #### Calculating the CRC32
 
 ~~~
-           +---+----------------+
-           | HEADER             |
-           +--------------------+
-           | guard:             |
-           |   gen_id   : 7     |
-           |   client_id: 6     |
-           | payload_id : 0     |
-           | crc32   : 0        |
-           +--------------------+
-           | CHUNK              |
-           +--------------------+
-           | data:  ....        |
-           +--------------------+
-                Data Server 1
+  +---+----------------+
+  | HEADER             |
+  +--------------------+
+  | guard:             |
+  |   gen_id   : 7     |
+  |   client_id: 6     |
+  | payload_id : 0     |
+  | crc32   : 0        |
+  +--------------------+
+  | CHUNK              |
+  +--------------------+
+  | data:  ....        |
+  +--------------------+
+        Data Server 1
 ~~~
 {: #fig-calc-before title="CRC32 Before Calculation" }
 
@@ -1707,52 +1709,52 @@ the header and the cw_chunk.  In this example, it is calculated to
 be 0x21de8.  The resulting CHUNK_WRITE is shown in {{fig-calc-crc-after}}.
 
 ~~~
-           +------------------------------------+
-           | CHUNK_WRITEargs                    |
-           +------------------------------------+
-           | cwa_stateid: 0                     |
-           | cwa_offset: 1                      |
-           | cwa_stable: FILE_SYNC4             |
-           | cwa_payload_id: 0                  |
-           | cwa_owner:                         |
-           |            co_guard:               |
-           |                cg_gen_id   : 7     |
-           |                cg_client_id: 6     |
-           | cwa_chunk_size  :  1048            |
-           | cwa_crc32s:                        |
-           |         [0]:  0x21de8              |
-           | cwa_chunks  :  ......              |
-           +------------------------------------+
+  +------------------------------------+
+  | CHUNK_WRITEargs                    |
+  +------------------------------------+
+  | cwa_stateid: 0                     |
+  | cwa_offset: 1                      |
+  | cwa_stable: FILE_SYNC4             |
+  | cwa_payload_id: 0                  |
+  | cwa_owner:                         |
+  |            co_guard:               |
+  |                cg_gen_id   : 7     |
+  |                cg_client_id: 6     |
+  | cwa_chunk_size  :  1048            |
+  | cwa_crc32s:                        |
+  |         [0]:  0x21de8              |
+  | cwa_chunks  :  ......              |
+  +------------------------------------+
 ~~~
 {: #fig-calc-crc-after title="CRC32 After Calculation" }
 
 ### Decoding a Data Block
 
 ~~~
-         Data Server 1          Data Server N          Data Server 6
-       +----------------+     +----------------+     +----------------+
-       | HEADER         | ... | HEADER         | ... | HEADER         |
-       +----------------+     +----------------+     +----------------+
-       | guard:         | ... | guard:         | ... | guard:         |
-       |   gen_id   : 3 | ... |   gen_id   : 3 | ... |   gen_id   : 3 |
-       |   client_id: 6 | ... |   client_id: 6 | ... |   client_id: 6 |
-       | payload_id : 0 | ... | payload_id : M | ... | payload_id : 5 |
-       | crc32   :      | ... | crc32   :      | ... | crc32   :      |
-       +----------------+     +----------------+     +----------------+
-       | CHUNK          | ... | CHUNK          | ... | CHUNK          |
-       +----------------+     +----------------+     +----------------+
-       | data: ....     | ... | data: ....     | ... | data: ....     |
-       +---+------------+     +--+-------------+     +-+--------------+
-           |                     |                     |
-           |                     |                     |
-       +---+---------------------+---------------------+-----+
-       |            Erasure Decoding (Transform Reverse)     |
-       +---------------------+-------------------------------+
-                             |
-                             |
-                     +-------+-----+
-                     | data block  |
-                     +-------------+
+    Data Server 1          Data Server N          Data Server 6
+  +----------------+     +----------------+     +----------------+
+  | HEADER         | ... | HEADER         | ... | HEADER         |
+  +----------------+     +----------------+     +----------------+
+  | guard:         | ... | guard:         | ... | guard:         |
+  |   gen_id   : 3 | ... |   gen_id   : 3 | ... |   gen_id   : 3 |
+  |   client_id: 6 | ... |   client_id: 6 | ... |   client_id: 6 |
+  | payload_id : 0 | ... | payload_id : M | ... | payload_id : 5 |
+  | crc32   :      | ... | crc32   :      | ... | crc32   :      |
+  +----------------+     +----------------+     +----------------+
+  | CHUNK          | ... | CHUNK          | ... | CHUNK          |
+  +----------------+     +----------------+     +----------------+
+  | data: ....     | ... | data: ....     | ... | data: ....     |
+  +---+------------+     +--+-------------+     +-+--------------+
+      |                     |                     |
+      |                     |                     |
+  +---+---------------------+---------------------+-----+
+  |            Erasure Decoding (Transform Reverse)     |
+  +---------------------+-------------------------------+
+                        |
+                        |
+                +-------+-----+
+                | data block  |
+                +-------------+
 ~~~
 {: #fig-decoding-db title="Decoding a Data Block" }
 
@@ -1767,18 +1769,18 @@ erasure coding type.
 #### Checking the CRC32
 
 ~~~
-           +------------------------------------+
-           | CHUNK_READresok                    |
-           +------------------------------------+
-           | crr_eof: false                     |
-           | crr_chunks[0]:                     |
-           |        cr_crc: 0x21de8             |
-           |        cr_owner:                   |
-           |            co_guard:               |
-           |                cg_gen_id   : 7     |
-           |                cg_client_id: 6     |
-           |        cr_chunk  :  ......         |
-           +------------------------------------+
+  +------------------------------------+
+  | CHUNK_READresok                    |
+  +------------------------------------+
+  | crr_eof: false                     |
+  | crr_chunks[0]:                     |
+  |        cr_crc: 0x21de8             |
+  |        cr_owner:                   |
+  |            co_guard:               |
+  |                cg_gen_id   : 7     |
+  |                cg_client_id: 6     |
+  |        cr_chunk  :  ......         |
+  +------------------------------------+
 ~~~
 {: #fig-example-chunk-read-crc title="CRC32 on the Wire" }
 
@@ -1791,20 +1793,20 @@ it is calculated to be 0x21de8.  Thus this payload for the data
 server has data integrity.
 
 ~~~
-           +---+----------------+
-           | HEADER             |
-           +--------------------+
-           | guard:             |
-           |   gen_id   : 7     |
-           |   client_id: 6     |
-           | payload_id  : 0    |
-           | crc32    : 0       |
-           +--------------------+
-           | CHUNK              |
-           +--------------------+
-           | data:  ....        |
-           +--------------------+
-                Data Server 1
+  +---+----------------+
+  | HEADER             |
+  +--------------------+
+  | guard:             |
+  |   gen_id   : 7     |
+  |   client_id: 6     |
+  | payload_id  : 0    |
+  | crc32    : 0       |
+  +--------------------+
+  | CHUNK              |
+  +--------------------+
+  | data:  ....        |
+  +--------------------+
+       Data Server 1
 ~~~
 {: #fig-example-crc-checked title="CRC32 Being Checked" }
 
@@ -1901,35 +1903,35 @@ could also be CHUNK_READ (see {{sec-CHUNK_READ}}) calls to the other
 indexes.
 
 ~~~
-            +---------------------------------------------------+
-            | ffv2_layout4:                                     |
-            +---------------------------------------------------+
-            |     ffl_mirrors[0]:                               |
-            |         ffm_data_servers:                         |
-            |             ffv2_data_server4[0]                  |
-            |                 ffds_flags: 0                     |
-            |         ffm_coding: FFV2_CODING_MIRRORED          |
-            +---------------------------------------------------+
-            |     ffl_mirrors[1]:                               |
-            |         ffm_data_servers:                         |
-            |             ffv2_data_server4[0]                  |
-            |                 ffds_flags: FFV2_DS_FLAGS_ACTIVE  |
-            |             ffv2_data_server4[1]                  |
-            |                 ffds_flags: FFV2_DS_FLAGS_ACTIVE  |
-            |             ffv2_data_server4[2]                  |
-            |                 ffds_flags: FFV2_DS_FLAGS_ACTIVE  |
-            |             ffv2_data_server4[3]                  |
-            |                 ffds_flags: FFV2_DS_FLAGS_ACTIVE  |
-            |             ffv2_data_server4[4]                  |
-            |                 ffds_flags: FFV2_DS_FLAGS_PARITY  |
-            |             ffv2_data_server4[5]                  |
-            |                 ffds_flags: FFV2_DS_FLAGS_PARITY  |
-            |             ffv2_data_server4[6]                  |
-            |                 ffds_flags: FFV2_DS_FLAGS_SPARE   |
-            |             ffv2_data_server4[7]                  |
-            |                 ffds_flags: FFV2_DS_FLAGS_SPARE   |
-            |     ffm_coding: FFV2_CODING_REED_SOLOMON          |
-            +---------------------------------------------------+
+ +-----------------------------------------------------+
+ | ffv2_layout4:                                       |
+ +-----------------------------------------------------+
+ |     ffl_mirrors[0]:                                 |
+ |         ffm_data_servers:                           |
+ |             ffv2_data_server4[0]                    |
+ |                 ffv2ds_flags: 0                     |
+ |         ffm_coding: FFV2_CODING_MIRRORED            |
+ +-----------------------------------------------------+
+ |     ffl_mirrors[1]:                                 |
+ |         ffm_data_servers:                           |
+ |             ffv2_data_server4[0]                    |
+ |                 ffv2ds_flags: FFV2_DS_FLAGS_ACTIVE  |
+ |             ffv2_data_server4[1]                    |
+ |                 ffv2ds_flags: FFV2_DS_FLAGS_ACTIVE  |
+ |             ffv2_data_server4[2]                    |
+ |                 ffv2ds_flags: FFV2_DS_FLAGS_ACTIVE  |
+ |             ffv2_data_server4[3]                    |
+ |                 ffv2ds_flags: FFV2_DS_FLAGS_ACTIVE  |
+ |             ffv2_data_server4[4]                    |
+ |                 ffv2ds_flags: FFV2_DS_FLAGS_PARITY  |
+ |             ffv2_data_server4[5]                    |
+ |                 ffv2ds_flags: FFV2_DS_FLAGS_PARITY  |
+ |             ffv2_data_server4[6]                    |
+ |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
+ |             ffv2_data_server4[7]                    |
+ |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
+ |     ffm_coding: FFV2_CODING_REED_SOLOMON            |
+ +-----------------------------------------------------+
 ~~~
 {: #fig-example_mixing title="Example of Mixed Coding Types in a Layout" }
 
@@ -2763,51 +2765,51 @@ data server MUST calculate a valid cr_crc for block 3 based on the
 generated fields.
 
 ~~~
-                   Data Server 2
-           +--------------------------------+
-           | CHUNK_READ4args                |
-           +--------------------------------+
-           | cra_stateid: 0                 |
-           | cra_offset: 2                  |
-           | cra_count: 4                   |
-           +----------+---------------------+
+        Data Server 2
+  +--------------------------------+
+  | CHUNK_READ4args                |
+  +--------------------------------+
+  | cra_stateid: 0                 |
+  | cra_offset: 2                  |
+  | cra_count: 4                   |
+  +----------+---------------------+
 ~~~
 {: #fig-example-CHUNK_READ4args title="Example: CHUNK_READ4args parameters" }
 
 ~~~
-                   Data Server 2
-           +--------------------------------+
-           | CHUNK_READ4resok               |
-           +--------------------------------+
-           | crr_eof: true                  |
-           | crr_chunks[0]:                 |
-           |     cr_crc: 0x3faddace         |
-           |     cr_owner:                  |
-           |         co_chunk_id: 2         |
-           |         co_guard:              |
-           |             cg_gen_id   : 3    |
-           |             cg_client_id: 6    |
-           |     cr_payload_id: 1           |
-           |     cr_chunk: ....             |
-           | crr_chunks[0]:                 |
-           |     cr_crc: 0xdeade4e5         |
-           |     cr_owner:                  |
-           |         co_chunk_id: 3         |
-           |         co_guard:              |
-           |             cg_gen_id   : 0    |
-           |             cg_client_id: 0    |
-           |     cr_payload_id: 1           |
-           |     cr_chunk: 0000...00000     |
-           | crr_chunks[0]:                 |
-           |     cr_crc: 0x7778abcd         |
-           |     cr_owner:                  |
-           |         co_chunk_id: 4         |
-           |         co_guard:              |
-           |             cg_gen_id   : 3    |
-           |             cg_client_id: 6    |
-           |     cr_payload_id: 1           |
-           |     cr_chunk: ....             |
-           +--------------------------------+
+        Data Server 2
+  +--------------------------------+
+  | CHUNK_READ4resok               |
+  +--------------------------------+
+  | crr_eof: true                  |
+  | crr_chunks[0]:                 |
+  |     cr_crc: 0x3faddace         |
+  |     cr_owner:                  |
+  |         co_chunk_id: 2         |
+  |         co_guard:              |
+  |             cg_gen_id   : 3    |
+  |             cg_client_id: 6    |
+  |     cr_payload_id: 1           |
+  |     cr_chunk: ....             |
+  | crr_chunks[0]:                 |
+  |     cr_crc: 0xdeade4e5         |
+  |     cr_owner:                  |
+  |         co_chunk_id: 3         |
+  |         co_guard:              |
+  |             cg_gen_id   : 0    |
+  |             cg_client_id: 0    |
+  |     cr_payload_id: 1           |
+  |     cr_chunk: 0000...00000     |
+  | crr_chunks[0]:                 |
+  |     cr_crc: 0x7778abcd         |
+  |     cr_owner:                  |
+  |         co_chunk_id: 4         |
+  |         co_guard:              |
+  |             cg_gen_id   : 3    |
+  |             cg_client_id: 6    |
+  |     cr_payload_id: 1           |
+  |     cr_chunk: ....             |
+  +--------------------------------+
 ~~~
 {: #fig-example-CHUNK_READ4resok title="Example: Resulting CHUNK_READ4resok reply" }
 
