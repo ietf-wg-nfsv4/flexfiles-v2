@@ -21,7 +21,6 @@ author:
     email: loghyr@gmail.com
 
 normative:
-  RFC2119:
   RFC4121:
   RFC4506:
   RFC5531:
@@ -30,7 +29,6 @@ normative:
   RFC7861:
   RFC7862:
   RFC7863:
-  RFC8174:
   RFC8178:
   RFC8434:
   RFC8435:
@@ -1862,6 +1860,11 @@ to overwrite the chunks which are not consistent. If it is a random
 client, then the client should just CHUNK_ROLLBACK and CHUNK_UNLOCK
 until it gets back to the original chunk.</cref>
 
+The client which is repairing the chunk can decide to rollback to
+the previous chunk via CHUNK_ROLLBACK. Note that CHUNK_ROLLBACK
+does not unlock the chunk, that has to be explictly done via
+CHUNK_UNLOCK.
+
 #### Single Writer Mode
 
 #### Repairing Single Writer Payloads
@@ -1899,7 +1902,6 @@ FFV2_DS_FLAGS_REPAIR data servers or reconstruct the chunks for the
 FFV2_DS_FLAGS_REPAIR based on the decoded data blocks, The client
 indicates success by returning the layout.  </cref>
 
-
 <cref source="Tom"> For a slam dunk, introduce the concept of a
 proxy repair client.  I.e., the client appears as a single
 FFV2_CODING_MIRRORED file to other clients.  As it receives WRITEs,
@@ -1907,7 +1909,6 @@ it encodes them to the real set of data servers.  As it receives
 READs, it decodes them from the real set of data servers.  Once the
 proxy repair is finished, the metadata server will start pushing
 out layouts for the real set of data servers.  </cref>
-
 
 ## Mixing of Coding Types
 
@@ -2467,6 +2468,8 @@ errors in the chunk operation responses or we need to not send an
 array of chunks in the requests. The arrays were picked in order to
 reduce the header to data cost, but really do not make sense.</cref>
 
+<cref source="Tom">Trying out an array of errors.</cref>
+
 ## Operations and Their Valid Errors
 
 The operations and their valid errors are presented in
@@ -2674,6 +2677,9 @@ cca_count are redundant to cca_chunks, the purpose of cca_chunks
 is to allow the data server to differentiate between potentially
 multiple pending blocks.
 
+<cref source="Tom">Describe how CHUNK_COMMIT and CHUNK_FINALIZE interact.
+How does CHUNK_COMMIT interact with a locked chunk?</cref>
+
 ## Operation 78: CHUNK_ERROR - Report Error on Cached Chunk Data {#sec-CHUNK_ERROR}
 
 ### ARGUMENTS
@@ -2709,10 +2715,14 @@ multiple pending blocks.
 ~~~ xdr
    /// struct CHUNK_HEADER_READ4resok {
    ///     bool            chrr_eof;
+   ///     bool            chrr_locked<>;
    ///     chunk_owner4    chrr_chunks<>;
    /// };
 ~~~
 {: #fig-CHUNK_HEADER_READ4resok title="XDR for CHUNK_HEADER_READ4resok" }
+
+<cref source="Tom">Do we want to have a chunk_owner for reads versus writes?
+Instead of co-arrays, have one single in the responses?</cref>
 
 ~~~ xdr
    /// union CHUNK_HEADER_READ4res switch (nfsstat4 chrr_status) {
@@ -2759,7 +2769,8 @@ headers in the desired data range.
    ///     uint32_t        cr_effective_len;
    ///     chunk_owner4    cr_owner;
    ///     uint32_t        cr_payload_id;
-   ///     bool            cr_locked;  // TDH - make a flag
+   ///     bool            cr_locked<>;  // TDH - make a flag
+   ///     nfsstat4        cr_status<>;
    ///     opaque          cr_chunk<>;
    /// };
 ~~~
@@ -2920,6 +2931,7 @@ generated fields.
    ///     count4          cwr_count;
    ///     stable_how4     cwr_committed;
    ///     verifier4       cwr_writeverf;
+   ///     nfsstat4        cwr_status<>;
    ///     chunk_owner4    cwr_owners<>;
    /// };
 ~~~
@@ -3022,6 +3034,9 @@ we still have the issue of multiple DSes.  </cref>
 ### RESULTS
 
 ### DESCRIPTION
+
+<cref source="Tom">Either a cut-and-paste of CHUNK_WRITE or overload
+it?</cref>
 
 #  Security Considerations
 
