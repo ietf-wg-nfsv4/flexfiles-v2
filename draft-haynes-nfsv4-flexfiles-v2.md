@@ -990,7 +990,7 @@ FFV2_DS_FLAGS_SPARE.
 
 The FFV2_DS_FLAGS_REPAIR flag can be used by the metadata server
 to inform the client that the indicated data server is a replacement
-data server as far as existing data is concerned.  [TDH - Fill in]
+data server as far as existing data is concerned.  <cref source="Tom">Fill in</cref>
 
 See {{Plank97}} for further reference to storage layouts for coding.
 
@@ -1058,7 +1058,7 @@ The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) describes the Flexible
 File Layout Version 2 specific fields.  The ffm_client_id tells the
 client which id to use when interacting with the data servers.
 
-[TDH - Nuke ffm_client_id?]
+<cref source="Tom">Nuke ffm_client_id?</cref>
 
 ## ffv2_layout4
 
@@ -1178,7 +1178,7 @@ The time is in seconds.
 
 The ffs_mirrors field represents an array of state information for
 each mirrored copy of the current layout segment.  Each element is
-described by a ff_mirror4 type.
+described by a ffv2_mirror4 type.
 
 ffv2ds_deviceid provides the deviceid of the storage device holding
 the data file.
@@ -1621,7 +1621,7 @@ file will be encoded into N different payloads to be sent to the
 data servers as shown in {{fig-encoding-data-block}}.  As CHUNK_WRITE
 (see {{sec-CHUNK_WRITE}}) can encode multiple write_chunk4 into a
 single transaction, a more accurate description of a CHUNK_WRITE
-might be as in {{fig-example-chunk-write-args}}.
+is in {{fig-example-chunk-write-args}}.
 
 ~~~
   +------------------------------------+
@@ -1813,25 +1813,54 @@ server has data integrity.
 ### Write Modes
 
 There are two basic writing modes for erasure coding and they depend
-the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER in the ffl_flags
-in the ffv2_layout4 (see {{fig-ffv2_layout4}}) to inform the client
-whether it is the only writer to the file or not.  If it is the
-only writer, then CHUNK_WRITE with the cwa_guard not set can be
-used to write chunks.  In this scenario, there is no write contention,
-but write holes can occur as the client overwrites old data.  Thus
-the client does not need guarded writes, but it does need the ability
-to rollback writes.  If it is not the only writer, then CHUNK_WRITE
-with the cwa_guard set MUST be used to write chunks.  In this
-scenario, the write holes can also be caused by multiple clients
-writing to the same chunk.  Thus the client needs guarded writes
-to prevent over writes and it does need the ability to rollback
-writes.
+on the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER in the
+ffl_flags in the ffv2_layout4 (see {{fig-ffv2_layout4}}) to inform
+the client whether it is the only writer to the file or not.  If
+it is the only writer, then CHUNK_WRITE with the cwa_guard not set
+can be used to write chunks.  In this scenario, there is no write
+contention, but write holes can occur as the client overwrites old
+data.  Thus the client does not need guarded writes, but it does
+need the ability to rollback writes.  If it is not the only writer,
+then CHUNK_WRITE with the cwa_guard set MUST be used to write chunks.
+In this scenario, the write holes can also be caused by multiple
+clients writing to the same chunk.  Thus the client needs guarded
+writes to prevent over writes and it does need the ability to
+rollback writes.
 
 In both modes, clients MUST NOT overwrite payloads which already
 contain inconsistency.  This directly follows from {{sec-reading-chunks}}
 and MUST be handled as discussed there.  Once consistency in the
 payload has been detected, the client can use those chunks as a
 basis for read/modify/update.
+
+CHUNK_WRITE is a two pass operation in cooperation with CHUNK_FINALIZE
+({{sec-CHUNK_FINALIZE}}) and CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
+It writes to the data file and the data server is responsible for
+retaining a copy of the old header and chunk. A subsequent CHUNK_READ
+would return the new chunk. However, until either the CHUNK_FINALIZE
+or CHUNK_ROLLBACK is presented, a subsequent CHUNK_WRITE MUST result
+in the locking of the chunk, as if a CHUNK_LOCK ({{sec-CHUNK_LOCK}})
+had been performed on the chunk. As such, further CHUNK_WRITES by
+any client MUST be denied until the chunk is unlocked by CHUNK_UNLOCK
+({{sec-CHUNK_UNLOCK}}).
+
+If the CHUNK_WRITE results in a consistent data block, then the
+client will send a CHUNK_FINALIZE in a subsequent compound to inform
+the data server that the chunk is consistent and can be overwritten
+by another CHUNK_WRITE.
+
+If the CHUNK_WRITE results in an inconsistent data block or if the
+data server returned NFS4ERR_CHUNK_LOCKED, then the client sends a
+LAYOUTERROR to the metadata server with a code of
+NFS4ERR_PAYLOAD_NOT_CONSISTENT. The metadata server then selects a
+client (or data server) to repair the the data block.
+
+<cref source='Tom'>Since we don't have all potential chunks available,
+it can either chose the winner or pick a random client/data server.
+If the client is the winner, then the process is to use CHUNK_WRITE_REPAIR
+to overwrite the chunks which are not consistent. If it is a random
+client, then the client should just CHUNK_ROLLBACK and CHUNK_UNLOCK
+until it gets back to the original chunk.</cref>
 
 #### Single Writer Mode
 
@@ -1862,26 +1891,22 @@ overwritten.
 
 ### Whole File Repair
 
-   // Describe how a repair client can be assigned with missing
-   // FFV2_DS_FLAGS_ACTIVE data servers and a number of
-   // FFV2_DS_FLAGS_REPAIR data servers.  Then the client will either
-   // move chunks from FFV2_DS_FLAGS_SPARE data servers to the
-   // FFV2_DS_FLAGS_REPAIR data servers or reconstruct the chunks for
-   // the FFV2_DS_FLAGS_REPAIR based on the decoded data blocks, The
-   // client indicates success by returning the layout.
-   //
-   // -- TH
+<cref source="Tom"> Describe how a repair client can be assigned
+with missing FFV2_DS_FLAGS_ACTIVE data servers and a number of
+FFV2_DS_FLAGS_REPAIR data servers.  Then the client will either
+move chunks from FFV2_DS_FLAGS_SPARE data servers to the
+FFV2_DS_FLAGS_REPAIR data servers or reconstruct the chunks for the
+FFV2_DS_FLAGS_REPAIR based on the decoded data blocks, The client
+indicates success by returning the layout.  </cref>
 
 
-   // For a slam dunk, introduce the concept of a proxy repair client.
-   // I.e., the client appears as a single FFV2_CODING_MIRRORED file to
-   // other clients.  As it receives WRITEs, it encodes them to the real
-   // set of data servers.  As it receives READs, it decodes them from
-   // the real set of data servers.  Once the proxy repair is finished,
-   // the metadata server will start pushing out layouts for the real
-   // set of data servers.
-   //
-   // -- TH
+<cref source="Tom"> For a slam dunk, introduce the concept of a
+proxy repair client.  I.e., the client appears as a single
+FFV2_CODING_MIRRORED file to other clients.  As it receives WRITEs,
+it encodes them to the real set of data servers.  As it receives
+READs, it decodes them from the real set of data servers.  Once the
+proxy repair is finished, the metadata server will start pushing
+out layouts for the real set of data servers.  </cref>
 
 
 ## Mixing of Coding Types
@@ -1952,32 +1977,30 @@ actively modifying the file.  As such, it might be sequentially
 reading the file in order to translate.  The READ calls to mirror
 0 would be returning data and the CHUNK_READ calls to mirror 1 would
 not be returning data.  As the client overwrites the file, the WRITE
-call and WRITE_SWAP_CHUNK call would have data sent to all of the
+call and CHUNK_WRITE call would have data sent to all of the
 data servers.  Finally, if the client reads back a section which
 had been modified earlier, both the READ and CHUNK_READ calls would
 return data.
 
+## Handling write holes
+
 # NFSv4.2 Operations Allowed to Data Files
 
-   // In Flexible File Version 1 Layout Type, the emphasis was on NFSv3
-   // DSes.  We limited the operations that clients could send to data
-   // files to be COMMIT, READ, and WRITE.  We further limited the MDS
-   // to GETATTR, SETATTR, CREATE, and REMOVE.  (Funny enough, this is
-   // not mandated here.)  We need to call this out in this
-   // draft and also we need to limit the NFSv4.2 operations.  Besides
-   // the ones created here, consider: READ, WRITE, and COMMIT for
-   // mirroring types and ALLOCATE, CLONE, COPY, DEALLOCATE, GETFH,
-   // PUTFH, READ_PLUS, RESTOREFH, SAVEFH, SEEK, and SEQUENCE for all
-   // types.
-   //
-   // -- TH
-   // Of special merit is SETATTR.  Do we want to allow the clients to
-   // be able to truncate the data files?  Which also brings up
-   // DEALLOCATE.  Perhaps we want CHUNK_DEALLOCATE?  That way we can
-   // swap out chunks with the client file.  CHUNK_DEALLOCATE_GUARD.
-   // Really need to determine capabilities of XFS swap!
-   //
-   // -- TH
+<cref source="Tom"> In Flexible File Version 1 Layout Type, the
+emphasis was on NFSv3 DSes.  We limited the operations that clients
+could send to data files to be COMMIT, READ, and WRITE.  We further
+limited the MDS to GETATTR, SETATTR, CREATE, and REMOVE.  (Funny
+enough, this is not mandated here.)  We need to call this out in
+this draft and also we need to limit the NFSv4.2 operations.  Besides
+the ones created here, consider: READ, WRITE, and COMMIT for mirroring
+types and ALLOCATE, CLONE, COPY, DEALLOCATE, GETFH, PUTFH, READ_PLUS,
+RESTOREFH, SAVEFH, SEEK, and SEQUENCE for all types.  </cref>
+
+<cref source="Tom"> Of special merit is SETATTR.  Do we want to
+allow the clients to be able to truncate the data files?  Which
+also brings up DEALLOCATE.  Perhaps we want CHUNK_DEALLOCATE?  That
+way we can swap out chunks with the client file.  CHUNK_DEALLOCATE_GUARD.
+Really need to determine capabilities of XFS swap!  </cref>
 
 
 #  Flexible File Layout Type Return {#sec-layouthint}
@@ -2390,7 +2413,9 @@ revoked clients from the respective data files as described in
    /// NFS4ERR_XATTR2BIG      = 10096,/* xattr value is too big  */
    /// NFS4ERR_CODING_NOT_SUPPORTED
    ///    = 10097,/* Coding Type unsupported  */
-   /// NFS4ERR_PAYLOAD_NOT_CONSISTENT= 10098/* payload inconsitent  */
+   /// NFS4ERR_PAYLOAD_NOT_CONSISTENT = 10098,/* payload inconsitent  */
+   /// NFS4ERR_CHUNK_LOCKED = 10099,/* chunk is locked  */
+   /// NFS4ERR_CHUNK_GUARDED = 10100/* chunk is guarded  */
    ///
 ~~~
 {: #fig-errors-xdr title="Errors XDR" }
@@ -2403,6 +2428,8 @@ The new error codes are shown in {{fig-errors-xdr}}.
  |---
  | NFS4ERR_CODING_NOT_SUPPORTED   | 10097  | {{sec-NFS4ERR_CODING_NOT_SUPPORTED}} |
  | NFS4ERR_PAYLOAD_NOT_CONSISTENT | 10098  | {{sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}} |
+ | NFS4ERR_CHUNK_LOCKED | 10099  | {{sec-NFS4ERR_CHUNK_LOCKED}} |
+ | NFS4ERR_CHUNK_GUARDED | 10100  | {{sec-NFS4ERR_CHUNK_GUARDED}} |
 {: #tbl-protocol-errors title="X"}
 
 ### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
@@ -2419,8 +2446,26 @@ supported erasure coding types.
 The client encountered a payload in which the blocks were inconsistent
 and stays inconsistent.  As the client can not tell if another
 client is actively writing, it informs the metadata server of this
-error via LAYOUTERROR4.  The metadata server can then arrange for
+error via LAYOUTERROR.  The metadata server can then arrange for
 repair of the file.
+
+### NFS4ERR_CHUNK_LOCKED (Error Code 10099) {#sec-NFS4ERR_CHUNK_LOCKED}
+
+The client tried an operation on a chunk which resulted in the data
+server reporting that the chunk was locked. The client will then
+inform the the metadata server of this error via LAYOUTERROR.  The
+metadata server can then arrange for repair of the file.
+
+### NFS4ERR_CHUNK_GUARDED (Error Code 10100) {#sec-NFS4ERR_CHUNK_GUARDED}
+
+The client tried a guarded CHUNK_WRITE on a chunk which did not match
+the guard on the chunk in the data file. As such, the CHUNK_WRITE was
+rejected and the client should refresh the chunk it has cached.
+
+<cref source="Tom">This really points out either we need an array of
+errors in the chunk operation responses or we need to not send an
+array of chunks in the requests. The arrays were picked in order to
+reduce the header to data cost, but really do not make sense.</cref>
 
 ## Operations and Their Valid Errors
 
@@ -2518,7 +2563,7 @@ lower 32 bits are set passed back in the LAYOUTGET operation (see
 Section 18.43 of {{RFC8881}}) as the fml_client_id (see Section
 2.9).
 
-[TDH: fix the section]
+<cref source="Tom">fix the section</cref>
 
 ## chunk_owner4
 
@@ -2714,6 +2759,7 @@ headers in the desired data range.
    ///     uint32_t        cr_effective_len;
    ///     chunk_owner4    cr_owner;
    ///     uint32_t        cr_payload_id;
+   ///     bool            cr_locked;  // TDH - make a flag
    ///     opaque          cr_chunk<>;
    /// };
 ~~~
@@ -2962,15 +3008,12 @@ MUST have the same cg_gen_id and cg_client_id.  The client SHOULD
 present the smallest set of blocks as possible to meet this
 requirement.
 
-
-   // Is the DS supposed to vet all blocks first or proceed to the first
-   // error?  Or do all blocks and return an array of errors?  (This
-   // last one is a no-go.)  Also, if we do the vet first, what happens
-   // if a CHUNK_WRITE comes in after the vetting?  Are we to lock the
-   // file during this process.  Even if we do that, we still have the
-   // issue of multiple DSes.
-   //
-   // -- TH
+<cref source="Tom"> Is the DS supposed to vet all blocks first or
+proceed to the first error?  Or do all blocks and return an array
+of errors?  (This last one is a no-go.)  Also, if we do the vet
+first, what happens if a CHUNK_WRITE comes in after the vetting?
+Are we to lock the file during this process.  Even if we do that,
+we still have the issue of multiple DSes.  </cref>
 
 ## Operation 88: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk Data {#sec-CHUNK_WRITE_REPAIR}
 
