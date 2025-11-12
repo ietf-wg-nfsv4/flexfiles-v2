@@ -867,7 +867,7 @@ value LAYOUT4_FLEX_FILES.  {{RFC8881}} specifies the loc_body structure
 as an XDR type "opaque".  The opaque layout is uninterpreted by the
 generic pNFS client layers but is interpreted by the flexible file
 layout type implementation.  This section defines the structure of
-this otherwise opaque value, ff_layout4.
+this otherwise opaque value, ffv2_layout4.
 
 ## ffv2_coding_type4
 
@@ -1056,6 +1056,19 @@ The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) describes the Flexible
 File Layout Version 2 specific fields.  The ffm_client_id tells the
 client which id to use when interacting with the data servers.
 
+The ffm_coding_type_data is which encoding type is used
+by the mirror.
+
+The ffm_striping is which striping method is used by the mirror.
+
+The ffm_striping_unit_size is the stripe unit size used
+by the mirror. If the value of ffm_striping is FFV2_STRIPING_NONE,
+then the value of ffm_striping_unit_size MUST be 1.
+
+The ffm_stripes is the array of stripes for the mirror. If there
+is no striping or the ffm_coding_type_data is FFV2_CODING_MIRRORED,
+then the length of ffm_stripes MUST be 1.
+
 <cref source="Tom">Nuke ffm_client_id?</cref>
 
 ## ffv2_layout4
@@ -1071,75 +1084,6 @@ client which id to use when interacting with the data servers.
 
 The ffv2_layout4 (in {{fig-ffv2_layout4}}) describes the Flexible
 File Layout Version 2.
-
-## ffv2_layouthint4
-
-~~~ xdr
-   /// union ffv2_mirrors_hint switch (ffv2_coding_type4 ffmh_type) {
-   ///     case FFV2_CODING_MIRRORED:
-   ///         void;
-   /// };
-   ///
-   /// struct ffv2_layouthint4 {
-   ///     ffv2_coding_type4 fflh_supported_types<>;
-   ///     ffv2_mirrors_hint fflh_mirrors_hint;
-   /// };
-~~~
-{: #fig-ffv2_layouthint4 title="The ffv2_layouthint4" }
-
-The ffv2_layouthint4 (in {{fig-ffv2_layouthint4}}) describes the
-layout_hint (see Section 5.12.4 of {{RFC8881}}) that the client can
-provide to the metadata server.
-
-~~~ xdr
-   struct ff_data_server4 {
-       deviceid4               ffds_deviceid;
-       uint32_t                ffds_efficiency;
-       stateid4                ffds_stateid;
-       nfs_fh4                 ffds_fh_vers<>;
-       fattr4_owner            ffds_user;
-       fattr4_owner_group      ffds_group;
-   };
-
-   struct ff_mirror4 {
-       ff_data_server4         ffm_data_servers<>;
-   };
-
-   struct ff_layout4 {
-       length4                 ffl_stripe_unit;
-       ff_mirror4              ffl_mirrors<>;
-       ff_flags4               ffl_flags;
-       uint32_t                ffl_stats_collect_hint;
-   };
-~~~
-{: #fig-ff_layout4 title="The flex files layout type v1"}
-
-Note: In {{fig-ffv2_layout4}} ffv2_coding_type_data4 is an enumerated
-union with the payload of each arm being defined by the protection
-type. ffm_client_id tells the client which id to use when interacting
-with the data servers.
-
-The ff_layout4 structure (see {{fig-ff_layout4}}) specifies a layout
-in that portion of the data file described in the current layout
-segment.  It is either a single instance or a set of mirrored copies
-of that portion of the data file.  When mirroring is in effect, it
-protects against loss of data in layout segments.
-
-While not explicitly shown in {{fig-ff_layout4}}, each layout4
-element returned in the logr_layout array of LAYOUTGET4res (see
-Section 18.43.2 of {{RFC8881}}) describes a layout segment.  Hence,
-each ff_layout4 also describes a layout segment.  It is possible
-that the file is concatenated from more than one layout segment.
-Each layout segment MAY represent different striping parameters.
-
-The ffl_stripe_unit field is the stripe unit size in use for the
-current layout segment.  The number of stripes is given inside each
-mirror by the number of elements in ffm_data_servers.  If the number
-of stripes is one, then the value for ffl_stripe_unit MUST default
-to zero.  The only supported mapping scheme is sparse and is detailed
-in {{sec-striping}}.  Note that there is an assumption here that
-both the stripe unit size and the number of stripes are the same
-across all mirrors.
 
 The ffl_mirrors field is the array of mirrored storage devices that
 provide the storage for the current stripe; see {{fig-parallel-fileystem}}.
@@ -1164,14 +1108,79 @@ The time is in seconds.
 | MIRRORED |       | MIRRORED |       | REED_SOLOMON |
 +----+-----+       +-----+----+       +---+----------+
      |                   |                |
+     |                   |                |
 +-----------+      +-----------+      +-----------+
-|+-----------+     |+-----------+     |+-----------+
-||+-----------+    ||+-----------+    ||+-----------+
-+||  Storage  |    +||  Storage  |    +||  Storage  |
- +|  Devices  |     +|  Devices  |     +|  Devices  |
-  +-----------+      +-----------+      +-----------+
+|+-----------+     | Stripe 1  |      |+-----------+
++| Stripe N  |     +-----------+      +| Stripe N  |
+ +-----------+           |             +-----------+
+     |                   |                |
+     |                   |                |
++-----------+      +-----------+      +-----------+
+| Storage   |      | Storage   |      |+-----------+
+| Device    |      | Device    |      ||+-----------+
++-----------+      +-----------+      +||  Storage  |
+                                       +|  Devices  |
+                                        +-----------+
 ~~~
 {: #fig-parallel-fileystem title="The Relationship between MDS and DSes"}
+
+As shown in {{fig-parallel-fileystem}} if the ffm_coding_type_data
+is FFV2_CODING_MIRRORED, then each of the stripes MUST
+only have 1 storage device. I.e., the length of ffs_data_servers
+MUST be 1. The other encoding types can have any number of
+storage devices.
+
+The abstraction here is that for FFV2_CODING_MIRRORED, each
+stripe descibes exactly one data server. And for all other
+encoding types, each of the stripes descibes a set of
+data servers to which the chunks are distributed. Further,
+the payload length can be different per stripe.
+
+## ffv2_layouthint4
+
+~~~ xdr
+   /// union ffv2_mirrors_hint switch (ffv2_coding_type4 ffmh_type) {
+   ///     case FFV2_CODING_MIRRORED:
+   ///         void;
+   /// };
+   ///
+   /// struct ffv2_layouthint4 {
+   ///     ffv2_coding_type4 fflh_supported_types<>;
+   ///     ffv2_mirrors_hint fflh_mirrors_hint;
+   /// };
+~~~
+{: #fig-ffv2_layouthint4 title="The ffv2_layouthint4" }
+
+The ffv2_layouthint4 (in {{fig-ffv2_layouthint4}}) describes the
+layout_hint (see Section 5.12.4 of {{RFC8881}}) that the client can
+provide to the metadata server.
+
+Note: In {{fig-ffv2_layout4}} ffv2_coding_type_data4 is an enumerated
+union with the payload of each arm being defined by the protection
+type. ffm_client_id tells the client which id to use when interacting
+with the data servers.
+
+The ffv2_layout4 structure (see {{fig-ffv2_layout4}}) specifies a layout
+in that portion of the data file described in the current layout
+segment.  It is either a single instance or a set of mirrored copies
+of that portion of the data file.  When mirroring is in effect, it
+protects against loss of data in layout segments.
+
+While not explicitly shown in {{fig-ffv2_layout4}}, each layout4
+element returned in the logr_layout array of LAYOUTGET4res (see
+Section 18.43.2 of {{RFC8881}}) describes a layout segment.  Hence,
+each ffv2_layout4 also describes a layout segment.  It is possible
+that the file is concatenated from more than one layout segment.
+Each layout segment MAY represent different striping parameters.
+
+The ffl_stripe_unit field is the stripe unit size in use for the
+current layout segment.  The number of stripes is given inside each
+mirror by the number of elements in ffm_data_servers.  If the number
+of stripes is one, then the value for ffl_stripe_unit MUST default
+to zero.  The only supported mapping scheme is sparse and is detailed
+in {{sec-striping}}.  Note that there is an assumption here that
+both the stripe unit size and the number of stripes are the same
+across all mirrors.
 
 The ffs_mirrors field represents an array of state information for
 each mirrored copy of the current layout segment.  Each element is
