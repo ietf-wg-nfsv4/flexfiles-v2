@@ -1062,7 +1062,6 @@ client which id to use when interacting with the data servers.
 
 ~~~ xdr
    /// struct ffv2_layout4 {
-   ///     length4                 ffl_stripe_unit;
    ///     ffv2_mirror4            ffl_mirrors<>;
    ///     ffv2_flags4             ffl_flags;
    ///     uint32_t                ffl_stats_collect_hint;
