@@ -2544,7 +2544,7 @@ is driving the I/O.
 ~~~ xdr
    /// typedef size_t                    fattr4_coding_block_size;
    ///
-   /// const FATTR4_CODING_BLOCK_SIZE  = 88;
+   /// const FATTR4_CODING_BLOCK_SIZE  = 89;
    ///
 ~~~
 {: #fig-fattr4_coding_block_size title="XDR for fattr4_coding_block_size" }
