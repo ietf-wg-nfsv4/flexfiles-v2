@@ -2656,6 +2656,7 @@ across all data files that a chunk corresponds.
 ~~~ xdr
    /// struct CHUNK_COMMIT4resok {
    ///     verifier4       ccr_writeverf;
+   ///     nfsstat4        ccr_status<>;
    /// };
 ~~~
 {: #fig-CHUNK_COMMIT4resok title="XDR for CHUNK_COMMIT4resok" }
@@ -2726,6 +2727,7 @@ How does CHUNK_COMMIT interact with a locked chunk?</cref>
 ~~~ xdr
    /// struct CHUNK_HEADER_READ4resok {
    ///     bool            chrr_eof;
+   ///     nfsstat4        chrr_status<>;
    ///     bool            chrr_locked<>;
    ///     chunk_owner4    chrr_chunks<>;
    /// };
