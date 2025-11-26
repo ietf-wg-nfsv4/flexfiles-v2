@@ -3196,5 +3196,5 @@ Christoph Helwig was instrumental in making sure the Flexible File
 Version 2 Layout Type was applicable to more than the Mojette
 Transformation.
 
-Chris Inacio, Brian Pawlowski, and Gorry Fairhurst helped guide
-this process.
+Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
+process.
