@@ -725,23 +725,21 @@ da_addr_body in the device_addr4 structure by a successful GETDEVICEINFO
 operation.
 
 ~~~ xdr
-   /// struct ff_device_versions4 {
-   ///         uint32_t        ffdv_version;
-   ///         uint32_t        ffdv_minorversion;
-   ///         uint32_t        ffdv_rsize;
-   ///         uint32_t        ffdv_wsize;
-   ///         bool            ffdv_tightly_coupled;
-   /// };
-   ///
+   struct ff_device_versions4 {
+           uint32_t        ffdv_version;
+           uint32_t        ffdv_minorversion;
+           uint32_t        ffdv_rsize;
+           uint32_t        ffdv_wsize;
+           bool            ffdv_tightly_coupled;
+   };
 ~~~
 {: #fig-ff_device_versions4 title="ff_device_versions4"}
 
 ~~~ xdr
-   /// struct ff_device_addr4 {
-   ///         multipath_list4     ffda_netaddrs;
-   ///         ff_device_versions4 ffda_versions<>;
-   /// };
-   ///
+   struct ff_device_addr4 {
+           multipath_list4     ffda_netaddrs;
+           ff_device_versions4 ffda_versions<>;
+   };
 ~~~
 {: #fig-ff_device_addr4 title="ff_device_addr4"}
 
@@ -2075,7 +2073,7 @@ utilize the data.
 ###  ff_ioerr4 {#sec-ff_ioerr4}
 
 ~~~ xdr
-   /// struct ff_ioerr4 {
+   /// struct ffv2_ioerr4 {
    ///         offset4        ffie_offset;
    ///         length4        ffie_length;
    ///         stateid4       ffie_stateid;
@@ -2116,7 +2114,7 @@ operations.
 ###  ff_io_latency4
 
 ~~~ xdr
-   /// struct ff_io_latency4 {
+   /// struct ffv2_io_latency4 {
    ///         uint64_t       ffil_ops_requested;
    ///         uint64_t       ffil_bytes_requested;
    ///         uint64_t       ffil_ops_completed;
@@ -2163,13 +2161,13 @@ data.
 ###  ff_layoutupdate4 {#sec-ff_layoutupdate4}
 
 ~~~ xdr
-   /// struct ff_layoutupdate4 {
-   ///         netaddr4       ffl_addr;
-   ///         nfs_fh4        ffl_fhandle;
-   ///         ff_io_latency4 ffl_read;
-   ///         ff_io_latency4 ffl_write;
-   ///         nfstime4       ffl_duration;
-   ///         bool           ffl_local;
+   /// struct ffv2_layoutupdate4 {
+   ///         netaddr4         ffl_addr;
+   ///         nfs_fh4          ffl_fhandle;
+   ///         ffv2_io_latency4 ffl_read;
+   ///         ffv2_io_latency4 ffl_write;
+   ///         nfstime4         ffl_duration;
+   ///         bool             ffl_local;
    /// };
    ///
 ~~~
@@ -2188,14 +2186,14 @@ not normally be allowed to report on.
 ###  ff_iostats4
 
 ~~~ xdr
-   /// struct ff_iostats4 {
-   ///         offset4           ffis_offset;
-   ///         length4           ffis_length;
-   ///         stateid4          ffis_stateid;
-   ///         io_info4          ffis_read;
-   ///         io_info4          ffis_write;
-   ///         deviceid4         ffis_deviceid;
-   ///         ff_layoutupdate4  ffis_layoutupdate;
+   /// struct ffv2_iostats4 {
+   ///         offset4            ffis_offset;
+   ///         length4            ffis_length;
+   ///         stateid4           ffis_stateid;
+   ///         io_info4           ffis_read;
+   ///         io_info4           ffis_write;
+   ///         deviceid4          ffis_deviceid;
+   ///         ffv2_layoutupdate4 ffis_layoutupdate;
    /// };
    ///
 ~~~
@@ -2245,9 +2243,9 @@ multiple read-only copies of the file on the same storage device.
 ##  ff_layoutreturn4 {#sec-ff_layoutreturn4}
 
 ~~~ xdr
-   /// struct ff_layoutreturn4 {
-   ///         ff_ioerr4     fflr_ioerr_report<>;
-   ///         ff_iostats4   fflr_iostats_report<>;
+   /// struct ffv2_layoutreturn4 {
+   ///         ffv2_ioerr4     fflr_ioerr_report<>;
+   ///         ffv2_iostats4   fflr_iostats_report<>;
    /// };
    ///
 ~~~
@@ -2389,7 +2387,7 @@ flexible file layouts the client is allowed to keep.  The mask flags
 for the flexible file layout type are defined as in {{fig-mask-flags}}.
 
 ~~~ xdr
-   /// enum ff_cb_recall_any_mask {
+   /// enum ffv2_cb_recall_any_mask {
    ///     PNFS_FF_RCA4_TYPE_MASK_READ = 20,
    ///     PNFS_FF_RCA4_TYPE_MASK_RW   = 21
    /// };
