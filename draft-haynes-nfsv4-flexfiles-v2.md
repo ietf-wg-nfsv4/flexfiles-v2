@@ -2704,7 +2704,35 @@ How does CHUNK_COMMIT interact with a locked chunk?</cref>
 
 ### ARGUMENTS
 
+~~~ xdr
+   /// struct CHUNK_FINALIZE4args {
+   ///     /* CURRENT_FH: file */
+   ///     offset4         cfa_offset;
+   ///     count4          cfa_count;
+   ///     chunk_owner4    cfa_chunks<>;
+   /// };
+~~~
+{: #fig-CHUNK_FINALIZE4args title="XDR for CHUNK_FINALIZE4args" }
+
 ### RESULTS
+
+~~~ xdr
+   /// struct CHUNK_FINALIZE4resok {
+   ///     verifier4       ccr_writeverf;
+   ///     nfsstat4        ccr_status<>;
+   /// };
+~~~
+{: #fig-CHUNK_FINALIZE4resok title="XDR for CHUNK_FINALIZE4resok" }
+
+~~~ xdr
+   /// union CHUNK_FINALIZE4res switch (nfsstat4 cfr_status) {
+   ///     case NFS4_OK:
+   ///         CHUNK_FINALIZE4resok   cfr_resok4;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_FINALIZE4res title="XDR for CHUNK_FINALIZE4res" }
 
 ### DESCRIPTION
 
