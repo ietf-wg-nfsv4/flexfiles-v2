@@ -843,7 +843,8 @@ The original layouttype4 introduced in {{RFC5662}} is modified to as in
            LAYOUT4_OSD2_OBJECTS    = 2,
            LAYOUT4_BLOCK_VOLUME    = 3,
            LAYOUT4_FLEX_FILES      = 4,
-           LAYOUT4_FLEX_FILES_V2   = 5
+           LAYOUT4_SCSI            = 5,
+           LAYOUT4_FLEX_FILES_V2   = 6
        };
 
        struct layout_content4 {
@@ -1673,17 +1674,17 @@ the CHUNK_WRITEargs.
   | cwr_committed: FILE_SYNC4     |
   | cwr_writeverf: 0xf1234abc     |
   | cwr_owners[0]:                |
-  |        co_chunk_id: 1         |
+  |        co_id: 1         |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
   | cwr_owners[1]:                |
-  |        co_chunk_id: 2         |
+  |        co_id: 2         |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
   | cwr_owners[2]:                |
-  |        co_chunk_id: 3         |
+  |        co_id: 3         |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
@@ -2700,7 +2701,7 @@ How does CHUNK_COMMIT interact with a locked chunk?</cref>
 
 ### DESCRIPTION
 
-## Operation 79: CHUNK_FINALIZE - XXX Error on Cached Chunk Data {#sec-CHUNK_FINALIZE}
+## Operation 79: CHUNK_FINALIZE - Finalize Cached Chunk Data {#sec-CHUNK_FINALIZE}
 
 ### ARGUMENTS
 
@@ -2735,6 +2736,21 @@ How does CHUNK_COMMIT interact with a locked chunk?</cref>
 {: #fig-CHUNK_FINALIZE4res title="XDR for CHUNK_FINALIZE4res" }
 
 ### DESCRIPTION
+
+CHUNK_FINALIZE is used by the client to inform the data server that
+a set of chunks, previously written via CHUNK_WRITE, are complete
+and can be transitioned from a "pending" or "temporary" state to
+their final location. This operation is typically used in erasure
+coding schemes where the data server may need to perform final
+checksum validation or metadata updates before the chunks are
+considered part of the stable file data.
+
+The cfa_chunks array provides the specific chunk_owner4 identifiers
+for the blocks being finalized. This allows the server to resolve
+any ambiguity if multiple versions of a block were written (e.g.,
+due to retries or different guards). Once finalized, the chunks are
+eligible for a subsequent CHUNK_COMMIT to be made visible to other
+clients.
 
 ## Operation 80: CHUNK_HEADER_READ - Read Chunk Header from File {#sec-CHUNK_HEADER_READ}
 
@@ -2777,8 +2793,17 @@ Instead of co-arrays, have one single in the responses?</cref>
 
 ### DESCRIPTION
 
-CHUNK_HEADER_READ differs from CHUNK_READ in that it only reads chunk
-headers in the desired data range.
+CHUNK_HEADER_READ allows a client to retrieve the metadata (headers)
+for a range of chunks without fetching the actual payload data.
+This is useful for clients that need to verify the state of the
+file (e.g., checking chunk_owner4 or lock status) before performing
+a full read or reconstruction.
+
+The response chrr_chunks contains the chunk_owner4 for each block
+in the requested range. The chrr_locked array (if present) indicates
+whether each corresponding block is currently held in an exclusive
+state by another transaction. If a block has no data or hasn't been
+written, the server returns a status indicating the hole.
 
 ## Operation 81: CHUNK_LOCK - Lock Cached Chunk Data {#sec-CHUNK_LOCK}
 
@@ -2883,7 +2908,7 @@ generated fields.
   | crr_chunks[0]:                 |
   |     cr_crc: 0x3faddace         |
   |     cr_owner:                  |
-  |         co_chunk_id: 2         |
+  |         co_id: 2         |
   |         co_guard:              |
   |             cg_gen_id   : 3    |
   |             cg_client_id: 6    |
@@ -2892,7 +2917,7 @@ generated fields.
   | crr_chunks[0]:                 |
   |     cr_crc: 0xdeade4e5         |
   |     cr_owner:                  |
-  |         co_chunk_id: 3         |
+  |         co_id: 3         |
   |         co_guard:              |
   |             cg_gen_id   : 0    |
   |             cg_client_id: 0    |
@@ -2901,7 +2926,7 @@ generated fields.
   | crr_chunks[0]:                 |
   |     cr_crc: 0x7778abcd         |
   |     cr_owner:                  |
-  |         co_chunk_id: 4         |
+  |         co_id: 4         |
   |         co_guard:              |
   |             cg_gen_id   : 3    |
   |             cg_client_id: 6    |
