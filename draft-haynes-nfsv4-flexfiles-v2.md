@@ -1037,7 +1037,7 @@ types of chunks.
 {: #fig-ffv2_stripes4 title="The stripes v2"}
 
 Each stripe contains a set of data servers in ffs_data_servers.
-If the stripe is part of a ffv2_coding_type_data4 of 
+If the stripe is part of a ffv2_coding_type_data4 of
 FFV2_CODING_MIRRORED, then the length of ffs_data_servers
 MUST be 1.
 
