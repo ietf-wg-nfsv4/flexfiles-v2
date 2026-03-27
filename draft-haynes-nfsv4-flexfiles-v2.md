@@ -140,7 +140,7 @@ which is then responsible for the repairing of the mirrored copies of
 the file.
 
 This client side mirroring provides for replication of data but does
-not provide for integrity of data.  In the event of an error, an user
+not provide for integrity of data.  In the event of an error, a user
 would be able to repair the file by silvering the mirror contents.
 I.e., they would pick one of the mirror instances and replicate it to
 the other instance locations.
@@ -148,7 +148,7 @@ the other instance locations.
 However, lacking integrity checks, silent corruptions are not able to
 be detected and the choice of what constitutes the good copy is
 difficult.  This document updates the Flexible File Layout Type to
-version 2 by providing data integrity for erasure coding.  Data
+version 2 by providing error-detection integrity (CRC32) for erasure coding.  Data
 blocks are transformed into a header and a chunk.  It introduces new
 operations that allow the client to rollback writes to the data file.
 
@@ -233,7 +233,7 @@ from processing I/O from a specific client to a specific file.
 file layout type:
 
 :  a layout type in which the storage devices are accessed via the NFS
-protocol (see {{sec-layouthint}} of {{RFC8881}}).
+protocol (see Section 5.12.4 of {{RFC8881}}).
 
 gid:
 
@@ -881,7 +881,7 @@ the data consist of exact replicas.
 
 #  Flexible File Version 2 Layout Type
 
-The original layouttype4 introduced in {{RFC5662}} is modified to as in
+The original layouttype4 introduced in {{RFC5662}} is extended as shown in
 {{fig-orig-layout}}.
 
 ~~~ xdr
@@ -908,7 +908,7 @@ The original layouttype4 introduced in {{RFC5662}} is modified to as in
 {: #fig-orig-layout title="The original layout type"}
 
 This document defines structures associated with the layouttype4
-value LAYOUT4_FLEX_FILES.  {{RFC8881}} specifies the loc_body structure
+value LAYOUT4_FLEX_FILES_V2.  {{RFC8881}} specifies the loc_body structure
 as an XDR type "opaque".  The opaque layout is uninterpreted by the
 generic pNFS client layers but is interpreted by the flexible file
 layout type implementation.  This section defines the structure of
@@ -918,7 +918,10 @@ this otherwise opaque value, ffv2_layout4.
 
 ~~~ xdr
    /// enum ffv2_coding_type4 {
-   ///     FFV2_CODING_MIRRORED       = 0x1;
+   ///     FFV2_CODING_MIRRORED                  = 1,
+   ///     FFV2_ENCODING_MOJETTE_SYSTEMATIC      = 2,
+   ///     FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC  = 3,
+   ///     FFV2_ENCODING_RS_VANDERMONDE          = 4
    /// };
 ~~~
 {: #fig-ffv2_coding_type4 title="The coding type"}
@@ -1059,10 +1062,10 @@ filehandle has a one-to-one correspondence to a stateid.
 The ffv2_ds_flags4 (in {{fig-ffv2_ds_flags4}}) flags details the
 state of the data servers.  With Erasure Coding algorithms, there
 are both Systematic and Non-Systematic approaches.  In the Systematic,
-the bits for integrity are placed amoungst the resulting transformed
+the bits for integrity are placed amongst the resulting transformed
 chunk.  Such an implementation would typically see FFV2_DS_FLAGS_ACTIVE
 and FFV2_DS_FLAGS_SPARE data servers.  The FFV2_DS_FLAGS_SPARE ones
-allow the client to repair a payload without enaging the metadata
+allow the client to repair a payload without engaging the metadata
 server.  I.e., if one of the FFV2_DS_FLAGS_ACTIVE did not respond
 to a WRITE_BLOCK, the client could fail the chunk to the
 FFV2_DS_FLAGS_SPARE data server.
@@ -1116,6 +1119,12 @@ number of data and parity shards.  The coding type enum determines how
 the shards are encoded; the protection structure determines how many
 shards there are.
 
+Although the FFV2_CODING_MIRRORED case and the default case currently
+carry the same type, the union form is intentional.  Future revisions
+of this specification may assign distinct arm types to specific coding
+types; using a union now avoids an incompatible change to the XDR at
+that time.
+
 For FFV2_CODING_MIRRORED, fdp_data is 1 and fdp_parity is the number
 of additional copies (e.g., fdp_parity=2 for 3-way mirroring).
 Erasure coding types registered in companion documents (e.g.,
@@ -1140,7 +1149,18 @@ If the stripe is part of a ffv2_coding_type_data4 of
 FFV2_CODING_MIRRORED, then the length of ffs_data_servers
 MUST be 1.
 
-## ffv2_mirror4
+## ffv2_key4
+
+~~~ xdr
+   /// typedef uint64_t ffv2_key4;
+~~~
+{: #fig-ffv2_key4 title="The ffv2_key4" }
+
+The ffv2_key4 is an opaque 64-bit identifier used to associate a
+mirror instance with its backing storage key.  The value is assigned
+by the metadata server and is opaque to the client.
+
+## ffv2_mirror4 {#sec-ffv2-mirror4}
 
 ~~~ xdr
    /// struct ffv2_mirror4 {
@@ -1233,8 +1253,8 @@ MUST be 1. The other encoding types can have any number of
 storage devices.
 
 The abstraction here is that for FFV2_CODING_MIRRORED, each
-stripe descibes exactly one data server. And for all other
-encoding types, each of the stripes descibes a set of
+stripe describes exactly one data server. And for all other
+encoding types, each of the stripes describes a set of
 data servers to which the chunks are distributed. Further,
 the payload length can be different per stripe.
 
@@ -1273,7 +1293,7 @@ The total number of data servers required is fdp_data + fdp_parity.
 The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
 25% for 8+2).
 
-## ffv2_layouthint4
+## ffv2_layouthint4 {#sec-ffv2-layouthint}
 
 ~~~ xdr
    /// struct ffv2_layouthint4 {
@@ -1295,7 +1315,7 @@ fflh_supported_types
 with the most preferred type first.  The server SHOULD select a type
 from this list but MAY choose any type it supports.  If the server
 does not support any of the listed types, it returns
-NFS4ERR_ERASURE_ENCODING_NOT_SUPPORTED, and the client can retry
+NFS4ERR_CODING_NOT_SUPPORTED, and the client can retry
 with a different list to discover the overlapping set.
 
 fflh_preferred_protection
@@ -1341,42 +1361,42 @@ each ffv2_layout4 also describes a layout segment.  It is possible
 that the file is concatenated from more than one layout segment.
 Each layout segment MAY represent different striping parameters.
 
-The ffl_stripe_unit field is the stripe unit size in use for the
-current layout segment.  The number of stripes is given inside each
-mirror by the number of elements in ffm_data_servers.  If the number
-of stripes is one, then the value for ffl_stripe_unit MUST default
-to zero.  The only supported mapping scheme is sparse and is detailed
-in {{sec-striping}}.  Note that there is an assumption here that
-both the stripe unit size and the number of stripes are the same
-across all mirrors.
+The ffm_striping_unit_size field (inside each ffv2_mirror4) is the
+stripe unit size in use for that mirror.  The number of stripes is
+given by the number of elements in ffs_data_servers within each
+ffv2_stripes4.  If the number of stripes is one, then the value for
+ffm_striping_unit_size MUST default to zero.  The only supported
+mapping scheme is sparse and is detailed in {{sec-striping}}.  Note
+that there is an assumption here that both the stripe unit size and
+the number of stripes are the same across all mirrors.
 
-The ffs_mirrors field represents an array of state information for
+The ffl_mirrors field represents an array of state information for
 each mirrored copy of the current layout segment.  Each element is
 described by a ffv2_mirror4 type.
 
 ffv2ds_deviceid provides the deviceid of the storage device holding
 the data file.
 
-ffv2ds_fh_vers is an array of filehandles of the data file matching
-the available NFS versions on the given storage device.  There MUST
-be exactly as many elements in ffv2ds_fh_vers as there are in
-ffda_versions.  Each element of the array corresponds to a particular
-combination of ffdv_version, ffdv_minorversion, and ffdv_tightly_coupled
-provided for the device.  The array allows for server implementations
-that have different filehandles for different combinations of
-version, minor version, and coupling strength.  See {{sec-version-errors}}
-for how to handle versioning issues between the client and storage
-devices.
+ffv2ds_file_info is an array of ffv2_file_info4 structures, each
+pairing a filehandle (fffi_fh_vers) with a stateid (fffi_stateid).
+There MUST be exactly as many elements in ffv2ds_file_info as there
+are in ffda_versions.  Each element of the array corresponds to a
+particular combination of ffdv_version, ffdv_minorversion, and
+ffdv_tightly_coupled provided for the device.  The array allows for
+server implementations that have different filehandles and stateids
+for different combinations of version, minor version, and coupling
+strength.  See {{sec-version-errors}} for how to handle versioning
+issues between the client and storage devices.
 
-For tight coupling, ffv2ds_stateid provides the stateid to be used
+For tight coupling, fffi_stateid provides the stateid to be used
 by the client to access the file.  For loose coupling and an NFSv4
 storage device, the client will have to use an anonymous stateid
 to perform I/O on the storage device.  With no control protocol,
 the metadata server stateid cannot be used to provide a global
-stateid model.  Thus, the server MUST set the ffv2ds_stateid to be
+stateid model.  Thus, the server MUST set the fffi_stateid to be
 the anonymous stateid.
 
-This specification of the ffv2ds_stateid restricts both models for
+This specification of the fffi_stateid restricts both models for
 NFSv4.x storage protocols:
 
 loosely couple
@@ -1387,15 +1407,11 @@ tightly couple
 
 :  the stateid has to be a global stateid
 
-A number of issues stem from a mismatch between the fact that
-ffv2ds_stateid is defined as a single item while ffv2ds_fh_vers is
-defined as an array.  It is possible for each open file on the
-storage device to require its own open stateid.  Because there are
-established loosely coupled implementations of the version of the
-protocol described in this document, such potential issues have not
-been addressed here.  It is possible for future layout types to be
-defined that address these issues, should it become important to
-provide multiple stateids for the same underlying file.
+By pairing each fffi_fh_vers with its own fffi_stateid inside
+ffv2_file_info4, the v2 layout addresses the v1 limitation where a
+singleton stateid was shared across all filehandles.  Each open file
+on the storage device can now have its own stateid, eliminating the
+ambiguity present in the v1 structure.
 
 For loosely coupled storage devices, ffv2ds_user and ffv2ds_group
 provide the synthetic user and group to be used in the RPC credentials
@@ -1475,9 +1491,9 @@ filehandles, they are independent of the multipathing being used.
 If the metadata server wants to provide multiple read-only copies
 of the same file on the same storage device, then it should provide
 multiple mirrored instances, each with a different ff_device_addr4.
-The client can then determine that, since the each of the ffv2ds_fh_vers
-are different, there are multiple copies of the file for the current
-layout segment available.
+The client can then determine that, since each of the fffi_fh_vers
+values within ffv2ds_file_info are different, there are multiple
+copies of the file for the current layout segment available.
 
 ##  Handling Version Errors {#sec-version-errors}
 
@@ -1521,10 +1537,10 @@ device that does not contain the current stripe index.
 L: logical offset within the file
 
 W: stripe width
-    W = number of elements in ffm_data_servers
+    W = number of elements in ffs_data_servers
 
 S: number of bytes in a stripe
-    S = W * ffl_stripe_unit
+    S = W * ffm_striping_unit_size
 
 N: stripe number
     N = L / S
@@ -1576,7 +1592,7 @@ mirrored copy of the layout segment has the same striping pattern
 
 The metadata server is responsible for determining the number of
 mirrored copies and the location of each mirror.  While the client
-may provide a hint to how many copies it wants (see {{sec-layouthint}}),
+may provide a hint to how many copies it wants (see {{sec-ffv2-layouthint}}),
 the metadata server can ignore that hint; in any event, the client
 has no means to dictate either the storage device (which also means
 the coupling and/or protocol levels to access the layout segments)
@@ -1735,7 +1751,7 @@ set of generated headers and chunks for that data block.
 
 The guard is an unique identifier generated by the client to describe
 the current write transaction (see {{sec-chunk_guard4}}).  The
-intent is to have an unique and non-opauqe value for comparison.
+intent is to have a unique and non-opaque value for comparison.
 The payload_id describes the position within the payload.  Finally,
 the crc32 is the 32 bit crc calculation of the header (with the
 crc32 field being 0) and the chunk.  By combining the two parts of
@@ -2027,7 +2043,7 @@ If the CHUNK_WRITE results in an inconsistent data block or if the
 data server returned NFS4ERR_CHUNK_LOCKED, then the client sends a
 LAYOUTERROR to the metadata server with a code of
 NFS4ERR_PAYLOAD_NOT_CONSISTENT. The metadata server then selects a
-client (or data server) to repair the the data block.
+client (or data server) to repair the data block.
 
 <cref source='Tom'>Since we don't have all potential chunks available,
 it can either chose the winner or pick a random client/data server.
@@ -2038,7 +2054,7 @@ until it gets back to the original chunk.</cref>
 
 The client which is repairing the chunk can decide to rollback to
 the previous chunk via CHUNK_ROLLBACK. Note that CHUNK_ROLLBACK
-does not unlock the chunk, that has to be explictly done via
+does not unlock the chunk, that has to be explicitly done via
 CHUNK_UNLOCK.
 
 #### Single Writer Mode
@@ -2214,7 +2230,7 @@ coded file to a non-erasure coded file.
 Assume there is an additional ffv2_coding_type4 of FFV2_CODING_REED_SOLOMON
 and it needs 8 active chunks.  The user wants to actively assimilate
 a regular file.  As such, a layout might be as represented in
-{{fig-example_mixing}}}.  As this is an assimilation, most of the
+{{fig-example_mixing}}.  As this is an assimilation, most of the
 data reads will be satisfied by READ (see Section 18.22 of [RFC8881])
 calls to index 0.  However, as this is also an active file, there
 could also be CHUNK_READ (see {{sec-CHUNK_READ}}) calls to the other
@@ -2225,13 +2241,13 @@ indexes.
  | ffv2_layout4:                                       |
  +-----------------------------------------------------+
  |     ffl_mirrors[0]:                                 |
- |         ffm_data_servers:                           |
+ |         ffs_data_servers:                           |
  |             ffv2_data_server4[0]                    |
  |                 ffv2ds_flags: 0                     |
  |         ffm_coding: FFV2_CODING_MIRRORED            |
  +-----------------------------------------------------+
  |     ffl_mirrors[1]:                                 |
- |         ffm_data_servers:                           |
+ |         ffs_data_servers:                           |
  |             ffv2_data_server4[0]                    |
  |                 ffv2ds_flags: FFV2_DS_FLAGS_ACTIVE  |
  |             ffv2_data_server4[1]                    |
@@ -2966,14 +2982,12 @@ revoked clients from the respective data files as described in
 
 ~~~ xdr
    ///
-   /// /* Erasure Coding errors start here */
+   /// /* Erasure Coding error constants; added to nfsstat4 enum */
    ///
-   /// NFS4ERR_XATTR2BIG      = 10096,/* xattr value is too big  */
-   /// NFS4ERR_CODING_NOT_SUPPORTED
-   ///    = 10097,/* Coding Type unsupported  */
-   /// NFS4ERR_PAYLOAD_NOT_CONSISTENT = 10098,/* payload inconsitent  */
-   /// NFS4ERR_CHUNK_LOCKED = 10099,/* chunk is locked  */
-   /// NFS4ERR_CHUNK_GUARDED = 10100/* chunk is guarded  */
+   /// const NFS4ERR_CODING_NOT_SUPPORTED   = 10097;
+   /// const NFS4ERR_PAYLOAD_NOT_CONSISTENT = 10098;
+   /// const NFS4ERR_CHUNK_LOCKED           = 10099;
+   /// const NFS4ERR_CHUNK_GUARDED          = 10100;
    ///
 ~~~
 {: #fig-errors-xdr title="Errors XDR" }
@@ -3011,7 +3025,7 @@ repair of the file.
 
 The client tried an operation on a chunk which resulted in the data
 server reporting that the chunk was locked. The client will then
-inform the the metadata server of this error via LAYOUTERROR.  The
+inform the metadata server of this error via LAYOUTERROR.  The
 metadata server can then arrange for repair of the file.
 
 ### NFS4ERR_CHUNK_GUARDED (Error Code 10100) {#sec-NFS4ERR_CHUNK_GUARDED}
@@ -3095,10 +3109,10 @@ is driving the I/O.
 
 # New NFSv4.2 Attributes
 
-## Attribute 88: fattr4_coding_block_size
+## Attribute 89: fattr4_coding_block_size
 
 ~~~ xdr
-   /// typedef size_t                    fattr4_coding_block_size;
+   /// typedef uint64_t                  fattr4_coding_block_size;
    ///
    /// const FATTR4_CODING_BLOCK_SIZE  = 89;
    ///
@@ -3130,10 +3144,8 @@ id of the chunk on the DS and the lower 32 bits, cg_client_id, being
 an unique id established when the client did the EXCHANGE_ID operation
 (see Section 18.35 of {{RFC8881}}) with the metadata server.  The
 lower 32 bits are set passed back in the LAYOUTGET operation (see
-Section 18.43 of {{RFC8881}}) as the fml_client_id (see Section
-2.9).
-
-<cref source="Tom">fix the section</cref>
+Section 18.43 of {{RFC8881}}) as the ffm_client_id (see
+{{sec-ffv2-mirror4}}).
 
 ## chunk_owner4
 
@@ -3181,12 +3193,12 @@ across all data files that a chunk corresponds.
    | Operation              | Number | Target Server     | Description |
    | ---
    | CHUNK_COMMIT           | 77     | DS                | {{sec-CHUNK_COMMIT}} |
-   | CHUNK_ERROR            | 78     | MDS               | {{sec-CHUNK_ERROR}} |
+   | CHUNK_ERROR            | 78     | DS                | {{sec-CHUNK_ERROR}} |
    | CHUNK_FINALIZE         | 79     | DS                | {{sec-CHUNK_FINALIZE}} |
    | CHUNK_HEADER_READ      | 80     | DS                | {{sec-CHUNK_HEADER_READ}} |
    | CHUNK_LOCK             | 81     | DS                | {{sec-CHUNK_LOCK}} |
    | CHUNK_READ             | 82     | DS                | {{sec-CHUNK_READ}} |
-   | CHUNK_REPAIRED         | 83     | MDS               | {{sec-CHUNK_REPAIRED}} |
+   | CHUNK_REPAIRED         | 83     | DS                | {{sec-CHUNK_REPAIRED}} |
    | CHUNK_ROLLBACK         | 84     | DS                | {{sec-CHUNK_ROLLBACK}} |
    | CHUNK_UNLOCK           | 85     | DS                | {{sec-CHUNK_UNLOCK}} |
    | CHUNK_WRITE            | 86     | DS                | {{sec-CHUNK_WRITE}} |
@@ -3309,8 +3321,8 @@ the metadata server coordinates repair.
 
 ~~~ xdr
    /// struct CHUNK_FINALIZE4resok {
-   ///     verifier4       ccr_writeverf;
-   ///     nfsstat4        ccr_status<>;
+   ///     verifier4       cfr_writeverf;
+   ///     nfsstat4        cfr_status<>;
    /// };
 ~~~
 {: #fig-CHUNK_FINALIZE4resok title="XDR for CHUNK_FINALIZE4resok" }
@@ -3612,9 +3624,9 @@ NFS4ERR_INVAL.
 ~~~ xdr
    /// struct CHUNK_ROLLBACK4args {
    ///     /* CURRENT_FH: file */
-   ///     offset4         cra_offset;
-   ///     count4          cra_count;
-   ///     chunk_owner4    cra_chunks<>;
+   ///     offset4         crb_offset;
+   ///     count4          crb_count;
+   ///     chunk_owner4    crb_chunks<>;
    /// };
 ~~~
 {: #fig-CHUNK_ROLLBACK4args title="XDR for CHUNK_ROLLBACK4args" }
@@ -3644,8 +3656,8 @@ CHUNK_ROLLBACK reverts blocks from the PENDING or FINALIZED state
 back to their previous state, effectively undoing a CHUNK_WRITE
 that has not yet been committed via CHUNK_COMMIT.
 
-The cra_offset is the starting block offset and cra_count is the
-number of blocks to roll back.  The cra_chunks array lists the
+The crb_offset is the starting block offset and crb_count is the
+number of blocks to roll back.  The crb_chunks array lists the
 chunk_owner4 entries whose blocks are to be rolled back.  Each
 owner's blocks at the specified offsets MUST be in the PENDING or
 FINALIZED state; blocks that have already been committed via
@@ -3709,7 +3721,7 @@ implicitly when the client's lease expires.
 ### ARGUMENTS
 
 ~~~ xdr
-   /// union write_chunk_guard4 (bool cwg_check) {
+   /// union write_chunk_guard4 switch (bool cwg_check) {
    ///     case TRUE:
    ///         chunk_guard4   cwg_guard;
    ///     case FALSE:
@@ -3719,6 +3731,8 @@ implicitly when the client's lease expires.
 {: #fig-write_chunk_guard4 title="XDR for write_chunk_guard4" }
 
 ~~~ xdr
+   /// const CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY = 0x00000001;
+   ///
    /// struct CHUNK_WRITE4args {
    ///     /* CURRENT_FH: file */
    ///     stateid4           cwa_stateid;
@@ -3726,6 +3740,7 @@ implicitly when the client's lease expires.
    ///     stable_how4        cwa_stable;
    ///     chunk_owner4       cwa_owner;
    ///     uint32_t           cwa_payload_id;
+   ///     uint32_t           cwa_flags;
    ///     write_chunk_guard4 cwa_guard;
    ///     uint32_t           cwa_chunk_size;
    ///     uint32_t           cwa_crc32s<>;
@@ -3741,7 +3756,8 @@ implicitly when the client's lease expires.
    ///     count4          cwr_count;
    ///     stable_how4     cwr_committed;
    ///     verifier4       cwr_writeverf;
-   ///     nfsstat4        cwr_status<>;
+   ///     nfsstat4        cwr_block_status<>;
+   ///     bool            cwr_block_activated<>;
    ///     chunk_owner4    cwr_owners<>;
    /// };
 ~~~
@@ -3815,9 +3831,8 @@ is true without any interaction by the client via CHUNK_COMMIT.
 #### Guarding the Write
 
 A guarded CHUNK_WRITE is when the writing of a block MUST fail if
-cwa_guard.cwg_check is set and the target chunk does not have both
-the same gen_id cwa_guard.as the cwg_guard.cg_gen_id and the same
-cwa_guard.cg_gen_id as the cwa_guard.cwg_guard.cg_gen_id.  This is
+cwa_guard.cwg_check is TRUE and the target chunk does not have the
+same cg_gen_id as cwa_guard.cwg_guard.cg_gen_id.  This is
 useful in read-update-write scenarios.  The client reads a block,
 updates it, and is prepared to write it back.  It guards the write
 such that if another writer has modified the block, the data server
@@ -3837,7 +3852,7 @@ first, what happens if a CHUNK_WRITE comes in after the vetting?
 Are we to lock the file during this process.  Even if we do that,
 we still have the issue of multiple DSes.  </cref>
 
-## Operation 88: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk Data {#sec-CHUNK_WRITE_REPAIR}
+## Operation 87: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk Data {#sec-CHUNK_WRITE_REPAIR}
 
 ### ARGUMENTS
 
@@ -3979,7 +3994,48 @@ access control metadata.  Recalling the layouts in this case is
 intended to prevent clients from getting an error on I/Os done after
 the client was fenced off.
 
-##  Transport Layer Security
+##  CRC32 Integrity Scope
+
+The CRC32 values carried in CHUNK_WRITE and returned from CHUNK_READ
+are intended to detect accidental data corruption during storage or
+transmission — for example, bit flips in storage media or network
+errors.  CRC32 is not a cryptographic hash and does not protect
+against intentional modification: an adversary with access to the
+network path could replace a chunk and recompute a valid CRC32 to
+match.  The "data integrity" provided by the CRC32 mechanism in this
+document refers to error detection, not protection against an active
+attacker.  Deployments requiring protection against active attackers
+SHOULD use RPC-over-TLS (see {{sec-tls}}) or RPCSEC_GSS.
+
+##  Chunk Lock and Lease Expiry
+
+When a client holds a chunk lock (acquired via CHUNK_LOCK) and its
+lease expires or the client crashes, the lock is released implicitly
+by the data server.  This opens a window in which another client
+may write to the previously locked range before the original client's
+repair is complete.  Implementations SHOULD ensure that the lease
+period for chunk locks is sufficient to complete repair operations,
+and SHOULD implement CHUNK_UNLOCK explicitly on abort paths.  The
+metadata server's LAYOUTERROR and LAYOUTRETURN mechanisms provide
+the coordination point for detecting and resolving such races.
+
+##  Error Code Information Disclosure
+
+The new error codes NFS4ERR_CHUNK_LOCKED (10099) and
+NFS4ERR_PAYLOAD_NOT_CONSISTENT (10098) convey information about
+chunk state to the caller.  Both of these errors MAY be returned
+to callers whose credentials have not been verified by the data
+server (e.g., when the AUTH_SYS uid presented does not match the
+synthetic uid on the data file).  The information they reveal —
+that a chunk is locked, or that a CRC mismatch occurred — does
+not directly disclose file contents but may indicate concurrent
+write activity.  Implementations that are concerned about this
+level of disclosure SHOULD require that operations on CHUNK ops
+only succeed after credential verification and return
+NFS4ERR_ACCESS for unverified callers rather than the more
+specific error codes.
+
+##  Transport Layer Security {#sec-tls}
 
 RPC-over-TLS {{RFC9289}} MAY be used to protect traffic between the
 client and the metadata server and between the client and data servers.
@@ -4033,12 +4089,12 @@ metadata server.
 
 {{RFC8881}} introduced the "pNFS Layout Types Registry"; new layout
 type numbers in this registry need to be assigned by IANA.  This
-document defines the protocol associated with an existing layout
-type number: LAYOUT4_FLEX_FILES (see {{tbl_layout_types}}).
+document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
+(see {{tbl_layout_types}}).
 
  | Layout Type Name      | Value | RFC      | How | Minor Versions |
  |---
- | LAYOUT4_FLEX_FILES_V2 | 0x6   | RFCTBD10 | L   | 1              |
+ | LAYOUT4_FLEX_FILES_V2 | 0x5   | RFCTBD10 | L   | 1              |
 {: #tbl_layout_types title="Layout Type Assignments"}
 
 {{RFC8881}} also introduced the "NFSv4 Recallable Object Types
