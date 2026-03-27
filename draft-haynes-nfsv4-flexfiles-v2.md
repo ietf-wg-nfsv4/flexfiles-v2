@@ -1234,6 +1234,7 @@ used in both layout hints and layout responses, and applies
 uniformly to all coding types:
 
 | Protection Mode | fdp_data | fdp_parity | Total DSes | Description |
+|---
 | Mirroring (3-way) | 1 | 2 | 3 | 3 copies, no encoding |
 | Striping (6-way) | 6 | 0 | 6 | Parallel I/O, no redundancy |
 | RS Vandermonde 4+2 | 4 | 2 | 6 | Tolerates 2 DS failures |
@@ -2249,6 +2250,7 @@ simplifies the CHUNK operation protocol: chunk_size is exactly the
 shard size for all mirrors.
 
 | Configuration | File Size | Shard Size | Total Storage | Overhead |
+|---
 | 4+2 | 4 KB | 1 KB | 6 KB | 50% |
 | 4+2 | 1 MB | 256 KB | 1.5 MB | 50% |
 | 8+2 | 4 KB | 512 B | 5 KB | 25% |
@@ -2359,6 +2361,7 @@ failure count, but at higher baseline read cost than systematic.
 Unlike RS, Mojette parity shard sizes vary by direction:
 
 | Direction (p, q) | Bins (B) for P=512, Q=4 | Size (bytes, 64-bit elements) |
+|---
 | (-3, 1) | 521 | 4168 |
 | (-2, 1) | 518 | 4144 |
 | (-1, 1) | 515 | 4120 |
@@ -2373,6 +2376,7 @@ last chunk in a parity shard MAY be shorter than the stride.
 ## Comparison of Encoding Types
 
 | Property | Reed-Solomon | Mojette Systematic | Mojette Non-Systematic |
+|---
 | MDS guarantee | Yes | Yes (Katz) | Yes (Katz) |
 | Shard sizes | Uniform | Variable | Variable |
 | Reconstruction cost | O(k^2) | O(m * k) | O(m * k) |
