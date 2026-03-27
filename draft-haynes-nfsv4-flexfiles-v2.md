@@ -887,6 +887,48 @@ FFV2_CODING_MIRRORED offers replication of data and not integrity of
 data.  As such, it does not need operations like CHUNK_WRITE (see
 {{sec-CHUNK_WRITE}}.
 
+### Encoding Type Interoperability
+
+The data servers do not interpret erasure-coded data — they store and
+return opaque chunks.  The NFS wire protocol likewise does not depend
+on the encoding mathematics.  However, a client that writes data using
+one encoding type MUST be able to read it back, and a different
+client implementation MUST be able to read data written by the first
+client if both claim to support the same encoding type.
+
+This interoperability requirement means that each registered
+encoding type MUST fully specify the encoding and decoding
+mathematics such that two independent implementations produce
+byte-identical encoded output for the same input.  The specification
+of a new encoding type MUST include one of the following:
+
+1. A complete mathematical specification of the encoding and decoding
+   algorithms, including all parameters (e.g., field polynomial,
+   matrix construction, element size) sufficient for an independent
+   implementation to produce interoperable results.
+
+2. A reference to a published patent or pending patent application
+   that contains the algorithm specification.  Implementors can then
+   evaluate the licensing terms and decide whether to support the
+   encoding type.
+
+3. A declaration that the encoding type is a proprietary
+   implementation.  In this case, the encoding type name SHOULD
+   include an organizational prefix (e.g.,
+   FFV2_ENCODING_ACME_FOOBAR) to signal that interoperability is
+   limited to implementations licensed by that organization.
+
+Option 1 is RECOMMENDED for encoding types intended for broad
+interoperability.  Options 2 and 3 allow vendors to register encoding
+types for use within their own ecosystems while preserving the
+encoding type namespace.
+
+The rationale for this requirement is that erasure coding moves
+computation from the server to the client.  If the client cannot
+determine how data was encoded, it cannot decode it.  Unlike layout
+types (where the server controls the storage format), encoding types
+require client-side agreement on the mathematics.
+
 ##  ffv2_layout4 {#sec-ffv2_layout}
 
 ### ffv2_flags4 {#sec-ffv2_flags4}
