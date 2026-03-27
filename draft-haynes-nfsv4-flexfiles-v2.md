@@ -1013,15 +1013,25 @@ file and how to access it via the different NFS protocols.
    /// union ffv2_coding_type_data4 switch
    ///         (ffv2_coding_type4 fctd_coding) {
    ///     case FFV2_CODING_MIRRORED:
-   ///         void;
+   ///         ffv2_data_protection4   fctd_protection;
+   ///     default:
+   ///         ffv2_data_protection4   fctd_protection;
    /// };
 ~~~
 {: #fig-ffv2_coding_type_data4 title="The ffv2_coding_type_data4" }
 
 The ffv2_coding_type_data4 (in {{fig-ffv2_coding_type_data4}}) describes
-erasure coding type specific fields.  I.e., this is how the coding type
-can communicate the need for counts of active, spare, parity, and repair
-types of chunks.
+the data protection geometry for the layout.  All coding types carry an
+ffv2_data_protection4 ({{fig-ffv2_data_protection4}}) specifying the
+number of data and parity shards.  The coding type enum determines how
+the shards are encoded; the protection structure determines how many
+shards there are.
+
+For FFV2_CODING_MIRRORED, fdp_data is 1 and fdp_parity is the number
+of additional copies (e.g., fdp_parity=2 for 3-way mirroring).
+Erasure coding types registered in companion documents (e.g.,
+Reed-Solomon Vandermonde, Mojette systematic) use fdp_data >= 2 and
+fdp_parity >= 1.
 
 ~~~ xdr
    /// enum ffv2_striping {
@@ -1139,17 +1149,46 @@ encoding types, each of the stripes descibes a set of
 data servers to which the chunks are distributed. Further,
 the payload length can be different per stripe.
 
+## ffv2_data_protection4
+
+~~~ xdr
+   /// struct ffv2_data_protection4 {
+   ///     uint32_t fdp_data;    /* data shards (k) */
+   ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
+   /// };
+~~~
+{: #fig-ffv2_data_protection4 title="The ffv2_data_protection4" }
+
+The ffv2_data_protection4 (in {{fig-ffv2_data_protection4}}) describes
+the data protection geometry as a pair of counts: the number of data
+shards (fdp_data, also known as k) and the number of parity or
+redundancy shards (fdp_parity, also known as m).  This structure is
+used in both layout hints and layout responses, and applies
+uniformly to all coding types:
+
+| Protection Mode | fdp_data | fdp_parity | Total DSes | Description |
+| Mirroring (3-way) | 1 | 2 | 3 | 3 copies, no encoding |
+| Striping (6-way) | 6 | 0 | 6 | Parallel I/O, no redundancy |
+| RS Vandermonde 4+2 | 4 | 2 | 6 | Tolerates 2 DS failures |
+| Mojette-sys 8+2 | 8 | 2 | 10 | Tolerates 2 DS failures |
+{: #fig-protection-examples title="Example data protection configurations" }
+
+By expressing all protection modes as (fdp_data, fdp_parity) pairs,
+a single structure serves mirroring, striping, and all erasure
+coding types.  The coding type ({{fig-ffv2_coding_type4}}) determines
+HOW the shards are encoded; the protection structure determines
+HOW MANY shards there are.
+
+The total number of data servers required is fdp_data + fdp_parity.
+The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
+25% for 8+2).
+
 ## ffv2_layouthint4
 
 ~~~ xdr
-   /// union ffv2_mirrors_hint switch (ffv2_coding_type4 ffmh_type) {
-   ///     case FFV2_CODING_MIRRORED:
-   ///         void;
-   /// };
-   ///
    /// struct ffv2_layouthint4 {
-   ///     ffv2_coding_type4 fflh_supported_types<>;
-   ///     ffv2_mirrors_hint fflh_mirrors_hint;
+   ///     ffv2_coding_type4       fflh_supported_types<>;
+   ///     ffv2_data_protection4   fflh_preferred_protection;
    /// };
 ~~~
 {: #fig-ffv2_layouthint4 title="The ffv2_layouthint4" }
@@ -1157,6 +1196,42 @@ the payload length can be different per stripe.
 The ffv2_layouthint4 (in {{fig-ffv2_layouthint4}}) describes the
 layout_hint (see Section 5.12.4 of {{RFC8881}}) that the client can
 provide to the metadata server.
+
+The client provides two hints:
+
+fflh_supported_types
+
+:  An ordered list of coding types the client supports,
+with the most preferred type first.  The server SHOULD select a type
+from this list but MAY choose any type it supports.  If the server
+does not support any of the listed types, it returns
+NFS4ERR_ERASURE_ENCODING_NOT_SUPPORTED, and the client can retry
+with a different list to discover the overlapping set.
+
+fflh_preferred_protection
+
+:  The client's preferred data protection geometry as a
+(fdp_data, fdp_parity) pair.  The server SHOULD honor this hint but
+MAY override it based on server-side policy.  A server that manages
+data protection via administrative policy (e.g., per-directory or
+per-export objectives) will typically ignore this hint and return the
+geometry dictated by policy.
+
+For example, a client that prefers Mojette systematic with 8+2
+protection would send:
+
+~~~
+fflh_supported_types = { FFV2_CODING_MIRRORED,
+                         FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+                         FFV2_ENCODING_RS_VANDERMONDE }
+fflh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
+~~~
+
+A server with a policy of RS 4+2 for this directory would ignore
+both hints and return a layout with FFV2_ENCODING_RS_VANDERMONDE
+and (fdp_data=4, fdp_parity=2).  A server without erasure coding
+might return FFV2_CODING_MIRRORED with (fdp_data=1, fdp_parity=2)
+for 3-way mirroring.
 
 Note: In {{fig-ffv2_layout4}} ffv2_coding_type_data4 is an enumerated
 union with the payload of each arm being defined by the protection
@@ -2304,23 +2379,6 @@ opaque value is defined by the ff_layouthint4 type.
 #  ff_layouthint4
 
 ~~~ xdr
-   /// union ffv2_mirrors_hint switch (ffv2_protection_type ffmh_type) {
-   ///     case FF2_PROTECTION_TYPE_MOJETTE:
-   ///         void;
-   ///     case FF2_PROTECTION_TYPE_MIRRORED:
-   ///         void;
-   /// };
-   ///
-   /// /*
-   ///  * We could have this be simply ffv2_protection_type
-   ///  * for the client to state what protection algorithm
-   ///  * it wants.
-   ///  */
-   /// struct ffv2_layouthint4 {
-   ///     ffv2_protection_type fflh_supported_types<>;
-   ///     ffv2_mirrors_hint fflh_mirrors_hint;
-   /// };
-
    union ff_mirrors_hint switch (bool ffmc_valid) {
        case TRUE:
            uint32_t    ffmc_mirrors;
@@ -2332,11 +2390,13 @@ opaque value is defined by the ff_layouthint4 type.
        ff_mirrors_hint    fflh_mirrors_hint;
    };
 ~~~
-{: #fig-ff_layouthint4-v2 title="ff_layouthint4 v2"}
+{: #fig-ff_layouthint4-v2 title="ff_layouthint4 (v1 compatibility)"}
 
-This type conveys hints for the desired data map.  All parameters
-are optional so the client can give values for only the parameter
-it cares about.
+The ff_layouthint4 is retained for backwards compatibility with
+Flex Files v1 layouts.  For Flex Files v2 layouts, clients
+SHOULD use ffv2_layouthint4 ({{fig-ffv2_layouthint4}}) instead,
+which provides coding type selection and data protection geometry
+hints via ffv2_data_protection4 ({{fig-ffv2_data_protection4}}).
 
 #  Recalling a Layout
 
