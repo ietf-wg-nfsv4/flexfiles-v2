@@ -33,6 +33,7 @@ normative:
   RFC8434:
   RFC8435:
   RFC8881:
+  RFC9289:
 
 informative:
   Plank97:
@@ -155,6 +156,13 @@ Using the process detailed in {{RFC8178}}, the revisions in this
 document become an extension of NFSv4.2 {{RFC7862}}.  They are built on
 top of the external data representation (XDR) {{RFC4506}} generated
 from {{RFC7863}}.
+
+This document defines `LAYOUT4_FLEX_FILES_V2`, a new and independent
+layout type that coexists with the Flexible File Layout Type version 1
+(`LAYOUT4_FLEX_FILES`, {{RFC8435}}).  The two layout types are NOT
+backward compatible: an FFv2 layout cannot be parsed as an FFv1 layout
+and vice versa.  A server MAY support both layout types simultaneously;
+a client selects the desired layout type in its LAYOUTGET request.
 
 ##  Definitions
 
@@ -379,6 +387,12 @@ will be a version of NFS, with no ability to provide a global stateid
 model or to prevent clients from using layouts inappropriately.  To enable
 client use in that environment, this document will specify how security,
 state, and locking are to be managed.
+
+The loosely and tightly coupled locking models defined in Section 2.3
+of {{RFC8435}} apply equally to this layout type, including the use of
+anonymous stateids with loosely coupled storage devices, the handling
+of lock and delegation stateids, and the mandatory byte-range lock
+requirements for the tightly coupled model.
 
 ##  LAYOUTCOMMIT
 
@@ -3927,6 +3941,15 @@ intended to prevent clients from getting an error on I/Os done after
 the client was fenced off.
 
 ##  Transport Layer Security
+
+RPC-over-TLS {{RFC9289}} MAY be used to protect traffic between the
+client and the metadata server and between the client and data servers.
+When RPC-over-TLS is in use on the data server path, the synthetic
+uid/gid credentials carried in AUTH_SYS remain the access control
+mechanism; TLS provides confidentiality and integrity for the transport
+but does not replace the fencing model described in {{sec-Fencing-Clients}}.
+Servers that require transport security SHOULD advertise this via the
+SECINFO mechanism rather than silently dropping connections.
 
 ##  RPCSEC_GSS and Security Services
 
