@@ -887,7 +887,7 @@ FFV2_CODING_MIRRORED offers replication of data and not integrity of
 data.  As such, it does not need operations like CHUNK_WRITE (see
 {{sec-CHUNK_WRITE}}.
 
-### Encoding Type Interoperability
+### Encoding Type Interoperability {#encoding-type-interoperability}
 
 The data servers do not interpret erasure-coded data — they store and
 return opaque chunks.  The NFS wire protocol likewise does not depend
@@ -3308,9 +3308,57 @@ RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
 {: #tbl_recallables title="Recallable Object Type Assignments"}
 
 This document introduces the 'Flexible File Version 2 Layout Type
-Erasure Coding Type Registry'.  This document defines the
-FFV2_CODING_MIRRORED type for Client-Side Mirroring (see
-{{tbl-coding-types}}).
+Erasure Coding Type Registry'.  The registry uses a 32-bit value
+space partitioned into ranges based on the intended scope of the
+encoding type (see {{tbl-coding-ranges}}).
+
+ | Range | Purpose | Allocation Policy |
+ | ---
+ | 0x0000–0x00FF | Standards Track | IETF Review (RFC required) |
+ | 0x0100–0x0FFF | Experimental | Expert Review |
+ | 0x1000–0x7FFF | Vendor (open) | First Come First Served |
+ | 0x8000–0xFFFE | Private/proprietary | No registration required |
+ | 0xFFFF | Reserved | — |
+{: #tbl-coding-ranges title="Erasure Coding Type Value Ranges"}
+
+Standards Track (0x0000–0x00FF)
+
+:  Encoding types intended for broad interoperability.  The
+specification MUST include a complete mathematical description
+sufficient for independent interoperable implementations (see
+{{encoding-type-interoperability}}).  Allocated by IETF Review.
+
+Experimental (0x0100–0x0FFF)
+
+:  Encoding types under development or evaluation.  An Internet-Draft
+is sufficient for allocation.  The specification SHOULD include
+enough detail for interoperability testing.  Allocated by Expert
+Review.
+
+Vendor (open) (0x1000–0x7FFF)
+
+:  Encoding types with a published specification or patent reference.
+Interoperability is expected among implementations that license or
+implement the specification.  The registration MUST include either a
+math specification or a patent reference.  Allocated First Come
+First Served.
+
+Private/proprietary (0x8000–0xFFFE)
+
+:  Encoding types for use within a single vendor's ecosystem.
+No registration is required.  Interoperability with other
+implementations is not expected.  The encoding type name SHOULD
+include an organizational identifier (e.g.,
+FFV2_ENCODING_ACME_FOOBAR).  A client that encounters a value
+in this range from an unrecognized server SHOULD treat it as an
+unsupported encoding type.
+
+This partitioning prevents contention for small numbers in the
+Standards Track range and provides a clear signal to clients about
+what level of interoperability to expect.
+
+This document defines the FFV2_CODING_MIRRORED type for Client-Side
+Mirroring (see {{tbl-coding-types}}).
 
  | Erasure Coding Type Name | Value | RFC      | How | Minor Versions    |
  | ---
