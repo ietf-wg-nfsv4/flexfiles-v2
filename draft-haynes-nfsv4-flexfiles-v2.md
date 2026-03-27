@@ -2310,7 +2310,13 @@ The number of bins B in a projection is:
 B(p, q, P, Q) = |p| * (Q - 1) + |q| * (P - 1) + 1
 ~~~
 
-For q = 1: B = |p| * (Q - 1) + P.  The byte size is B * W.
+For q = 1, this simplifies to:
+
+~~~
+B = abs(p) * (Q - 1) + P
+~~~
+
+The byte size of the projection is B * W.
 
 ### Katz Reconstruction Criterion
 
