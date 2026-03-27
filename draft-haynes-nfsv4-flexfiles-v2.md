@@ -296,7 +296,11 @@ updated, then all copies must be updated.
 
 non-systematic encoding:
 
-: TBD
+:  An erasure coding scheme in which the encoded shards do not contain
+verbatim copies of the original data.  Every read requires decoding,
+even when no shards are lost.  The Mojette non-systematic transform is
+an example.  Non-systematic encodings are typically used for archival
+workloads where reads are infrequent.
 
 recalling a layout:
 
@@ -341,7 +345,11 @@ device.  Each layout type specifies the set of storage protocols.
 
 systematic encoding:
 
-: TBD
+:  An erasure coding scheme in which the first k of the k+m encoded
+shards are identical to the original k data blocks.  A healthy read
+(no failures) requires no decoding — the data shards are read directly.
+Decoding is triggered only when data shards are missing.  Reed-Solomon
+Vandermonde and Mojette systematic are examples.
 
 tight coupling:
 
@@ -460,7 +468,7 @@ a scenario, the client will be given an error of NFS4ERR_BAD_STATEID.
 
 The client need not know the model used between the metadata server and
 the storage device.  It need only react consistently to any errors in
-interacting with the storage device.  It should both return the layout
+interacting with the storage device.  It SHOULD both return the layout
 and error to the metadata server and ask for a new layout.  At that point,
 the metadata server can either hand out a new layout, hand out no layout
 (forcing the I/O through it), or deny the client further access to
@@ -522,7 +530,7 @@ or garbo opens the file.  The client has to present an uid of 19452
 to get write permission.  If it presents any other value for the uid,
 then it must give a gid of 28418 to get read access.
 
-Further, if the metadata server decides to fence the file, it should
+Further, if the metadata server decides to fence the file, it SHOULD
 change the uid and/or gid such that these values neither match earlier
 values for that file nor match a predictable change based on an earlier
 fencing.
@@ -532,9 +540,9 @@ fencing.
 ~~~
 {: #fig-fenced-ompha title="Fenced Data's view of ompha.c"}
 
-The set of synthetic gids on the storage device should be selected such
+The set of synthetic gids on the storage device SHOULD be selected such
 that there is no mapping in any of the name services used by the storage
-device, i.e., each group should have no members.
+device, i.e., each group SHOULD have no members.
 
 If the layout segment has an iomode of LAYOUTIOMODE4_READ, then the
 metadata server should return a synthetic uid that is not set on the
@@ -2528,6 +2536,27 @@ archive workloads where reads are infrequent.
 
 ## Handling write holes
 
+A write hole occurs when a client begins writing a stripe but does not
+successfully write all k+m shards before a failure.  Some data servers
+will hold new data while others still hold old data, producing an
+inconsistent payload.
+
+The CHUNK_WRITE / CHUNK_ROLLBACK mechanism addresses this.  When a client
+issues CHUNK_WRITE, the data server retains a copy of the previous shard
+and places the new data in the PENDING state.  If any shard write fails,
+the client issues CHUNK_ROLLBACK to each data server that received a
+CHUNK_WRITE, restoring the previous content.  The payload remains
+consistent from the reader's perspective throughout, because PENDING
+blocks carry the new chunk_guard4 value and CHUNK_READ returns the last
+COMMITTED or FINALIZED block when a PENDING block exists.
+
+In the multiple writer model, a write hole can also arise when two clients
+are racing.  The chunk_guard4 value on each shard identifies which
+transaction wrote it.  A reader that finds shards with different guard
+values detects the inconsistency and either retries (if a concurrent write
+is still in progress) or reports NFS4ERR_PAYLOAD_NOT_CONSISTENT to the
+metadata server to trigger repair.
+
 # NFSv4.2 Operations Allowed to Data Files
 
 <cref source="Tom"> In Flexible File Version 1 Layout Type, the
@@ -3004,9 +3033,19 @@ The operations and their valid errors are presented in
 {{tbl-ops-and-errors}}.  All error codes not defined in this document
 are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
 
- | Operation             | Errors                                   |
+ | Operation          | Errors |
  | ---
- | | |
+ | CHUNK_COMMIT       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_ERROR        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_FINALIZE     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_CONSISTENT, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_REPAIRED     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_ROLLBACK     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_UNLOCK       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_WRITE        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_CHUNK_GUARDED, NFS4ERR_CHUNK_LOCKED, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_WRITE_REPAIR | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
 {: #tbl-ops-and-errors title="Operations and Their Valid Errors"}
 
 ## Callback Operations and Their Valid Errors
@@ -3899,7 +3938,7 @@ also responsible for revoking access for a client to the storage
 device.
 
 The metadata server enforces the file access control policy at
-LAYOUTGET time.  The client should use RPC authorization credentials
+LAYOUTGET time.  The client MUST use RPC authorization credentials
 for getting the layout for the requested iomode ((LAYOUTIOMODE4_READ
 or LAYOUTIOMODE4_RW), and the server verifies the permissions and
 ACL for these credentials, possibly returning NFS4ERR_ACCESS if the
