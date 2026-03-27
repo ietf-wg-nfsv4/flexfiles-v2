@@ -3083,11 +3083,46 @@ How does CHUNK_COMMIT interact with a locked chunk?</cref>
 
 ### ARGUMENTS
 
+~~~ xdr
+   /// struct CHUNK_ERROR4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4        cea_stateid;
+   ///     offset4         cea_offset;
+   ///     count4          cea_count;
+   ///     nfsstat4        cea_error;
+   ///     chunk_owner4    cea_owner;
+   /// };
+~~~
+{: #fig-CHUNK_ERROR4args title="XDR for CHUNK_ERROR4args" }
+
 ### RESULTS
+
+~~~ xdr
+   /// struct CHUNK_ERROR4res {
+   ///     nfsstat4        cer_status;
+   /// };
+~~~
+{: #fig-CHUNK_ERROR4res title="XDR for CHUNK_ERROR4res" }
 
 ### DESCRIPTION
 
-## Operation 79: CHUNK_FINALIZE - XXX Error on Cached Chunk Data {#sec-CHUNK_FINALIZE}
+CHUNK_ERROR allows a client to report that one or more chunks at
+the specified block range are in error.  The cea_offset is the
+starting block offset and cea_count is the number of blocks
+affected.  The cea_error indicates the type of error detected
+(e.g., NFS4ERR_PAYLOAD_NOT_CONSISTENT for a CRC mismatch).
+
+The data server records the error state for the affected blocks.
+Once marked as errored, the blocks are not returned by CHUNK_READ
+until they are repaired via CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}})
+and the repair is confirmed via CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}).
+
+The client SHOULD report errors via CHUNK_ERROR before reporting
+them to the metadata server via LAYOUTERROR.  This allows the data
+server to prevent other clients from reading corrupt data while
+the metadata server coordinates repair.
+
+## Operation 79: CHUNK_FINALIZE - Transition Chunks from Pending to Finalized {#sec-CHUNK_FINALIZE}
 
 ### ARGUMENTS
 
@@ -3122,6 +3157,26 @@ How does CHUNK_COMMIT interact with a locked chunk?</cref>
 {: #fig-CHUNK_FINALIZE4res title="XDR for CHUNK_FINALIZE4res" }
 
 ### DESCRIPTION
+
+CHUNK_FINALIZE transitions blocks from the PENDING state (set by
+CHUNK_WRITE) to the FINALIZED state.  A finalized block is visible
+to the owning client for reads and is eligible for CHUNK_COMMIT.
+
+The cfa_offset is the starting block offset and cfa_count is the
+number of blocks to finalize.  The cfa_chunks array lists the
+chunk_owner4 entries whose blocks are to be finalized.  Each
+owner's blocks at the specified offsets MUST be in the PENDING state;
+if not, the corresponding entry in the per-owner status array
+ccr_status is set to NFS4ERR_INVAL.
+
+CHUNK_FINALIZE serves as the CRC validation checkpoint: the data
+server SHOULD have validated the CRC32 of each block at CHUNK_WRITE
+time.  After CHUNK_FINALIZE, the block metadata (CRC, owner, state)
+is persisted to stable storage so that it survives data server
+restarts.
+
+Blocks that have been finalized but not yet committed MAY be rolled
+back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
 
 ## Operation 80: CHUNK_HEADER_READ - Read Chunk Header from File {#sec-CHUNK_HEADER_READ}
 
@@ -3171,9 +3226,49 @@ headers in the desired data range.
 
 ### ARGUMENTS
 
+~~~ xdr
+   /// struct CHUNK_LOCK4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4        cla_stateid;
+   ///     offset4         cla_offset;
+   ///     count4          cla_count;
+   ///     chunk_owner4    cla_owner;
+   /// };
+~~~
+{: #fig-CHUNK_LOCK4args title="XDR for CHUNK_LOCK4args" }
+
 ### RESULTS
 
+~~~ xdr
+   /// union CHUNK_LOCK4res switch (nfsstat4 clr_status) {
+   ///     case NFS4_OK:
+   ///         void;
+   ///     case NFS4ERR_CHUNK_LOCKED:
+   ///         chunk_owner4    clr_owner;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_LOCK4res title="XDR for CHUNK_LOCK4res" }
+
 ### DESCRIPTION
+
+CHUNK_LOCK acquires an exclusive lock on the block range specified
+by cla_offset and cla_count.  While locked, other clients' CHUNK_WRITE
+operations to the same block range will fail with NFS4ERR_CHUNK_LOCKED.
+The lock is associated with the chunk_owner4 in cla_owner.
+
+If the blocks are already locked by a different owner, the operation
+returns NFS4ERR_CHUNK_LOCKED with the clr_owner field identifying the
+current lock holder.
+
+CHUNK_LOCK is used in the multiple writer mode ({{sec-multi-writer}})
+to coordinate concurrent access to the same block range.  A client
+that needs to repair chunks SHOULD acquire the lock before writing
+replacement data.
+
+The lock is released by CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) or
+implicitly when the client's lease expires.
 
 ## Operation 82: CHUNK_READ - Read Chunks from File {#sec-CHUNK_READ}
 
@@ -3298,29 +3393,147 @@ generated fields.
 ~~~
 {: #fig-example-CHUNK_READ4resok title="Example: Resulting CHUNK_READ4resok reply" }
 
-## Operation 83: CHUNK_REPAIRED - Error Repaired on Cached Chunk Data {#sec-CHUNK_REPAIRED}
+## Operation 83: CHUNK_REPAIRED - Confirm Repair of Errored Chunk Data {#sec-CHUNK_REPAIRED}
 
 ### ARGUMENTS
 
+~~~ xdr
+   /// struct CHUNK_REPAIRED4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4        cpa_stateid;
+   ///     offset4         cpa_offset;
+   ///     count4          cpa_count;
+   ///     chunk_owner4    cpa_owner;
+   /// };
+~~~
+{: #fig-CHUNK_REPAIRED4args title="XDR for CHUNK_REPAIRED4args" }
+
 ### RESULTS
 
+~~~ xdr
+   /// union CHUNK_REPAIRED4res switch (nfsstat4 cpr_status) {
+   ///     case NFS4_OK:
+   ///         void;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_REPAIRED4res title="XDR for CHUNK_REPAIRED4res" }
+
 ### DESCRIPTION
+
+CHUNK_REPAIRED signals that blocks previously marked as errored
+(via CHUNK_ERROR, {{sec-CHUNK_ERROR}}) have been repaired.  The
+repair client writes replacement data via CHUNK_WRITE_REPAIR
+({{sec-CHUNK_WRITE_REPAIR}}), then calls CHUNK_REPAIRED to clear
+the error state and make the blocks available for normal reads.
+
+The cpa_offset and cpa_count identify the repaired block range.
+The cpa_owner identifies the repair client that performed the
+repair.  The data server verifies that the blocks were previously
+in error and that the repair data has been written and finalized.
+
+If the blocks are not in the errored state, the operation returns
+NFS4ERR_INVAL.
 
 ## Operation 84: CHUNK_ROLLBACK - Rollback Changes on Cached Chunk Data {#sec-CHUNK_ROLLBACK}
 
 ### ARGUMENTS
 
+~~~ xdr
+   /// struct CHUNK_ROLLBACK4args {
+   ///     /* CURRENT_FH: file */
+   ///     offset4         cra_offset;
+   ///     count4          cra_count;
+   ///     chunk_owner4    cra_chunks<>;
+   /// };
+~~~
+{: #fig-CHUNK_ROLLBACK4args title="XDR for CHUNK_ROLLBACK4args" }
+
 ### RESULTS
+
+~~~ xdr
+   /// struct CHUNK_ROLLBACK4resok {
+   ///     verifier4       crr_writeverf;
+   /// };
+~~~
+{: #fig-CHUNK_ROLLBACK4resok title="XDR for CHUNK_ROLLBACK4resok" }
+
+~~~ xdr
+   /// union CHUNK_ROLLBACK4res switch (nfsstat4 crr_status) {
+   ///     case NFS4_OK:
+   ///         CHUNK_ROLLBACK4resok   crr_resok4;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_ROLLBACK4res title="XDR for CHUNK_ROLLBACK4res" }
 
 ### DESCRIPTION
 
-## Operation 85: CHUNK_UNLOCK - Unlock on Cached Chunk Data {#sec-CHUNK_UNLOCK}
+CHUNK_ROLLBACK reverts blocks from the PENDING or FINALIZED state
+back to their previous state, effectively undoing a CHUNK_WRITE
+that has not yet been committed via CHUNK_COMMIT.
+
+The cra_offset is the starting block offset and cra_count is the
+number of blocks to roll back.  The cra_chunks array lists the
+chunk_owner4 entries whose blocks are to be rolled back.  Each
+owner's blocks at the specified offsets MUST be in the PENDING or
+FINALIZED state; blocks that have already been committed via
+CHUNK_COMMIT cannot be rolled back.
+
+CHUNK_ROLLBACK is used in two scenarios:
+
+1. A client discovers an encoding error after CHUNK_WRITE and
+   before CHUNK_COMMIT, and needs to undo the write to try again.
+
+2. A repair client needs to undo a repair attempt that was found
+   to be incorrect before committing it.
+
+The data server deletes the pending chunk data and restores the
+block metadata to EMPTY.  If the block was in the FINALIZED state,
+the persisted metadata is also removed.
+
+## Operation 85: CHUNK_UNLOCK - Unlock Cached Chunk Data {#sec-CHUNK_UNLOCK}
 
 ### ARGUMENTS
 
+~~~ xdr
+   /// struct CHUNK_UNLOCK4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4        cua_stateid;
+   ///     offset4         cua_offset;
+   ///     count4          cua_count;
+   ///     chunk_owner4    cua_owner;
+   /// };
+~~~
+{: #fig-CHUNK_UNLOCK4args title="XDR for CHUNK_UNLOCK4args" }
+
 ### RESULTS
 
+~~~ xdr
+   /// union CHUNK_UNLOCK4res switch (nfsstat4 cur_status) {
+   ///     case NFS4_OK:
+   ///         void;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_UNLOCK4res title="XDR for CHUNK_UNLOCK4res" }
+
 ### DESCRIPTION
+
+CHUNK_UNLOCK releases the exclusive lock on the block range
+previously acquired by CHUNK_LOCK ({{sec-CHUNK_LOCK}}).  The
+cua_owner MUST match the owner that acquired the lock; otherwise
+the operation returns NFS4ERR_INVAL.
+
+If the blocks are not locked, the operation returns NFS4_OK
+(idempotent).
+
+A client SHOULD release chunk locks promptly after completing
+its write or repair operation.  Chunk locks are also released
+implicitly when the client's lease expires.
 
 ## Operation 86: CHUNK_WRITE - Write Chunks to File {#sec-CHUNK_WRITE}
 
@@ -3459,12 +3672,81 @@ we still have the issue of multiple DSes.  </cref>
 
 ### ARGUMENTS
 
+~~~ xdr
+   /// struct CHUNK_WRITE_REPAIR4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4           cwra_stateid;
+   ///     offset4            cwra_offset;
+   ///     stable_how4        cwra_stable;
+   ///     chunk_owner4       cwra_owner;
+   ///     uint32_t           cwra_payload_id;
+   ///     uint32_t           cwra_chunk_size;
+   ///     uint32_t           cwra_crc32s<>;
+   ///     opaque             cwra_chunks<>;
+   /// };
+~~~
+{: #fig-CHUNK_WRITE_REPAIR4args title="XDR for CHUNK_WRITE_REPAIR4args" }
+
 ### RESULTS
+
+~~~ xdr
+   /// struct CHUNK_WRITE_REPAIR4resok {
+   ///     count4          cwrr_count;
+   ///     stable_how4     cwrr_committed;
+   ///     verifier4       cwrr_writeverf;
+   ///     nfsstat4        cwrr_status<>;
+   /// };
+~~~
+{: #fig-CHUNK_WRITE_REPAIR4resok title="XDR for CHUNK_WRITE_REPAIR4resok" }
+
+~~~ xdr
+   /// union CHUNK_WRITE_REPAIR4res switch (nfsstat4 cwrr_status) {
+   ///     case NFS4_OK:
+   ///         CHUNK_WRITE_REPAIR4resok   cwrr_resok4;
+   ///     default:
+   ///         void;
+   /// };
+~~~
+{: #fig-CHUNK_WRITE_REPAIR4res title="XDR for CHUNK_WRITE_REPAIR4res" }
 
 ### DESCRIPTION
 
-<cref source="Tom">Either a cut-and-paste of CHUNK_WRITE or overload
-it?</cref>
+CHUNK_WRITE_REPAIR has the same semantics as CHUNK_WRITE
+({{sec-CHUNK_WRITE}}) but is used specifically for writing
+reconstructed chunk data to a replacement data server during
+repair operations.
+
+The repair workflow is:
+
+1. The repair client reads surviving chunks from the remaining
+   data servers via CHUNK_READ.
+
+2. The client reconstructs the missing chunks using the erasure
+   coding algorithm (RS matrix inversion or Mojette corner-peeling).
+
+3. The client acquires a CHUNK_LOCK ({{sec-CHUNK_LOCK}}) on the
+   target data server to prevent concurrent writes during repair.
+
+4. The client writes the reconstructed data via CHUNK_WRITE_REPAIR.
+
+5. The client calls CHUNK_FINALIZE and CHUNK_COMMIT to persist
+   the repair.
+
+6. The client calls CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}) to
+   clear the error state.
+
+7. The client releases the lock via CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}).
+
+CHUNK_WRITE_REPAIR is distinguished from CHUNK_WRITE to allow the
+data server to apply different policies to repair writes (e.g.,
+bypassing guard checks, logging repair activity, or prioritizing
+repair I/O).  The CRC32 validation on the repair data follows the
+same rules as CHUNK_WRITE.
+
+The target blocks SHOULD be in the errored state (set by
+CHUNK_ERROR) or EMPTY.  If the blocks are in the COMMITTED state
+with valid data, the data server MAY reject the repair to prevent
+overwriting good data.
 
 #  Security Considerations
 
