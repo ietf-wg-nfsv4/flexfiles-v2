@@ -2023,7 +2023,7 @@ CHUNK_UNLOCK.
 
 #### Repairing Single Writer Payloads
 
-#### Mutliple Writer Mode
+#### Multiple Writer Mode {#sec-multi-writer}
 
 #### Repairing Multiple Writer Payloads
 
