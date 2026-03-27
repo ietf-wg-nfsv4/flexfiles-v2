@@ -44,6 +44,31 @@ informative:
     date: September 1997
   RFC1813:
   RFC4519:
+  PARREIN:
+    title: "Multiple Description Coding Using Exact Discrete Radon Transform"
+    author:
+      - name: B. Parrein
+      - name: N. Normand
+      - name: J.-P. Guedon
+    date: 2001
+    seriesinfo:
+      IEEE: "Data Compression Conference (DCC)"
+  NORMAND:
+    title: "A Geometry Driven Reconstruction Algorithm for the Mojette Transform"
+    author:
+      - name: N. Normand
+      - name: A. Kingston
+      - name: P. Evenou
+    date: 2006
+    seriesinfo:
+      LNCS: "4245, pp. 122-133, DGCI 2006"
+  KATZ:
+    title: "Questions of Uniqueness and Resolution in Reconstruction from Projections"
+    author:
+      - name: M. Katz
+    date: 1978
+    seriesinfo:
+      Springer: ""
 
 --- abstract
 
@@ -2111,6 +2136,256 @@ data servers.  Finally, if the client reads back a section which
 had been modified earlier, both the READ and CHUNK_READ calls would
 return data.
 
+## Reed-Solomon Vandermonde Encoding (FFV2_ENCODING_RS_VANDERMONDE) {#sec-rs-encoding}
+
+### Overview
+
+Reed-Solomon (RS) codes are Maximum Distance Separable (MDS) codes:
+for a (k+m, k) code, any k of the k+m encoded shards suffice to
+recover the original data.  The code tolerates the simultaneous loss
+of up to m shards.
+
+### Galois Field Arithmetic
+
+All RS operations are performed over GF(2^8), the Galois field with
+256 elements.  Each element is represented as a byte.
+
+Irreducible Polynomial
+
+:  The field is constructed using the irreducible polynomial
+x^8 + x^4 + x^3 + x^2 + 1 (0x11d in hexadecimal).  The primitive
+element (generator) is g = 2, which has multiplicative order 255.
+
+Addition
+
+:  Addition in GF(2^8) is bitwise XOR.
+
+Multiplication
+
+:  Multiplication uses log/antilog tables.  For non-zero elements
+a and b: a * b = exp(log(a) + log(b)), where the exp table is
+doubled to 512 entries to avoid modular reduction on the index sum.
+
+These are the classical constructions from Berlekamp (1968) and
+Peterson & Weldon (1972).  The log/antilog table approach for GF(2^8)
+multiplication predates all known patents on SIMD-accelerated GF
+arithmetic.  Implementors considering SIMD acceleration of GF(2^8)
+operations should be aware of US Patent 8,683,296 (StreamScale),
+which covers certain SIMD-based GF multiplication techniques.
+
+### Encoding Matrix
+
+The encoding process uses a (k+m) x k Vandermonde matrix, normalized
+so that its top k rows form the identity matrix:
+
+1. Construct a (k+m) x k Vandermonde matrix V where V\[i\]\[j\] = j^i
+   in GF(2^8).
+
+2. Extract the top k x k sub-matrix T from V.
+
+3. Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).
+
+4. Multiply: E = V * T_inv.  The result has an identity block on top
+   (rows 0 through k-1) and the parity generation matrix P on the
+   bottom (rows k through k+m-1).
+
+The identity block makes the code systematic: data shards pass through
+unchanged, and only the parity sub-matrix P is needed during encoding.
+
+### Encoding
+
+Given k data shards, each of shard_len bytes, encoding produces m
+parity shards, each also shard_len bytes:
+
+~~~
+For each byte position j in [0, shard_len):
+  For each parity shard i in [0, m):
+    parity[i][j] = sum over s in [0, k) of P[i][s] * data[s][j]
+~~~
+
+where the sum and product are in GF(2^8).  All shards (data and
+parity) are the same size.
+
+### Decoding
+
+When one or more shards are lost (up to m), reconstruction proceeds
+by matrix inversion:
+
+1. Select k available shards (from the k+m total).
+
+2. Form a k x k sub-matrix S of the encoding matrix E by selecting the
+   rows corresponding to the available shards.
+
+3. Compute S_inv = S^(-1) using Gaussian elimination in GF(2^8).
+
+4. Multiply S_inv by the vector of available shard data at each byte
+   position to recover the original k data shards.
+
+5. If any parity shards are also missing, regenerate them by
+   re-encoding from the recovered data shards.
+
+The reconstruction cost is dominated by the matrix inversion, which
+is O(k^2) in GF(2^8) multiplications.
+
+### RS Interoperability Requirements
+
+For two implementations of FFV2_ENCODING_RS_VANDERMONDE to
+interoperate, they MUST agree on all of the following parameters.
+Any deviation produces a different encoding matrix and renders
+data unrecoverable by a different implementation.
+
+- Irreducible polynomial: x^8 + x^4 + x^3 + x^2 + 1 (0x11d)
+- Primitive element: g = 2
+- Vandermonde evaluation points: V\[i\]\[j\] = j^i in GF(2^8)
+- Matrix normalization: E = V * (V\[0..k-1\])^(-1)
+
+These four parameters fully determine the encoding matrix for any
+(k, m) configuration.
+
+### RS Shard Sizes
+
+All RS shards (data and parity) are exactly shard_len bytes.  This
+simplifies the CHUNK operation protocol: chunk_size is exactly the
+shard size for all mirrors.
+
+| Configuration | File Size | Shard Size | Total Storage | Overhead |
+| 4+2 | 4 KB | 1 KB | 6 KB | 50% |
+| 4+2 | 1 MB | 256 KB | 1.5 MB | 50% |
+| 8+2 | 4 KB | 512 B | 5 KB | 25% |
+| 8+2 | 1 MB | 128 KB | 1.25 MB | 25% |
+{: #tbl-rs-shards title="RS shard sizes for common configurations"}
+
+## Mojette Transform Encoding (FFV2_ENCODING_MOJETTE_SYSTEMATIC, FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC) {#sec-mojette-encoding}
+
+### Overview
+
+The Mojette Transform is an erasure coding technique based on discrete
+geometry rather than algebraic field operations.  It computes 1D
+projections of a 2D grid along selected directions.  Given enough
+projections, the original grid can be reconstructed exactly.
+
+The transform operates on unsigned integer elements using modular
+addition.  The element size is an implementation choice: 128-bit
+elements leverage SSE SIMD instructions; 64-bit elements are
+compatible with NEON and AVX2 vector widths.  No Galois field
+operations are required.
+
+### Grid Structure
+
+Data is arranged as a P x Q grid of unsigned integer elements,
+where P is the number of columns and Q is the number of rows.
+For k data shards of S bytes each with W-byte elements:
+
+~~~
+P = S / W       (columns per row)
+Q = k           (rows = data shards)
+~~~
+
+### Directions
+
+A direction is a pair of coprime integers (p_i, q_i).  Implementations
+SHOULD use q_i = 1 for all directions {{PARREIN}}.  For n = k + m total
+shards, n directions are generated with non-zero p values symmetric
+around zero:
+
+- For n = 4: p = {-2, -1, 1, 2}
+- For n = 6: p = {-3, -2, -1, 1, 2, 3}
+
+### Forward Transform (Encoding)
+
+For each direction (p_i, q_i), the forward transform computes a 1D
+projection.  Each bin sums the grid elements along a discrete line:
+
+~~~
+Projection(b, p, q) = SUM over all (row, col) where
+                       col * p - row * q + offset = b
+                       of Grid[row][col]
+~~~
+
+The number of bins B in a projection is:
+
+~~~
+B(p, q, P, Q) = |p| * (Q - 1) + |q| * (P - 1) + 1
+~~~
+
+For q = 1: B = |p| * (Q - 1) + P.  The byte size is B * W.
+
+### Katz Reconstruction Criterion
+
+Reconstruction is possible if and only if the Katz criterion
+{{KATZ}} holds:
+
+~~~
+SUM(i=1..n) |q_i| >= Q    OR    SUM(i=1..n) |p_i| >= P
+~~~
+
+When all q_i = 1, the q-sum simplifies to n >= Q.
+
+### Inverse Transform (Decoding)
+
+The inverse uses the corner-peeling algorithm:
+
+1. Count how many unknown elements contribute to each bin.
+2. Find any bin with exactly one contributor (singleton).
+3. Recover the element, subtract from all projections.
+4. Repeat until all elements are recovered.
+
+The algorithm is O(n * P * Q).
+
+### Systematic Mojette
+
+In the systematic form (FFV2_ENCODING_MOJETTE_SYSTEMATIC), the first
+k shards are the original data rows and the remaining m shards are
+projections.  Healthy reads require no decoding.
+
+Reconstruction of missing data rows:
+
+1. Load available parity projections.
+2. Subtract contributions of present data rows (residual).
+3. Corner-peel the residual to recover missing rows.
+
+Reconstruction cost is O(m * k) — a fundamental advantage over RS
+at wide geometries (k >= 8).
+
+### Non-Systematic Mojette
+
+In the non-systematic form (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC),
+all k + m shards are projections.  Every read requires the full
+inverse transform.  This provides constant performance regardless of
+failure count, but at higher baseline read cost than systematic.
+
+### Mojette Shard Sizes
+
+Unlike RS, Mojette parity shard sizes vary by direction:
+
+| Direction (p, q) | Bins (B) for P=512, Q=4 | Size (bytes, 64-bit elements) |
+| (-3, 1) | 521 | 4168 |
+| (-2, 1) | 518 | 4144 |
+| (-1, 1) | 515 | 4120 |
+| (1, 1) | 515 | 4120 |
+| (2, 1) | 518 | 4144 |
+| (3, 1) | 521 | 4168 |
+{: #tbl-mojette-proj-sizes title="Mojette projection sizes for 4+2, 4KB shards, 64-bit elements"}
+
+When using CHUNK operations, the chunk_size is a nominal stride; the
+last chunk in a parity shard MAY be shorter than the stride.
+
+## Comparison of Encoding Types
+
+| Property | Reed-Solomon | Mojette Systematic | Mojette Non-Systematic |
+| MDS guarantee | Yes | Yes (Katz) | Yes (Katz) |
+| Shard sizes | Uniform | Variable | Variable |
+| Reconstruction cost | O(k^2) | O(m * k) | O(m * k) |
+| Healthy read cost | Zero | Zero | Full decode |
+| GF operations | Yes (GF(2^8)) | No | No |
+| Recommended k | k <= 6 | k >= 4 | Archive only |
+{: #tbl-encoding-comparison title="Comparison of erasure encoding types"}
+
+At small k (k <= 6), RS is the conservative choice with uniform shard
+sizes.  At wider geometries (k >= 8), systematic Mojette offers lower
+reconstruction cost.  Non-systematic Mojette is suitable only for
+archive workloads where reads are infrequent.
+
 ## Handling write holes
 
 # NFSv4.2 Operations Allowed to Data Files
@@ -3363,6 +3638,9 @@ Mirroring (see {{tbl-coding-types}}).
  | Erasure Coding Type Name | Value | RFC      | How | Minor Versions    |
  | ---
  | FFV2_CODING_MIRRORED     | 1     | RFCTBD10 | L   | 2        |
+ | FFV2_ENCODING_MOJETTE_SYSTEMATIC     | 2     | RFCTBD10 | L   | 2        |
+ | FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC | 3     | RFCTBD10 | L   | 2        |
+ | FFV2_ENCODING_RS_VANDERMONDE         | 4     | RFCTBD10 | L   | 2        |
 {: #tbl-coding-types title="Flexible File Version 2 Layout Type Erasure Coding Type Assignments"}
 
 # Acknowledgments
@@ -3371,6 +3649,10 @@ Mirroring (see {{tbl-coding-types}}).
 The following from Hammerspace were instrumental in driving Flexible
 File Version 2 Layout Type: David Flynn, Trond Myklebust, Didier
 Feron, Jean-Pierre Monchanin, Pierre Evenou, and Brian Pawlowski.
+
+Pierre Evenou contributed the Mojette Transform encoding type
+specification, drawing on the work of Nicolas Normand, Benoit Parrein,
+and the discrete geometry research group at the University of Nantes.
 
 Christoph Helwig was instrumental in making sure the Flexible File
 Version 2 Layout Type was applicable to more than the Mojette
