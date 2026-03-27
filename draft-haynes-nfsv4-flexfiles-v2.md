@@ -2021,11 +2021,127 @@ CHUNK_UNLOCK.
 
 #### Single Writer Mode
 
+In single writer mode, the metadata server sets FFV2_FLAGS_ONLY_ONE_WRITER
+in ffl_flags, indicating that no other client holds a write layout for
+the file.  The client sends CHUNK_WRITE with cwa_guard.cwg_check set to
+FALSE, omitting the guard value.  Because only one writer is active,
+there is no risk of two clients overwriting the same chunk concurrently.
+
+The single writer write sequence is:
+
+1. The client issues CHUNK_WRITE (cwa_guard.cwg_check = FALSE) for each
+   shard.  The data server places the written block in the PENDING state
+   and retains a copy of the previous block for rollback.
+
+2. The client issues CHUNK_FINALIZE to advance the blocks from PENDING
+   to FINALIZED, validating the per-block CRC32.
+
+3. The client issues CHUNK_COMMIT to advance the blocks from FINALIZED
+   to COMMITTED, persisting the block metadata to stable storage.
+
+If the client detects an error after CHUNK_WRITE but before CHUNK_FINALIZE
+(e.g., a CRC mismatch on a subsequent CHUNK_READ), it issues CHUNK_ROLLBACK
+to restore the previous block content.  CHUNK_ROLLBACK does not lock the
+chunk; the next CHUNK_WRITE is permitted immediately.
+
 #### Repairing Single Writer Payloads
+
+In single writer mode, inconsistent blocks arise from a client or data
+server failure during a CHUNK_WRITE / CHUNK_FINALIZE sequence.  Because
+no other writer is active, the repair client is always the original writer
+(or a substitute designated by the metadata server after lease expiry).
+
+The repair sequence for a single writer payload is:
+
+1. The repair client issues CHUNK_READ to identify which blocks are in an
+   inconsistent state (PENDING with a CRC mismatch, or in the errored
+   state set by a prior CHUNK_ERROR).
+
+2. For each errored block, the repair client reconstructs the correct
+   data using the erasure coding algorithm (RS matrix inversion or Mojette
+   back-projection) from the surviving consistent blocks.
+
+3. The repair client issues CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}})
+   to write the reconstructed data.  CHUNK_WRITE_REPAIR bypasses the guard
+   check and applies different data server policies (e.g., allowing writes
+   to blocks in the errored state).
+
+4. The repair client issues CHUNK_FINALIZE and CHUNK_COMMIT to persist the
+   repaired blocks.
+
+5. The repair client issues CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}) to
+   clear the errored state and make the blocks available for normal reads.
 
 #### Multiple Writer Mode {#sec-multi-writer}
 
+In multiple writer mode, the metadata server does not set
+FFV2_FLAGS_ONLY_ONE_WRITER, indicating that concurrent writers may hold
+write layouts for the file.  The client sends CHUNK_WRITE with
+cwa_guard.cwg_check set to TRUE, supplying a chunk_guard4 in cwa_guard.cwg_guard
+that uniquely identifies this write transaction across all data servers.
+
+The multiple writer write sequence is:
+
+1. The client selects a unique chunk_guard4 for this transaction.  The
+   cg_client_id identifies the client (derived from the client's
+   clientid4); the cg_gen_id is a per-client generation counter
+   incremented for each new transaction.
+
+2. The client issues CHUNK_WRITE (cwa_guard.cwg_check = TRUE) for each
+   shard.  The data server checks that no other client's block is in the
+   PENDING state for this chunk.  If another client's block is already
+   pending, the data server returns NFS4ERR_CHUNK_LOCKED with the
+   clr_owner field identifying the lock holder.
+
+3. On NFS4ERR_CHUNK_LOCKED, the client MUST back off.  It issues
+   CHUNK_ROLLBACK for any shards it has already written in this
+   transaction, then retries after a delay.
+
+4. If all CHUNK_WRITEs succeed, the client issues CHUNK_FINALIZE and
+   CHUNK_COMMIT as in single writer mode.
+
+The guard ensures that the complete set of shards forming a consistent
+erasure-coded block all carry the same chunk_guard4.  A reader that
+encounters shards with different guard values knows the payload is not
+yet consistent and MUST either retry or report NFS4ERR_PAYLOAD_NOT_CONSISTENT.
+
 #### Repairing Multiple Writer Payloads
+
+In multiple writer mode, inconsistent blocks can arise from two sources:
+a client failure leaving some shards in PENDING state, or two clients
+writing different data to the same chunk before one has committed.
+
+The metadata server coordinates repair by designating a repair client
+(identified in the layout via FFV2_DS_FLAGS_REPAIR on the target data
+server).  The repair sequence is:
+
+1. The repair client issues CHUNK_LOCK ({{sec-CHUNK_LOCK}}) on the
+   affected block range of each data server.  If any lock attempt returns
+   NFS4ERR_CHUNK_LOCKED, the repair client records the existing lock
+   holder's chunk_owner4 and proceeds; the lock holder's data is a
+   candidate for the winning payload.
+
+2. The repair client issues CHUNK_READ on all data servers to retrieve
+   the current payload.  It examines the chunk_owner4 of each shard to
+   identify which transaction (if any) produced a consistent set across
+   all k data shards.
+
+3. If a consistent set is found (all k data shards carry the same
+   chunk_guard4), that payload is the winner.  The repair client issues
+   CHUNK_WRITE_REPAIR to copy the winner's data to any data servers whose
+   shard is inconsistent, followed by CHUNK_FINALIZE and CHUNK_COMMIT.
+
+4. If no consistent set exists (all available payloads are partial), the
+   repair client selects one transaction's payload as authoritative
+   (typically the one with the most complete set of shards, or the most
+   recent cg_gen_id) and proceeds as above.
+
+5. After all data servers carry consistent, finalized, committed data, the
+   repair client issues CHUNK_REPAIRED to clear the errored state and
+   CHUNK_UNLOCK to release the locks acquired in step 1.
+
+6. The repair client reports success to the metadata server via
+   LAYOUTRETURN.
 
 ### Reading Chunks {#sec-reading-chunks}
 
