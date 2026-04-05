@@ -164,7 +164,7 @@ backward compatible: an FFv2 layout cannot be parsed as an FFv1 layout
 and vice versa.  A server MAY support both layout types simultaneously;
 a client selects the desired layout type in its LAYOUTGET request.
 
-##  Definitions
+#  Definitions
 
 chunk:
 
@@ -372,7 +372,7 @@ wsize:
 
 :  the data transfer buffer size used for WRITEs.
 
-## Requirements Language
+# Requirements Language
 
 {::boilerplate bcp14-tagged}
 
