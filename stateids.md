@@ -223,6 +223,23 @@ is partitioned from the DS), the DS returns `NFS4ERR_BAD_STATEID`
 to the client.  The client returns the layout to the MDS (LAYOUTRETURN)
 and re-requests.
 
+#### Implementation note (reffs)
+
+The reffs combined-mode (MDS and DS in the same process) uses a
+different renewal mechanism: the DS trust reaper thread extends
+`te_expire_ns` directly when an entry is within `lease_sec / 2` of
+expiry.  This is correct for combined mode because the trust table is
+in-process; there is no MDS-to-DS RPC required.
+
+The MDS-initiated re-issue of TRUST_STATEID (described above) is the
+correct approach for a multi-machine deployment where MDS != DS.  That
+path is deferred (NOT_NOW_BROWN_COW) -- in a separate-machine setup
+the DS reaper will extend entries even after the MDS has forgotten the
+layout (e.g., after client crash), causing stale entries to survive
+one extra scan interval (60 seconds) rather than expiring immediately.
+The lease reaper's BULK_REVOKE_STATEID on client expiry is the
+correctness backstop in all cases.
+
 ### Relationship to `ffv2ds_user` / `ffv2ds_group`
 
 When `ffdv_tightly_coupled = true`, the client MUST ignore both
@@ -461,11 +478,14 @@ stateid check is the only access control in play.
    `NFS4ERR_WRONGSEC` is more appropriate (e.g., the client connected
    with AUTH_SYS but the trust entry has a non-empty `tsa_principal`)?
 
-2. Renewal: should the MDS renew TRUST_STATEID on every client SEQUENCE
+2. ~~Renewal: should the MDS renew TRUST_STATEID on every client SEQUENCE
    (keeping DS lease in lockstep with MDS lease), or only when the
-   entry is within `lease_period / 2` of expiry?  The latter reduces
-   MDS-to-DS traffic but requires the MDS to track per-entry expiry
-   times.
+   entry is within `lease_period / 2` of expiry?~~
+   **RESOLVED**: Renew within `lease_period / 2` of expiry to reduce
+   MDS-to-DS traffic.  The DS tracks `te_expire_ns` per entry; the
+   renewal pass (in the trust reaper or triggered by the MDS) only
+   re-issues when the remaining lifetime is less than half the lease
+   period.  See "Implementation note (reffs)" under Lease and renewal.
 
 3. Should TRUST_STATEID and REVOKE_STATEID carry op numbers in the
    CHUNK op range (currently 77-87), or in a separate MDS control-plane
