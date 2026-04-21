@@ -3712,18 +3712,60 @@ by the metadata server and is opaque to the client.<a href="#section-9.7-2" clas
           </figcaption></figure>
 </div>
 <p id="section-9.8-2">The ffv2_mirror4 (in <a href="#fig-ffv2_mirror4" class="auto internal xref">Figure 18</a>) describes the Flexible
-File Layout Version 2 specific fields.  The ffm_client_id tells the
-client which id to use when interacting with the data servers.<a href="#section-9.8-2" class="pilcrow">¶</a></p>
-<p id="section-9.8-3">The ffm_coding_type_data is which encoding type is used
-by the mirror.<a href="#section-9.8-3" class="pilcrow">¶</a></p>
-<p id="section-9.8-4">The ffm_striping is which striping method is used by the mirror.<a href="#section-9.8-4" class="pilcrow">¶</a></p>
-<p id="section-9.8-5">The ffm_striping_unit_size is the stripe unit size used
+File Layout Version 2 specific fields.<a href="#section-9.8-2" class="pilcrow">¶</a></p>
+<p id="section-9.8-3">The ffm_client_id is a 32-bit value, assigned by the metadata
+server at layout-grant time, that the client <span class="bcp14">MUST</span> use as the
+cg_client_id field of chunk_guard4 (see <a href="#sec-chunk_guard4" class="auto internal xref">Section 25.1</a>) in
+every CHUNK_WRITE it issues against the mirror's data servers.
+Its purpose is to satisfy the 32-bit-per-field budget of
+chunk_guard4 while preserving the guarantee that concurrent
+writers on the same file are distinguishable:<a href="#section-9.8-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.8-4.1">
+            <p id="section-9.8-4.1.1">The NFSv4 clientid4 (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) is a 64-bit structured
+value whose low 32 bits (a slot index) are not guaranteed
+unique across clients that hold layouts on the same file.
+Folding clientid4 to 32 bits locally at each client could
+therefore collide with another client's folded value and
+violate the uniqueness contract on chunk_guard4.<a href="#section-9.8-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.8-4.2">
+            <p id="section-9.8-4.2.1">Only the metadata server has the information needed to avoid
+such collisions: it sees every layout it grants on a file and
+can assign a dense 32-bit ffm_client_id that is guaranteed
+distinct from the ffm_client_ids assigned to other clients
+holding concurrent write layouts on the same file.  The
+metadata server <span class="bcp14">MUST</span> assign ffm_client_id subject to this
+uniqueness rule.<a href="#section-9.8-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.8-4.3">
+            <p id="section-9.8-4.3.1">Because cg_client_id participates in the deterministic
+tiebreaker for racing writers (see <a href="#sec-chunk_guard4" class="auto internal xref">Section 25.1</a>),
+having the metadata server assign it also lets the metadata
+server influence which client wins contention by choosing
+the numeric ordering of the values it hands out.  Specific
+ordering policies are implementation-defined and out of
+scope for this document, but the protocol mechanism is
+present.<a href="#section-9.8-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-9.8-5">An ffm_client_id is scoped to the file and layout for which it
+was granted.  A client that holds layouts on two different files
+may receive two different ffm_client_ids from the same metadata
+server, and a client that relinquishes and later re-acquires a
+layout on a given file <span class="bcp14">MAY</span> be assigned a different ffm_client_id.
+ffm_client_id does NOT survive a metadata server restart: the
+metadata server reassigns values as clients reclaim layouts
+during the grace period.<a href="#section-9.8-5" class="pilcrow">¶</a></p>
+<p id="section-9.8-6">The ffm_coding_type_data is which encoding type is used
+by the mirror.<a href="#section-9.8-6" class="pilcrow">¶</a></p>
+<p id="section-9.8-7">The ffm_striping is which striping method is used by the mirror.<a href="#section-9.8-7" class="pilcrow">¶</a></p>
+<p id="section-9.8-8">The ffm_striping_unit_size is the stripe unit size used
 by the mirror. If the value of ffm_striping is FFV2_STRIPING_NONE,
-then the value of ffm_striping_unit_size <span class="bcp14">MUST</span> be 1.<a href="#section-9.8-5" class="pilcrow">¶</a></p>
-<p id="section-9.8-6">The ffm_stripes is the array of stripes for the mirror. If there
+then the value of ffm_striping_unit_size <span class="bcp14">MUST</span> be 1.<a href="#section-9.8-8" class="pilcrow">¶</a></p>
+<p id="section-9.8-9">The ffm_stripes is the array of stripes for the mirror. If there
 is no striping or the ffm_coding_type_data is FFV2_CODING_MIRRORED,
-then the length of ffm_stripes <span class="bcp14">MUST</span> be 1.<a href="#section-9.8-6" class="pilcrow">¶</a></p>
-<p id="section-9.8-7"><span class="cref">Nuke ffm_client_id?<span class="crefSource">Tom</span></span><a href="#section-9.8-7" class="pilcrow">¶</a></p>
+then the length of ffm_stripes <span class="bcp14">MUST</span> be 1.<a href="#section-9.8-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="ffv2layout4">

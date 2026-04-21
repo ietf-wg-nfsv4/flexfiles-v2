@@ -1721,8 +1721,45 @@ Table of Contents
                         Figure 18: The ffv2_mirror4
 
    The ffv2_mirror4 (in Figure 18) describes the Flexible File Layout
-   Version 2 specific fields.  The ffm_client_id tells the client which
-   id to use when interacting with the data servers.
+   Version 2 specific fields.
+
+   The ffm_client_id is a 32-bit value, assigned by the metadata server
+   at layout-grant time, that the client MUST use as the cg_client_id
+   field of chunk_guard4 (see Section 25.1) in every CHUNK_WRITE it
+   issues against the mirror's data servers.  Its purpose is to satisfy
+   the 32-bit-per-field budget of chunk_guard4 while preserving the
+   guarantee that concurrent writers on the same file are
+   distinguishable:
+
+   *  The NFSv4 clientid4 ([RFC8881]) is a 64-bit structured value whose
+      low 32 bits (a slot index) are not guaranteed unique across
+      clients that hold layouts on the same file.  Folding clientid4 to
+      32 bits locally at each client could therefore collide with
+      another client's folded value and violate the uniqueness contract
+      on chunk_guard4.
+
+   *  Only the metadata server has the information needed to avoid such
+      collisions: it sees every layout it grants on a file and can
+      assign a dense 32-bit ffm_client_id that is guaranteed distinct
+      from the ffm_client_ids assigned to other clients holding
+      concurrent write layouts on the same file.  The metadata server
+      MUST assign ffm_client_id subject to this uniqueness rule.
+
+   *  Because cg_client_id participates in the deterministic tiebreaker
+      for racing writers (see Section 25.1), having the metadata server
+      assign it also lets the metadata server influence which client
+      wins contention by choosing the numeric ordering of the values it
+      hands out.  Specific ordering policies are implementation-defined
+      and out of scope for this document, but the protocol mechanism is
+      present.
+
+   An ffm_client_id is scoped to the file and layout for which it was
+   granted.  A client that holds layouts on two different files may
+   receive two different ffm_client_ids from the same metadata server,
+   and a client that relinquishes and later re-acquires a layout on a
+   given file MAY be assigned a different ffm_client_id. ffm_client_id
+   does NOT survive a metadata server restart: the metadata server
+   reassigns values as clients reclaim layouts during the grace period.
 
    The ffm_coding_type_data is which encoding type is used by the
    mirror.
@@ -1736,11 +1773,6 @@ Table of Contents
    The ffm_stripes is the array of stripes for the mirror.  If there is
    no striping or the ffm_coding_type_data is FFV2_CODING_MIRRORED, then
    the length of ffm_stripes MUST be 1.
-
-
-   // Nuke ffm_client_id?
-   //
-   // -- Tom
 
 9.9.  ffv2_layout4
 
