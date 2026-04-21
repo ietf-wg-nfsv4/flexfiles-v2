@@ -45,6 +45,7 @@ informative:
     date: September 1997
   RFC1813:
   RFC4519:
+  RFC7942:
   PARREIN:
     title: "Multiple Description Coding Using Exact Discrete Radon Transform"
     author:
@@ -5744,6 +5745,160 @@ Mirroring (see {{tbl-coding-types}}).
  | FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC | 3     | RFCTBD10 | L   | 2        |
  | FFV2_ENCODING_RS_VANDERMONDE         | 4     | RFCTBD10 | L   | 2        |
 {: #tbl-coding-types title="Flexible File Version 2 Layout Type Erasure Coding Type Assignments"}
+
+# Implementation Status {#sec-implementation-status}
+{:numbered="false"}
+
+Note to RFC Editor: please remove this section prior to publication,
+per {{RFC7942}}.
+
+This section records the implementation status of this specification
+at the time of writing.  The purpose, per {{RFC7942}}, is to help
+reviewers evaluate the protocol against running code and to document
+which parts have been validated end-to-end versus specified on paper.
+
+##  reffs (MDS and DS) and ec_demo (Client)
+{:numbered="false"}
+
+Organization:
+:  Independent / open source.
+
+License:
+:  AGPL-3.0-or-later.
+
+Source:
+:  <https://github.com/loghyr/reffs>.
+
+Implementation:
+:  `reffs` is an NFSv4.2 server written in C that acts as both a
+   metadata server (MDS) and a data server (DS) in a Flex Files v2
+   deployment.  `ec_demo` is a client-side library with a
+   demonstration driver that exercises the Flex Files v2 data path
+   over NFSv4.2 with all three erasure-coding types defined in this
+   document.
+
+Coverage:
+
+- CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, and CHUNK_COMMIT (the
+  happy-path data-plane operations) are implemented end-to-end and
+  have been exercised against the three codec families (Reed-Solomon
+  Vandermonde, Mojette systematic, Mojette non-systematic).
+
+- The chunk_guard4 CAS primitive, including the conflict-detection
+  and deterministic-tiebreaker rules in {{sec-chunk_guard4}}, is
+  implemented on both the client and the data server.
+
+- Per-chunk CRC32 integrity checking (see
+  {{sec-security-crc32-scope}}) is implemented end-to-end.
+
+- Per-inode persistent storage of chunk state (PENDING / FINALIZED
+  / COMMITTED) is implemented using write-temp / fdatasync / rename
+  for crash safety.
+
+- The repair data path (CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT,
+  CHUNK_WRITE_REPAIR, CHUNK_REPAIRED, CHUNK_ROLLBACK, and
+  CB_CHUNK_REPAIR) is **specified but not yet implemented** in the
+  prototype.  The corresponding operations currently return
+  NFS4ERR_NOTSUPP.  A fault-injection test harness is in place to
+  drive the repair path once it is implemented.
+
+- The tight-coupling control protocol (TRUST_STATEID,
+  REVOKE_STATEID, BULK_REVOKE_STATEID) is **specified but not yet
+  implemented**.  Data servers advertise loose coupling via
+  `ffdv_tightly_coupled = false`, and synthetic AUTH_SYS
+  credentials with fencing are used for access control.
+
+Level of maturity:
+:  Research-quality prototype.  The implementation demonstrates the
+   protocol and has produced the benchmark data summarised below.
+   It is not production-ready; in particular, it does not yet
+   implement the repair path required to tolerate concurrent-writer
+   races or multi-DS failure reconstruction.
+
+Contact:
+:  loghyr@gmail.com.
+
+Last update:
+:  April 2026.
+
+##  Interoperability and Benchmarks
+{:numbered="false"}
+
+The reffs + ec_demo implementation has been benchmarked against
+itself (no second Flex Files v2 implementation is known to the
+authors at the time of writing).  The benchmark suite exercises
+four I/O strategies -- plain mirroring, pure striping, Reed-Solomon
+Vandermonde, Mojette systematic, and Mojette non-systematic -- at
+five file sizes (4 KB, 16 KB, 64 KB, 256 KB, and 1 MB), at two
+parity geometries (4+2 and 8+2), and on two platforms (an Apple M4
+host running macOS with a Rocky Linux 8.10 Docker container, and a
+Fedora 43 native Linux host on aarch64).  Each data point is the
+mean of five measured runs.  Data servers run as Docker containers
+on a single-host bridge network, so absolute latency numbers
+reflect encoding and RPC fan-out cost with near-zero network
+latency; real deployments will see higher absolute values but
+similar overhead ratios.
+
+Selected findings:
+
+- **Erasure-coded write overhead is modest at small and mid sizes.**
+  At 4 KB to 64 KB payloads, all three EC codecs add 14% to 21%
+  write latency relative to plain mirroring.  Above 64 KB the
+  encoding cost begins to dominate; at 1 MB Reed-Solomon and Mojette
+  systematic reach approximately +54%, Mojette non-systematic
+  approximately +62%.
+
+- **The dominant write cost is encoding, not fan-out.**  A pure-
+  striping variant (6 data shards, no parity) isolates the two
+  costs.  At 1 MB, plain mirroring writes in 64 ms, striping in
+  71 ms (+11%), Reed-Solomon in 103 ms (+60%).  Of the 39 ms
+  Reed-Solomon penalty, only 7 ms comes from parallel fan-out; the
+  remaining 32 ms is encoding plus two additional parity RPCs.
+
+- **Reconstruction of a missing data shard is essentially free for
+  systematic codecs at 4+2.**  Reed-Solomon and Mojette systematic
+  add 1% to 6% to read latency in degraded-1 mode (one data shard
+  missing, reconstructed from the remaining five).  A client that
+  discovers a failed DS at read time can reconstruct transparently
+  with no user-visible latency impact.
+
+- **At 8+2, systematic-codec reconstruction diverges.**  Mojette
+  systematic reconstruction overhead stays at approximately +4% at
+  1 MB, while Reed-Solomon grows to approximately +54% due to the
+  O(k^2) cost of inverting a k x k matrix in GF(2^8).  Mojette
+  systematic's back-projection algorithm scales with m (parity
+  count) rather than k (data count) and is therefore preferable at
+  wider geometries.
+
+- **Mojette non-systematic applies a full inverse transform on
+  every read** regardless of whether any shard is missing.  At
+  1 MB this produces approximately 4x read overhead at 4+2 and
+  approximately 7x at 8+2.  This codec is suitable only for
+  write-once cold storage where reads are rare; it should not be
+  the default for interactive workloads.
+
+- **Results are platform-independent.**  The largest absolute
+  latency delta between macOS M4 and Fedora 43 at 1 MB is 20 ms
+  on writes.  Codec ordering, overhead percentages, and
+  qualitative scaling behavior are reproducible across operating
+  systems and Docker implementations.
+
+The benchmarks confirm that the protocol's central design claims
+hold in practice: client-side erasure coding is affordable at
+typical payload sizes; systematic codecs reconstruct missing
+shards cheaply; and the scaling properties of the three codec
+families follow directly from their published algorithmic
+complexities.
+
+The benchmarks also identify two non-goals for deployment: Mojette
+non-systematic is not a viable general-purpose read codec, and
+Reed-Solomon at k greater than approximately 6 loses its
+"reconstruction is free" property.  These observations inform the
+choice of default codec and geometry in implementations that
+consume this specification.
+
+A full benchmark report with per-size tables, figures, and the
+platform comparison is available alongside the source code.
 
 # Design Rationale: Rejected Alternatives {#sec-rejected-alternatives}
 {:numbered="false"}
