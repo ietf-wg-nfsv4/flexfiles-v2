@@ -75,6 +75,7 @@ Copyright Notice
 Table of Contents
 
    1.  Introduction
+     1.1.  Motivation and Use Cases
    2.  Definitions
    3.  Requirements Language
    4.  Coupling of Storage Devices
@@ -284,6 +285,13 @@ Table of Contents
        26.5.1.  Loosely Coupled
        26.5.2.  Tightly Coupled
    27. IANA Considerations
+   Design Rationale: Rejected Alternatives
+     Proprietary Projection Header Inside Opaque Payload
+     Per-Client Swap Files with MDS MAPPING_RECALL
+     Server-Side Byte-Range Lock Manager per File
+     Modified Two-Touch Paxos on Each Chunk
+     Automatic Commit of Empty Chunks
+     Global Clock or Wall-Clock-Based Generation Counter
    Acknowledgments
    References
      Normative References
@@ -353,6 +361,64 @@ Table of Contents
    layout and vice versa.  A server MAY support both layout types
    simultaneously; a client selects the desired layout type in its
    LAYOUTGET request.
+
+1.1.  Motivation and Use Cases
+
+   Server-sided erasure coding places the erasure-coding compute at the
+   server, which becomes a bottleneck as the number of concurrent
+   clients grows.  Moving the erasure transform to the client
+   parallelizes the compute across all writers: each client encodes
+   locally and fans out the resulting chunks to the data servers
+   directly, keeping the metadata server in its coordinator role for
+   metadata rather than making it a data-path funnel.
+
+   Flex Files v1 ([RFC8435]) already places the replication transform at
+   the client via client-side mirroring, but mirroring provides no
+   integrity check: silent byte corruption is undetectable, and
+   repairing a damaged mirror requires choosing a trusted copy
+   essentially blind.  Flex Files v2 adds two integrity mechanisms -- a
+   per-chunk CRC32 for on-wire and at-rest bit-flip detection, and the
+   chunk_guard4 compare-and-swap primitive (see Section 23.1) for
+   detecting concurrent-writer inconsistency -- while preserving the
+   client-side compute model.
+
+   The protocol is designed around three workload classes.  The
+   percentages below reflect the expected deployment mix in
+   installations that choose Flex Files v2 for its combination of
+   integrity and performance; individual deployments may diverge.
+
+   Single writer, multiple readers (approximately 90% of expected
+
+   deployments):  The common case is a file written by one client and
+      subsequently read by many.  Examples include artifacts deposited
+      by batch jobs, container images, and media files.  The protocol is
+      optimized for this case; see Section 11.4.
+
+   Multiple writers without sustained contention (approximately 9% of
+
+   expected deployments):  Files with multiple concurrent writers where
+      races on the same chunk are rare.  Examples include shared-
+      directory append-only logs and distributed builds.  The
+      chunk_guard4 CAS primitive and per-chunk locking cover this case
+      without penalizing the common single-writer path.
+
+   Multiple writers with high-frequency contention, no overwrite
+
+   (approximately 1% of expected deployments):  High-performance
+      computing (HPC) checkpoint workloads, in which many ranks write
+      disjoint regions of the same file in lockstep.  The protocol
+      relies on block alignment to keep per-chunk contention rare
+      despite overall high writer count.  Contention that does occur is
+      resolved via the deterministic tiebreaker rule defined in
+      Section 23.1.
+
+   Scale targets include multi-thousand-client deployments (on the order
+   of tens of thousands of concurrent clients for HPC checkpointing),
+   parallel-filesystem replacements, and multi-rack shared-storage
+   clusters.  The repair protocol (see Section 10.2.4) is designed to
+   let such deployments tolerate data-server failures and concurrent-
+   writer races without blocking the critical path for the first two
+   workload classes.
 
 2.  Definitions
 
@@ -2235,15 +2301,44 @@ Table of Contents
 
    The payload contains redundancy which will allow the erasure coding
    type algorithm to repair chunks in the payload as it is transformed
-   back to a data block (see Figure 29).  A payload is consistent when
-   all of the contained headers share the same guard.  It has integrity
-   when it is consistent and the combinations of headers and chunks all
-   pass the crc32 checks.
+   back to a data block (see Figure 29).
 
-   The erasure coding algorithm itelf might not be sufficient to detect
-   errors in the chunks.  The crc32 checks will allow the data server to
-   detect chunks with issues and then the erasure decoding algorithm can
-   reconstruct the missing chunk.
+   The protocol provides two levels of payload integrity, consumed at
+   different points in the read path:
+
+   Consistency:  A payload is *consistent* when all of the chunks that
+      belong to it carry the same chunk_guard4 value (see Section 23.1).
+      Consistency alone does NOT imply the bytes are free of corruption;
+      it means only that every chunk in the payload came from the same
+      write transaction.  A reader detects inconsistency when it
+      assembles a payload and finds differing chunk_guard4 values across
+      chunks.
+
+   Integrity:  A payload has *integrity* when it is consistent AND every
+      contained chunk passes its CRC32 check.  Integrity is the
+      precondition for returning the payload's data block to the
+      application.
+
+   The separation matters because the two checks detect different
+   failure modes.  Consistency detects protocol-level failures (racing
+   writers, partial writes, rollback windows); the CRC32 detects byte-
+   level corruption (network errors, media errors, software bugs in the
+   erasure transform).  Neither subsumes the other.
+
+   The two-level integrity model also reflects a deeper property of
+   distributed writes: *last-writer-wins does not apply to a payload
+   spread across independent data servers.* The ordering of writes
+   arriving at one data server may differ from the ordering arriving at
+   another; the "last" write on DSa may well be the "first" on DSc.  The
+   chunk_guard4 CAS primitive (see Section 23.1) resolves this by
+   serializing concurrent writers per chunk rather than by imposing a
+   global order.
+
+   The erasure coding algorithm itself might not be sufficient to detect
+   all byte-level errors in the chunks.  The CRC32 checks allow the data
+   server to detect chunks with integrity issues; the erasure decoding
+   algorithm can then reconstruct the affected chunks from the remaining
+   integral chunks in the payload.
 
 10.2.1.  Encoding a Data Block
 
@@ -3304,7 +3399,21 @@ Table of Contents
       table, the per-chunk guard CAS (chunk_guard4), the per-chunk lock
       state (including the MDS-escrow owner), and the chunk state
       machine (EMPTY / PENDING / FINALIZED / COMMITTED).  Has no
-      coordinator role.
+      coordinator role.  Has no knowledge of the erasure coding type in
+      use for any file: the erasure transform is performed entirely at
+      the client, and the data server stores the resulting chunks
+      without interpreting their contents.
+
+   The protocol does NOT mandate how a data server implements the chunk
+   state machine or stores PENDING chunks.  An implementation MAY use
+   per-client staging files, a single append-only instance file with an
+   index, a separate metadata-header file paired with a blocks file, a
+   log-structured store, or any other representation that preserves the
+   normative semantics (the EMPTY / PENDING / FINALIZED / COMMITTED
+   transitions, the chunk_guard4 CAS, lock continuity across revocation,
+   and the integrity checks).  The choice is a data-server
+   implementation concern and is transparent to clients and the metadata
+   server.
 
    Each file is owned by exactly one metadata server at any given
    instant.  Ownership transfer between metadata servers (for example,
@@ -3390,6 +3499,19 @@ Table of Contents
       reconstruction of the single value identified by the current
       guard.
 
+   Rollback invariant:  The data server MUST retain the prior FINALIZED
+      or COMMITTED content of a chunk while any successor PENDING chunk
+      exists.  A corollary of this rule is the *lowest-guard-
+      recoverable* property: as long as at least k data servers in the
+      mirror set retain the chunk at some generation G or lower, the
+      payload that was COMMITTED at generation G (or earlier) can be
+      reconstructed.  This is the correctness basis for CHUNK_ROLLBACK
+      (see Section 24.8): rollback does not synthesize data, it simply
+      selects the lowest-generation chunks whose guards agree across the
+      mirror set and discards the higher-generation PENDING or FINALIZED
+      chunks that triggered the rollback.  The protocol never relies on
+      locating or reconstructing data from outside the mirror set.
+
 11.4.  Progress and Termination
 
    Under the failure model above, the protocol guarantees the following
@@ -3399,7 +3521,17 @@ Table of Contents
       failed, a CHUNK_WRITE followed by CHUNK_FINALIZE followed by
       CHUNK_COMMIT completes in O(1) round trips independent of cluster
       size.  In particular, there is no consensus round, no leader
-      election, and no quorum voting on the write itself.
+      election, and no quorum voting on the write itself.  The three
+      operations MAY be amortized across compounds: a steady-state
+      writer sending a series of CHUNK_WRITEs can piggyback the
+      CHUNK_FINALIZE of the previous write on the compound that carries
+      the next write (for example, SEQUENCE + PUTFH + CHUNK_FINALIZE +
+      CHUNK_WRITE), reducing the data-path happy case to a single round
+      trip per CHUNK_WRITE rather than three.  The CHUNK_COMMIT for the
+      final write in a sequence MAY similarly ride on the CLOSE
+      compound.  These compound-packing optimizations are permitted by
+      the normal NFSv4.2 compound rules and require no protocol
+      extensions.
 
    Repair termination:  Every CB_CHUNK_REPAIR completes in bounded time.
       The client selected as the repair client either:
@@ -4178,13 +4310,59 @@ Table of Contents
 
                       Figure 49: XDR for chunk_guard4
 
-   The chunk_guard4 (see Figure 49) is effectively a 64 bit value, with
-   the upper 32 bits, cg_gen_id, being the current generation id of the
-   chunk on the DS and the lower 32 bits, cg_client_id, being an unique
-   id established when the client did the EXCHANGE_ID operation (see
-   Section 18.35 of [RFC8881]) with the metadata server.  The lower 32
-   bits are set passed back in the LAYOUTGET operation (see
-   Section 18.43 of [RFC8881]) as the ffm_client_id (see Section 7.8).
+   The chunk_guard4 (see Figure 49) is effectively a 64-bit value
+   identifying a specific write transaction on a specific chunk.  It has
+   two fields:
+
+   cg_gen_id:  A per-chunk monotonic generation counter.  Each chunk's
+      gen_id starts at 0 when the chunk is first written and is
+      incremented on each successful write by any client.  cg_gen_id is
+      NOT a timestamp -- the protocol does not rely on a global clock,
+      and no interpretation of cg_gen_id as a wall-clock value is
+      supported.  cg_gen_id values are NOT comparable across distinct
+      chunks; a given cg_gen_id is only meaningful within the scope of a
+      single chunk on a single file.
+
+   cg_client_id:  A 32-bit value established by the metadata server at
+      the time the client's layout is granted (see Section 7.8 and
+      ffm_client_id).  The metadata server MUST assign distinct
+      cg_client_id values to distinct clients that hold concurrent write
+      layouts on the same file.  cg_client_id is opaque with respect to
+      client identity -- a data server MUST NOT interpret its bits as
+      naming or ordering clients in any external sense.  The value
+      supports two operations only: equality comparison (to detect
+      whether two chunks were written by the same transaction) and
+      numeric comparison (to implement the tiebreaker rule below).
+
+   Uniqueness contract:  The pair (cg_gen_id, cg_client_id) uniquely
+      identifies a write transaction on a chunk.  Neither field alone is
+      globally unique; two clients MAY independently write with the same
+      cg_gen_id on the same chunk (in particular, both may write with
+      cg_gen_id equal to some prior value + 1), and the cg_client_id is
+      what makes the resulting transactions distinguishable.
+
+   Deterministic tiebreaker for concurrent writers:  When two or more
+      clients race on the same chunk in the multi-writer mode, the
+      client whose cg_client_id compares numerically lowest wins the
+      race.  A data server enforces this by accepting the first
+      CHUNK_WRITE whose guard check succeeds and rejecting later writers
+      with NFS4ERR_CHUNK_GUARDED; across the mirror set, the subset of
+      data servers on which each client wins will vary, but the
+      deterministic tiebreaker ensures all clients agree on which
+      client's write ultimately becomes COMMITTED.  A client that lost
+      the race on at least one data server MUST re-read the chunk and
+      MAY retry its write with a refreshed cg_gen_id.  A client that
+      detects no forward progress after a bounded number of retries MUST
+      escalate via LAYOUTERROR and the repair coordination flow in
+      Section 10.2.4.
+
+   The numeric ordering of cg_client_id values is arbitrary with respect
+   to the clients' external identities -- it is a deterministic total
+   order over the opaque 32-bit values, not a preference ordering over
+   the clients themselves.  A deployment that requires a specific client
+   to win a race MUST arrange cg_client_id assignment at the metadata
+   server; the protocol does not provide a preference mechanism at
+   layout-grant time.
 
 23.1.1.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
 
@@ -5742,6 +5920,140 @@ Table of Contents
 
        Table 13: Flexible File Version 2 Layout Type Erasure Coding
                              Type Assignments
+
+Design Rationale: Rejected Alternatives
+
+   The design of Flex Files v2 went through several iterations between
+   2024 and 2026 that are recorded here for the benefit of future
+   reviewers and implementers.  Each alternative below was considered
+   and rejected, with the specific concern that led to its rejection.
+   Understanding why these approaches were rejected may help reviewers
+   evaluate the current design against a fuller space of possibilities
+   and may guide future extensions or replacements.
+
+Proprietary Projection Header Inside Opaque Payload
+
+   The earliest iteration placed a 16-byte Mojette-specific header at
+   the start of the READ/WRITE opaque payload, interpreted in the
+   endianness of the writer's host.  This was rejected because:
+
+   *  It embedded a specific erasure-coding type (Mojette) into the
+      generic replication-method framework, preventing alternate codings
+      from reusing the same wire format.
+
+   *  The header bytes were not XDR-aligned, which required every
+      implementation to handle endianness explicitly rather than relying
+      on XDR's natural byte order.
+
+   *  Carrying integrity and identification data inside an opaque
+      disrespected the XDR self-description model that the rest of NFSv4
+      relies on.
+
+   The rejection of this approach at IETF 120 (July 2024) motivated the
+   shift to explicit XDR-encoded chunk headers and the chunk_guard4
+   structure, both visible in the wire format.
+
+Per-Client Swap Files with MDS MAPPING_RECALL
+
+   One proposal split logical and physical chunk addressing: the
+   metadata server maintained a mapping from logical offset to physical
+   location, and the client appended new chunks to a per-client staging
+   file on each data server before asking the metadata server to
+   atomically remap the file to the new chunks.  This was rejected
+   because:
+
+   *  The MAPPING_RECALL operation required to atomically update the
+      mapping would, in a multi-writer deployment, have to recall all
+      outstanding read/write layouts on the file -- grinding the
+      application to a halt during every remap.
+
+   *  Each client required its own staging file on every data server,
+      producing N clients * M data servers staging files that had to be
+      reconciled on client restart.
+
+   *  The approach was biased toward correctness at the expense of
+      throughput, which inverted the expected workload mix where single-
+      writer cases dominate.
+
+Server-Side Byte-Range Lock Manager per File
+
+   Another proposal relied on byte-range locks obtained by clients
+   before writing, with the lock manager state spread across the data
+   servers.  This was rejected because:
+
+   *  A failed lock holder required a lock manager to arbitrate
+      recovery, effectively reintroducing a centralized decision point
+      for each chunk.
+
+   *  The lock recall path for HPC checkpoint workloads (many ranks
+      writing disjoint regions) would have required thousands of locks
+      per file, with recall storms on every phase transition.
+
+   *  The design did not specify how the lock manager itself would be
+      replicated for high availability, deferring the hardest part of
+      the problem.
+
+   The current design uses CHUNK_LOCK (see Section 24.5) but only on the
+   repair path, not on the normal write path.
+
+Modified Two-Touch Paxos on Each Chunk
+
+   A fully distributed-consensus proposal placed a lightweight (modified
+   two-touch) Paxos round on each chunk write, reaching agreement among
+   the data servers holding the mirror set.  This was rejected because:
+
+   *  The constant-factor cost per write (two or three round trips,
+      leader election overhead, majority quorum requirement) was
+      unacceptable for workloads where single-writer throughput
+      dominates the deployment mix.
+
+   *  The approach demanded that data servers be peers in a consensus
+      protocol, which is a substantially heavier requirement than being
+      independent chunk stores.
+
+   *  A majority of (k+m) data servers must be reachable for any
+      progress, which is a strictly stronger availability requirement
+      than the k-of-(k+m) needed for erasure-coded reads.
+
+   Working-group feedback on this proposal was uniformly negative.  The
+   current design retains the option -- nothing in this specification
+   prevents an implementation from running classical consensus
+   internally among MDS replicas (see Section 11.5) -- but does not
+   require it per write.
+
+Automatic Commit of Empty Chunks
+
+   An earlier version included a WRITE_BLOCK_FLAGS_COMMIT_IF_EMPTY flag
+   (later renamed CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY) that
+   automatically committed a write to a previously-empty chunk without a
+   separate CHUNK_COMMIT round trip.  The flag is retained in the
+   current design but its scope was narrowed: it is performant in the
+   exclusive-writer case but produces blocks that cannot be rolled back
+   if a racing writer appears concurrently, requiring either hole-
+   punching or an extension of CHUNK_ROLLBACK to work on committed
+   blocks.  The narrow scope is documented in the flag's definition; a
+   broader version was rejected because it created rollback liabilities
+   that were disproportionate to the single-RTT savings.
+
+Global Clock or Wall-Clock-Based Generation Counter
+
+   An early design used a wall-clock timestamp as the cg_gen_id.  This
+   was rejected because:
+
+   *  No global clock exists among the many clients of a multi-rack
+      deployment.  Clock skew can cause a newer write to appear to have
+      an earlier timestamp than an older one.
+
+   *  Timestamps at millisecond or microsecond resolution are not fine-
+      grained enough to disambiguate bursty writes from the same client.
+
+   *  Mixing client identity bits into the low-order bits of a timestamp
+      (to make it unique) reduces effective timestamp resolution without
+      providing a useful total ordering.
+
+   The current design uses a per-chunk monotonic counter scoped to the
+   chunk on the data server, with cg_client_id as the disambiguator
+   across clients.  See Section 23.1.
 
 Acknowledgments
 
