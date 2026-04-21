@@ -806,6 +806,31 @@ that may be any file on the storage device, and the metadata
 server is the sole authority that can legitimately speak this
 protocol.
 
+Because the EXCHGID4_FLAG_USE_PNFS_MDS check relies on the owning
+client's self-declaration at EXCHANGE_ID time, the storage device
+cannot by itself distinguish a legitimate metadata server from any
+other host that sets the flag.  Deployments are therefore
+responsible for constraining who can establish a control session
+in the first place.  Two mechanisms are RECOMMENDED:
+
+1.  The control session SHOULD use RPCSEC_GSS with a machine
+    principal that the storage device has been configured to
+    accept as a metadata server.  The storage device validates
+    the principal before accepting EXCHANGE_ID with
+    EXCHGID4_FLAG_USE_PNFS_MDS.
+
+2.  Alternatively, the control session SHOULD run over a
+    network path isolated from pNFS clients (for example, a
+    dedicated management VLAN or mutual TLS ({{RFC9289}}) with
+    an allowlisted client certificate), such that only
+    configured metadata servers can reach the storage device on
+    that path.
+
+Deploying neither mechanism reduces the authorization strength
+of TRUST_STATEID and the revocation operations to "any host
+that can reach the storage device can invoke them"; a strict
+deployment MUST apply at least one of the above.
+
 ###  Flow at LAYOUTGET {#sec-tight-coupling-layoutget}
 
 For each new or refreshed layout segment, the metadata server:
@@ -866,6 +891,16 @@ existing fencing error and avoids the confusion of
 NFS4ERR_WRONGSEC (which directs the client to re-authenticate
 with a different flavor) or NFS4ERR_BAD_STATEID (which directs
 the client to return the layout).
+
+The metadata server MUST populate tsa_principal with the
+RPCSEC_GSS display name of the authenticated client when the
+client authenticated to the metadata server via RPCSEC_GSS.  The
+metadata server MUST set tsa_principal to the empty string only
+for AUTH_SYS and TLS clients (for which there is no server-
+verified per-user identity).  Setting tsa_principal to the empty
+string for an RPCSEC_GSS client disables the principal check on
+the storage device and silently re-opens the flex files v1
+Kerberos gap; it is a metadata server bug, not a protocol option.
 
 If tsa_principal is the empty string, no principal check applies.
 This is the expected setting for AUTH_SYS and TLS clients:
@@ -1369,7 +1404,7 @@ combined with the ffv2ds_fh_vers array.  I.e., each NFSv4 version
 has its own stateid.  In {{fig-ffv2_file_info4}}, each NFSv4
 filehandle has a one-to-one correspondence to a stateid.
 
-## ffv2_ds_flags4
+## ffv2_ds_flags4 {#sec-ffv2_ds_flags4}
 
 ~~~ xdr
    /// const FFV2_DS_FLAGS_ACTIVE        = 0x00000001;
@@ -2426,8 +2461,8 @@ into the cluster:
 
 1.  **Final state flat.**  Every shard in every range identified
     in a CB_CHUNK_REPAIR MUST reach either the COMMITTED state
-    (repaired) or the EMPTY state (rolled back).  No shard may
-    be left in PENDING or FINALIZED indefinitely.
+    (repaired) or the EMPTY state (rolled back).  No shard is
+    left in PENDING or FINALIZED indefinitely.
 
 2.  **Lock before write.**  The repair client MUST adopt the
     lock on every affected range via CHUNK_LOCK with
@@ -2515,8 +2550,9 @@ The rollback path, when reconstruction is not possible:
 In both paths, the repair client SHOULD target reconstructed
 shards according to the following fallback order: first, any
 data server in the layout carrying FFV2_DS_FLAGS_REPAIR; then
-the data server the failure was reported on (ccr_error in the
-CB_CHUNK_REPAIR range); then, if both of the above are
+the data server that reported the failure (the one carrying the
+failing shard at the range identified by ccr_offset and ccr_count
+in the CB_CHUNK_REPAIR argument); then, if both of the above are
 unreachable, a data server carrying FFV2_DS_FLAGS_SPARE.  If
 none of the above are available, the client MUST return
 NFS4ERR_PAYLOAD_LOST on the CB_CHUNK_REPAIR response.
@@ -2553,7 +2589,7 @@ server failure during a CHUNK_WRITE / CHUNK_FINALIZE sequence.  Because
 no other writer is active, the original writer is the typical choice
 for repair, but the metadata server MAY designate any client according
 to the rules in {{sec-repair-selection}}.  A designated client that
-did not originate the writes must follow the rollback path of that
+did not originate the writes MUST follow the rollback path of that
 section if it cannot reconstruct the payload from surviving shards.
 
 The repair sequence when the selected client is the original writer is:
@@ -4083,7 +4119,7 @@ designation is coupling-model dependent:
 - In a loosely coupled deployment, the data server MAY rely on the
   metadata server's authentication of the client and accept ADOPT
   from any authenticated client holding a current layout that
-  includes the range.  The invariant cost is that a misbehaving
+  includes the range.  The write-hole exposure cost is that a misbehaving
   client can trigger spurious ownership transfers; the write-hole
   exposure is bounded by the chunk_guard4 checks that subsequent
   CHUNK_WRITEs from displaced writers experience.
@@ -4671,6 +4707,17 @@ on the same current filehandle, TRUST_STATEID atomically updates
 tsa_expire and tsa_principal; this is the renewal path (see
 {{sec-tight-coupling-lease}}).
 
+At registration time, the data server tags the new trust entry
+with the identity of the metadata server -- derived from the
+clientid of the owning client of the control session on which
+TRUST_STATEID arrived.  This tag is consulted by REVOKE_STATEID
+and BULK_REVOKE_STATEID to ensure that revocation only affects
+entries registered by the same metadata server (see
+{{sec-BULK_REVOKE_STATEID}}).  In a multi-metadata-server
+deployment sharing a single data server, each metadata server
+registers and revokes only its own entries; the tag is opaque to
+pNFS clients and is not carried on the wire.
+
 ### RESPONSE CODES
 
 -  NFS4_OK: the trust entry is registered (or updated).
@@ -4763,10 +4810,19 @@ If the data server receives REVOKE_STATEID on a session whose
 owning client did not present EXCHGID4_FLAG_USE_PNFS_MDS at
 EXCHANGE_ID, the data server MUST return NFS4ERR_PERM.
 
+REVOKE_STATEID is scoped to the issuing metadata server's entries
+(see the tagging rule in {{sec-TRUST_STATEID}}).  The data server
+MUST NOT remove an entry that was registered by a different
+metadata server, even if rsa_layout_stateid happens to match.  In
+a multi-metadata-server deployment, one metadata server therefore
+cannot revoke another metadata server's entries.
+
 REVOKE_STATEID is idempotent: revoking a stateid that has no
-matching trust entry returns NFS4_OK.  The metadata server
-therefore does not need to track precisely which entries are
-currently live on which data server in order to revoke safely.
+matching trust entry (either no entry exists, or the entry was
+registered by a different metadata server) returns NFS4_OK.  The
+metadata server therefore does not need to track precisely which
+entries are currently live on which data server in order to revoke
+safely.
 
 ### RESPONSE CODES
 
@@ -4833,13 +4889,21 @@ following situations:
    prior trust table before re-issuing TRUST_STATEID as clients
    reclaim.  See {{sec-tight-coupling-mds-crash}}.
 
+BULK_REVOKE_STATEID is scoped to the issuing metadata server's
+entries (see the tagging rule in {{sec-TRUST_STATEID}}).  The
+data server MUST NOT affect entries registered by a different
+metadata server.  Consequently, in a multi-metadata-server
+deployment sharing a single data server, one metadata server
+cannot clear another metadata server's entries via
+BULK_REVOKE_STATEID.
+
 The special value with all fields of brsa_clientid set to zero
-means "revoke every entry in the trust table, regardless of which
-client registered it".  The data server MUST interpret this value
-as a full-table clear and MUST NOT treat it as "the client whose
-id happens to be zero".  Only the metadata server under its
-control session can invoke this case, because of the
-EXCHGID4_FLAG_USE_PNFS_MDS gating rule below.
+means "revoke every entry owned by the issuing metadata server,
+regardless of which pNFS client registered it".  The data server
+MUST interpret this value as a clear of the issuing metadata
+server's entries only, and MUST NOT treat it either as "the pNFS
+client whose clientid happens to be zero" or as a global table
+clear across metadata servers.
 
 BULK_REVOKE_STATEID does not operate on the current filehandle;
 no PUTFH is required in the compound.
