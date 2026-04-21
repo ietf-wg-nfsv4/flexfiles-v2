@@ -2948,27 +2948,41 @@ Table of Contents
 
 12.2.8.  Whole File Repair
 
+   Whole-file repair is the case in which too many data servers have
+   failed, or too many chunks have been lost, for the per-range repair
+   flow defined in Section 12.2.4 to reconstruct the file in place.  In
+   this case the metadata server MUST either:
 
-   // Describe how a repair client can be assigned with missing
-   // FFV2_DS_FLAGS_ACTIVE data servers and a number of
-   // FFV2_DS_FLAGS_REPAIR data servers.  Then the client will either
-   // move chunks from FFV2_DS_FLAGS_SPARE data servers to the
-   // FFV2_DS_FLAGS_REPAIR data servers or reconstruct the chunks for
-   // the FFV2_DS_FLAGS_REPAIR based on the decoded data blocks, The
-   // client indicates success by returning the layout.
-   //
-   // -- Tom
+   1.  Construct a new layout backed by replacement data servers and
+       drive the reconstruction via the *Data Mover* mechanism (a
+       designated data server acts as the source of truth for client I/O
+       during the transition, pushing reconstructed content to the
+       replacement data servers in the background).  The Data Mover
+       mechanism also covers the non-repair cases where a file's layout
+       must change while remaining available to clients -- policy-
+       driven layout transitions, data server maintenance evacuation,
+       administrative ingest, TLS coverage transition, and filehandle-
+       backend migration.
 
+   2.  If the metadata server has no data-mover-capable data server
+       available, or the surviving shards are insufficient to
+       reconstruct any portion of the file, terminate the affected byte
+       ranges with NFS4ERR_PAYLOAD_LOST (see Section 22.1.5).
 
-   // For a slam dunk, introduce the concept of a proxy repair client.
-   // I.e., the client appears as a single FFV2_CODING_MIRRORED file to
-   // other clients.  As it receives WRITEs, it encodes them to the real
-   // set of data servers.  As it receives READs, it decodes them from
-   // the real set of data servers.  Once the proxy repair is finished,
-   // the metadata server will start pushing out layouts for the real
-   // set of data servers.
-   //
-   // -- Tom
+   The Data Mover mechanism is work in progress and is specified in a
+   companion document.  The current design is maintained at
+   https://github.com/ietf-wg-nfsv4/flexfiles-v2-data-mover
+   (https://github.com/ietf-wg-nfsv4/flexfiles-v2-data-mover).  Once the
+   mechanism is submitted as an Internet-Draft, this section will be
+   updated with a normative reference to that draft.
+
+   Implementations that do not support the Data Mover mechanism can
+   still perform recovery for cases where per-range repair suffices,
+   using CB_CHUNK_REPAIR (Section 27.1) and the repair client selection
+   rules in Section 12.2.4.  Such implementations will surface
+   NFS4ERR_PAYLOAD_LOST on any failure that exceeds per-range repair's
+   reach, including the multi-data- server failure scenarios the Data
+   Mover mechanism is intended to handle.
 
 12.3.  Mixing of Coding Types
 

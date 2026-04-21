@@ -5239,20 +5239,44 @@ overwritten.<a href="#section-12.2.7-2" class="pilcrow">¶</a></p>
           <h4 id="name-whole-file-repair">
 <a href="#section-12.2.8" class="section-number selfRef">12.2.8. </a><a href="#name-whole-file-repair" class="section-name selfRef">Whole File Repair</a>
           </h4>
-<p id="section-12.2.8-1"><span class="cref"> Describe how a repair client can be assigned
-with missing FFV2_DS_FLAGS_ACTIVE data servers and a number of
-FFV2_DS_FLAGS_REPAIR data servers.  Then the client will either
-move chunks from FFV2_DS_FLAGS_SPARE data servers to the
-FFV2_DS_FLAGS_REPAIR data servers or reconstruct the chunks for the
-FFV2_DS_FLAGS_REPAIR based on the decoded data blocks, The client
-indicates success by returning the layout.  <span class="crefSource">Tom</span></span><a href="#section-12.2.8-1" class="pilcrow">¶</a></p>
-<p id="section-12.2.8-2"><span class="cref"> For a slam dunk, introduce the concept of a
-proxy repair client.  I.e., the client appears as a single
-FFV2_CODING_MIRRORED file to other clients.  As it receives WRITEs,
-it encodes them to the real set of data servers.  As it receives
-READs, it decodes them from the real set of data servers.  Once the
-proxy repair is finished, the metadata server will start pushing
-out layouts for the real set of data servers.  <span class="crefSource">Tom</span></span><a href="#section-12.2.8-2" class="pilcrow">¶</a></p>
+<p id="section-12.2.8-1">Whole-file repair is the case in which too many data servers have
+failed, or too many chunks have been lost, for the per-range repair
+flow defined in <a href="#sec-repair-selection" class="auto internal xref">Section 12.2.4</a> to reconstruct the file in
+place.  In this case the metadata server <span class="bcp14">MUST</span> either:<a href="#section-12.2.8-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-12.2.8-2">
+<li id="section-12.2.8-2.1">
+              <p id="section-12.2.8-2.1.1">Construct a new layout backed by replacement data servers and
+drive the reconstruction via the <strong>Data Mover</strong> mechanism (a
+designated data server acts as the source of truth for client
+I/O during the transition, pushing reconstructed content to the
+replacement data servers in the background).  The Data Mover
+mechanism also covers the non-repair cases where a file's layout
+must change while remaining available to clients -- policy-
+driven layout transitions, data server maintenance evacuation,
+administrative ingest, TLS coverage transition, and
+filehandle-backend migration.<a href="#section-12.2.8-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-12.2.8-2.2">
+              <p id="section-12.2.8-2.2.1">If the metadata server has no data-mover-capable data server
+available, or the surviving shards are insufficient to
+reconstruct any portion of the file, terminate the affected
+byte ranges with NFS4ERR_PAYLOAD_LOST (see
+<a href="#sec-NFS4ERR_PAYLOAD_LOST" class="auto internal xref">Section 22.1.5</a>).<a href="#section-12.2.8-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-12.2.8-3">The Data Mover mechanism is work in progress and is specified in a
+companion document.  The current design is maintained at
+<a href="https://github.com/ietf-wg-nfsv4/flexfiles-v2-data-mover">https://github.com/ietf-wg-nfsv4/flexfiles-v2-data-mover</a>.  Once
+the mechanism is submitted as an Internet-Draft, this section will
+be updated with a normative reference to that draft.<a href="#section-12.2.8-3" class="pilcrow">¶</a></p>
+<p id="section-12.2.8-4">Implementations that do not support the Data Mover mechanism can
+still perform recovery for cases where per-range repair suffices,
+using CB_CHUNK_REPAIR (<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 27.1</a>) and the repair
+client selection rules in <a href="#sec-repair-selection" class="auto internal xref">Section 12.2.4</a>.  Such
+implementations will surface NFS4ERR_PAYLOAD_LOST on any failure
+that exceeds per-range repair's reach, including the multi-data-
+server failure scenarios the Data Mover mechanism is intended to
+handle.<a href="#section-12.2.8-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
