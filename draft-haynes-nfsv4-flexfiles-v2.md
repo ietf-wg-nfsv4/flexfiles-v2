@@ -165,10 +165,10 @@ backward compatible: an FFv2 layout cannot be parsed as an FFv1 layout
 and vice versa.  A server MAY support both layout types simultaneously;
 a client selects the desired layout type in its LAYOUTGET request.
 
-##  Motivation and Use Cases {#sec-motivation}
+#  Motivation {#sec-motivation}
 
-Server-sided erasure coding places the erasure-coding compute at the
-server, which becomes a bottleneck as the number of concurrent
+Server-sided erasure coding places the erasure-coding compute at
+the server, which becomes a bottleneck as the number of concurrent
 clients grows.  Moving the erasure transform to the client
 parallelizes the compute across all writers: each client encodes
 locally and fans out the resulting chunks to the data servers
@@ -184,6 +184,8 @@ mechanisms -- a per-chunk CRC32 for on-wire and at-rest bit-flip
 detection, and the chunk_guard4 compare-and-swap primitive (see
 {{sec-chunk_guard4}}) for detecting concurrent-writer
 inconsistency -- while preserving the client-side compute model.
+
+#  Use Cases {#sec-use-cases}
 
 The protocol is designed around three workload classes.  The
 percentages below reflect the expected deployment mix in
