@@ -3136,6 +3136,270 @@ spares provisioned), the repair flow ultimately terminates with
 NFS4ERR_PAYLOAD_LOST; see
 {{sec-NFS4ERR_PAYLOAD_LOST}}.
 
+#  System Model and Correctness {#sec-system-model}
+
+The design decisions in this document -- centralized coordination
+through the metadata server, CAS semantics via chunk_guard4,
+pessimistic lock escrow during repair, and erasure-coded reads
+from any sufficient subset -- depart visibly from a classical
+distributed-consensus protocol such as Paxos or Raft.  This
+section states the system model those decisions rest on, the
+consistency and progress guarantees the protocol provides under
+that model, and how the protocol relates to (and when it relies
+on) classical consensus.  It is intended as the correctness
+framing for implementers and reviewers; the normative wire
+behavior is defined in the preceding sections.
+
+##  Actors and Roles {#sec-system-model-roles}
+
+Three actors participate on behalf of any given file:
+
+pNFS client:
+:  Issues CHUNK operations to data servers over the data path;
+   issues LAYOUTGET, LAYOUTRETURN, LAYOUTERROR, and SEQUENCE to
+   the metadata server on the control path.  Authenticates to the
+   metadata server via AUTH_SYS, RPCSEC_GSS, or TLS.  MAY be
+   selected as a repair client via CB_CHUNK_REPAIR.
+
+Metadata server (MDS):
+:  Is the sole coordinator for the file.  Grants, renews, and
+   revokes layouts; issues TRUST_STATEID / REVOKE_STATEID /
+   BULK_REVOKE_STATEID to each tight-coupled data server; selects
+   the repair client under the rules in
+   {{sec-repair-selection}}; owns the reserved
+   CHUNK_GUARD_CLIENT_ID_MDS escrow identity for in-flight repair.
+
+Data server (DS):
+:  Persists chunks and enforces the per-file trust table, the
+   per-chunk guard CAS (chunk_guard4), the per-chunk lock state
+   (including the MDS-escrow owner), and the chunk state machine
+   (EMPTY / PENDING / FINALIZED / COMMITTED).  Has no
+   coordinator role.
+
+Each file is owned by exactly one metadata server at any given
+instant.  Ownership transfer between metadata servers (for
+example, during MDS failover) is implementation-defined and out
+of scope for this document; see {{sec-system-model-consensus}}.
+
+##  Failure Model {#sec-system-model-failures}
+
+The protocol assumes:
+
+Crash-stop:
+:  Clients, metadata servers, and data servers fail by stopping.
+   A restarted component rejoins the protocol with a fresh epoch
+   and participates in the grace / reclaim path already defined
+   in {{RFC8881}}.  Correct components do not exhibit arbitrary
+   (Byzantine) behavior.
+
+Fail-silent data servers:
+:  Data servers report honestly about the state of the data they
+   hold.  The protocol detects on-disk bit rot via CRC32
+   (see {{sec-CHUNK_WRITE}}) but does not defend against a data
+   server that deliberately lies about whether a chunk is
+   COMMITTED or what its contents are.  Byzantine data servers
+   are explicitly outside the trust model; see
+   {{sec-system-model-nongoals}}.
+
+Authenticated writers and their own data:
+:  An authenticated client may write arbitrary (even
+   semantically-invalid) bytes into chunks it owns.  The CRC32
+   check detects transport corruption, not adversarial content.
+   This matches the existing NFSv4 authorization model: once
+   you have write access, you may write anything.
+
+Network partitions:
+:  The protocol is partition-tolerant at the cost of availability
+   during the partition window.  A client partitioned from a
+   data server recovers via LAYOUTERROR and may be issued a new
+   layout (possibly against a spare, see
+   {{sec-spare-substitution}}).  An MDS partitioned from a data
+   server eventually renews trust entries on reconnection; in
+   the interim, the data server returns NFS4ERR_DELAY for
+   affected stateids (see {{sec-tight-coupling-mds-crash}}).
+   Message loss is bounded by RPC retransmit; eventual delivery
+   is assumed once the partition heals.
+
+Lease bound:
+:  All state held by a data server on behalf of a metadata server
+   is bounded by the TRUST_STATEID expiry (see
+   {{sec-tight-coupling-lease}}).  An orphaned entry will
+   eventually expire even if the metadata server never returns.
+
+##  Consistency Guarantees {#sec-system-model-consistency}
+
+The protocol provides **per-chunk linearizability on COMMITTED
+state**:
+
+1.  Once CHUNK_COMMIT returns success to a writer for a given
+    chunk, every subsequent CHUNK_READ whose stateid postdates
+    the COMMIT observes either that writer's data or the data of
+    a later committed write.  A reader MUST NOT observe a
+    rolled-back write as if it had committed.
+
+2.  Concurrent writers on the same chunk in multi-writer mode
+    serialize via chunk_guard4.  On guard conflict one writer
+    succeeds; the other receives NFS4ERR_CHUNK_GUARDED and MUST
+    either abandon the write or re-read and retry.  At most one
+    generation becomes COMMITTED per serialized decision.
+
+3.  During repair, the chunk's lock is held continuously -- first
+    by the original writer, then transferred to the MDS-escrow
+    owner on REVOKE_STATEID, and finally adopted by the repair
+    client via CHUNK_LOCK_FLAGS_ADOPT.  No writer that did not
+    hold the lock may observe or mutate the chunk.  The
+    invariant "a chunk with a live lock has exactly one logical
+    owner at any instant" is preserved across revocation.
+
+Across multiple chunks the protocol makes **no multi-chunk
+atomicity or ordering guarantee**.  A reader that reads chunk A
+at one offset and chunk B at another MAY observe A's new value
+and B's old value simultaneously.  Applications that require
+multi-chunk atomicity must layer it above this protocol -- for
+example, via file-level checksums, application-level generation
+fields, or external transaction managers.
+
+Erasure-coded reads:
+:  A reader of an erasure-coded file reconstructs the plaintext
+   from any sufficient subset of k shards of the (k+m)-shard
+   stripe; the guard values on those shards MUST agree.  Shards
+   with stale guards are ignored.  This is not a quorum read in
+   the Paxos sense -- there is no voting on a value; there is
+   only reconstruction of the single value identified by the
+   current guard.
+
+##  Progress and Termination {#sec-system-model-progress}
+
+Under the failure model above, the protocol guarantees the
+following progress properties:
+
+Data-path progress:
+:  If all mirrors are reachable and none are failed, a
+   CHUNK_WRITE followed by CHUNK_FINALIZE followed by
+   CHUNK_COMMIT completes in O(1) round trips independent of
+   cluster size.  In particular, there is no consensus round,
+   no leader election, and no quorum voting on the write
+   itself.
+
+Repair termination:
+:  Every CB_CHUNK_REPAIR completes in bounded time.  The client
+   selected as the repair client either:
+
+   1.  returns NFS4_OK for every range in ccra_ranges (repair
+       succeeded), or
+
+   2.  returns NFS4ERR_PAYLOAD_LOST for one or more ranges (the
+       erasure code lost too many shards to reconstruct; the
+       data is permanently unrecoverable), or
+
+   3.  fails to respond within the ccra_deadline, in which case
+       the metadata server MUST re-select under the rules in
+       {{sec-repair-selection}} or MUST declare the ranges lost.
+
+   NFS4ERR_PAYLOAD_LOST is terminal for the affected ranges.
+   The protocol makes no further attempt to recover them.
+
+Eventual trust-table convergence:
+:  After a metadata server restart, each data server's trust
+   table converges to the metadata server's view within one
+   metadata-server lease period.  Entries that the metadata
+   server does not re-issue expire naturally via tsa_expire;
+   entries that the metadata server does re-issue transition
+   from pending-revalidation back to active on the next
+   TRUST_STATEID (see {{sec-tight-coupling-mds-crash}}).
+
+The protocol does NOT guarantee progress if the metadata server
+is unavailable for longer than its lease period -- this is the
+standard NFSv4 lease assumption and is inherited unchanged.
+
+##  Relation to Classical Consensus {#sec-system-model-consensus}
+
+Classical consensus protocols (Paxos, Raft, Viewstamped
+Replication) solve the problem of reaching agreement among
+mutually-distrusting replicas in the absence of a trusted
+coordinator.  They typically cost two or three round trips per
+decision, require a majority of replicas to be live and
+reachable for progress, and impose the overhead of leader
+election and log replication.
+
+This protocol is not a consensus protocol and does not attempt
+to be.  Its approach instead is:
+
+1.  **Designated coordinator.**  The metadata server is the
+    coordinator for a file.  Clients accept the MDS's authority
+    for layout grants, stateid registration, repair client
+    selection, and revocation.  This assumption is the same one
+    made by {{RFC8434}} and all pNFS layout types to date.
+
+2.  **Per-chunk CAS, not per-chunk voting.**  Concurrent writes
+    on the same chunk serialize via chunk_guard4 as a CAS
+    primitive (see {{sec-chunk_guard4}}).  No replica vote is
+    required; the data server that owns the chunk evaluates the
+    guard locally and rejects stale writes with
+    NFS4ERR_CHUNK_GUARDED.
+
+3.  **Pessimistic locks off the critical path.**  CHUNK_LOCK is
+    used only during repair, never on the normal write path.
+    Lock escrow (see {{sec-chunk_guard_mds}}) preserves the
+    "exactly one owner" invariant across stateid revocation
+    without requiring a consensus round to elect the next owner.
+
+4.  **Erasure-coded reads replace quorum reads.**  A reader
+    reconstructs from any k of k+m shards with matching guards.
+    No voting is needed because there is no disagreement to
+    resolve: the guard identifies the single generation that was
+    committed.
+
+The result is a data path with O(1) round-trip cost independent
+of the number of replicas, and a repair path whose cost is
+bounded by the number of affected chunks rather than by the
+cluster size.
+
+Metadata-server high availability is orthogonal.  Deployments
+that require a highly-available metadata server MAY replicate
+metadata-server state across multiple metadata server instances
+using classical consensus (Raft, Paxos, or equivalent).  Such
+replication is implementation-defined; from a pNFS client's
+perspective a highly-available metadata server looks like a
+single metadata server that occasionally resets its session and
+triggers grace-period reclaim, and the client's behavior is
+already specified by {{RFC8881}}.  This protocol neither
+requires nor precludes such an implementation.
+
+##  Non-Goals {#sec-system-model-nongoals}
+
+For clarity, the protocol explicitly does not provide:
+
+-  **Byzantine fault tolerance.**  A data server that
+   deliberately misreports its state, or a client that
+   bypasses its own authentication, is outside the trust model.
+   Deployments requiring Byzantine tolerance must add it in a
+   layer above or below this protocol.
+
+-  **Metadata server high availability.**  Single-MDS-per-file
+   is the protocol model.  MDS HA, if deployed, is implemented
+   below the wire protocol and transparent to clients.
+
+-  **Cross-file atomicity.**  Writes to multiple files are not
+   atomic at the protocol level.  File-system-level transactions
+   are not defined.
+
+-  **Multi-chunk atomicity within a single file.**  COMMITs on
+   distinct chunks are independent.  A reader may observe a
+   partial write across chunks; applications must layer their
+   own consistency if they need otherwise.
+
+-  **Global linearizability across unrelated files.**  Each
+   file's COMMITTED state is linearizable in isolation; no
+   total order is defined across files.
+
+-  **Authenticated malicious client protection.**  An
+   authenticated client may write garbage into its own chunks
+   with a correctly computed CRC32; see
+   {{sec-security-crc32-scope}}.  The CRC32 check is a
+   transport-integrity check, not an adversarial-integrity
+   check.
+
 # NFSv4.2 Operations Allowed to Data Files
 
 <cref source="Tom"> In Flexible File Version 1 Layout Type, the
@@ -5128,7 +5392,7 @@ access control metadata.  Recalling the layouts in this case is
 intended to prevent clients from getting an error on I/Os done after
 the client was fenced off.
 
-##  CRC32 Integrity Scope
+##  CRC32 Integrity Scope {#sec-security-crc32-scope}
 
 The CRC32 values carried in CHUNK_WRITE and returned from CHUNK_READ
 are intended to detect accidental data corruption during storage or
