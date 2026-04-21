@@ -75,216 +75,217 @@ Copyright Notice
 Table of Contents
 
    1.  Introduction
-     1.1.  Motivation and Use Cases
-   2.  Definitions
-   3.  Requirements Language
-   4.  Coupling of Storage Devices
-     4.1.  LAYOUTCOMMIT
-     4.2.  Fencing Clients from the Storage Device
-       4.2.1.  Implementation Notes for Synthetic uids/gids
-       4.2.2.  Example of using Synthetic uids/gids
-     4.3.  State and Locking Models
-       4.3.1.  Loosely Coupled Locking Model
-       4.3.2.  Tightly Coupled Locking Model
-     4.4.  Tight Coupling Control Protocol
-       4.4.1.  Capability Discovery
-       4.4.2.  Control Session
-       4.4.3.  Flow at LAYOUTGET
-       4.4.4.  Principal Binding and the Kerberos Gap
-       4.4.5.  Client-Detected Trust Gap
-       4.4.6.  Lease and Renewal
-       4.4.7.  Storage Device Crash Recovery
-       4.4.8.  Metadata Server Crash Recovery
-       4.4.9.  Backward Compatibility
-   5.  XDR Description of the Flexible File Layout Type
-   6.  Device Addressing and Discovery
-     6.1.  ff_device_addr4
-     6.2.  Storage Device Multipathing
-   7.  Flexible File Version 2 Layout Type
-     7.1.  ffv2_coding_type4
-       7.1.1.  Encoding Type Interoperability
-     7.2.  ffv2_layout4
-       7.2.1.  ffv2_flags4
-     7.3.  ffv2_file_info4
-     7.4.  ffv2_ds_flags4
-     7.5.  ffv2_data_server4
-     7.6.  ffv2_coding_type_data4
-     7.7.  ffv2_key4
-     7.8.  ffv2_mirror4
-     7.9.  ffv2_layout4
-     7.10. ffv2_data_protection4
-     7.11. ffv2_layouthint4
-       7.11.1.  Error Codes from LAYOUTGET
-       7.11.2.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
-     7.12. LAYOUTCOMMIT
-     7.13. Interactions between Devices and Layouts
-     7.14. Handling Version Errors
-   8.  Striping via Sparse Mapping
-   9.  Recovering from Client I/O Errors
-   10. Client-Side Protection Modes
-     10.1.  Client-Side Mirroring
-       10.1.1.  Selecting a Mirror
-       10.1.2.  Writing to Mirrors
-       10.1.3.  Metadata Server Resilvering of the File
-     10.2.  Erasure Coding
-       10.2.1.  Encoding a Data Block
-       10.2.2.  Decoding a Data Block
-       10.2.3.  Write Modes
-       10.2.4.  Selecting the Repair Client
-       10.2.5.  Repair Protocol: Normative vs. Informative
-       10.2.6.  Carrying Out the Repair
-       10.2.7.  Reading Chunks
-       10.2.8.  Whole File Repair
-     10.3.  Mixing of Coding Types
-     10.4.  Reed-Solomon Vandermonde Encoding
+   2.  Motivation
+   3.  Use Cases
+   4.  Definitions
+   5.  Requirements Language
+   6.  Coupling of Storage Devices
+     6.1.  LAYOUTCOMMIT
+     6.2.  Fencing Clients from the Storage Device
+       6.2.1.  Implementation Notes for Synthetic uids/gids
+       6.2.2.  Example of using Synthetic uids/gids
+     6.3.  State and Locking Models
+       6.3.1.  Loosely Coupled Locking Model
+       6.3.2.  Tightly Coupled Locking Model
+     6.4.  Tight Coupling Control Protocol
+       6.4.1.  Capability Discovery
+       6.4.2.  Control Session
+       6.4.3.  Flow at LAYOUTGET
+       6.4.4.  Principal Binding and the Kerberos Gap
+       6.4.5.  Client-Detected Trust Gap
+       6.4.6.  Lease and Renewal
+       6.4.7.  Storage Device Crash Recovery
+       6.4.8.  Metadata Server Crash Recovery
+       6.4.9.  Backward Compatibility
+   7.  XDR Description of the Flexible File Layout Type
+   8.  Device Addressing and Discovery
+     8.1.  ff_device_addr4
+     8.2.  Storage Device Multipathing
+   9.  Flexible File Version 2 Layout Type
+     9.1.  ffv2_coding_type4
+       9.1.1.  Encoding Type Interoperability
+     9.2.  ffv2_layout4
+       9.2.1.  ffv2_flags4
+     9.3.  ffv2_file_info4
+     9.4.  ffv2_ds_flags4
+     9.5.  ffv2_data_server4
+     9.6.  ffv2_coding_type_data4
+     9.7.  ffv2_key4
+     9.8.  ffv2_mirror4
+     9.9.  ffv2_layout4
+     9.10. ffv2_data_protection4
+     9.11. ffv2_layouthint4
+       9.11.1.  Error Codes from LAYOUTGET
+       9.11.2.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
+     9.12. LAYOUTCOMMIT
+     9.13. Interactions between Devices and Layouts
+     9.14. Handling Version Errors
+   10. Striping via Sparse Mapping
+   11. Recovering from Client I/O Errors
+   12. Client-Side Protection Modes
+     12.1.  Client-Side Mirroring
+       12.1.1.  Selecting a Mirror
+       12.1.2.  Writing to Mirrors
+       12.1.3.  Metadata Server Resilvering of the File
+     12.2.  Erasure Coding
+       12.2.1.  Encoding a Data Block
+       12.2.2.  Decoding a Data Block
+       12.2.3.  Write Modes
+       12.2.4.  Selecting the Repair Client
+       12.2.5.  Repair Protocol: Normative vs. Informative
+       12.2.6.  Carrying Out the Repair
+       12.2.7.  Reading Chunks
+       12.2.8.  Whole File Repair
+     12.3.  Mixing of Coding Types
+     12.4.  Reed-Solomon Vandermonde Encoding
             (FFV2_ENCODING_RS_VANDERMONDE)
-       10.4.1.  Overview
-       10.4.2.  Galois Field Arithmetic
-       10.4.3.  Encoding Matrix
-       10.4.4.  Encoding
-       10.4.5.  Decoding
-       10.4.6.  RS Interoperability Requirements
-       10.4.7.  RS Shard Sizes
-     10.5.  Mojette Transform Encoding
+       12.4.1.  Overview
+       12.4.2.  Galois Field Arithmetic
+       12.4.3.  Encoding Matrix
+       12.4.4.  Encoding
+       12.4.5.  Decoding
+       12.4.6.  RS Interoperability Requirements
+       12.4.7.  RS Shard Sizes
+     12.5.  Mojette Transform Encoding
             (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
             FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC)
-       10.5.1.  Overview
-       10.5.2.  Grid Structure
-       10.5.3.  Directions
-       10.5.4.  Forward Transform (Encoding)
-       10.5.5.  Katz Reconstruction Criterion
-       10.5.6.  Inverse Transform (Decoding)
-       10.5.7.  Systematic Mojette
-       10.5.8.  Non-Systematic Mojette
-       10.5.9.  Mojette Shard Sizes
-     10.6.  Comparison of Encoding Types
-     10.7.  First-Line Substitution to a Spare
-     10.8.  Handling write holes
-   11. System Model and Correctness
-     11.1.  Actors and Roles
-     11.2.  Failure Model
-     11.3.  Consistency Guarantees
-     11.4.  Progress and Termination
-     11.5.  Relation to Classical Consensus
-     11.6.  Non-Goals
-   12. NFSv4.2 Operations Allowed to Data Files
-   13. Flexible File Layout Type Return
-     13.1.  I/O Error Reporting
-       13.1.1.  ff_ioerr4
-     13.2.  Layout Usage Statistics
-       13.2.1.  ff_io_latency4
-       13.2.2.  ff_layoutupdate4
-       13.2.3.  ff_iostats4
-     13.3.  ff_layoutreturn4
-   14. Flexible File Layout Type LAYOUTERROR
-   15. Flexible File Layout Type LAYOUTSTATS
-   16. Flexible File Layout Type Creation Hint
-   17. ff_layouthint4
-   18. Recalling a Layout
-     18.1.  CB_RECALL_ANY
-   19. Client Fencing
-   20. New NFSv4.2 Error Values
-     20.1.  Error Definitions
-       20.1.1.  NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097)
-       20.1.2.  NFS4ERR_PAYLOAD_NOT_CONSISTENT (Error Code 10098)
-       20.1.3.  NFS4ERR_CHUNK_LOCKED (Error Code 10099)
-       20.1.4.  NFS4ERR_CHUNK_GUARDED (Error Code 10100)
-       20.1.5.  NFS4ERR_PAYLOAD_LOST (Error Code 10101)
-     20.2.  Operations and Their Valid Errors
-     20.3.  Callback Operations and Their Valid Errors
-     20.4.  Errors and the Operations That Use Them
-   21. EXCHGID4_FLAG_USE_PNFS_DS
-   22. New NFSv4.2 Attributes
-     22.1.  Attribute 89: fattr4_coding_block_size
-   23. New NFSv4.2 Common Data Structures
-     23.1.  chunk_guard4
-       23.1.1.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
-     23.2.  chunk_owner4
-   24. New NFSv4.2 Operations
-     24.1.  Operation 77: CHUNK_COMMIT - Activate Cached Chunk Data
-       24.1.1.  ARGUMENTS
-       24.1.2.  RESULTS
-       24.1.3.  DESCRIPTION
-     24.2.  Operation 78: CHUNK_ERROR - Report Error on Cached Chunk
+       12.5.1.  Overview
+       12.5.2.  Grid Structure
+       12.5.3.  Directions
+       12.5.4.  Forward Transform (Encoding)
+       12.5.5.  Katz Reconstruction Criterion
+       12.5.6.  Inverse Transform (Decoding)
+       12.5.7.  Systematic Mojette
+       12.5.8.  Non-Systematic Mojette
+       12.5.9.  Mojette Shard Sizes
+     12.6.  Comparison of Encoding Types
+     12.7.  First-Line Substitution to a Spare
+     12.8.  Handling write holes
+   13. System Model and Correctness
+     13.1.  Actors and Roles
+     13.2.  Failure Model
+     13.3.  Consistency Guarantees
+     13.4.  Progress and Termination
+     13.5.  Relation to Classical Consensus
+     13.6.  Non-Goals
+   14. NFSv4.2 Operations Allowed to Data Files
+   15. Flexible File Layout Type Return
+     15.1.  I/O Error Reporting
+       15.1.1.  ff_ioerr4
+     15.2.  Layout Usage Statistics
+       15.2.1.  ff_io_latency4
+       15.2.2.  ff_layoutupdate4
+       15.2.3.  ff_iostats4
+     15.3.  ff_layoutreturn4
+   16. Flexible File Layout Type LAYOUTERROR
+   17. Flexible File Layout Type LAYOUTSTATS
+   18. Flexible File Layout Type Creation Hint
+   19. ff_layouthint4
+   20. Recalling a Layout
+     20.1.  CB_RECALL_ANY
+   21. Client Fencing
+   22. New NFSv4.2 Error Values
+     22.1.  Error Definitions
+       22.1.1.  NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097)
+       22.1.2.  NFS4ERR_PAYLOAD_NOT_CONSISTENT (Error Code 10098)
+       22.1.3.  NFS4ERR_CHUNK_LOCKED (Error Code 10099)
+       22.1.4.  NFS4ERR_CHUNK_GUARDED (Error Code 10100)
+       22.1.5.  NFS4ERR_PAYLOAD_LOST (Error Code 10101)
+     22.2.  Operations and Their Valid Errors
+     22.3.  Callback Operations and Their Valid Errors
+     22.4.  Errors and the Operations That Use Them
+   23. EXCHGID4_FLAG_USE_PNFS_DS
+   24. New NFSv4.2 Attributes
+     24.1.  Attribute 89: fattr4_coding_block_size
+   25. New NFSv4.2 Common Data Structures
+     25.1.  chunk_guard4
+       25.1.1.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
+     25.2.  chunk_owner4
+   26. New NFSv4.2 Operations
+     26.1.  Operation 77: CHUNK_COMMIT - Activate Cached Chunk Data
+       26.1.1.  ARGUMENTS
+       26.1.2.  RESULTS
+       26.1.3.  DESCRIPTION
+     26.2.  Operation 78: CHUNK_ERROR - Report Error on Cached Chunk
              Data
-       24.2.1.  ARGUMENTS
-       24.2.2.  RESULTS
-       24.2.3.  DESCRIPTION
-     24.3.  Operation 79: CHUNK_FINALIZE - Transition Chunks from
+       26.2.1.  ARGUMENTS
+       26.2.2.  RESULTS
+       26.2.3.  DESCRIPTION
+     26.3.  Operation 79: CHUNK_FINALIZE - Transition Chunks from
              Pending to Finalized
-       24.3.1.  ARGUMENTS
-       24.3.2.  RESULTS
-       24.3.3.  DESCRIPTION
-     24.4.  Operation 80: CHUNK_HEADER_READ - Read Chunk Header from
+       26.3.1.  ARGUMENTS
+       26.3.2.  RESULTS
+       26.3.3.  DESCRIPTION
+     26.4.  Operation 80: CHUNK_HEADER_READ - Read Chunk Header from
              File
-       24.4.1.  ARGUMENTS
-       24.4.2.  RESULTS
-       24.4.3.  DESCRIPTION
-     24.5.  Operation 81: CHUNK_LOCK - Lock Cached Chunk Data
-       24.5.1.  ARGUMENTS
-       24.5.2.  RESULTS
-       24.5.3.  DESCRIPTION
-     24.6.  Operation 82: CHUNK_READ - Read Chunks from File
-       24.6.1.  ARGUMENTS
-       24.6.2.  RESULTS
-       24.6.3.  DESCRIPTION
-     24.7.  Operation 83: CHUNK_REPAIRED - Confirm Repair of Errored
+       26.4.1.  ARGUMENTS
+       26.4.2.  RESULTS
+       26.4.3.  DESCRIPTION
+     26.5.  Operation 81: CHUNK_LOCK - Lock Cached Chunk Data
+       26.5.1.  ARGUMENTS
+       26.5.2.  RESULTS
+       26.5.3.  DESCRIPTION
+     26.6.  Operation 82: CHUNK_READ - Read Chunks from File
+       26.6.1.  ARGUMENTS
+       26.6.2.  RESULTS
+       26.6.3.  DESCRIPTION
+     26.7.  Operation 83: CHUNK_REPAIRED - Confirm Repair of Errored
              Chunk Data
-       24.7.1.  ARGUMENTS
-       24.7.2.  RESULTS
-       24.7.3.  DESCRIPTION
-     24.8.  Operation 84: CHUNK_ROLLBACK - Rollback Changes on Cached
+       26.7.1.  ARGUMENTS
+       26.7.2.  RESULTS
+       26.7.3.  DESCRIPTION
+     26.8.  Operation 84: CHUNK_ROLLBACK - Rollback Changes on Cached
              Chunk Data
-       24.8.1.  ARGUMENTS
-       24.8.2.  RESULTS
-       24.8.3.  DESCRIPTION
-     24.9.  Operation 85: CHUNK_UNLOCK - Unlock Cached Chunk Data
-       24.9.1.  ARGUMENTS
-       24.9.2.  RESULTS
-       24.9.3.  DESCRIPTION
-     24.10. Operation 86: CHUNK_WRITE - Write Chunks to File
-       24.10.1.  ARGUMENTS
-       24.10.2.  RESULTS
-       24.10.3.  DESCRIPTION
-     24.11. Operation 87: CHUNK_WRITE_REPAIR - Write Repaired Cached
+       26.8.1.  ARGUMENTS
+       26.8.2.  RESULTS
+       26.8.3.  DESCRIPTION
+     26.9.  Operation 85: CHUNK_UNLOCK - Unlock Cached Chunk Data
+       26.9.1.  ARGUMENTS
+       26.9.2.  RESULTS
+       26.9.3.  DESCRIPTION
+     26.10. Operation 86: CHUNK_WRITE - Write Chunks to File
+       26.10.1.  ARGUMENTS
+       26.10.2.  RESULTS
+       26.10.3.  DESCRIPTION
+     26.11. Operation 87: CHUNK_WRITE_REPAIR - Write Repaired Cached
              Chunk Data
-       24.11.1.  ARGUMENTS
-       24.11.2.  RESULTS
-       24.11.3.  DESCRIPTION
-     24.12. Operation 88: TRUST_STATEID - Register Layout Stateid on
+       26.11.1.  ARGUMENTS
+       26.11.2.  RESULTS
+       26.11.3.  DESCRIPTION
+     26.12. Operation 88: TRUST_STATEID - Register Layout Stateid on
              Data Server
-       24.12.1.  ARGUMENTS
-       24.12.2.  RESULTS
-       24.12.3.  DESCRIPTION
-       24.12.4.  RESPONSE CODES
-     24.13. Operation 89: REVOKE_STATEID - Revoke Registered Stateid
+       26.12.1.  ARGUMENTS
+       26.12.2.  RESULTS
+       26.12.3.  DESCRIPTION
+       26.12.4.  RESPONSE CODES
+     26.13. Operation 89: REVOKE_STATEID - Revoke Registered Stateid
              on Data Server
-       24.13.1.  ARGUMENTS
-       24.13.2.  RESULTS
-       24.13.3.  DESCRIPTION
-       24.13.4.  RESPONSE CODES
-     24.14. Operation 90: BULK_REVOKE_STATEID - Revoke All Stateids
+       26.13.1.  ARGUMENTS
+       26.13.2.  RESULTS
+       26.13.3.  DESCRIPTION
+       26.13.4.  RESPONSE CODES
+     26.14. Operation 90: BULK_REVOKE_STATEID - Revoke All Stateids
              for a Client
-       24.14.1.  ARGUMENTS
-       24.14.2.  RESULTS
-       24.14.3.  DESCRIPTION
-       24.14.4.  RESPONSE CODES
-   25. New NFSv4.2 Callback Operations
-     25.1.  Callback Operation 16: CB_CHUNK_REPAIR - Request Repair of
+       26.14.1.  ARGUMENTS
+       26.14.2.  RESULTS
+       26.14.3.  DESCRIPTION
+       26.14.4.  RESPONSE CODES
+   27. New NFSv4.2 Callback Operations
+     27.1.  Callback Operation 16: CB_CHUNK_REPAIR - Request Repair of
             Inconsistent Chunk Ranges
-       25.1.1.  ARGUMENTS
-       25.1.2.  RESULTS
-       25.1.3.  DESCRIPTION
-       25.1.4.  Response Codes
-   26. Security Considerations
-     26.1.  CRC32 Integrity Scope
-     26.2.  Chunk Lock and Lease Expiry
-     26.3.  Error Code Information Disclosure
-     26.4.  Transport Layer Security
-     26.5.  RPCSEC_GSS and Security Services
-       26.5.1.  Loosely Coupled
-       26.5.2.  Tightly Coupled
-   27. IANA Considerations
+       27.1.1.  ARGUMENTS
+       27.1.2.  RESULTS
+       27.1.3.  DESCRIPTION
+       27.1.4.  Response Codes
+   28. Security Considerations
+     28.1.  CRC32 Integrity Scope
+     28.2.  Chunk Lock and Lease Expiry
+     28.3.  Error Code Information Disclosure
+     28.4.  Transport Layer Security
+     28.5.  RPCSEC_GSS and Security Services
+       28.5.1.  Loosely Coupled
+       28.5.2.  Tightly Coupled
+   29. IANA Considerations
    Implementation Status
      reffs (MDS and DS) and ec_demo (Client)
      Interoperability and Benchmarks
@@ -365,7 +366,7 @@ Table of Contents
    simultaneously; a client selects the desired layout type in its
    LAYOUTGET request.
 
-1.1.  Motivation and Use Cases
+2.  Motivation
 
    Server-sided erasure coding places the erasure-coding compute at the
    server, which becomes a bottleneck as the number of concurrent
@@ -381,9 +382,11 @@ Table of Contents
    repairing a damaged mirror requires choosing a trusted copy
    essentially blind.  Flex Files v2 adds two integrity mechanisms -- a
    per-chunk CRC32 for on-wire and at-rest bit-flip detection, and the
-   chunk_guard4 compare-and-swap primitive (see Section 23.1) for
+   chunk_guard4 compare-and-swap primitive (see Section 25.1) for
    detecting concurrent-writer inconsistency -- while preserving the
    client-side compute model.
+
+3.  Use Cases
 
    The protocol is designed around three workload classes.  The
    percentages below reflect the expected deployment mix in
@@ -395,7 +398,7 @@ Table of Contents
    deployments):  The common case is a file written by one client and
       subsequently read by many.  Examples include artifacts deposited
       by batch jobs, container images, and media files.  The protocol is
-      optimized for this case; see Section 11.4.
+      optimized for this case; see Section 13.4.
 
    Multiple writers without sustained contention (approximately 9% of
 
@@ -413,17 +416,17 @@ Table of Contents
       relies on block alignment to keep per-chunk contention rare
       despite overall high writer count.  Contention that does occur is
       resolved via the deterministic tiebreaker rule defined in
-      Section 23.1.
+      Section 25.1.
 
    Scale targets include multi-thousand-client deployments (on the order
    of tens of thousands of concurrent clients for HPC checkpointing),
    parallel-filesystem replacements, and multi-rack shared-storage
-   clusters.  The repair protocol (see Section 10.2.4) is designed to
+   clusters.  The repair protocol (see Section 12.2.4) is designed to
    let such deployments tolerate data-server failures and concurrent-
    writer races without blocking the critical path for the first two
    workload classes.
 
-2.  Definitions
+4.  Definitions
 
    chunk:  One of the resulting chunks to be exchanged with a data
       server after a transformation has been applied to a data block.
@@ -578,7 +581,7 @@ Table of Contents
 
    wsize:  the data transfer buffer size used for WRITEs.
 
-3.  Requirements Language
+5.  Requirements Language
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
@@ -586,7 +589,7 @@ Table of Contents
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-4.  Coupling of Storage Devices
+6.  Coupling of Storage Devices
 
    A server implementation may choose either a loosely coupled model or
    a tightly coupled model between the metadata server and the storage
@@ -614,7 +617,7 @@ Table of Contents
    of lock and delegation stateids, and the mandatory byte-range lock
    requirements for the tightly coupled model.
 
-4.1.  LAYOUTCOMMIT
+6.1.  LAYOUTCOMMIT
 
    Regardless of the coupling model, the metadata server has the
    responsibility, upon receiving a LAYOUTCOMMIT (see Section 18.42 of
@@ -632,13 +635,13 @@ Table of Contents
    storage device, then the LAYOUTCOMMIT might not be synchronized to
    the last WRITE operation to the storage device.
 
-4.2.  Fencing Clients from the Storage Device
+6.2.  Fencing Clients from the Storage Device
 
    With loosely coupled storage devices, the metadata server uses
    synthetic uids (user ids) and gids (group ids) for the data file,
    where the uid owner of the data file is allowed read/write access and
    the gid owner is allowed read-only access.  As part of the layout
-   (see ffv2ds_user and ffv2ds_group in Section 7.2), the client is
+   (see ffv2ds_user and ffv2ds_group in Section 9.2), the client is
    provided with the user and group to be used in the Remote Procedure
    Call (RPC) [RFC5531] credentials needed to access the data file.
    Fencing off of clients is achieved by the metadata server changing
@@ -674,7 +677,7 @@ Table of Contents
    In the case of tight coupling, fencing is the responsibility of the
    control protocol and is not described in detail in this document.
    However, implementations of the tightly coupled locking model (see
-   Section 4.3) will need a way to prevent access by certain clients to
+   Section 6.3) will need a way to prevent access by certain clients to
    specific files by invalidating the corresponding stateids on the
    storage device.  In such a scenario, the client will be given an
    error of NFS4ERR_BAD_STATEID.
@@ -687,7 +690,7 @@ Table of Contents
    hand out no layout (forcing the I/O through it), or deny the client
    further access to the file.
 
-4.2.1.  Implementation Notes for Synthetic uids/gids
+6.2.1.  Implementation Notes for Synthetic uids/gids
 
    The selection method for the synthetic uids and gids to be used for
    fencing in loosely coupled storage devices is strictly an
@@ -718,7 +721,7 @@ Table of Contents
    access the file.  In the second case, multiple ids might be mapped to
    the anonymous ids.
 
-4.2.2.  Example of using Synthetic uids/gids
+6.2.2.  Example of using Synthetic uids/gids
 
    The user loghyr creates a file "ompha.c" on the metadata server,
    which then creates a corresponding data file on the storage device.
@@ -775,7 +778,7 @@ Table of Contents
    is modifying a file and making sure to not coalesce requests from
    multiple users into one request.
 
-4.3.  State and Locking Models
+6.3.  State and Locking Models
 
    An implementation can always be deployed as a loosely coupled model.
    There is, however, no way for a storage device to indicate over an
@@ -799,7 +802,7 @@ Table of Contents
    A storage device would have to be either discovered or advertised
    over the control protocol to enable a tightly coupled model.
 
-4.3.1.  Loosely Coupled Locking Model
+6.3.1.  Loosely Coupled Locking Model
 
    When locking-related operations are requested, they are primarily
    dealt with by the metadata server, which generates the appropriate
@@ -861,7 +864,7 @@ Table of Contents
    revoked stateids from being relied upon by a client unaware of the
    fact that they have been revoked.
 
-4.3.2.  Tightly Coupled Locking Model
+6.3.2.  Tightly Coupled Locking Model
 
    When locking-related operations are requested, they are primarily
    dealt with by the metadata server, which generates the appropriate
@@ -869,7 +872,7 @@ Table of Contents
    using control protocol facilities.  For flex files v2 deployments in
    which the storage devices are NFSv4.2 servers, those facilities are
    provided by the TRUST_STATEID, REVOKE_STATEID, and
-   BULK_REVOKE_STATEID operations defined in Section 4.4.
+   BULK_REVOKE_STATEID operations defined in Section 6.4.
 
    Given this basic structure, locking-related operations are handled as
    follows:
@@ -941,7 +944,7 @@ Table of Contents
    to prevent revoked stateids from being acted upon by the storage
    device.
 
-4.4.  Tight Coupling Control Protocol
+6.4.  Tight Coupling Control Protocol
 
    When an NFSv4.2 storage device participates in a tightly coupled
    deployment, the metadata server and the storage devices need a
@@ -955,13 +958,13 @@ Table of Contents
        timeout, lease expiry, or layout return after error.
 
    This specification defines that control protocol as three new NFSv4.2
-   operations: TRUST_STATEID (Section 24.12), REVOKE_STATEID
-   (Section 24.13), and BULK_REVOKE_STATEID (Section 24.14).  These
+   operations: TRUST_STATEID (Section 26.12), REVOKE_STATEID
+   (Section 26.13), and BULK_REVOKE_STATEID (Section 26.14).  These
    operations are sent by the metadata server to each storage device
-   over a dedicated control session (see Section 4.4.2) and MUST NOT be
+   over a dedicated control session (see Section 6.4.2) and MUST NOT be
    sent by pNFS clients.
 
-4.4.1.  Capability Discovery
+6.4.1.  Capability Discovery
 
    A storage device indicates support for tight coupling implicitly, by
    processing TRUST_STATEID rather than returning NFS4ERR_NOTSUPP.  The
@@ -977,7 +980,7 @@ Table of Contents
                   Figure 4: TRUST_STATEID capability probe
 
    The anonymous stateid is used deliberately: a correctly implemented
-   storage device MUST reject it (see Section 24.12), so the probe
+   storage device MUST reject it (see Section 26.12), so the probe
    cannot accidentally register garbage in the trust table.  The
    metadata server interprets the probe response as follows:
 
@@ -1002,7 +1005,7 @@ Table of Contents
    entry returned by GETDEVICEINFO carries its own ffdv_tightly_coupled
    flag, set independently.
 
-4.4.2.  Control Session
+6.4.2.  Control Session
 
    The metadata server establishes an NFSv4.2 session to each tight-
    coupling-capable storage device at startup.  On this session the
@@ -1045,7 +1048,7 @@ Table of Contents
    reach the storage device can invoke them"; a strict deployment MUST
    apply at least one of the above.
 
-4.4.3.  Flow at LAYOUTGET
+6.4.3.  Flow at LAYOUTGET
 
    For each new or refreshed layout segment, the metadata server:
 
@@ -1056,7 +1059,7 @@ Table of Contents
 
    3.  fans out TRUST_STATEID to each such storage device, specifying
        the layout stateid, the layout iomode, a tsa_expire derived from
-       the metadata server's lease (see Section 4.4.6), and the client's
+       the metadata server's lease (see Section 6.4.6), and the client's
        authenticated identity in tsa_principal;
 
    4.  waits for all fan-outs to complete (or reach their per-storage-
@@ -1075,7 +1078,7 @@ Table of Contents
    this storage device, fall back to loose coupling, and re-issue the
    layout accordingly.
 
-4.4.4.  Principal Binding and the Kerberos Gap
+6.4.4.  Principal Binding and the Kerberos Gap
 
    Flex files v1 has a known gap: a client authenticated to the metadata
    server with Kerberos has no way to present the same authenticated
@@ -1122,7 +1125,7 @@ Table of Contents
       together constitute the authorization.  In a tightly coupled
       deployment the data file's owner/group need not match the metadata
       file's, since ffv2ds_user and ffv2ds_group are ignored (see
-      Section 7.8).
+      Section 9.8).
 
    *  TLS clients have transport-layer authentication via mutual TLS
       ([RFC9289]).  The TLS layer authenticates the client machine; the
@@ -1133,7 +1136,7 @@ Table of Contents
       provides encryption but not authentication, and therefore has the
       same authorization properties as plain AUTH_SYS.
 
-4.4.5.  Client-Detected Trust Gap
+6.4.5.  Client-Detected Trust Gap
 
    A window exists between a successful TRUST_STATEID fan-out and the
    client's first I/O to the storage device.  A transient failure may
@@ -1159,11 +1162,11 @@ Table of Contents
        re-request via LAYOUTGET.
 
    This is the same LAYOUTERROR path used for NFS4ERR_ACCESS or
-   NFS4ERR_PERM in the fencing model (see Section 4.2), with the
+   NFS4ERR_PERM in the fencing model (see Section 6.2), with the
    metadata server's action being "retry TRUST_STATEID" instead of
    "rotate uid/gid".
 
-4.4.6.  Lease and Renewal
+6.4.6.  Lease and Renewal
 
    tsa_expire in a TRUST_STATEID request is a wall-clock expiry instant
    expressed as an nfstime4.  The metadata server MUST set tsa_expire to
@@ -1187,7 +1190,7 @@ Table of Contents
    server and re-requests.  This is the same recovery path as the trust
    gap described above.
 
-4.4.7.  Storage Device Crash Recovery
+6.4.7.  Storage Device Crash Recovery
 
    The trust table is volatile.  The storage device MUST NOT persist
    trust entries across restarts; a storage device restart therefore
@@ -1203,7 +1206,7 @@ Table of Contents
    Planned storage device restarts (software upgrade, etc.)  SHOULD
    drain in-flight CHUNK operations before shutting down.
 
-4.4.8.  Metadata Server Crash Recovery
+6.4.8.  Metadata Server Crash Recovery
 
    When the metadata server restarts, its control sessions to the
    storage devices are lost.  Trust entries remain on the storage
@@ -1258,7 +1261,7 @@ Table of Contents
    optimization, not a correctness requirement: the re-layout path
    handles recovery in all cases.
 
-4.4.9.  Backward Compatibility
+6.4.9.  Backward Compatibility
 
    *  NFSv3 storage devices are unchanged.  They are always treated as
       loosely coupled; TRUST_STATEID does not exist on NFSv3 servers.
@@ -1276,7 +1279,7 @@ Table of Contents
    coupled storage devices; each is negotiated independently via the
    probe.
 
-5.  XDR Description of the Flexible File Layout Type
+7.  XDR Description of the Flexible File Layout Type
 
    This document contains the External Data Representation (XDR)
    [RFC4506] description of the flexible file layout type.  The XDR
@@ -1313,14 +1316,14 @@ Table of Contents
    While the XDR can be appended to that from [RFC7863], the various
    code snippets belong in their respective areas of that XDR.
 
-6.  Device Addressing and Discovery
+8.  Device Addressing and Discovery
 
    Data operations to a storage device require the client to know the
    network address of the storage device.  The NFSv4.1+ GETDEVICEINFO
    operation (Section 18.40 of [RFC8881]) is used by the client to
    retrieve that information.
 
-6.1.  ff_device_addr4
+8.1.  ff_device_addr4
 
    The ff_device_addr4 data structure (see Figure 8) is returned by the
    server as the layout-type-specific opaque field da_addr_body in the
@@ -1366,7 +1369,7 @@ Table of Contents
    which device it is version incompatible.  However, if the client
    waits until it retrieves the layout from the metadata server, it can
    at that time clearly identify the storage device in question (see
-   Section 7.14).
+   Section 9.14).
 
    The ffdv_rsize and ffdv_wsize are used to communicate the maximum
    rsize and wsize supported by the storage device.  As the storage
@@ -1380,7 +1383,7 @@ Table of Contents
    that there is loose coupling in effect.  For an NFSv4.2 storage
    device, the metadata server sets ffdv_tightly_coupled to true only
    after confirming the storage device implements the TRUST_STATEID
-   control protocol via the capability probe described in Section 4.4.1.
+   control protocol via the capability probe described in Section 6.4.1.
    An NFSv4.2 storage device that does not implement TRUST_STATEID
    (returning NFS4ERR_NOTSUPP to the probe) MUST be advertised with
    ffdv_tightly_coupled set to false.
@@ -1392,7 +1395,7 @@ Table of Contents
    stable_how == FILE_SYNC or by issuing a COMMIT after WRITEs with
    stable_how != FILE_SYNC (see Section 3.3.7 of [RFC1813]).
 
-6.2.  Storage Device Multipathing
+8.2.  Storage Device Multipathing
 
    The flexible file layout type supports multipathing to multiple
    storage device addresses.  Storage-device-level multipathing is used
@@ -1439,7 +1442,7 @@ Table of Contents
    trunking being used.  For example, the data could be read-only, and
    the data consist of exact replicas.
 
-7.  Flexible File Version 2 Layout Type
+9.  Flexible File Version 2 Layout Type
 
    The original layouttype4 introduced in [RFC5662] is extended as shown
    in Figure 9.
@@ -1473,7 +1476,7 @@ Table of Contents
    the flexible file layout type implementation.  This section defines
    the structure of this otherwise opaque value, ffv2_layout4.
 
-7.1.  ffv2_coding_type4
+9.1.  ffv2_coding_type4
 
       /// enum ffv2_coding_type4 {
       ///     FFV2_CODING_MIRRORED                  = 1,
@@ -1493,9 +1496,9 @@ Table of Contents
 
    FFV2_CODING_MIRRORED offers replication of data and not integrity of
    data.  As such, it does not need operations like CHUNK_WRITE (see
-   Section 24.10.
+   Section 26.10.
 
-7.1.1.  Encoding Type Interoperability
+9.1.1.  Encoding Type Interoperability
 
    The data servers do not interpret erasure-coded data — they store and
    return opaque chunks.  The NFS wire protocol likewise does not depend
@@ -1537,9 +1540,9 @@ Table of Contents
    types (where the server controls the storage format), encoding types
    require client-side agreement on the mathematics.
 
-7.2.  ffv2_layout4
+9.2.  ffv2_layout4
 
-7.2.1.  ffv2_flags4
+9.2.1.  ffv2_flags4
 
       /// const FFV2_FLAGS_NO_LAYOUTCOMMIT   = FF_FLAGS_NO_LAYOUTCOMMIT;
       /// const FFV2_FLAGS_NO_IO_THRU_MDS    = FF_FLAGS_NO_IO_THRU_MDS;
@@ -1570,7 +1573,7 @@ Table of Contents
       LAYOUTIOMODE4_READ from the metadata server.
 
    FFV2_FLAGS_WRITE_ONE_MIRROR:  can be set to indicate that the client
-      only needs to update one of the mirrors (see Section 10.1).
+      only needs to update one of the mirrors (see Section 12.1).
 
    FFV2_FLAGS_ONLY_ONE_WRITER:  can be set to indicate that the client
       only needs to use a CHUNK_WRITE to update the chunks in the data
@@ -1579,7 +1582,7 @@ Table of Contents
       MUST write chunks with CHUNK_WRITE with the cwa_guard set in order
       to prevent collision across the data servers.
 
-7.3.  ffv2_file_info4
+9.3.  ffv2_file_info4
 
       /// struct ffv2_file_info4 {
       ///     stateid4                fffi_stateid;
@@ -1595,7 +1598,7 @@ Table of Contents
    its own stateid.  In Figure 12, each NFSv4 filehandle has a one-to-
    one correspondence to a stateid.
 
-7.4.  ffv2_ds_flags4
+9.4.  ffv2_ds_flags4
 
       /// const FFV2_DS_FLAGS_ACTIVE        = 0x00000001;
       /// const FFV2_DS_FLAGS_SPARE         = 0x00000002;
@@ -1631,7 +1634,7 @@ Table of Contents
 
    See [Plank97] for further reference to storage layouts for coding.
 
-7.5.  ffv2_data_server4
+9.5.  ffv2_data_server4
 
       /// struct ffv2_data_server4 {
       ///     deviceid4               ffv2ds_deviceid;
@@ -1647,7 +1650,7 @@ Table of Contents
    The ffv2_data_server4 (in Figure 14) describes a data file and how to
    access it via the different NFS protocols.
 
-7.6.  ffv2_coding_type_data4
+9.6.  ffv2_coding_type_data4
 
       /// union ffv2_coding_type_data4 switch
       ///         (ffv2_coding_type4 fctd_coding) {
@@ -1694,7 +1697,7 @@ Table of Contents
    the stripe is part of a ffv2_coding_type_data4 of
    FFV2_CODING_MIRRORED, then the length of ffs_data_servers MUST be 1.
 
-7.7.  ffv2_key4
+9.7.  ffv2_key4
 
       /// typedef uint64_t ffv2_key4;
 
@@ -1704,7 +1707,7 @@ Table of Contents
    mirror instance with its backing storage key.  The value is assigned
    by the metadata server and is opaque to the client.
 
-7.8.  ffv2_mirror4
+9.8.  ffv2_mirror4
 
       /// struct ffv2_mirror4 {
       ///         ffv2_coding_type_data4  ffm_coding_type_data;
@@ -1739,7 +1742,7 @@ Table of Contents
    //
    // -- Tom
 
-7.9.  ffv2_layout4
+9.9.  ffv2_layout4
 
       /// struct ffv2_layout4 {
       ///     ffv2_mirror4            ffl_mirrors<>;
@@ -1801,7 +1804,7 @@ Table of Contents
    chunks are distributed.  Further, the payload length can be different
    per stripe.
 
-7.10.  ffv2_data_protection4
+9.10.  ffv2_data_protection4
 
       /// struct ffv2_data_protection4 {
       ///     uint32_t fdp_data;    /* data shards (k) */
@@ -1846,7 +1849,7 @@ Table of Contents
    The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2, 25%
    for 8+2).
 
-7.11.  ffv2_layouthint4
+9.11.  ffv2_layouthint4
 
       /// struct ffv2_layouthint4 {
       ///     ffv2_coding_type4       fflh_supported_types<>;
@@ -1912,7 +1915,7 @@ Table of Contents
    given by the number of elements in ffs_data_servers within each
    ffv2_stripes4.  If the number of stripes is one, then the value for
    ffm_striping_unit_size MUST default to zero.  The only supported
-   mapping scheme is sparse and is detailed in Section 8.  Note that
+   mapping scheme is sparse and is detailed in Section 10.  Note that
    there is an assumption here that both the stripe unit size and the
    number of stripes are the same across all mirrors.
 
@@ -1931,13 +1934,13 @@ Table of Contents
    ffdv_tightly_coupled provided for the device.  The array allows for
    server implementations that have different filehandles and stateids
    for different combinations of version, minor version, and coupling
-   strength.  See Section 7.14 for how to handle versioning issues
+   strength.  See Section 9.14 for how to handle versioning issues
    between the client and storage devices.
 
    For tight coupling, fffi_stateid provides the stateid to be used by
    the client to access the file.  The metadata server registers
    fffi_stateid with each tight-coupling-capable storage device via
-   TRUST_STATEID (see Section 4.4) before returning the layout; the
+   TRUST_STATEID (see Section 6.4) before returning the layout; the
    storage device validates subsequent CHUNK operations against its
    trust table.
 
@@ -1965,7 +1968,7 @@ Table of Contents
    credentials that the client presents to the storage device to access
    the data files.  For tightly coupled storage devices, the user and
    group on the storage device will be the same as on the metadata
-   server; that is, if ffdv_tightly_coupled (see Section 6.1) is set,
+   server; that is, if ffdv_tightly_coupled (see Section 8.1) is set,
    then the client MUST ignore both ffv2ds_user and ffv2ds_group.
 
    The allowed values for both ffv2ds_user and ffv2ds_group are
@@ -1984,9 +1987,9 @@ Table of Contents
    not per device as the metric may change due to perceived load,
    availability to the metadata server, etc.  Higher values denote
    higher perceived utility.  The way the client can select the best
-   mirror to access is discussed in Section 10.1.1.
+   mirror to access is discussed in Section 12.1.1.
 
-7.11.1.  Error Codes from LAYOUTGET
+9.11.1.  Error Codes from LAYOUTGET
 
    [RFC8881] provides little guidance as to how the client is to proceed
    with a LAYOUTGET that returns an error of either
@@ -2005,7 +2008,7 @@ Table of Contents
       granted.  If the client already has an appropriate layout, it
       should not continue with I/O to the storage devices.
 
-7.11.2.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
+9.11.2.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
 
    Even if the metadata server provides the FF_FLAGS_NO_IO_THRU_MDS
    flag, the client can still perform I/O to the metadata server.  The
@@ -2013,14 +2016,14 @@ Table of Contents
    metadata server prefers to separate the metadata I/O from the data I/
    O, most likely for performance reasons.
 
-7.12.  LAYOUTCOMMIT
+9.12.  LAYOUTCOMMIT
 
    The flexible file layout does not use lou_body inside the
    loca_layoutupdate argument to LAYOUTCOMMIT.  If lou_type is
    LAYOUT4_FLEX_FILES, the lou_body field MUST have a zero length (see
    Section 18.42.1 of [RFC8881]).
 
-7.13.  Interactions between Devices and Layouts
+9.13.  Interactions between Devices and Layouts
 
    The file layout type is defined such that the relationship between
    multipathing and filehandles can result in either 0, 1, or N
@@ -2036,19 +2039,19 @@ Table of Contents
    within ffv2ds_file_info are different, there are multiple copies of
    the file for the current layout segment available.
 
-7.14.  Handling Version Errors
+9.14.  Handling Version Errors
 
    When the metadata server provides the ffda_versions array in the
-   ff_device_addr4 (see Section 6.1), the client is able to determine
+   ff_device_addr4 (see Section 8.1), the client is able to determine
    whether or not it can access a storage device with any of the
    supplied combinations of ffdv_version, ffdv_minorversion, and
    ffdv_tightly_coupled.  However, due to the limitations of reporting
    errors in GETDEVICEINFO (see Section 18.40 in [RFC8881]), the client
    is not able to specify which specific device it cannot communicate
    with over one of the provided ffdv_version and ffdv_minorversion
-   combinations.  Using ff_ioerr4 (Section 13.1.1) inside either the
+   combinations.  Using ff_ioerr4 (Section 15.1.1) inside either the
    LAYOUTRETURN (see Section 18.44 of [RFC8881]) or the LAYOUTERROR (see
-   Section 15.6 of [RFC7862] and Section 14 of this document), the
+   Section 15.6 of [RFC7862] and Section 16 of this document), the
    client can isolate the problematic storage device.
 
    The error code to return for LAYOUTRETURN and/or LAYOUTERROR is
@@ -2061,7 +2064,7 @@ Table of Contents
    see if the metadata server can provide a different combination, or it
    can fall back to doing the I/O through the metadata server.
 
-8.  Striping via Sparse Mapping
+10.  Striping via Sparse Mapping
 
    While other layout types support both dense and sparse mapping of
    logical offsets to physical offsets within a file (see, for example,
@@ -2086,14 +2089,14 @@ Table of Contents
 
                        Figure 23: Stripe Mapping Math
 
-9.  Recovering from Client I/O Errors
+11.  Recovering from Client I/O Errors
 
    The pNFS client may encounter errors when directly accessing the
    storage devices.  However, it is the responsibility of the metadata
    server to recover from the I/O errors.  When the LAYOUT4_FLEX_FILES
    layout type is used, the client MUST report the I/O errors to the
    server at LAYOUTRETURN time using the ff_ioerr4 structure (see
-   Section 13.1.1).
+   Section 15.1.1).
 
    The metadata server analyzes the error and determines the required
    recovery operations such as recovering media failures or
@@ -2115,9 +2118,9 @@ Table of Contents
    retry the I/O operation via the metadata server if the error
    persists.
 
-10.  Client-Side Protection Modes
+12.  Client-Side Protection Modes
 
-10.1.  Client-Side Mirroring
+12.1.  Client-Side Mirroring
 
    The flexible file layout type has a simple model in place for the
    mirroring of the file data constrained by a layout segment.  There is
@@ -2131,7 +2134,7 @@ Table of Contents
 
    The metadata server is responsible for determining the number of
    mirrored copies and the location of each mirror.  While the client
-   may provide a hint to how many copies it wants (see Section 7.11),
+   may provide a hint to how many copies it wants (see Section 9.11),
    the metadata server can ignore that hint; in any event, the client
    has no means to dictate either the storage device (which also means
    the coupling and/or protocol levels to access the layout segments) or
@@ -2145,13 +2148,13 @@ Table of Contents
    layout.  Thus, the metadata server MUST update that copy until the
    client is presented it in a layout.  If the FF_FLAGS_WRITE_ONE_MIRROR
    is set in ffl_flags, the client need only update one of the mirrors
-   (see Section 10.1.2).  If the client is writing to the layout
+   (see Section 12.1.2).  If the client is writing to the layout
    segments via the metadata server, then the metadata server MUST
-   update all copies of the mirror.  As seen in Section 10.1.3, during
+   update all copies of the mirror.  As seen in Section 12.1.3, during
    the resilvering, the layout is recalled, and the client has to make
    modifications via the metadata server.
 
-10.1.1.  Selecting a Mirror
+12.1.1.  Selecting a Mirror
 
    When the metadata server grants a layout to a client, it MAY let the
    client know how fast it expects each mirror to be once the request
@@ -2173,9 +2176,9 @@ Table of Contents
    reading the file.  The requirements for writing to mirrored layout
    segments are presented below.
 
-10.1.2.  Writing to Mirrors
+12.1.2.  Writing to Mirrors
 
-10.1.2.1.  Single Storage Device Updates Mirrors
+12.1.2.1.  Single Storage Device Updates Mirrors
 
    If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is set, the client
    only needs to update one of the copies of the layout segment.  For
@@ -2183,13 +2186,13 @@ Table of Contents
    mirror are updated when any one of the mirrors is updated.  If the
    storage device gets an error when updating one of the mirrors, then
    it MUST inform the client that the original WRITE had an error.  The
-   client then MUST inform the metadata server (see Section 10.1.2.3).
+   client then MUST inform the metadata server (see Section 12.1.2.3).
    The client's responsibility with respect to COMMIT is explained in
-   Section 10.1.2.4.  The client may choose any one of the mirrors and
-   may use ffv2ds_efficiency as described in Section 10.1.1 when making
+   Section 12.1.2.4.  The client may choose any one of the mirrors and
+   may use ffv2ds_efficiency as described in Section 12.1.1 when making
    this choice.
 
-10.1.2.2.  Client Updates All Mirrors
+12.1.2.2.  Client Updates All Mirrors
 
    If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is not set, the
    client is responsible for updating all mirrored copies of the layout
@@ -2205,7 +2208,7 @@ Table of Contents
    wait until all storage devices respond so that it can report all
    errors encountered during the update.
 
-10.1.2.3.  Handling Write Errors
+12.1.2.3.  Handling Write Errors
 
    When the client reports a write error to the metadata server, the
    metadata server is responsible for determining if it wants to remove
@@ -2236,7 +2239,7 @@ Table of Contents
    trigger a CB_LAYOUTRECALL if the metadata server determines it needs
    to start repairing the file.
 
-10.1.2.4.  Handling Write COMMITs
+12.1.2.4.  Handling Write COMMITs
 
    When stable writes are done to the metadata server or to a single
    replica (if allowed by the use of FF_FLAGS_WRITE_ONE_MIRROR), it is
@@ -2262,7 +2265,7 @@ Table of Contents
       ensure that up-to-date written data will be available irrespective
       of the particular replica read.
 
-10.1.3.  Metadata Server Resilvering of the File
+12.1.3.  Metadata Server Resilvering of the File
 
    The metadata server may elect to create a new mirror of the layout
    segments at any time.  This might be to resilver a copy on a storage
@@ -2277,7 +2280,7 @@ Table of Contents
    that request with an NFS4ERR_LAYOUTUNAVAILABLE.  The client would
    then have to perform the I/O through the metadata server.
 
-10.2.  Erasure Coding
+12.2.  Erasure Coding
 
    Erasure Coding takes a data block and transforms it to a payload to
    send to the data servers (see Figure 24).  It generates a metadata
@@ -2288,7 +2291,7 @@ Table of Contents
    and chunks for that data block.
 
    The guard is an unique identifier generated by the client to describe
-   the current write transaction (see Section 23.1).  The intent is to
+   the current write transaction (see Section 25.1).  The intent is to
    have a unique and non-opaque value for comparison.  The payload_id
    describes the position within the payload.  Finally, the crc32 is the
    32 bit crc calculation of the header (with the crc32 field being 0)
@@ -2310,7 +2313,7 @@ Table of Contents
    different points in the read path:
 
    Consistency:  A payload is *consistent* when all of the chunks that
-      belong to it carry the same chunk_guard4 value (see Section 23.1).
+      belong to it carry the same chunk_guard4 value (see Section 25.1).
       Consistency alone does NOT imply the bytes are free of corruption;
       it means only that every chunk in the payload came from the same
       write transaction.  A reader detects inconsistency when it
@@ -2333,7 +2336,7 @@ Table of Contents
    spread across independent data servers.* The ordering of writes
    arriving at one data server may differ from the ordering arriving at
    another; the "last" write on DSa may well be the "first" on DSc.  The
-   chunk_guard4 CAS primitive (see Section 23.1) resolves this by
+   chunk_guard4 CAS primitive (see Section 25.1) resolves this by
    serializing concurrent writers per chunk rather than by imposing a
    global order.
 
@@ -2343,7 +2346,7 @@ Table of Contents
    algorithm can then reconstruct the affected chunks from the remaining
    integral chunks in the payload.
 
-10.2.1.  Encoding a Data Block
+12.2.1.  Encoding a Data Block
 
                     +-------------+
                     | data block  |
@@ -2374,7 +2377,7 @@ Table of Contents
 
    Each data block of the file resident in the client's cache of the
    file will be encoded into N different payloads to be sent to the data
-   servers as shown in Figure 24.  As CHUNK_WRITE (see Section 24.10)
+   servers as shown in Figure 24.  As CHUNK_WRITE (see Section 26.10)
    can encode multiple write_chunk4 into a single transaction, a more
    accurate description of a CHUNK_WRITE is in Figure 25.
 
@@ -2434,7 +2437,7 @@ Table of Contents
 
                    Figure 26: Example of CHUNK_WRITE_res
 
-10.2.1.1.  Calculating the CRC32
+12.2.1.1.  Calculating the CRC32
 
      +---+----------------+
      | HEADER             |
@@ -2478,7 +2481,7 @@ Table of Contents
 
                      Figure 28: CRC32 After Calculation
 
-10.2.2.  Decoding a Data Block
+12.2.2.  Decoding a Data Block
 
        Data Server 1          Data Server N          Data Server 6
      +----------------+     +----------------+     +----------------+
@@ -2515,7 +2518,7 @@ Table of Contents
    and MUST be addressed in the document describing each erasure coding
    type.
 
-10.2.2.1.  Checking the CRC32
+12.2.2.1.  Checking the CRC32
 
      +------------------------------------+
      | CHUNK_READresok                    |
@@ -2556,7 +2559,7 @@ Table of Contents
 
                        Figure 31: CRC32 Being Checked
 
-10.2.3.  Write Modes
+12.2.3.  Write Modes
 
    There are two basic writing modes for erasure coding and they depend
    on the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER in the
@@ -2573,21 +2576,21 @@ Table of Contents
    writes and it does need the ability to rollback writes.
 
    In both modes, clients MUST NOT overwrite payloads which already
-   contain inconsistency.  This directly follows from Section 10.2.7 and
+   contain inconsistency.  This directly follows from Section 12.2.7 and
    MUST be handled as discussed there.  Once consistency in the payload
    has been detected, the client can use those chunks as a basis for
    read/modify/update.
 
    CHUNK_WRITE is a two pass operation in cooperation with
-   CHUNK_FINALIZE (Section 24.3) and CHUNK_ROLLBACK (Section 24.8).  It
+   CHUNK_FINALIZE (Section 26.3) and CHUNK_ROLLBACK (Section 26.8).  It
    writes to the data file and the data server is responsible for
    retaining a copy of the old header and chunk.  A subsequent
    CHUNK_READ would return the new chunk.  However, until either the
    CHUNK_FINALIZE or CHUNK_ROLLBACK is presented, a subsequent
    CHUNK_WRITE MUST result in the locking of the chunk, as if a
-   CHUNK_LOCK (Section 24.5) had been performed on the chunk.  As such,
+   CHUNK_LOCK (Section 26.5) had been performed on the chunk.  As such,
    further CHUNK_WRITES by any client MUST be denied until the chunk is
-   unlocked by CHUNK_UNLOCK (Section 24.9).
+   unlocked by CHUNK_UNLOCK (Section 26.9).
 
    If the CHUNK_WRITE results in a consistent data block, then the
    client will send a CHUNK_FINALIZE in a subsequent compound to inform
@@ -2599,13 +2602,13 @@ Table of Contents
    condition to the metadata server via LAYOUTERROR with an error code
    of NFS4ERR_PAYLOAD_NOT_CONSISTENT.
 
-10.2.4.  Selecting the Repair Client
+12.2.4.  Selecting the Repair Client
 
    The metadata server is the authority that selects which client (or,
    in a tightly coupled deployment, which data server) repairs an
    inconsistent payload.  This is analogous to the way the metadata
    server assigns per-mirror priority via ffv2ds_efficiency (see
-   Section 10.1.1): the protocol does not prescribe the selection
+   Section 12.1.1): the protocol does not prescribe the selection
    algorithm, and each deployment MAY tune its policy.
 
    Implementations MAY consider factors such as:
@@ -2634,13 +2637,13 @@ Table of Contents
        repair the payload it reported.
 
    The metadata server signals the selected client via the
-   CB_CHUNK_REPAIR callback (Section 25.1), which identifies the file,
+   CB_CHUNK_REPAIR callback (Section 27.1), which identifies the file,
    the affected ranges (each with its own triggering nfsstat4), and a
    wall-clock deadline.  A client that receives CB_CHUNK_REPAIR for a
    file for which it does not already hold a layout MUST acquire a
    layout via LAYOUTGET before attempting the repair.
 
-10.2.5.  Repair Protocol: Normative vs. Informative
+12.2.5.  Repair Protocol: Normative vs. Informative
 
    The selection algorithm is non-normative and deployment-tunable.  The
    externally-observable state transitions of the repair flow are
@@ -2661,20 +2664,20 @@ Table of Contents
 
    2.  *Lock before write.* The repair client MUST adopt the lock on
        every affected range via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT
-       (Section 24.5) before issuing any CHUNK_WRITE_REPAIR,
+       (Section 26.5) before issuing any CHUNK_WRITE_REPAIR,
        CHUNK_ROLLBACK, or CHUNK_WRITE on a chunk in that range.  The
        lock on the affected chunks is held continuously from the failure
        that triggered CB_CHUNK_REPAIR through the adoption; at no point
        is the range unlocked.
 
    3.  *Clear the errored state.* On the reconstruction path, the repair
-       client MUST issue CHUNK_REPAIRED (Section 24.7) after
+       client MUST issue CHUNK_REPAIRED (Section 26.7) after
        CHUNK_COMMIT.  Without it, readers continue to see holes
        regardless of on-disk state.
 
    4.  *Release locks explicitly.* CHUNK_ROLLBACK does not release chunk
        locks.  On the rollback path the client MUST issue CHUNK_UNLOCK
-       (Section 24.9) on each affected chunk.  A client that walks away
+       (Section 26.9) on each affected chunk.  A client that walks away
        without either completing CHUNK_REPAIRED or issuing CHUNK_UNLOCK
        holds the locks until lease expiry, blocking progress for other
        writers.
@@ -2713,32 +2716,32 @@ Table of Contents
 
    *  How the repair status is surfaced to local filesystem API callers.
 
-10.2.6.  Carrying Out the Repair
+12.2.6.  Carrying Out the Repair
 
    With the normative framing above, the reconstruction path is:
 
    1.  CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT on each affected range
-       (Section 24.5).
+       (Section 26.5).
 
-   2.  CHUNK_WRITE_REPAIR (Section 24.11) with the reconstructed data
+   2.  CHUNK_WRITE_REPAIR (Section 26.11) with the reconstructed data
        for each inconsistent shard.  The client's chunk_owner4 on this
        and all subsequent operations is the one it presented in the
        CHUNK_LOCK ADOPT above; prior owners' generation ids are now
        historical.
 
-   3.  CHUNK_FINALIZE (Section 24.3) and CHUNK_COMMIT (Section 24.1) to
+   3.  CHUNK_FINALIZE (Section 26.3) and CHUNK_COMMIT (Section 26.1) to
        persist the repaired shards.
 
-   4.  CHUNK_REPAIRED (Section 24.7) to clear the errored state.
+   4.  CHUNK_REPAIRED (Section 26.7) to clear the errored state.
 
    The rollback path, when reconstruction is not possible:
 
    1.  CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT on each affected range.
 
-   2.  CHUNK_ROLLBACK (Section 24.8) on each affected shard to restore
+   2.  CHUNK_ROLLBACK (Section 26.8) on each affected shard to restore
        the previously committed content.
 
-   3.  CHUNK_UNLOCK (Section 24.9) on each shard.
+   3.  CHUNK_UNLOCK (Section 26.9) on each shard.
 
    In both paths, the repair client SHOULD target reconstructed shards
    according to the following fallback order: first, any data server in
@@ -2750,7 +2753,7 @@ Table of Contents
    the client MUST return NFS4ERR_PAYLOAD_LOST on the CB_CHUNK_REPAIR
    response.
 
-10.2.6.1.  Single Writer Mode
+12.2.6.1.  Single Writer Mode
 
    In single writer mode, the metadata server sets
    FFV2_FLAGS_ONLY_ONE_WRITER in ffl_flags, indicating that no other
@@ -2779,13 +2782,13 @@ Table of Contents
    CHUNK_ROLLBACK does not lock the chunk; the next CHUNK_WRITE is
    permitted immediately.
 
-10.2.6.2.  Repairing Single Writer Payloads
+12.2.6.2.  Repairing Single Writer Payloads
 
    In single writer mode, inconsistent blocks arise from a client or
    data server failure during a CHUNK_WRITE / CHUNK_FINALIZE sequence.
    Because no other writer is active, the original writer is the typical
    choice for repair, but the metadata server MAY designate any client
-   according to the rules in Section 10.2.4.  A designated client that
+   according to the rules in Section 12.2.4.  A designated client that
    did not originate the writes MUST follow the rollback path of that
    section if it cannot reconstruct the payload from surviving shards.
 
@@ -2801,7 +2804,7 @@ Table of Contents
        inversion or Mojette back-projection) from the surviving
        consistent blocks.
 
-   3.  The repair client issues CHUNK_WRITE_REPAIR (Section 24.11) to
+   3.  The repair client issues CHUNK_WRITE_REPAIR (Section 26.11) to
        write the reconstructed data.  CHUNK_WRITE_REPAIR bypasses the
        guard check and applies different data server policies (e.g.,
        allowing writes to blocks in the errored state).
@@ -2809,10 +2812,10 @@ Table of Contents
    4.  The repair client issues CHUNK_FINALIZE and CHUNK_COMMIT to
        persist the repaired blocks.
 
-   5.  The repair client issues CHUNK_REPAIRED (Section 24.7) to clear
+   5.  The repair client issues CHUNK_REPAIRED (Section 26.7) to clear
        the errored state and make the blocks available for normal reads.
 
-10.2.6.3.  Multiple Writer Mode
+12.2.6.3.  Multiple Writer Mode
 
    In multiple writer mode, the metadata server does not set
    FFV2_FLAGS_ONLY_ONE_WRITER, indicating that concurrent writers may
@@ -2848,7 +2851,7 @@ Table of Contents
    payload is not yet consistent and MUST either retry or report
    NFS4ERR_PAYLOAD_NOT_CONSISTENT.
 
-10.2.6.4.  Repairing Multiple Writer Payloads
+12.2.6.4.  Repairing Multiple Writer Payloads
 
    In multiple writer mode, inconsistent blocks can arise from two
    sources: a client failure leaving some shards in PENDING state, or
@@ -2856,13 +2859,13 @@ Table of Contents
    committed.
 
    The metadata server coordinates repair by designating a repair client
-   according to the rules in Section 10.2.4.  The FFV2_DS_FLAGS_REPAIR
+   according to the rules in Section 12.2.4.  The FFV2_DS_FLAGS_REPAIR
    flag, when present on a data server in the layout, identifies the
    target data server into which reconstructed shards should be written;
    it does not by itself identify the repair client.  The repair
    sequence is:
 
-   1.  The repair client issues CHUNK_LOCK (Section 24.5) on the
+   1.  The repair client issues CHUNK_LOCK (Section 26.5) on the
        affected block range of each data server.  If any lock attempt
        returns NFS4ERR_CHUNK_LOCKED, the repair client records the
        existing lock holder's chunk_owner4 and proceeds; the lock
@@ -2892,7 +2895,7 @@ Table of Contents
    6.  The repair client reports success to the metadata server via
        LAYOUTRETURN.
 
-10.2.7.  Reading Chunks
+12.2.7.  Reading Chunks
 
    The client reads chunks from the data file via CHUNK_READ.  The
    number of chunks in the payload that need to be consistent depend on
@@ -2911,7 +2914,7 @@ Table of Contents
    block is to retry the CHUNK_READ to see if new chunks are
    overwritten.
 
-10.2.8.  Whole File Repair
+12.2.8.  Whole File Repair
 
 
    // Describe how a repair client can be assigned with missing
@@ -2935,7 +2938,7 @@ Table of Contents
    //
    // -- Tom
 
-10.3.  Mixing of Coding Types
+12.3.  Mixing of Coding Types
 
    Multiple coding types can be present in a Flexible File Version 2
    Layout Type layout.  The ffv2_layout4 has an array of ffv2_mirror4,
@@ -2950,7 +2953,7 @@ Table of Contents
    be as represented in Figure 32.  As this is an assimilation, most of
    the data reads will be satisfied by READ (see Section 18.22 of
    [RFC8881]) calls to index 0.  However, as this is also an active
-   file, there could also be CHUNK_READ (see Section 24.6) calls to the
+   file, there could also be CHUNK_READ (see Section 26.6) calls to the
    other indexes.
 
     +-----------------------------------------------------+
@@ -3006,16 +3009,16 @@ Table of Contents
    back a section which had been modified earlier, both the READ and
    CHUNK_READ calls would return data.
 
-10.4.  Reed-Solomon Vandermonde Encoding (FFV2_ENCODING_RS_VANDERMONDE)
+12.4.  Reed-Solomon Vandermonde Encoding (FFV2_ENCODING_RS_VANDERMONDE)
 
-10.4.1.  Overview
+12.4.1.  Overview
 
    Reed-Solomon (RS) codes are Maximum Distance Separable (MDS) codes:
    for a (k+m, k) code, any k of the k+m encoded shards suffice to
    recover the original data.  The code tolerates the simultaneous loss
    of up to m shards.
 
-10.4.2.  Galois Field Arithmetic
+12.4.2.  Galois Field Arithmetic
 
    All RS operations are performed over GF(2^8), the Galois field with
    256 elements.  Each element is represented as a byte.
@@ -3039,7 +3042,7 @@ Table of Contents
    operations should be aware of US Patent 8,683,296 (StreamScale),
    which covers certain SIMD-based GF multiplication techniques.
 
-10.4.3.  Encoding Matrix
+12.4.3.  Encoding Matrix
 
    The encoding process uses a (k+m) x k Vandermonde matrix, normalized
    so that its top k rows form the identity matrix:
@@ -3059,7 +3062,7 @@ Table of Contents
    through unchanged, and only the parity sub-matrix P is needed during
    encoding.
 
-10.4.4.  Encoding
+12.4.4.  Encoding
 
    Given k data shards, each of shard_len bytes, encoding produces m
    parity shards, each also shard_len bytes:
@@ -3071,7 +3074,7 @@ Table of Contents
    where the sum and product are in GF(2^8).  All shards (data and
    parity) are the same size.
 
-10.4.5.  Decoding
+12.4.5.  Decoding
 
    When one or more shards are lost (up to m), reconstruction proceeds
    by matrix inversion:
@@ -3092,7 +3095,7 @@ Table of Contents
    The reconstruction cost is dominated by the matrix inversion, which
    is O(k^2) in GF(2^8) multiplications.
 
-10.4.6.  RS Interoperability Requirements
+12.4.6.  RS Interoperability Requirements
 
    For two implementations of FFV2_ENCODING_RS_VANDERMONDE to
    interoperate, they MUST agree on all of the following parameters.
@@ -3110,7 +3113,7 @@ Table of Contents
    These four parameters fully determine the encoding matrix for any (k,
    m) configuration.
 
-10.4.7.  RS Shard Sizes
+12.4.7.  RS Shard Sizes
 
    All RS shards (data and parity) are exactly shard_len bytes.  This
    simplifies the CHUNK operation protocol: chunk_size is exactly the
@@ -3131,10 +3134,10 @@ Table of Contents
 
              Table 2: RS shard sizes for common configurations
 
-10.5.  Mojette Transform Encoding (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+12.5.  Mojette Transform Encoding (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
        FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC)
 
-10.5.1.  Overview
+12.5.1.  Overview
 
    The Mojette Transform is an erasure coding technique based on
    discrete geometry rather than algebraic field operations.  It
@@ -3148,7 +3151,7 @@ Table of Contents
    compatible with NEON and AVX2 vector widths.  No Galois field
    operations are required.
 
-10.5.2.  Grid Structure
+12.5.2.  Grid Structure
 
    Data is arranged as a P x Q grid of unsigned integer elements, where
    P is the number of columns and Q is the number of rows.  For k data
@@ -3157,7 +3160,7 @@ Table of Contents
    P = S / W       (columns per row)
    Q = k           (rows = data shards)
 
-10.5.3.  Directions
+12.5.3.  Directions
 
    A direction is a pair of coprime integers (p_i, q_i).
    Implementations SHOULD use q_i = 1 for all directions [PARREIN].  For
@@ -3168,7 +3171,7 @@ Table of Contents
 
    *  For n = 6: p = {-3, -2, -1, 1, 2, 3}
 
-10.5.4.  Forward Transform (Encoding)
+12.5.4.  Forward Transform (Encoding)
 
    For each direction (p_i, q_i), the forward transform computes a 1D
    projection.  Each bin sums the grid elements along a discrete line:
@@ -3187,7 +3190,7 @@ Table of Contents
 
    The byte size of the projection is B * W.
 
-10.5.5.  Katz Reconstruction Criterion
+12.5.5.  Katz Reconstruction Criterion
 
    Reconstruction is possible if and only if the Katz criterion [KATZ]
    holds:
@@ -3196,7 +3199,7 @@ Table of Contents
 
    When all q_i = 1, the q-sum simplifies to n >= Q.
 
-10.5.6.  Inverse Transform (Decoding)
+12.5.6.  Inverse Transform (Decoding)
 
    The inverse uses the corner-peeling algorithm:
 
@@ -3210,7 +3213,7 @@ Table of Contents
 
    The algorithm is O(n * P * Q).
 
-10.5.7.  Systematic Mojette
+12.5.7.  Systematic Mojette
 
    In the systematic form (FFV2_ENCODING_MOJETTE_SYSTEMATIC), the first
    k shards are the original data rows and the remaining m shards are
@@ -3227,14 +3230,14 @@ Table of Contents
    Reconstruction cost is O(m * k) — a fundamental advantage over RS at
    wide geometries (k >= 8).
 
-10.5.8.  Non-Systematic Mojette
+12.5.8.  Non-Systematic Mojette
 
    In the non-systematic form (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC),
    all k + m shards are projections.  Every read requires the full
    inverse transform.  This provides constant performance regardless of
    failure count, but at higher baseline read cost than systematic.
 
-10.5.9.  Mojette Shard Sizes
+12.5.9.  Mojette Shard Sizes
 
    Unlike RS, Mojette parity shard sizes vary by direction:
 
@@ -3261,7 +3264,7 @@ Table of Contents
    When using CHUNK operations, the chunk_size is a nominal stride; the
    last chunk in a parity shard MAY be shorter than the stride.
 
-10.6.  Comparison of Encoding Types
+12.6.  Comparison of Encoding Types
 
       +================+==============+============+================+
       | Property       | Reed-Solomon | Mojette    | Mojette Non-   |
@@ -3290,13 +3293,13 @@ Table of Contents
    reconstruction cost.  Non-systematic Mojette is suitable only for
    archive workloads where reads are infrequent.
 
-10.7.  First-Line Substitution to a Spare
+12.7.  First-Line Substitution to a Spare
 
    When a client's CHUNK_WRITE to an FFV2_DS_FLAGS_ACTIVE data server
    fails with a transport-level error, NFS4ERR_IO, NFS4ERR_NOSPC, or any
    other code that indicates the data server cannot accept the shard,
    and the layout includes a data server flagged FFV2_DS_FLAGS_SPARE
-   (Section 7.4) that is not already holding a shard for the affected
+   (Section 9.4) that is not already holding a shard for the affected
    payload, the client MAY substitute the spare for the failing active
    data server for this write.
 
@@ -3330,7 +3333,7 @@ Table of Contents
    client already -- the normal repair flow applies and substitution
    would collide).
 
-10.8.  Handling write holes
+12.8.  Handling write holes
 
    A write hole occurs when a client begins writing a stripe but does
    not successfully write all k+m shards before a failure.  Some data
@@ -3349,7 +3352,7 @@ Table of Contents
 
    A single-shard CHUNK_WRITE failure MAY also be handled without
    CHUNK_ROLLBACK by substituting the failing data server with an
-   FFV2_DS_FLAGS_SPARE, per Section 10.7.  This avoids engaging the
+   FFV2_DS_FLAGS_SPARE, per Section 12.7.  This avoids engaging the
    metadata server's repair flow and is the preferred path on transient
    single-DS failures when the layout exposes a suitable spare.
 
@@ -3365,9 +3368,9 @@ Table of Contents
    payload cannot be reconstructed because too many shards have been
    lost (for example, a catastrophic multi-DS failure with no spares
    provisioned), the repair flow ultimately terminates with
-   NFS4ERR_PAYLOAD_LOST; see Section 20.1.5.
+   NFS4ERR_PAYLOAD_LOST; see Section 22.1.5.
 
-11.  System Model and Correctness
+13.  System Model and Correctness
 
    The design decisions in this document -- centralized coordination
    through the metadata server, CAS semantics via chunk_guard4,
@@ -3381,7 +3384,7 @@ Table of Contents
    reviewers; the normative wire behavior is defined in the preceding
    sections.
 
-11.1.  Actors and Roles
+13.1.  Actors and Roles
 
    Three actors participate on behalf of any given file:
 
@@ -3395,7 +3398,7 @@ Table of Contents
       Grants, renews, and revokes layouts; issues TRUST_STATEID /
       REVOKE_STATEID / BULK_REVOKE_STATEID to each tight-coupled data
       server; selects the repair client under the rules in
-      Section 10.2.4; owns the reserved CHUNK_GUARD_CLIENT_ID_MDS escrow
+      Section 12.2.4; owns the reserved CHUNK_GUARD_CLIENT_ID_MDS escrow
       identity for in-flight repair.
 
    Data server (DS):  Persists chunks and enforces the per-file trust
@@ -3421,9 +3424,9 @@ Table of Contents
    Each file is owned by exactly one metadata server at any given
    instant.  Ownership transfer between metadata servers (for example,
    during MDS failover) is implementation-defined and out of scope for
-   this document; see Section 11.5.
+   this document; see Section 13.5.
 
-11.2.  Failure Model
+13.2.  Failure Model
 
    The protocol assumes:
 
@@ -3435,10 +3438,10 @@ Table of Contents
 
    Fail-silent data servers:  Data servers report honestly about the
       state of the data they hold.  The protocol detects on-disk bit rot
-      via CRC32 (see Section 24.10) but does not defend against a data
+      via CRC32 (see Section 26.10) but does not defend against a data
       server that deliberately lies about whether a chunk is COMMITTED
       or what its contents are.  Byzantine data servers are explicitly
-      outside the trust model; see Section 11.6.
+      outside the trust model; see Section 13.6.
 
    Authenticated writers and their own data:  An authenticated client
       may write arbitrary (even semantically-invalid) bytes into chunks
@@ -3450,19 +3453,19 @@ Table of Contents
    Network partitions:  The protocol is partition-tolerant at the cost
       of availability during the partition window.  A client partitioned
       from a data server recovers via LAYOUTERROR and may be issued a
-      new layout (possibly against a spare, see Section 10.7).  An MDS
+      new layout (possibly against a spare, see Section 12.7).  An MDS
       partitioned from a data server eventually renews trust entries on
       reconnection; in the interim, the data server returns
-      NFS4ERR_DELAY for affected stateids (see Section 4.4.8).  Message
+      NFS4ERR_DELAY for affected stateids (see Section 6.4.8).  Message
       loss is bounded by RPC retransmit; eventual delivery is assumed
       once the partition heals.
 
    Lease bound:  All state held by a data server on behalf of a metadata
-      server is bounded by the TRUST_STATEID expiry (see Section 4.4.6).
+      server is bounded by the TRUST_STATEID expiry (see Section 6.4.6).
       An orphaned entry will eventually expire even if the metadata
       server never returns.
 
-11.3.  Consistency Guarantees
+13.3.  Consistency Guarantees
 
    The protocol provides *per-chunk linearizability on COMMITTED state*:
 
@@ -3509,13 +3512,13 @@ Table of Contents
       mirror set retain the chunk at some generation G or lower, the
       payload that was COMMITTED at generation G (or earlier) can be
       reconstructed.  This is the correctness basis for CHUNK_ROLLBACK
-      (see Section 24.8): rollback does not synthesize data, it simply
+      (see Section 26.8): rollback does not synthesize data, it simply
       selects the lowest-generation chunks whose guards agree across the
       mirror set and discards the higher-generation PENDING or FINALIZED
       chunks that triggered the rollback.  The protocol never relies on
       locating or reconstructing data from outside the mirror set.
 
-11.4.  Progress and Termination
+13.4.  Progress and Termination
 
    Under the failure model above, the protocol guarantees the following
    progress properties:
@@ -3548,7 +3551,7 @@ Table of Contents
 
       3.  fails to respond within the ccra_deadline, in which case the
           metadata server MUST re-select under the rules in
-          Section 10.2.4 or MUST declare the ranges lost.
+          Section 12.2.4 or MUST declare the ranges lost.
 
       NFS4ERR_PAYLOAD_LOST is terminal for the affected ranges.  The
       protocol makes no further attempt to recover them.
@@ -3559,13 +3562,13 @@ Table of Contents
       metadata server does not re-issue expire naturally via tsa_expire;
       entries that the metadata server does re-issue transition from
       pending-revalidation back to active on the next TRUST_STATEID (see
-      Section 4.4.8).
+      Section 6.4.8).
 
    The protocol does NOT guarantee progress if the metadata server is
    unavailable for longer than its lease period -- this is the standard
    NFSv4 lease assumption and is inherited unchanged.
 
-11.5.  Relation to Classical Consensus
+13.5.  Relation to Classical Consensus
 
    Classical consensus protocols (Paxos, Raft, Viewstamped Replication)
    solve the problem of reaching agreement among mutually-distrusting
@@ -3585,13 +3588,13 @@ Table of Contents
 
    2.  *Per-chunk CAS, not per-chunk voting.* Concurrent writes on the
        same chunk serialize via chunk_guard4 as a CAS primitive (see
-       Section 23.1).  No replica vote is required; the data server that
+       Section 25.1).  No replica vote is required; the data server that
        owns the chunk evaluates the guard locally and rejects stale
        writes with NFS4ERR_CHUNK_GUARDED.
 
    3.  *Pessimistic locks off the critical path.* CHUNK_LOCK is used
        only during repair, never on the normal write path.  Lock escrow
-       (see Section 23.1.1) preserves the "exactly one owner" invariant
+       (see Section 25.1.1) preserves the "exactly one owner" invariant
        across stateid revocation without requiring a consensus round to
        elect the next owner.
 
@@ -3614,7 +3617,7 @@ Table of Contents
    and the client's behavior is already specified by [RFC8881].  This
    protocol neither requires nor precludes such an implementation.
 
-11.6.  Non-Goals
+13.6.  Non-Goals
 
    For clarity, the protocol explicitly does not provide:
 
@@ -3643,10 +3646,10 @@ Table of Contents
 
    *  *Authenticated malicious client protection.* An authenticated
       client may write garbage into its own chunks with a correctly
-      computed CRC32; see Section 26.1.  The CRC32 check is a transport-
+      computed CRC32; see Section 28.1.  The CRC32 check is a transport-
       integrity check, not an adversarial-integrity check.
 
-12.  NFSv4.2 Operations Allowed to Data Files
+14.  NFSv4.2 Operations Allowed to Data Files
 
 
    // In Flexible File Version 1 Layout Type, the emphasis was on NFSv3
@@ -3670,7 +3673,7 @@ Table of Contents
    //
    // -- Tom
 
-13.  Flexible File Layout Type Return
+15.  Flexible File Layout Type Return
 
    layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
    layout-type-specific information to the server.  It is defined in
@@ -3714,7 +3717,7 @@ Table of Contents
 
    If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
    lr_returntype is LAYOUTRETURN4_FILE, then the lrf_body opaque value
-   is defined by ff_layoutreturn4 (see Section 13.3).  This allows the
+   is defined by ff_layoutreturn4 (see Section 15.3).  This allows the
    client to report I/O error information or layout usage statistics
    back to the metadata server as defined below.  Note that while the
    data structures are built on concepts introduced in NFSv4.2, the
@@ -3722,9 +3725,9 @@ Table of Contents
    ff_layoutreturn4) allows for an NFSv4.1 metadata server to utilize
    the data.
 
-13.1.  I/O Error Reporting
+15.1.  I/O Error Reporting
 
-13.1.1.  ff_ioerr4
+15.1.1.  ff_ioerr4
 
       /// struct ffv2_ioerr4 {
       ///         offset4        ffie_offset;
@@ -3761,9 +3764,9 @@ Table of Contents
    Likewise, the NFSv3 operations need to be mapped to equivalent NFSv4
    operations.
 
-13.2.  Layout Usage Statistics
+15.2.  Layout Usage Statistics
 
-13.2.1.  ff_io_latency4
+15.2.1.  ff_io_latency4
 
       /// struct ffv2_io_latency4 {
       ///         uint64_t       ffil_ops_requested;
@@ -3780,7 +3783,7 @@ Table of Contents
 
    Both operation counts and bytes transferred are kept in the
    ff_io_latency4 (see Figure 36.  As seen in ff_layoutupdate4 (see
-   Section 13.2.2), READ and WRITE operations are aggregated separately.
+   Section 15.2.2), READ and WRITE operations are aggregated separately.
    READ operations are used for the ff_io_latency4 ffl_read.  Both WRITE
    and COMMIT operations are used for the ff_io_latency4 ffl_write.
    "Requested" counters track what the client is attempting to do, and
@@ -3808,7 +3811,7 @@ Table of Contents
    containing the larger values contains the most recent time series
    data.
 
-13.2.2.  ff_layoutupdate4
+15.2.2.  ff_layoutupdate4
 
       /// struct ffv2_layoutupdate4 {
       ///         netaddr4         ffl_addr;
@@ -3832,7 +3835,7 @@ Table of Contents
    the client to inform the metadata server about "hot" access to a file
    it would not normally be allowed to report on.
 
-13.2.3.  ff_iostats4
+15.2.3.  ff_iostats4
 
       /// struct ffv2_iostats4 {
       ///         offset4            ffis_offset;
@@ -3887,7 +3890,7 @@ Table of Contents
    ffl_fhandle allows the metadata server to differentiate between
    multiple read-only copies of the file on the same storage device.
 
-13.3.  ff_layoutreturn4
+15.3.  ff_layoutreturn4
 
       /// struct ffv2_layoutreturn4 {
       ///         ffv2_ioerr4     fflr_ioerr_report<>;
@@ -3908,26 +3911,26 @@ Table of Contents
    particular byte range.  Byte ranges are not guaranteed to be disjoint
    and MAY repeat or intersect.
 
-14.  Flexible File Layout Type LAYOUTERROR
+16.  Flexible File Layout Type LAYOUTERROR
 
    If the client is using NFSv4.2 to communicate with the metadata
    server, then instead of waiting for a LAYOUTRETURN to send error
-   information to the metadata server (see Section 13.1), it MAY use
+   information to the metadata server (see Section 15.1), it MAY use
    LAYOUTERROR (see Section 15.6 of [RFC7862]) to communicate that
    information.  For the flexible file layout type, this means that
    LAYOUTERROR4args is treated the same as ff_ioerr4.
 
-15.  Flexible File Layout Type LAYOUTSTATS
+17.  Flexible File Layout Type LAYOUTSTATS
 
    If the client is using NFSv4.2 to communicate with the metadata
    server, then instead of waiting for a LAYOUTRETURN to send I/O
-   statistics to the metadata server (see Section 13.2), it MAY use
+   statistics to the metadata server (see Section 15.2), it MAY use
    LAYOUTSTATS (see Section 15.7 of [RFC7862]) to communicate that
    information.  For the flexible file layout type, this means that
    LAYOUTSTATS4args.lsa_layoutupdate is overloaded with the same
    contents as in ffis_layoutupdate.
 
-16.  Flexible File Layout Type Creation Hint
+18.  Flexible File Layout Type Creation Hint
 
    The layouthint4 type is defined in the [RFC8881] as in Figure 41.
 
@@ -3945,7 +3948,7 @@ Table of Contents
    the loh_type layout type is LAYOUT4_FLEX_FILES, then the loh_body
    opaque value is defined by the ff_layouthint4 type.
 
-17.  ff_layouthint4
+19.  ff_layouthint4
 
       union ff_mirrors_hint switch (bool ffmc_valid) {
           case TRUE:
@@ -3966,7 +3969,7 @@ Table of Contents
    selection and data protection geometry hints via
    ffv2_data_protection4 (Figure 21).
 
-18.  Recalling a Layout
+20.  Recalling a Layout
 
    While Section 12.5.5 of [RFC8881] discusses reasons independent of
    layout type for recalling a layout, the flexible file layout type
@@ -3983,9 +3986,9 @@ Table of Contents
       locking constraints.
 
    *  When existing layouts are inconsistent with the requirements
-      regarding resilvering as described in Section 10.1.3.
+      regarding resilvering as described in Section 12.1.3.
 
-18.1.  CB_RECALL_ANY
+20.1.  CB_RECALL_ANY
 
    The metadata server can use the CB_RECALL_ANY callback operation to
    notify the client to return some or all of its layouts.  Section 22.3
@@ -4031,16 +4034,16 @@ Table of Contents
    of iomode LAYOUTIOMODE4_RW.  When both mask flags are set, the client
    is notified to return layouts of either iomode.
 
-19.  Client Fencing
+21.  Client Fencing
 
    In cases where clients are uncommunicative and their lease has
    expired or when clients fail to return recalled layouts within a
    lease period, the server MAY revoke client layouts and reassign these
    resources to other clients (see Section 12.5.5 of [RFC8881]).  To
    avoid data corruption, the metadata server MUST fence off the revoked
-   clients from the respective data files as described in Section 4.2.
+   clients from the respective data files as described in Section 6.2.
 
-20.  New NFSv4.2 Error Values
+22.  New NFSv4.2 Error Values
 
       ///
       /// /* Erasure Coding error constants; added to nfsstat4 enum */
@@ -4056,25 +4059,25 @@ Table of Contents
 
    The new error codes are shown in Figure 46.
 
-20.1.  Error Definitions
+22.1.  Error Definitions
 
        +================================+========+================+
        | Error                          | Number | Description    |
        +================================+========+================+
-       | NFS4ERR_CODING_NOT_SUPPORTED   | 10097  | Section 20.1.1 |
+       | NFS4ERR_CODING_NOT_SUPPORTED   | 10097  | Section 22.1.1 |
        +--------------------------------+--------+----------------+
-       | NFS4ERR_PAYLOAD_NOT_CONSISTENT | 10098  | Section 20.1.2 |
+       | NFS4ERR_PAYLOAD_NOT_CONSISTENT | 10098  | Section 22.1.2 |
        +--------------------------------+--------+----------------+
-       | NFS4ERR_CHUNK_LOCKED           | 10099  | Section 20.1.3 |
+       | NFS4ERR_CHUNK_LOCKED           | 10099  | Section 22.1.3 |
        +--------------------------------+--------+----------------+
-       | NFS4ERR_CHUNK_GUARDED          | 10100  | Section 20.1.4 |
+       | NFS4ERR_CHUNK_GUARDED          | 10100  | Section 22.1.4 |
        +--------------------------------+--------+----------------+
-       | NFS4ERR_PAYLOAD_LOST           | 10101  | Section 20.1.5 |
+       | NFS4ERR_PAYLOAD_LOST           | 10101  | Section 22.1.5 |
        +--------------------------------+--------+----------------+
 
                                 Table 5: X
 
-20.1.1.  NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097)
+22.1.1.  NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097)
 
    The client requested a ffv2_coding_type4 which the metadata server
    does not support.  I.e., if the client sends a layout_hint requesting
@@ -4083,7 +4086,7 @@ Table of Contents
    layout_hint several times to determine the overlapping set of
    supported erasure coding types.
 
-20.1.2.  NFS4ERR_PAYLOAD_NOT_CONSISTENT (Error Code 10098)
+22.1.2.  NFS4ERR_PAYLOAD_NOT_CONSISTENT (Error Code 10098)
 
    The client encountered a payload in which the blocks were
    inconsistent and stays inconsistent.  As the client can not tell if
@@ -4091,20 +4094,20 @@ Table of Contents
    this error via LAYOUTERROR.  The metadata server can then arrange for
    repair of the file.
 
-20.1.3.  NFS4ERR_CHUNK_LOCKED (Error Code 10099)
+22.1.3.  NFS4ERR_CHUNK_LOCKED (Error Code 10099)
 
    The client tried an operation on a chunk which resulted in the data
    server reporting that the chunk was locked.  The client will then
    inform the metadata server of this error via LAYOUTERROR.  The
    metadata server can then arrange for repair of the file.
 
-20.1.4.  NFS4ERR_CHUNK_GUARDED (Error Code 10100)
+22.1.4.  NFS4ERR_CHUNK_GUARDED (Error Code 10100)
 
    The client tried a guarded CHUNK_WRITE on a chunk which did not match
    the guard on the chunk in the data file.  As such, the CHUNK_WRITE
    was rejected and the client should refresh the chunk it has cached.
 
-20.1.5.  NFS4ERR_PAYLOAD_LOST (Error Code 10101)
+22.1.5.  NFS4ERR_PAYLOAD_LOST (Error Code 10101)
 
    Returned by a repair client on the CB_CHUNK_REPAIR response
    (ccrr_status) to indicate that the identified ranges cannot be
@@ -4140,7 +4143,7 @@ Table of Contents
    //
    // -- Tom
 
-20.2.  Operations and Their Valid Errors
+22.2.  Operations and Their Valid Errors
 
    The operations and their valid errors are presented in Table 6.  All
    error codes not defined in this document are defined in Section 15 of
@@ -4224,7 +4227,7 @@ Table of Contents
 
                 Table 6: Operations and Their Valid Errors
 
-20.3.  Callback Operations and Their Valid Errors
+22.3.  Callback Operations and Their Valid Errors
 
    The callback operations and their valid errors are presented in
    Table 7.  All error codes not defined in this document are defined in
@@ -4245,7 +4248,7 @@ Table of Contents
 
            Table 7: Callback Operations and Their Valid Errors
 
-20.4.  Errors and the Operations That Use Them
+22.4.  Errors and the Operations That Use Them
 
    The operations and their valid errors are presented in Table 8.  All
    operations not defined in this document are defined in Section 18 of
@@ -4261,7 +4264,7 @@ Table of Contents
 
               Table 8: Errors and the Operations That Use Them
 
-21.  EXCHGID4_FLAG_USE_PNFS_DS
+23.  EXCHGID4_FLAG_USE_PNFS_DS
 
       /// const EXCHGID4_FLAG_USE_ERASURE_DS      = 0x00100000;
 
@@ -4283,9 +4286,9 @@ Table of Contents
    Type selected.  The data server is unaware of which type is driving
    the I/O.
 
-22.  New NFSv4.2 Attributes
+24.  New NFSv4.2 Attributes
 
-22.1.  Attribute 89: fattr4_coding_block_size
+24.1.  Attribute 89: fattr4_coding_block_size
 
       /// typedef uint64_t                  fattr4_coding_block_size;
       ///
@@ -4300,9 +4303,9 @@ Table of Contents
    it, the client can determine the data block size it is to use when
    coding the data blocks to chunks.
 
-23.  New NFSv4.2 Common Data Structures
+25.  New NFSv4.2 Common Data Structures
 
-23.1.  chunk_guard4
+25.1.  chunk_guard4
 
       /// const CHUNK_GUARD_CLIENT_ID_MDS  = 0xFFFFFFFF;
       ///
@@ -4327,7 +4330,7 @@ Table of Contents
       single chunk on a single file.
 
    cg_client_id:  A 32-bit value established by the metadata server at
-      the time the client's layout is granted (see Section 7.8 and
+      the time the client's layout is granted (see Section 9.8 and
       ffm_client_id).  The metadata server MUST assign distinct
       cg_client_id values to distinct clients that hold concurrent write
       layouts on the same file.  cg_client_id is opaque with respect to
@@ -4357,7 +4360,7 @@ Table of Contents
       MAY retry its write with a refreshed cg_gen_id.  A client that
       detects no forward progress after a bounded number of retries MUST
       escalate via LAYOUTERROR and the repair coordination flow in
-      Section 10.2.4.
+      Section 12.2.4.
 
    The numeric ordering of cg_client_id values is arbitrary with respect
    to the clients' external identities -- it is a deterministic total
@@ -4367,11 +4370,11 @@ Table of Contents
    server; the protocol does not provide a preference mechanism at
    layout-grant time.
 
-23.1.1.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
+25.1.1.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
 
    The value CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF) is reserved.  It
    denotes that the chunk lock is held by the metadata server itself, in
-   escrow during a repair coordination sequence (see Section 10.2.4).
+   escrow during a repair coordination sequence (see Section 12.2.4).
    The data server produces a chunk_guard4 with this cg_client_id when
    the metadata server revokes the prior holder's stateid while that
    holder still holds chunk locks; the locks MUST NOT be dropped and are
@@ -4386,9 +4389,9 @@ Table of Contents
 
    The MDS-escrow owner is released only by a CHUNK_LOCK from the client
    selected via CB_CHUNK_REPAIR, carrying CHUNK_LOCK_FLAGS_ADOPT.  See
-   Section 24.5.
+   Section 26.5.
 
-23.2.  chunk_owner4
+25.2.  chunk_owner4
 
       /// struct chunk_owner4 {
       ///     chunk_guard4   co_guard;
@@ -4401,7 +4404,7 @@ Table of Contents
    whom a block was written.  The co_id is used to identify the block
    and MUST be the index of the chunk within the file.  I.e., it is the
    offset of the start of the chunk divided by the chunk length.  The
-   co_guard is a chunk_guard4 (see Section 23.1), used to identify a
+   co_guard is a chunk_guard4 (see Section 25.1), used to identify a
    given transaction.
 
    The co_guard is like the change attribute (see Section 5.8.1.4 of
@@ -4409,7 +4412,7 @@ Table of Contents
    unique co_guard.  I.e., it can be determined which transaction across
    all data files that a chunk corresponds.
 
-24.  New NFSv4.2 Operations
+26.  New NFSv4.2 Operations
 
       ///
       /// /* New operations for Erasure Coding start here */
@@ -4439,45 +4442,45 @@ Table of Contents
    to storage devices on the data path.  Operations 88 through 90
    (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID) are sent by the
    metadata server to storage devices on the MDS-to-DS control session
-   (see Section 4.4.2); they MUST NOT be sent by pNFS clients.
+   (see Section 6.4.2); they MUST NOT be sent by pNFS clients.
 
     +=====================+========+==================+===============+
     | Operation           | Number | Target Server    | Description   |
     +=====================+========+==================+===============+
-    | CHUNK_COMMIT        | 77     | DS (client)      | Section 24.1  |
+    | CHUNK_COMMIT        | 77     | DS (client)      | Section 26.1  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_ERROR         | 78     | DS (client)      | Section 24.2  |
+    | CHUNK_ERROR         | 78     | DS (client)      | Section 26.2  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_FINALIZE      | 79     | DS (client)      | Section 24.3  |
+    | CHUNK_FINALIZE      | 79     | DS (client)      | Section 26.3  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_HEADER_READ   | 80     | DS (client)      | Section 24.4  |
+    | CHUNK_HEADER_READ   | 80     | DS (client)      | Section 26.4  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_LOCK          | 81     | DS (client)      | Section 24.5  |
+    | CHUNK_LOCK          | 81     | DS (client)      | Section 26.5  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_READ          | 82     | DS (client)      | Section 24.6  |
+    | CHUNK_READ          | 82     | DS (client)      | Section 26.6  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_REPAIRED      | 83     | DS (client)      | Section 24.7  |
+    | CHUNK_REPAIRED      | 83     | DS (client)      | Section 26.7  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_ROLLBACK      | 84     | DS (client)      | Section 24.8  |
+    | CHUNK_ROLLBACK      | 84     | DS (client)      | Section 26.8  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_UNLOCK        | 85     | DS (client)      | Section 24.9  |
+    | CHUNK_UNLOCK        | 85     | DS (client)      | Section 26.9  |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_WRITE         | 86     | DS (client)      | Section 24.10 |
+    | CHUNK_WRITE         | 86     | DS (client)      | Section 26.10 |
     +---------------------+--------+------------------+---------------+
-    | CHUNK_WRITE_REPAIR  | 87     | DS (client)      | Section 24.11 |
+    | CHUNK_WRITE_REPAIR  | 87     | DS (client)      | Section 26.11 |
     +---------------------+--------+------------------+---------------+
-    | TRUST_STATEID       | 88     | DS (MDS control) | Section 24.12 |
+    | TRUST_STATEID       | 88     | DS (MDS control) | Section 26.12 |
     +---------------------+--------+------------------+---------------+
-    | REVOKE_STATEID      | 89     | DS (MDS control) | Section 24.13 |
+    | REVOKE_STATEID      | 89     | DS (MDS control) | Section 26.13 |
     +---------------------+--------+------------------+---------------+
-    | BULK_REVOKE_STATEID | 90     | DS (MDS control) | Section 24.14 |
+    | BULK_REVOKE_STATEID | 90     | DS (MDS control) | Section 26.14 |
     +---------------------+--------+------------------+---------------+
 
                            Table 9: Protocol OPs
 
-24.1.  Operation 77: CHUNK_COMMIT - Activate Cached Chunk Data
+26.1.  Operation 77: CHUNK_COMMIT - Activate Cached Chunk Data
 
-24.1.1.  ARGUMENTS
+26.1.1.  ARGUMENTS
 
       /// struct CHUNK_COMMIT4args {
       ///     /* CURRENT_FH: file */
@@ -4488,7 +4491,7 @@ Table of Contents
 
                     Figure 52: XDR for CHUNK_COMMIT4args
 
-24.1.2.  RESULTS
+26.1.2.  RESULTS
 
       /// struct CHUNK_COMMIT4resok {
       ///     verifier4       ccr_writeverf;
@@ -4506,7 +4509,7 @@ Table of Contents
 
                     Figure 54: XDR for CHUNK_COMMIT4res
 
-24.1.3.  DESCRIPTION
+26.1.3.  DESCRIPTION
 
    CHUNK_COMMIT is COMMIT (see Section 18.3 of [RFC8881]) with
    additional semantics over the chunk_owner activating the blocks.  As
@@ -4530,9 +4533,9 @@ Table of Contents
    //
    // -- Tom
 
-24.2.  Operation 78: CHUNK_ERROR - Report Error on Cached Chunk Data
+26.2.  Operation 78: CHUNK_ERROR - Report Error on Cached Chunk Data
 
-24.2.1.  ARGUMENTS
+26.2.1.  ARGUMENTS
 
       /// struct CHUNK_ERROR4args {
       ///     /* CURRENT_FH: file */
@@ -4545,7 +4548,7 @@ Table of Contents
 
                     Figure 55: XDR for CHUNK_ERROR4args
 
-24.2.2.  RESULTS
+26.2.2.  RESULTS
 
       /// struct CHUNK_ERROR4res {
       ///     nfsstat4        cer_status;
@@ -4553,7 +4556,7 @@ Table of Contents
 
                      Figure 56: XDR for CHUNK_ERROR4res
 
-24.2.3.  DESCRIPTION
+26.2.3.  DESCRIPTION
 
    CHUNK_ERROR allows a client to report that one or more chunks at the
    specified block range are in error.  The cea_offset is the starting
@@ -4563,18 +4566,18 @@ Table of Contents
 
    The data server records the error state for the affected blocks.
    Once marked as errored, the blocks are not returned by CHUNK_READ
-   until they are repaired via CHUNK_WRITE_REPAIR (Section 24.11) and
-   the repair is confirmed via CHUNK_REPAIRED (Section 24.7).
+   until they are repaired via CHUNK_WRITE_REPAIR (Section 26.11) and
+   the repair is confirmed via CHUNK_REPAIRED (Section 26.7).
 
    The client SHOULD report errors via CHUNK_ERROR before reporting them
    to the metadata server via LAYOUTERROR.  This allows the data server
    to prevent other clients from reading corrupt data while the metadata
    server coordinates repair.
 
-24.3.  Operation 79: CHUNK_FINALIZE - Transition Chunks from Pending to
+26.3.  Operation 79: CHUNK_FINALIZE - Transition Chunks from Pending to
        Finalized
 
-24.3.1.  ARGUMENTS
+26.3.1.  ARGUMENTS
 
       /// struct CHUNK_FINALIZE4args {
       ///     /* CURRENT_FH: file */
@@ -4585,7 +4588,7 @@ Table of Contents
 
                    Figure 57: XDR for CHUNK_FINALIZE4args
 
-24.3.2.  RESULTS
+26.3.2.  RESULTS
 
       /// struct CHUNK_FINALIZE4resok {
       ///     verifier4       cfr_writeverf;
@@ -4603,7 +4606,7 @@ Table of Contents
 
                    Figure 59: XDR for CHUNK_FINALIZE4res
 
-24.3.3.  DESCRIPTION
+26.3.3.  DESCRIPTION
 
    CHUNK_FINALIZE transitions blocks from the PENDING state (set by
    CHUNK_WRITE) to the FINALIZED state.  A finalized block is visible to
@@ -4623,11 +4626,11 @@ Table of Contents
    restarts.
 
    Blocks that have been finalized but not yet committed MAY be rolled
-   back via CHUNK_ROLLBACK (Section 24.8).
+   back via CHUNK_ROLLBACK (Section 26.8).
 
-24.4.  Operation 80: CHUNK_HEADER_READ - Read Chunk Header from File
+26.4.  Operation 80: CHUNK_HEADER_READ - Read Chunk Header from File
 
-24.4.1.  ARGUMENTS
+26.4.1.  ARGUMENTS
 
       /// struct CHUNK_HEADER_READ4args {
       ///     /* CURRENT_FH: file */
@@ -4638,7 +4641,7 @@ Table of Contents
 
                  Figure 60: XDR for CHUNK_HEADER_READ4args
 
-24.4.2.  RESULTS
+26.4.2.  RESULTS
 
       /// struct CHUNK_HEADER_READ4resok {
       ///     bool            chrr_eof;
@@ -4664,14 +4667,14 @@ Table of Contents
 
                  Figure 62: XDR for CHUNK_HEADER_READ4resok
 
-24.4.3.  DESCRIPTION
+26.4.3.  DESCRIPTION
 
    CHUNK_HEADER_READ differs from CHUNK_READ in that it only reads chunk
    headers in the desired data range.
 
-24.5.  Operation 81: CHUNK_LOCK - Lock Cached Chunk Data
+26.5.  Operation 81: CHUNK_LOCK - Lock Cached Chunk Data
 
-24.5.1.  ARGUMENTS
+26.5.1.  ARGUMENTS
 
       /// const CHUNK_LOCK_FLAGS_ADOPT  = 0x00000001;
       ///
@@ -4686,7 +4689,7 @@ Table of Contents
 
                      Figure 63: XDR for CHUNK_LOCK4args
 
-24.5.2.  RESULTS
+26.5.2.  RESULTS
 
       /// union CHUNK_LOCK4res switch (nfsstat4 clr_status) {
       ///     case NFS4_OK:
@@ -4699,7 +4702,7 @@ Table of Contents
 
                      Figure 64: XDR for CHUNK_LOCK4res
 
-24.5.3.  DESCRIPTION
+26.5.3.  DESCRIPTION
 
    CHUNK_LOCK acquires an exclusive lock on the block range specified by
    cla_offset and cla_count.  While locked, other clients' CHUNK_WRITE
@@ -4712,15 +4715,15 @@ Table of Contents
    NFS4ERR_CHUNK_LOCKED with the clr_owner field identifying the current
    lock holder.
 
-   CHUNK_LOCK is used in the multiple writer mode (Section 10.2.6.3) to
+   CHUNK_LOCK is used in the multiple writer mode (Section 12.2.6.3) to
    coordinate concurrent access to the same block range, and in the
-   repair flow (Section 10.2.4) to transfer lock ownership to a repair
+   repair flow (Section 12.2.4) to transfer lock ownership to a repair
    client.
 
-   The lock is released by CHUNK_UNLOCK (Section 24.9) or implicitly
+   The lock is released by CHUNK_UNLOCK (Section 26.9) or implicitly
    when the client's lease expires.
 
-24.5.3.1.  Lock Transfer via CHUNK_LOCK_FLAGS_ADOPT
+26.5.3.1.  Lock Transfer via CHUNK_LOCK_FLAGS_ADOPT
 
    The CHUNK_LOCK_FLAGS_ADOPT flag in cla_flags requests an atomic
    transfer of lock ownership to cla_owner for every chunk in
@@ -4738,7 +4741,7 @@ Table of Contents
 
    CHUNK_LOCK_FLAGS_ADOPT is valid only when the caller has been
    selected as the repair client for the range by the metadata server,
-   typically via CB_CHUNK_REPAIR (Section 25.1).  A data server that
+   typically via CB_CHUNK_REPAIR (Section 27.1).  A data server that
    receives CHUNK_LOCK with the ADOPT flag from a client that has not
    been so designated MAY reject the operation with NFS4ERR_ACCESS.  The
    mechanism by which the data server determines designation is
@@ -4765,7 +4768,7 @@ Table of Contents
        CHUNK_COMMIT.
 
    2.  The metadata server itself, acting through the
-       CHUNK_GUARD_CLIENT_ID_MDS escrow owner (Section 23.1.1).  This
+       CHUNK_GUARD_CLIENT_ID_MDS escrow owner (Section 25.1.1).  This
        occurs when the metadata server has revoked the prior holder's
        stateid in a tightly coupled deployment.
 
@@ -4778,9 +4781,9 @@ Table of Contents
    value is reserved for server production and MUST NOT be presented by
    a client.  The operation returns NFS4ERR_INVAL in that case.
 
-24.6.  Operation 82: CHUNK_READ - Read Chunks from File
+26.6.  Operation 82: CHUNK_READ - Read Chunks from File
 
-24.6.1.  ARGUMENTS
+26.6.1.  ARGUMENTS
 
       /// struct CHUNK_READ4args {
       ///     /* CURRENT_FH: file */
@@ -4791,7 +4794,7 @@ Table of Contents
 
                      Figure 65: XDR for CHUNK_READ4args
 
-24.6.2.  RESULTS
+26.6.2.  RESULTS
 
       /// struct read_chunk4 {
       ///     uint32_t        cr_crc;
@@ -4821,7 +4824,7 @@ Table of Contents
 
                      Figure 68: XDR for CHUNK_READ4res
 
-24.6.3.  DESCRIPTION
+26.6.3.  DESCRIPTION
 
    CHUNK_READ is READ (see Section 18.22 of [RFC8881]) with additional
    semantics over the chunk_owner.  As such, all of the normal semantics
@@ -4894,10 +4897,10 @@ Table of Contents
 
             Figure 70: Example: Resulting CHUNK_READ4resok reply
 
-24.7.  Operation 83: CHUNK_REPAIRED - Confirm Repair of Errored Chunk
+26.7.  Operation 83: CHUNK_REPAIRED - Confirm Repair of Errored Chunk
        Data
 
-24.7.1.  ARGUMENTS
+26.7.1.  ARGUMENTS
 
       /// struct CHUNK_REPAIRED4args {
       ///     /* CURRENT_FH: file */
@@ -4909,7 +4912,7 @@ Table of Contents
 
                    Figure 71: XDR for CHUNK_REPAIRED4args
 
-24.7.2.  RESULTS
+26.7.2.  RESULTS
 
       /// union CHUNK_REPAIRED4res switch (nfsstat4 crr_status) {
       ///     case NFS4_OK:
@@ -4920,11 +4923,11 @@ Table of Contents
 
                    Figure 72: XDR for CHUNK_REPAIRED4res
 
-24.7.3.  DESCRIPTION
+26.7.3.  DESCRIPTION
 
    CHUNK_REPAIRED signals that blocks previously marked as errored (via
-   CHUNK_ERROR, Section 24.2) have been repaired.  The repair client
-   writes replacement data via CHUNK_WRITE_REPAIR (Section 24.11), then
+   CHUNK_ERROR, Section 26.2) have been repaired.  The repair client
+   writes replacement data via CHUNK_WRITE_REPAIR (Section 26.11), then
    calls CHUNK_REPAIRED to clear the error state and make the blocks
    available for normal reads.
 
@@ -4936,10 +4939,10 @@ Table of Contents
    If the blocks are not in the errored state, the operation returns
    NFS4ERR_INVAL.
 
-24.8.  Operation 84: CHUNK_ROLLBACK - Rollback Changes on Cached Chunk
+26.8.  Operation 84: CHUNK_ROLLBACK - Rollback Changes on Cached Chunk
        Data
 
-24.8.1.  ARGUMENTS
+26.8.1.  ARGUMENTS
 
       /// struct CHUNK_ROLLBACK4args {
       ///     /* CURRENT_FH: file */
@@ -4950,7 +4953,7 @@ Table of Contents
 
                    Figure 73: XDR for CHUNK_ROLLBACK4args
 
-24.8.2.  RESULTS
+26.8.2.  RESULTS
 
       /// struct CHUNK_ROLLBACK4resok {
       ///     verifier4       crr_writeverf;
@@ -4967,7 +4970,7 @@ Table of Contents
 
                    Figure 75: XDR for CHUNK_ROLLBACK4res
 
-24.8.3.  DESCRIPTION
+26.8.3.  DESCRIPTION
 
    CHUNK_ROLLBACK reverts blocks from the PENDING or FINALIZED state
    back to their previous state, effectively undoing a CHUNK_WRITE that
@@ -4992,9 +4995,9 @@ Table of Contents
    metadata to EMPTY.  If the block was in the FINALIZED state, the
    persisted metadata is also removed.
 
-24.9.  Operation 85: CHUNK_UNLOCK - Unlock Cached Chunk Data
+26.9.  Operation 85: CHUNK_UNLOCK - Unlock Cached Chunk Data
 
-24.9.1.  ARGUMENTS
+26.9.1.  ARGUMENTS
 
       /// struct CHUNK_UNLOCK4args {
       ///     /* CURRENT_FH: file */
@@ -5006,7 +5009,7 @@ Table of Contents
 
                     Figure 76: XDR for CHUNK_UNLOCK4args
 
-24.9.2.  RESULTS
+26.9.2.  RESULTS
 
       /// union CHUNK_UNLOCK4res switch (nfsstat4 cur_status) {
       ///     case NFS4_OK:
@@ -5017,10 +5020,10 @@ Table of Contents
 
                     Figure 77: XDR for CHUNK_UNLOCK4res
 
-24.9.3.  DESCRIPTION
+26.9.3.  DESCRIPTION
 
    CHUNK_UNLOCK releases the exclusive lock on the block range
-   previously acquired by CHUNK_LOCK (Section 24.5).  The cua_owner MUST
+   previously acquired by CHUNK_LOCK (Section 26.5).  The cua_owner MUST
    match the owner that acquired the lock; otherwise the operation
    returns NFS4ERR_INVAL.
 
@@ -5031,9 +5034,9 @@ Table of Contents
    write or repair operation.  Chunk locks are also released implicitly
    when the client's lease expires.
 
-24.10.  Operation 86: CHUNK_WRITE - Write Chunks to File
+26.10.  Operation 86: CHUNK_WRITE - Write Chunks to File
 
-24.10.1.  ARGUMENTS
+26.10.1.  ARGUMENTS
 
       /// union write_chunk_guard4 switch (bool cwg_check) {
       ///     case TRUE:
@@ -5062,7 +5065,7 @@ Table of Contents
 
                     Figure 79: XDR for CHUNK_WRITE4args
 
-24.10.2.  RESULTS
+26.10.2.  RESULTS
 
       /// struct CHUNK_WRITE4resok {
       ///     count4          cwr_count;
@@ -5084,7 +5087,7 @@ Table of Contents
 
                      Figure 81: XDR for CHUNK_WRITE4res
 
-24.10.3.  DESCRIPTION
+26.10.3.  DESCRIPTION
 
    CHUNK_WRITE is WRITE (see Section 18.32 of [RFC8881]) with additional
    semantics over the chunk_owner and the activation of blocks.  As
@@ -5139,7 +5142,7 @@ Table of Contents
    subsequent CHUNK_READ or HEADER_READ might show that the co_activated
    is true without any interaction by the client via CHUNK_COMMIT.
 
-24.10.3.1.  Guarding the Write
+26.10.3.1.  Guarding the Write
 
    A guarded CHUNK_WRITE is when the writing of a block MUST fail if
    cwa_guard.cwg_check is TRUE and the target chunk does not have the
@@ -5165,10 +5168,10 @@ Table of Contents
    //
    // -- Tom
 
-24.11.  Operation 87: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk
+26.11.  Operation 87: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk
         Data
 
-24.11.1.  ARGUMENTS
+26.11.1.  ARGUMENTS
 
       /// struct CHUNK_WRITE_REPAIR4args {
       ///     /* CURRENT_FH: file */
@@ -5184,7 +5187,7 @@ Table of Contents
 
                  Figure 82: XDR for CHUNK_WRITE_REPAIR4args
 
-24.11.2.  RESULTS
+26.11.2.  RESULTS
 
       /// struct CHUNK_WRITE_REPAIR4resok {
       ///     count4          cwrr_count;
@@ -5204,10 +5207,10 @@ Table of Contents
 
                  Figure 84: XDR for CHUNK_WRITE_REPAIR4res
 
-24.11.3.  DESCRIPTION
+26.11.3.  DESCRIPTION
 
    CHUNK_WRITE_REPAIR has the same semantics as CHUNK_WRITE
-   (Section 24.10) but is used specifically for writing reconstructed
+   (Section 26.10) but is used specifically for writing reconstructed
    chunk data to a replacement data server during repair operations.
 
    The repair workflow is:
@@ -5218,7 +5221,7 @@ Table of Contents
    2.  The client reconstructs the missing chunks using the erasure
        coding algorithm (RS matrix inversion or Mojette corner-peeling).
 
-   3.  The client acquires a CHUNK_LOCK (Section 24.5) on the target
+   3.  The client acquires a CHUNK_LOCK (Section 26.5) on the target
        data server to prevent concurrent writes during repair.
 
    4.  The client writes the reconstructed data via CHUNK_WRITE_REPAIR.
@@ -5226,10 +5229,10 @@ Table of Contents
    5.  The client calls CHUNK_FINALIZE and CHUNK_COMMIT to persist the
        repair.
 
-   6.  The client calls CHUNK_REPAIRED (Section 24.7) to clear the error
+   6.  The client calls CHUNK_REPAIRED (Section 26.7) to clear the error
        state.
 
-   7.  The client releases the lock via CHUNK_UNLOCK (Section 24.9).
+   7.  The client releases the lock via CHUNK_UNLOCK (Section 26.9).
 
    CHUNK_WRITE_REPAIR is distinguished from CHUNK_WRITE to allow the
    data server to apply different policies to repair writes (e.g.,
@@ -5242,10 +5245,10 @@ Table of Contents
    the data server MAY reject the repair to prevent overwriting good
    data.
 
-24.12.  Operation 88: TRUST_STATEID - Register Layout Stateid on Data
+26.12.  Operation 88: TRUST_STATEID - Register Layout Stateid on Data
         Server
 
-24.12.1.  ARGUMENTS
+26.12.1.  ARGUMENTS
 
       /// struct TRUST_STATEID4args {
       ///     /* CURRENT_FH: file */
@@ -5257,7 +5260,7 @@ Table of Contents
 
                    Figure 85: XDR for TRUST_STATEID4args
 
-24.12.2.  RESULTS
+26.12.2.  RESULTS
 
       /// union TRUST_STATEID4res switch (nfsstat4 tsr_status) {
       ///     case NFS4_OK:
@@ -5268,12 +5271,12 @@ Table of Contents
 
                     Figure 86: XDR for TRUST_STATEID4res
 
-24.12.3.  DESCRIPTION
+26.12.3.  DESCRIPTION
 
    TRUST_STATEID registers a layout stateid with the data server so that
    subsequent CHUNK operations presenting that stateid can be validated
    against the data server's per-file trust table.  It is the mechanism
-   by which tight coupling (see Section 4.4) is established between the
+   by which tight coupling (see Section 6.4) is established between the
    metadata server and the data server for a particular layout.
 
    TRUST_STATEID operates on the current filehandle; a PUTFH naming the
@@ -5282,7 +5285,7 @@ Table of Contents
    tsa_layout_stateid is the stateid the metadata server issued in the
    LAYOUTGET that produced this layout.  It MUST NOT be a special
    stateid (anonymous, invalid, read-bypass, or current).  The sole
-   exception is the capability probe described in Section 4.4.1: when
+   exception is the capability probe described in Section 6.4.1: when
    the metadata server sends TRUST_STATEID with tsa_layout_stateid set
    to the anonymous stateid against the root filehandle, the data server
    MUST reject the request with NFS4ERR_INVAL.  That rejection is the
@@ -5294,7 +5297,7 @@ Table of Contents
    authorize CHUNK_WRITE.
 
    tsa_expire is the absolute wall-clock time at which the trust entry
-   becomes invalid if not renewed.  See Section 4.4.6.  The data server
+   becomes invalid if not renewed.  See Section 6.4.6.  The data server
    MUST reject a TRUST_STATEID whose tsa_expire has tv_nseconds >= 10^9
    with NFS4ERR_INVAL.
 
@@ -5303,7 +5306,7 @@ Table of Contents
    is the GSS display name (e.g., "alice@REALM").  For AUTH_SYS and TLS
    clients, tsa_principal MUST be the empty string, indicating that no
    principal binding is enforced on subsequent CHUNK operations.  See
-   Section 4.4.4.
+   Section 6.4.4.
 
    If the data server receives TRUST_STATEID on a session whose owning
    client did not present EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID, the
@@ -5313,19 +5316,19 @@ Table of Contents
    If a trust entry already exists for the same tsa_layout_stateid on
    the same current filehandle, TRUST_STATEID atomically updates
    tsa_expire and tsa_principal; this is the renewal path (see
-   Section 4.4.6).
+   Section 6.4.6).
 
    At registration time, the data server tags the new trust entry with
    the identity of the metadata server -- derived from the clientid of
    the owning client of the control session on which TRUST_STATEID
    arrived.  This tag is consulted by REVOKE_STATEID and
    BULK_REVOKE_STATEID to ensure that revocation only affects entries
-   registered by the same metadata server (see Section 24.14).  In a
+   registered by the same metadata server (see Section 26.14).  In a
    multi-metadata-server deployment sharing a single data server, each
    metadata server registers and revokes only its own entries; the tag
    is opaque to pNFS clients and is not carried on the wire.
 
-24.12.4.  RESPONSE CODES
+26.12.4.  RESPONSE CODES
 
    *  NFS4_OK: the trust entry is registered (or updated).
 
@@ -5345,7 +5348,7 @@ Table of Contents
    *  NFS4ERR_NOFILEHANDLE: no current filehandle is set.
 
    *  NFS4ERR_NOTSUPP: the data server does not implement TRUST_STATEID.
-      This is the capability-probe response (see Section 4.4.1).
+      This is the capability-probe response (see Section 6.4.1).
 
    *  NFS4ERR_PERM: the request arrived on a session whose owning client
       did not present EXCHGID4_FLAG_USE_PNFS_MDS.
@@ -5353,10 +5356,10 @@ Table of Contents
    *  NFS4ERR_SERVERFAULT: the data server failed while processing the
       request.
 
-24.13.  Operation 89: REVOKE_STATEID - Revoke Registered Stateid on Data
+26.13.  Operation 89: REVOKE_STATEID - Revoke Registered Stateid on Data
         Server
 
-24.13.1.  ARGUMENTS
+26.13.1.  ARGUMENTS
 
       /// struct REVOKE_STATEID4args {
       ///     /* CURRENT_FH: file */
@@ -5365,7 +5368,7 @@ Table of Contents
 
                    Figure 87: XDR for REVOKE_STATEID4args
 
-24.13.2.  RESULTS
+26.13.2.  RESULTS
 
       /// union REVOKE_STATEID4res switch (nfsstat4 rsr_status) {
       ///     case NFS4_OK:
@@ -5376,7 +5379,7 @@ Table of Contents
 
                    Figure 88: XDR for REVOKE_STATEID4res
 
-24.13.3.  DESCRIPTION
+26.13.3.  DESCRIPTION
 
    REVOKE_STATEID invalidates a single trust entry on the data server.
    Subsequent CHUNK operations that present the revoked stateid MUST
@@ -5409,11 +5412,11 @@ Table of Contents
    new CHUNK operations presenting rsa_layout_stateid after
    REVOKE_STATEID returns.
 
-   Lock state (see Section 24.5) held by the revoked stateid is NOT
+   Lock state (see Section 26.5) held by the revoked stateid is NOT
    released as part of REVOKE_STATEID; the data server MUST transfer
-   each held lock to the MDS-escrow owner (see Section 23.1.1).
+   each held lock to the MDS-escrow owner (see Section 25.1.1).
    Dropping a chunk lock during revocation would permit a write hole and
-   is prohibited; the repair coordination sequence in Section 10.2.4
+   is prohibited; the repair coordination sequence in Section 12.2.4
    assumes that locks held by a revoked writer remain held until a
    repair client adopts them via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT.
 
@@ -5422,7 +5425,7 @@ Table of Contents
    data server MUST return NFS4ERR_PERM.
 
    REVOKE_STATEID is scoped to the issuing metadata server's entries
-   (see the tagging rule in Section 24.12).  The data server MUST NOT
+   (see the tagging rule in Section 26.12).  The data server MUST NOT
    remove an entry that was registered by a different metadata server,
    even if rsa_layout_stateid happens to match.  In a multi-metadata-
    server deployment, one metadata server therefore cannot revoke
@@ -5434,7 +5437,7 @@ Table of Contents
    therefore does not need to track precisely which entries are
    currently live on which data server in order to revoke safely.
 
-24.13.4.  RESPONSE CODES
+26.13.4.  RESPONSE CODES
 
    *  NFS4_OK: the trust entry was removed, or no matching entry existed
       (idempotent).
@@ -5459,10 +5462,10 @@ Table of Contents
    *  NFS4ERR_SERVERFAULT: the data server failed while processing the
       request.
 
-24.14.  Operation 90: BULK_REVOKE_STATEID - Revoke All Stateids for a
+26.14.  Operation 90: BULK_REVOKE_STATEID - Revoke All Stateids for a
         Client
 
-24.14.1.  ARGUMENTS
+26.14.1.  ARGUMENTS
 
       /// struct BULK_REVOKE_STATEID4args {
       ///     clientid4       brsa_clientid;
@@ -5470,7 +5473,7 @@ Table of Contents
 
                 Figure 89: XDR for BULK_REVOKE_STATEID4args
 
-24.14.2.  RESULTS
+26.14.2.  RESULTS
 
       /// union BULK_REVOKE_STATEID4res switch (nfsstat4 brsr_status) {
       ///     case NFS4_OK:
@@ -5481,7 +5484,7 @@ Table of Contents
 
                  Figure 90: XDR for BULK_REVOKE_STATEID4res
 
-24.14.3.  DESCRIPTION
+26.14.3.  DESCRIPTION
 
    BULK_REVOKE_STATEID removes every trust entry on the data server that
    was registered on behalf of the named client.  The data server
@@ -5503,10 +5506,10 @@ Table of Contents
       reconnects to a data server, it MAY issue
       BULK_REVOKE_STATEID(brsa_clientid = all-zeros) to clear the prior
       trust table before re-issuing TRUST_STATEID as clients reclaim.
-      See Section 4.4.8.
+      See Section 6.4.8.
 
    BULK_REVOKE_STATEID is scoped to the issuing metadata server's
-   entries (see the tagging rule in Section 24.12).  The data server
+   entries (see the tagging rule in Section 26.12).  The data server
    MUST NOT affect entries registered by a different metadata server.
    Consequently, in a multi-metadata-server deployment sharing a single
    data server, one metadata server cannot clear another metadata
@@ -5530,9 +5533,9 @@ Table of Contents
    Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent (no error is
    returned if there are no matching entries) and preserves chunk locks
    held under any revoked stateid by transferring them to the MDS-escrow
-   owner (see Section 23.1.1), rather than dropping them.
+   owner (see Section 25.1.1), rather than dropping them.
 
-24.14.4.  RESPONSE CODES
+26.14.4.  RESPONSE CODES
 
    *  NFS4_OK: the matching entries were removed, or there were none
       (idempotent).
@@ -5551,7 +5554,7 @@ Table of Contents
    *  NFS4ERR_SERVERFAULT: the data server failed while processing the
       request.
 
-25.  New NFSv4.2 Callback Operations
+27.  New NFSv4.2 Callback Operations
 
       ///
       /// /* New callback operations for Erasure Coding start here */
@@ -5561,10 +5564,10 @@ Table of Contents
 
                      Figure 91: Callback Operations XDR
 
-25.1.  Callback Operation 16: CB_CHUNK_REPAIR - Request Repair of
+27.1.  Callback Operation 16: CB_CHUNK_REPAIR - Request Repair of
        Inconsistent Chunk Ranges
 
-25.1.1.  ARGUMENTS
+27.1.1.  ARGUMENTS
 
       /// struct cb_chunk_range4 {
       ///     offset4         ccr_offset;
@@ -5581,7 +5584,7 @@ Table of Contents
 
                   Figure 92: XDR for CB_CHUNK_REPAIR4args
 
-25.1.2.  RESULTS
+27.1.2.  RESULTS
 
       /// struct CB_CHUNK_REPAIR4res {
       ///     nfsstat4           ccrr_status;
@@ -5589,11 +5592,11 @@ Table of Contents
 
                    Figure 93: XDR for CB_CHUNK_REPAIR4res
 
-25.1.3.  DESCRIPTION
+27.1.3.  DESCRIPTION
 
    CB_CHUNK_REPAIR is sent by the metadata server to request that a
    selected client repair one or more inconsistent chunk ranges.
-   Selection follows the rules in Section 10.2.4; those rules are
+   Selection follows the rules in Section 12.2.4; those rules are
    normative for how the client MUST respond on receipt of this
    callback.
 
@@ -5620,7 +5623,7 @@ Table of Contents
    The ccra_ranges array lists every chunk range the metadata server
    requests the client to repair.  Each entry carries its own ccr_error
    describing the failure mode the client is being asked to remedy.  The
-   repair strategy depends on the error code; see Section 10.2.4 for the
+   repair strategy depends on the error code; see Section 12.2.4 for the
    normative and guidance split.
 
    The metadata server SHOULD keep each CB_CHUNK_REPAIR compound within
@@ -5634,11 +5637,11 @@ Table of Contents
    The fact that a range appears in ccra_ranges implies the data server
    holds a chunk lock on the range (the failure occurred in or around a
    PENDING or FINALIZED state that established the lock).  The repair
-   client MUST use CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT (Section 24.5)
+   client MUST use CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT (Section 26.5)
    to take ownership of the lock before issuing CHUNK_WRITE_REPAIR,
    CHUNK_ROLLBACK, or CHUNK_WRITE on any chunk in a requested range.
 
-25.1.4.  Response Codes
+27.1.4.  Response Codes
 
    The ccrr_status value returned by the client has the following
    normative meanings to the metadata server:
@@ -5664,15 +5667,15 @@ Table of Contents
       to reconstruct and rollback is also impossible.  The metadata
       server MUST NOT retry the repair and transitions the affected
       ranges into an implementation-defined damaged state.  See
-      Section 20.1.5.
+      Section 22.1.5.
 
    All other error codes listed in Table 7 are treated by the metadata
    server as retriable: the metadata server MAY issue a subsequent
    CB_CHUNK_REPAIR to the same or a different client.  If the client
    becomes unreachable (no response within the deadline), the metadata
-   server re-selects per Section 10.2.4.
+   server re-selects per Section 12.2.4.
 
-26.  Security Considerations
+28.  Security Considerations
 
    The combination of components in a pNFS system is required to
    preserve the security properties of NFSv4.1+ with respect to an
@@ -5734,7 +5737,7 @@ Table of Contents
    intended to prevent clients from getting an error on I/Os done after
    the client was fenced off.
 
-26.1.  CRC32 Integrity Scope
+28.1.  CRC32 Integrity Scope
 
    The CRC32 values carried in CHUNK_WRITE and returned from CHUNK_READ
    are intended to detect accidental data corruption during storage or
@@ -5745,9 +5748,9 @@ Table of Contents
    match.  The "data integrity" provided by the CRC32 mechanism in this
    document refers to error detection, not protection against an active
    attacker.  Deployments requiring protection against active attackers
-   SHOULD use RPC-over-TLS (see Section 26.4) or RPCSEC_GSS.
+   SHOULD use RPC-over-TLS (see Section 28.4) or RPCSEC_GSS.
 
-26.2.  Chunk Lock and Lease Expiry
+28.2.  Chunk Lock and Lease Expiry
 
    When a client holds a chunk lock (acquired via CHUNK_LOCK) and its
    lease expires or the client crashes, the lock is released implicitly
@@ -5759,7 +5762,7 @@ Table of Contents
    metadata server's LAYOUTERROR and LAYOUTRETURN mechanisms provide the
    coordination point for detecting and resolving such races.
 
-26.3.  Error Code Information Disclosure
+28.3.  Error Code Information Disclosure
 
    The new error codes NFS4ERR_CHUNK_LOCKED (10099) and
    NFS4ERR_PAYLOAD_NOT_CONSISTENT (10098) convey information about chunk
@@ -5774,7 +5777,7 @@ Table of Contents
    credential verification and return NFS4ERR_ACCESS for unverified
    callers rather than the more specific error codes.
 
-26.4.  Transport Layer Security
+28.4.  Transport Layer Security
 
    RPC-over-TLS [RFC9289] MAY be used to protect traffic between the
    client and the metadata server and between the client and data
@@ -5782,18 +5785,18 @@ Table of Contents
    synthetic uid/gid credentials carried in AUTH_SYS remain the access
    control mechanism; TLS provides confidentiality and integrity for the
    transport but does not replace the fencing model described in
-   Section 4.2.  Servers that require transport security SHOULD
+   Section 6.2.  Servers that require transport security SHOULD
    advertise this via the SECINFO mechanism rather than silently
    dropping connections.
 
-26.5.  RPCSEC_GSS and Security Services
+28.5.  RPCSEC_GSS and Security Services
 
    _Why we don't want to support RPCSEC_GSS._
 
    Because of the special use of principals within the loosely coupled
    model, the issues are different depending on the coupling model.
 
-26.5.1.  Loosely Coupled
+28.5.1.  Loosely Coupled
 
    RPCSEC_GSS version 3 (RPCSEC_GSSv3) [RFC7861] contains facilities
    that would allow it to be used to authorize the client to the storage
@@ -5813,7 +5816,7 @@ Table of Contents
    which would allow such support, either through the use of
    RPCSEC_GSSv3 or in other ways.
 
-26.5.2.  Tightly Coupled
+28.5.2.  Tightly Coupled
 
    With tight coupling, the principal used to access the metadata file
    is exactly the same as used to access the data file.  The storage
@@ -5825,7 +5828,7 @@ Table of Contents
    control protocol to validate the RPC credentials to the metadata
    server.
 
-27.  IANA Considerations
+29.  IANA Considerations
 
    [RFC8881] introduced the "pNFS Layout Types Registry"; new layout
    type numbers in this registry need to be assigned by IANA.  This
@@ -5880,7 +5883,7 @@ Table of Contents
    Standards Track (0x0000–0x00FF)  Encoding types intended for broad
       interoperability.  The specification MUST include a complete
       mathematical description sufficient for independent interoperable
-      implementations (see Section 7.1.1).  Allocated by IETF Review.
+      implementations (see Section 9.1.1).  Allocated by IETF Review.
 
    Experimental (0x0100–0x0FFF)  Encoding types under development or
       evaluation.  An Internet-Draft is sufficient for allocation.  The
@@ -5958,10 +5961,10 @@ reffs (MDS and DS) and ec_demo (Client)
       Vandermonde, Mojette systematic, Mojette non-systematic).
 
    *  The chunk_guard4 CAS primitive, including the conflict-detection
-      and deterministic-tiebreaker rules in Section 23.1, is implemented
+      and deterministic-tiebreaker rules in Section 25.1, is implemented
       on both the client and the data server.
 
-   *  Per-chunk CRC32 integrity checking (see Section 26.1) is
+   *  Per-chunk CRC32 integrity checking (see Section 28.1) is
       implemented end-to-end.
 
    *  Per-inode persistent storage of chunk state (PENDING / FINALIZED /
@@ -6140,7 +6143,7 @@ Server-Side Byte-Range Lock Manager per File
       replicated for high availability, deferring the hardest part of
       the problem.
 
-   The current design uses CHUNK_LOCK (see Section 24.5) but only on the
+   The current design uses CHUNK_LOCK (see Section 26.5) but only on the
    repair path, not on the normal write path.
 
 Modified Two-Touch Paxos on Each Chunk
@@ -6165,7 +6168,7 @@ Modified Two-Touch Paxos on Each Chunk
    Working-group feedback on this proposal was uniformly negative.  The
    current design retains the option -- nothing in this specification
    prevents an implementation from running classical consensus
-   internally among MDS replicas (see Section 11.5) -- but does not
+   internally among MDS replicas (see Section 13.5) -- but does not
    require it per write.
 
 Automatic Commit of Empty Chunks
@@ -6200,7 +6203,7 @@ Global Clock or Wall-Clock-Based Generation Counter
 
    The current design uses a per-chunk monotonic counter scoped to the
    chunk on the data server, with cg_client_id as the disambiguator
-   across clients.  See Section 23.1.
+   across clients.  See Section 25.1.
 
 Acknowledgments
 
