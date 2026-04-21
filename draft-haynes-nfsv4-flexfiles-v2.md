@@ -2039,23 +2039,161 @@ client will send a CHUNK_FINALIZE in a subsequent compound to inform
 the data server that the chunk is consistent and can be overwritten
 by another CHUNK_WRITE.
 
-If the CHUNK_WRITE results in an inconsistent data block or if the
-data server returned NFS4ERR_CHUNK_LOCKED, then the client sends a
-LAYOUTERROR to the metadata server with a code of
-NFS4ERR_PAYLOAD_NOT_CONSISTENT. The metadata server then selects a
-client (or data server) to repair the data block.
+If the CHUNK_WRITE results in an inconsistent data block, or if the
+data server returns NFS4ERR_CHUNK_LOCKED, the client reports the
+condition to the metadata server via LAYOUTERROR with an error code
+of NFS4ERR_PAYLOAD_NOT_CONSISTENT.
 
-<cref source='Tom'>Since we don't have all potential chunks available,
-it can either chose the winner or pick a random client/data server.
-If the client is the winner, then the process is to use CHUNK_WRITE_REPAIR
-to overwrite the chunks which are not consistent. If it is a random
-client, then the client should just CHUNK_ROLLBACK and CHUNK_UNLOCK
-until it gets back to the original chunk.</cref>
+### Selecting the Repair Client {#sec-repair-selection}
 
-The client which is repairing the chunk can decide to rollback to
-the previous chunk via CHUNK_ROLLBACK. Note that CHUNK_ROLLBACK
-does not unlock the chunk, that has to be explicitly done via
-CHUNK_UNLOCK.
+The metadata server is the authority that selects which client
+(or, in a tightly coupled deployment, which data server) repairs
+an inconsistent payload.  This is analogous to the way the
+metadata server assigns per-mirror priority via ffv2ds_efficiency
+(see {{sec-select-mirror}}): the protocol does not prescribe the
+selection algorithm, and each deployment MAY tune its policy.
+
+Implementations MAY consider factors such as:
+
+- Whether a client holds an active write layout on the affected
+  payload (the client most likely to hold surviving shards in
+  cache).
+- Whether a client has previously reported consistent shards to
+  the metadata server via LAYOUTSTATS or a prior LAYOUTERROR.
+- Whether the layout exposes a data server carrying
+  FFV2_DS_FLAGS_REPAIR as a target for reconstructed shards.
+- Network proximity, observed latency, or recent client load --
+  the same class of information that informs ffv2ds_efficiency.
+
+The selection algorithm is not normative.  What is normative is
+that every client MUST be prepared to:
+
+1.  Receive a repair request for a payload that the client does
+    not have an outstanding write layout on, and did not write;
+    and
+
+2.  Continue its own workload after reporting
+    NFS4ERR_PAYLOAD_NOT_CONSISTENT without itself being selected
+    to repair the payload it reported.
+
+The metadata server signals the selected client via the
+CB_CHUNK_REPAIR callback ({{sec-CB_CHUNK_REPAIR}}), which
+identifies the file, the affected ranges (each with its own
+triggering nfsstat4), and a wall-clock deadline.  A client that
+receives CB_CHUNK_REPAIR for a file for which it does not
+already hold a layout MUST acquire a layout via LAYOUTGET before
+attempting the repair.
+
+### Repair Protocol: Normative vs. Informative
+
+The selection algorithm is non-normative and deployment-tunable.
+The externally-observable state transitions of the repair flow
+are normative.  The line between the two is drawn at what
+another party on the wire -- the metadata server, another
+client, a reader -- can observe.  What no other party can see
+(client-internal ordering, retry policy, whether to CHUNK_READ
+first to confirm the failure) is left to implementations.
+
+The following requirements are normative.  An implementation
+that violates any of these can leak inconsistency or write-holes
+into the cluster:
+
+1.  **Final state flat.**  Every shard in every range identified
+    in a CB_CHUNK_REPAIR MUST reach either the COMMITTED state
+    (repaired) or the EMPTY state (rolled back).  No shard may
+    be left in PENDING or FINALIZED indefinitely.
+
+2.  **Lock before write.**  The repair client MUST adopt the
+    lock on every affected range via CHUNK_LOCK with
+    CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) before issuing
+    any CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK, or CHUNK_WRITE on a
+    chunk in that range.  The lock on the affected chunks is
+    held continuously from the failure that triggered
+    CB_CHUNK_REPAIR through the adoption; at no point is the
+    range unlocked.
+
+3.  **Clear the errored state.**  On the reconstruction path,
+    the repair client MUST issue CHUNK_REPAIRED
+    ({{sec-CHUNK_REPAIRED}}) after CHUNK_COMMIT.  Without it,
+    readers continue to see holes regardless of on-disk state.
+
+4.  **Release locks explicitly.**  CHUNK_ROLLBACK does not
+    release chunk locks.  On the rollback path the client MUST
+    issue CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) on each affected
+    chunk.  A client that walks away without either completing
+    CHUNK_REPAIRED or issuing CHUNK_UNLOCK holds the locks
+    until lease expiry, blocking progress for other writers.
+
+5.  **Deadline honored.**  The client MUST drive every range to
+    its final flat state before ccra_deadline, or MUST respond
+    to the CB_CHUNK_REPAIR with NFS4ERR_DELAY (requesting an
+    extension), NFS4ERR_CODING_NOT_SUPPORTED (declining), or
+    NFS4ERR_PAYLOAD_LOST (declaring the data unrecoverable).
+    A deadline that elapses without any of these leaves the
+    metadata server free to re-select; the client MUST NOT
+    continue repair-related CHUNK operations after the
+    deadline without first re-verifying its layout and the
+    chunk lock state.
+
+6.  **Terminal return codes.**  NFS4ERR_CODING_NOT_SUPPORTED
+    MUST mean "decline; select another client."
+    NFS4ERR_PAYLOAD_LOST MUST mean "the data is not
+    recoverable; do not retry."  The metadata server relies on
+    these to decide whether to re-issue.
+
+The following aspects are informative / implementation-defined:
+
+- Choice between the reconstruction path (CHUNK_WRITE_REPAIR)
+  and the rollback path (CHUNK_ROLLBACK) on a given range.  The
+  protocol MUST support both; the client MAY use either based
+  on its local state and whether reconstruction is feasible
+  from surviving shards.
+- Ordering among multiple affected ranges in a single
+  CB_CHUNK_REPAIR (parallel or serial).
+- Whether to issue CHUNK_READ to confirm the failure mode
+  before reconstructing.
+- Retry policy on transient CHUNK_WRITE_REPAIR errors below the
+  deadline cutoff.
+- How the repair status is surfaced to local filesystem API
+  callers.
+
+### Carrying Out the Repair
+
+With the normative framing above, the reconstruction path is:
+
+1.  CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT on each affected
+    range ({{sec-CHUNK_LOCK}}).
+
+2.  CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) with the
+    reconstructed data for each inconsistent shard.  The
+    client's chunk_owner4 on this and all subsequent operations
+    is the one it presented in the CHUNK_LOCK ADOPT above;
+    prior owners' generation ids are now historical.
+
+3.  CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}) and CHUNK_COMMIT
+    ({{sec-CHUNK_COMMIT}}) to persist the repaired shards.
+
+4.  CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}) to clear the
+    errored state.
+
+The rollback path, when reconstruction is not possible:
+
+1.  CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT on each affected
+    range.
+
+2.  CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}) on each affected
+    shard to restore the previously committed content.
+
+3.  CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) on each shard.
+
+In both paths, the repair client SHOULD target reconstructed
+shards according to the following fallback order: first, any
+data server in the layout carrying FFV2_DS_FLAGS_REPAIR; then
+the data server the failure was reported on (ccr_error in the
+CB_CHUNK_REPAIR range); then, if both of the above are
+unreachable, a data server carrying FFV2_DS_FLAGS_SPARE.  If
+none of the above are available, the client MUST return
+NFS4ERR_PAYLOAD_LOST on the CB_CHUNK_REPAIR response.
 
 #### Single Writer Mode
 
@@ -2086,10 +2224,13 @@ chunk; the next CHUNK_WRITE is permitted immediately.
 
 In single writer mode, inconsistent blocks arise from a client or data
 server failure during a CHUNK_WRITE / CHUNK_FINALIZE sequence.  Because
-no other writer is active, the repair client is always the original writer
-(or a substitute designated by the metadata server after lease expiry).
+no other writer is active, the original writer is the typical choice
+for repair, but the metadata server MAY designate any client according
+to the rules in {{sec-repair-selection}}.  A designated client that
+did not originate the writes must follow the rollback path of that
+section if it cannot reconstruct the payload from surviving shards.
 
-The repair sequence for a single writer payload is:
+The repair sequence when the selected client is the original writer is:
 
 1. The repair client issues CHUNK_READ to identify which blocks are in an
    inconsistent state (PENDING with a CRC mismatch, or in the errored
@@ -2149,9 +2290,12 @@ In multiple writer mode, inconsistent blocks can arise from two sources:
 a client failure leaving some shards in PENDING state, or two clients
 writing different data to the same chunk before one has committed.
 
-The metadata server coordinates repair by designating a repair client
-(identified in the layout via FFV2_DS_FLAGS_REPAIR on the target data
-server).  The repair sequence is:
+The metadata server coordinates repair by designating a repair
+client according to the rules in {{sec-repair-selection}}.  The
+FFV2_DS_FLAGS_REPAIR flag, when present on a data server in the
+layout, identifies the target data server into which reconstructed
+shards should be written; it does not by itself identify the
+repair client.  The repair sequence is:
 
 1. The repair client issues CHUNK_LOCK ({{sec-CHUNK_LOCK}}) on the
    affected block range of each data server.  If any lock attempt returns
@@ -2550,6 +2694,49 @@ sizes.  At wider geometries (k >= 8), systematic Mojette offers lower
 reconstruction cost.  Non-systematic Mojette is suitable only for
 archive workloads where reads are infrequent.
 
+## First-Line Substitution to a Spare {#sec-spare-substitution}
+
+When a client's CHUNK_WRITE to an FFV2_DS_FLAGS_ACTIVE data server
+fails with a transport-level error, NFS4ERR_IO, NFS4ERR_NOSPC, or
+any other code that indicates the data server cannot accept the
+shard, and the layout includes a data server flagged
+FFV2_DS_FLAGS_SPARE ({{sec-ffv2_ds_flags4}}) that is not already
+holding a shard for the affected payload, the client MAY substitute
+the spare for the failing active data server for this write.
+
+Substitution avoids the full metadata-server repair flow.  The
+client issues CHUNK_WRITE to the spare in place of the failing
+ACTIVE and, if successful, proceeds with CHUNK_FINALIZE and
+CHUNK_COMMIT against the full set of data servers the payload
+now resides on (the k-1 healthy ACTIVE plus the substituted
+SPARE).  The spare becomes the i-th shard holder for the
+affected payload.
+
+The client MUST inform the metadata server of the substitution
+before returning the layout.  This is done via LAYOUTERROR on
+the failing ACTIVE (reporting the error code the client
+encountered) in the same compound as, or before, any
+LAYOUTSTATS reporting of the substitution.  The metadata server
+uses the LAYOUTERROR to decide whether to update the layout in
+place -- promoting the spare to ACTIVE and demoting the failing
+ACTIVE to a stale-or-unreachable state -- or to push new
+layouts via CB_RECALL_ANY to other clients so readers do not
+continue to consult the failing ACTIVE.
+
+Substitution is optional.  A client that does not implement it,
+or does not have a suitable spare in the layout, falls through
+to the normal write-hole handling below.  Substitution is also
+not available to clients writing with cwa_stable == FILE_SYNC
+unless the client is prepared to drive FILE_SYNC semantics on
+the spare as well; otherwise the substitution silently
+downgrades the durability contract.
+
+Substitution MUST NOT be used when the existing PENDING state
+on any shard of the affected payload carries a different
+chunk_guard4 than the current transaction (the range has been
+adopted by a repair client already -- the normal repair flow
+applies and substitution would collide).
+
 ## Handling write holes
 
 A write hole occurs when a client begins writing a stripe but does not
@@ -2566,12 +2753,26 @@ consistent from the reader's perspective throughout, because PENDING
 blocks carry the new chunk_guard4 value and CHUNK_READ returns the last
 COMMITTED or FINALIZED block when a PENDING block exists.
 
+A single-shard CHUNK_WRITE failure MAY also be handled without
+CHUNK_ROLLBACK by substituting the failing data server with an
+FFV2_DS_FLAGS_SPARE, per {{sec-spare-substitution}}.  This
+avoids engaging the metadata server's repair flow and is the
+preferred path on transient single-DS failures when the layout
+exposes a suitable spare.
+
 In the multiple writer model, a write hole can also arise when two clients
 are racing.  The chunk_guard4 value on each shard identifies which
 transaction wrote it.  A reader that finds shards with different guard
 values detects the inconsistency and either retries (if a concurrent write
 is still in progress) or reports NFS4ERR_PAYLOAD_NOT_CONSISTENT to the
 metadata server to trigger repair.
+
+When substitution and CHUNK_ROLLBACK are both unavailable, and
+the payload cannot be reconstructed because too many shards have
+been lost (for example, a catastrophic multi-DS failure with no
+spares provisioned), the repair flow ultimately terminates with
+NFS4ERR_PAYLOAD_LOST; see
+{{sec-NFS4ERR_PAYLOAD_LOST}}.
 
 # NFSv4.2 Operations Allowed to Data Files
 
@@ -2988,6 +3189,7 @@ revoked clients from the respective data files as described in
    /// const NFS4ERR_PAYLOAD_NOT_CONSISTENT = 10098;
    /// const NFS4ERR_CHUNK_LOCKED           = 10099;
    /// const NFS4ERR_CHUNK_GUARDED          = 10100;
+   /// const NFS4ERR_PAYLOAD_LOST           = 10101;
    ///
 ~~~
 {: #fig-errors-xdr title="Errors XDR" }
@@ -3002,6 +3204,7 @@ The new error codes are shown in {{fig-errors-xdr}}.
  | NFS4ERR_PAYLOAD_NOT_CONSISTENT | 10098  | {{sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}} |
  | NFS4ERR_CHUNK_LOCKED | 10099  | {{sec-NFS4ERR_CHUNK_LOCKED}} |
  | NFS4ERR_CHUNK_GUARDED | 10100  | {{sec-NFS4ERR_CHUNK_GUARDED}} |
+ | NFS4ERR_PAYLOAD_LOST | 10101  | {{sec-NFS4ERR_PAYLOAD_LOST}} |
 {: #tbl-protocol-errors title="X"}
 
 ### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
@@ -3033,6 +3236,29 @@ metadata server can then arrange for repair of the file.
 The client tried a guarded CHUNK_WRITE on a chunk which did not match
 the guard on the chunk in the data file. As such, the CHUNK_WRITE was
 rejected and the client should refresh the chunk it has cached.
+
+### NFS4ERR_PAYLOAD_LOST (Error Code 10101) {#sec-NFS4ERR_PAYLOAD_LOST}
+
+Returned by a repair client on the CB_CHUNK_REPAIR response
+(ccrr_status) to indicate that the identified ranges cannot be
+repaired and the underlying data is no longer recoverable.
+Causes include: too few surviving shards to meet the
+reconstruction threshold (Katz criterion for Mojette, any
+k-of-(k+m) subset for Reed-Solomon Vandermonde), inability to
+roll back to a previously committed payload because that payload
+is also lost, or exhaustion of all FFV2_DS_FLAGS_SPARE and
+FFV2_DS_FLAGS_REPAIR data servers available in the layout.
+
+On receipt, the metadata server MUST NOT retry the repair by
+selecting a different client -- the payload is damaged and the
+metadata server transitions the affected file or byte range into
+an implementation-defined damaged state.  Operator notification
+and restore-from-snapshot are out of scope for this specification.
+
+NFS4ERR_PAYLOAD_LOST is distinct from NFS4ERR_DELAY (transient;
+metadata server MAY extend the deadline or re-select) and from
+NFS4ERR_IO (per-operation failure; metadata server MAY retry or
+re-select).  Only NFS4ERR_PAYLOAD_LOST is terminal.
 
 <cref source="Tom">This really points out either we need an array of
 errors in the chunk operation responses or we need to not send an
@@ -3070,7 +3296,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
 
  | Callback Operation| Errors                                       |
  | ---
- | CB_CHUNK_REPAIR | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DEADSESSION, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_ISDIR, NFS4ERR_LOCKED, NFS4ERR_NOTSUPP, NFS4ERR_OLD_STATEID, NFS4ERR_SERVERFAULT, NFS4ERR_STALE,          |
+ | CB_CHUNK_REPAIR | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DEADSESSION, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_ISDIR, NFS4ERR_LOCKED, NFS4ERR_NOTSUPP, NFS4ERR_OLD_STATEID, NFS4ERR_PAYLOAD_LOST, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
 {: #tbl-cb-ops-and-errors title="Callback Operations and Their Valid Errors"}
 
 ## Errors and the Operations That Use Them
@@ -3082,6 +3308,7 @@ are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
  | Error                            | Operations                  |
  | ---
  | NFS4ERR_CODING_NOT_SUPPORTED     | CB_CHUNK_REPAIR, LAYOUTGET  |
+ | NFS4ERR_PAYLOAD_LOST             | CB_CHUNK_REPAIR             |
 {: #tbl-errors-and-ops title="Errors and the Operations That Use Them"}
 
 # EXCHGID4_FLAG_USE_PNFS_DS
@@ -3131,6 +3358,8 @@ chunks.
 ## chunk_guard4 {#sec-chunk_guard4}
 
 ~~~ xdr
+   /// const CHUNK_GUARD_CLIENT_ID_MDS  = 0xFFFFFFFF;
+   ///
    /// struct chunk_guard4 {
    ///     uint32_t   cg_gen_id;
    ///     uint32_t   cg_client_id;
@@ -3146,6 +3375,28 @@ an unique id established when the client did the EXCHANGE_ID operation
 lower 32 bits are set passed back in the LAYOUTGET operation (see
 Section 18.43 of {{RFC8881}}) as the ffm_client_id (see
 {{sec-ffv2-mirror4}}).
+
+### Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS {#sec-chunk_guard_mds}
+
+The value `CHUNK_GUARD_CLIENT_ID_MDS` (0xFFFFFFFF) is reserved.
+It denotes that the chunk lock is held by the metadata server
+itself, in escrow during a repair coordination sequence (see
+{{sec-repair-selection}}).  The data server produces a
+chunk_guard4 with this cg_client_id when the metadata server
+revokes the prior holder's stateid while that holder still holds
+chunk locks; the locks MUST NOT be dropped and are transferred to
+the MDS-escrow owner instead.
+
+The metadata server does not originate CHUNK_LOCK or CHUNK_WRITE
+traffic on its own session.  Clients MUST NOT present
+CHUNK_GUARD_CLIENT_ID_MDS as the cg_client_id of any
+client-originated chunk_guard4 or chunk_owner4.  A data server
+that receives such a value from a client MUST reject the
+operation with NFS4ERR_INVAL.
+
+The MDS-escrow owner is released only by a CHUNK_LOCK from the
+client selected via CB_CHUNK_REPAIR, carrying
+CHUNK_LOCK_FLAGS_ADOPT.  See {{sec-CHUNK_LOCK}}.
 
 ## chunk_owner4
 
@@ -3408,11 +3659,14 @@ headers in the desired data range.
 ### ARGUMENTS
 
 ~~~ xdr
+   /// const CHUNK_LOCK_FLAGS_ADOPT  = 0x00000001;
+   ///
    /// struct CHUNK_LOCK4args {
    ///     /* CURRENT_FH: file */
    ///     stateid4        cla_stateid;
    ///     offset4         cla_offset;
    ///     count4          cla_count;
+   ///     uint32_t        cla_flags;
    ///     chunk_owner4    cla_owner;
    /// };
 ~~~
@@ -3439,17 +3693,78 @@ by cla_offset and cla_count.  While locked, other clients' CHUNK_WRITE
 operations to the same block range will fail with NFS4ERR_CHUNK_LOCKED.
 The lock is associated with the chunk_owner4 in cla_owner.
 
-If the blocks are already locked by a different owner, the operation
-returns NFS4ERR_CHUNK_LOCKED with the clr_owner field identifying the
-current lock holder.
+If the blocks are already locked by a different owner and
+cla_flags does not include CHUNK_LOCK_FLAGS_ADOPT, the operation
+returns NFS4ERR_CHUNK_LOCKED with the clr_owner field identifying
+the current lock holder.
 
 CHUNK_LOCK is used in the multiple writer mode ({{sec-multi-writer}})
-to coordinate concurrent access to the same block range.  A client
-that needs to repair chunks SHOULD acquire the lock before writing
-replacement data.
+to coordinate concurrent access to the same block range, and in the
+repair flow ({{sec-repair-selection}}) to transfer lock ownership
+to a repair client.
 
 The lock is released by CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) or
 implicitly when the client's lease expires.
+
+#### Lock Transfer via CHUNK_LOCK_FLAGS_ADOPT
+
+The CHUNK_LOCK_FLAGS_ADOPT flag in cla_flags requests an atomic
+transfer of lock ownership to cla_owner for every chunk in
+[cla_offset, cla_offset+cla_count).  The data server MUST perform
+the transfer as a single atomic step per chunk: there is no window
+in which the chunk is unlocked.  After a successful ADOPT, subsequent
+CHUNK_WRITE, CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK, and CHUNK_UNLOCK
+operations MUST present cla_owner as their chunk_owner4.
+
+CHUNK_LOCK_FLAGS_ADOPT is the sole mechanism by which a chunk lock
+can change hands without first being released.  The lock ordering
+invariant -- that every chunk in a payload transitioning through
+repair is held by exactly one owner continuously from failure
+detection to repair completion -- depends on it.
+
+CHUNK_LOCK_FLAGS_ADOPT is valid only when the caller has been
+selected as the repair client for the range by the metadata server,
+typically via CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).  A data
+server that receives CHUNK_LOCK with the ADOPT flag from a client
+that has not been so designated MAY reject the operation with
+NFS4ERR_ACCESS.  The mechanism by which the data server determines
+designation is coupling-model dependent:
+
+- In a tightly coupled deployment, the metadata server notifies the
+  data server via the control protocol (e.g., TRUST_STATEID with
+  the new client's stateid or a similar facility).
+
+- In a loosely coupled deployment, the data server MAY rely on the
+  metadata server's authentication of the client and accept ADOPT
+  from any authenticated client holding a current layout that
+  includes the range.  The invariant cost is that a misbehaving
+  client can trigger spurious ownership transfers; the write-hole
+  exposure is bounded by the chunk_guard4 checks that subsequent
+  CHUNK_WRITEs from displaced writers experience.
+
+The current lock holder at the moment of ADOPT MAY be:
+
+1. Another client whose stateid remains valid (for example, a
+   client that has stopped making progress but has not yet lost
+   its lease).  The prior owner's PENDING or FINALIZED shards
+   remain on disk until the new owner issues CHUNK_WRITE_REPAIR,
+   CHUNK_ROLLBACK, or CHUNK_COMMIT.
+
+2. The metadata server itself, acting through the
+   CHUNK_GUARD_CLIENT_ID_MDS escrow owner
+   ({{sec-chunk_guard_mds}}).  This occurs when the metadata
+   server has revoked the prior holder's stateid in a tightly
+   coupled deployment.
+
+In either case, ADOPT's effect from the repair client's
+perspective is the same: after the successful return the caller
+holds the lock and may drive the range to consistency.
+
+The data server MUST reject CHUNK_LOCK with
+CHUNK_LOCK_FLAGS_ADOPT if cla_owner's cg_client_id equals
+CHUNK_GUARD_CLIENT_ID_MDS -- that value is reserved for server
+production and MUST NOT be presented by a client.  The operation
+returns NFS4ERR_INVAL in that case.
 
 ## Operation 82: CHUNK_READ - Read Chunks from File {#sec-CHUNK_READ}
 
@@ -3931,6 +4246,140 @@ The target blocks SHOULD be in the errored state (set by
 CHUNK_ERROR) or EMPTY.  If the blocks are in the COMMITTED state
 with valid data, the data server MAY reject the repair to prevent
 overwriting good data.
+
+# New NFSv4.2 Callback Operations
+
+~~~ xdr
+   ///
+   /// /* New callback operations for Erasure Coding start here */
+   ///
+   ///  OP_CB_CHUNK_REPAIR     = 16,
+   ///
+~~~
+{: #fig-cb-ops-xdr title="Callback Operations XDR" }
+
+## Callback Operation 16: CB_CHUNK_REPAIR - Request Repair of Inconsistent Chunk Ranges {#sec-CB_CHUNK_REPAIR}
+
+### ARGUMENTS
+
+~~~ xdr
+   /// struct cb_chunk_range4 {
+   ///     offset4         ccr_offset;
+   ///     count4          ccr_count;
+   ///     nfsstat4        ccr_error;
+   /// };
+   ///
+   /// struct CB_CHUNK_REPAIR4args {
+   ///     nfs_fh4            ccra_fh;
+   ///     stateid4           ccra_layout_stateid;
+   ///     nfstime4           ccra_deadline;
+   ///     cb_chunk_range4    ccra_ranges<>;
+   /// };
+~~~
+{: #fig-CB_CHUNK_REPAIR4args title="XDR for CB_CHUNK_REPAIR4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// struct CB_CHUNK_REPAIR4res {
+   ///     nfsstat4           ccrr_status;
+   /// };
+~~~
+{: #fig-CB_CHUNK_REPAIR4res title="XDR for CB_CHUNK_REPAIR4res" }
+
+### DESCRIPTION
+
+CB_CHUNK_REPAIR is sent by the metadata server to request that
+a selected client repair one or more inconsistent chunk ranges.
+Selection follows the rules in {{sec-repair-selection}}; those
+rules are normative for how the client MUST respond on receipt
+of this callback.
+
+The ccra_fh identifies the file whose chunks are inconsistent.
+The callback compound carries the filehandle directly; there is
+no preceding PUTFH in callback compounds.
+
+The ccra_layout_stateid carries the recipient client's current
+layout stateid for the file if one is held.  A client that does
+not hold a layout on ccra_fh MUST ignore ccra_layout_stateid
+(it will be the anonymous stateid) and MUST acquire one via
+LAYOUTGET before issuing any CHUNK operation on the ranges.
+
+The ccra_deadline is a wall-clock nfstime4 (seconds and
+nanoseconds since the epoch, as defined in Section 3.3.1 of
+{{RFC8881}}) by which the client is expected to have driven every
+range to completion (CHUNK_REPAIRED on the reconstruction path,
+or CHUNK_UNLOCK on the rollback path).  Missing the deadline
+does not corrupt state -- the metadata server MAY re-select
+another repair client after the deadline elapses -- but a
+client that has missed the deadline MUST re-verify its layout
+and the chunk lock state before continuing any repair-related
+CHUNK operation.
+
+The ccra_ranges array lists every chunk range the metadata
+server requests the client to repair.  Each entry carries its
+own ccr_error describing the failure mode the client is being
+asked to remedy.  The repair strategy depends on the error code;
+see {{sec-repair-selection}} for the normative and guidance
+split.
+
+The metadata server SHOULD keep each CB_CHUNK_REPAIR compound
+within the back-channel maximum (ca_maxrequestsize) negotiated
+in CREATE_SESSION (see Section 18.36.3 of {{RFC8881}}).  If the
+set of affected ranges would exceed that maximum, the metadata
+server MAY issue multiple CB_CHUNK_REPAIR callbacks to the same
+client.  Each callback is independent; the client drives each
+to completion before the deadline on that callback's ranges.
+
+The fact that a range appears in ccra_ranges implies the data
+server holds a chunk lock on the range (the failure occurred in
+or around a PENDING or FINALIZED state that established the
+lock).  The repair client MUST use CHUNK_LOCK with
+CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) to take ownership
+of the lock before issuing CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK,
+or CHUNK_WRITE on any chunk in a requested range.
+
+### Response Codes
+
+The ccrr_status value returned by the client has the following
+normative meanings to the metadata server:
+
+NFS4_OK
+
+:  The client has accepted the request and driven every range in
+this callback to completion (CHUNK_REPAIRED or CHUNK_UNLOCK on
+every affected chunk).  The metadata server clears the repair
+queue entry.
+
+NFS4ERR_DELAY
+
+:  The client has accepted the request but requires more time.
+The metadata server MAY extend the deadline by issuing a new
+CB_CHUNK_REPAIR with a later ccra_deadline, or MAY re-select
+another client.  The client continues to hold any locks it has
+adopted until the original or extended deadline.
+
+NFS4ERR_CODING_NOT_SUPPORTED
+
+:  The client does not implement the encoding type of the layout
+and cannot reconstruct.  The metadata server MUST NOT retry with
+the same client and SHOULD select a different client.
+
+NFS4ERR_PAYLOAD_LOST
+
+:  The client has concluded that the identified ranges cannot
+be repaired -- there are not enough surviving shards to
+reconstruct and rollback is also impossible.  The metadata
+server MUST NOT retry the repair and transitions the affected
+ranges into an implementation-defined damaged state.  See
+{{sec-NFS4ERR_PAYLOAD_LOST}}.
+
+All other error codes listed in {{tbl-cb-ops-and-errors}} are
+treated by the metadata server as retriable: the metadata server
+MAY issue a subsequent CB_CHUNK_REPAIR to the same or a
+different client.  If the client becomes unreachable (no
+response within the deadline), the metadata server re-selects
+per {{sec-repair-selection}}.
 
 #  Security Considerations
 
