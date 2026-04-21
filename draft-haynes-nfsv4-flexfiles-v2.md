@@ -3581,10 +3581,10 @@ generated fields.
 ~~~ xdr
    /// struct CHUNK_REPAIRED4args {
    ///     /* CURRENT_FH: file */
-   ///     stateid4        cpa_stateid;
-   ///     offset4         cpa_offset;
-   ///     count4          cpa_count;
-   ///     chunk_owner4    cpa_owner;
+   ///     stateid4        cra_stateid;
+   ///     offset4         cra_offset;
+   ///     count4          cra_count;
+   ///     chunk_owner4    cra_owner;
    /// };
 ~~~
 {: #fig-CHUNK_REPAIRED4args title="XDR for CHUNK_REPAIRED4args" }
@@ -3592,7 +3592,7 @@ generated fields.
 ### RESULTS
 
 ~~~ xdr
-   /// union CHUNK_REPAIRED4res switch (nfsstat4 cpr_status) {
+   /// union CHUNK_REPAIRED4res switch (nfsstat4 crr_status) {
    ///     case NFS4_OK:
    ///         void;
    ///     default:
@@ -3609,8 +3609,8 @@ repair client writes replacement data via CHUNK_WRITE_REPAIR
 ({{sec-CHUNK_WRITE_REPAIR}}), then calls CHUNK_REPAIRED to clear
 the error state and make the blocks available for normal reads.
 
-The cpa_offset and cpa_count identify the repaired block range.
-The cpa_owner identifies the repair client that performed the
+The cra_offset and cra_count identify the repaired block range.
+The cra_owner identifies the repair client that performed the
 repair.  The data server verifies that the blocks were previously
 in error and that the repair data has been written and finalized.
 
@@ -3624,9 +3624,9 @@ NFS4ERR_INVAL.
 ~~~ xdr
    /// struct CHUNK_ROLLBACK4args {
    ///     /* CURRENT_FH: file */
-   ///     offset4         crb_offset;
-   ///     count4          crb_count;
-   ///     chunk_owner4    crb_chunks<>;
+   ///     offset4         cra_offset;
+   ///     count4          cra_count;
+   ///     chunk_owner4    cra_chunks<>;
    /// };
 ~~~
 {: #fig-CHUNK_ROLLBACK4args title="XDR for CHUNK_ROLLBACK4args" }
@@ -3656,8 +3656,8 @@ CHUNK_ROLLBACK reverts blocks from the PENDING or FINALIZED state
 back to their previous state, effectively undoing a CHUNK_WRITE
 that has not yet been committed via CHUNK_COMMIT.
 
-The crb_offset is the starting block offset and crb_count is the
-number of blocks to roll back.  The crb_chunks array lists the
+The cra_offset is the starting block offset and cra_count is the
+number of blocks to roll back.  The cra_chunks array lists the
 chunk_owner4 entries whose blocks are to be rolled back.  Each
 owner's blocks at the specified offsets MUST be in the PENDING or
 FINALIZED state; blocks that have already been committed via
