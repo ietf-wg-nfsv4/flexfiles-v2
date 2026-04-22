@@ -1056,7 +1056,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Haynes</td>
-<td class="center">Expires 23 October 2026</td>
+<td class="center">Expires 24 October 2026</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1069,12 +1069,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-04-21" class="published">21 April 2026</time>
+<time datetime="2026-04-22" class="published">22 April 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2026-10-23">23 October 2026</time></dd>
+<dd class="expires"><time datetime="2026-10-24">24 October 2026</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1107,12 +1107,6 @@ which is archived at
 code and issues list for this draft can be found at
 <span><a href="https://github.com/ietf-wg-nfsv4/flexfiles-v2">https://github.com/ietf-wg-nfsv4/flexfiles-v2</a></span>.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
 <p id="section-note.1-2">Working Group information can be found at <span><a href="https://github.com/ietf-wg-nfsv4">https://github.com/ietf-wg-nfsv4</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
-<p id="section-note.1-3">This draft is currently a work in progress.  It needs to be
-determined if we want to copy v1 text to v2 or if we want just a diff
-of the new content.  For right now, we are copying the v1 text and
-adding the new v2 text.  Also, expect sections to move as we push the
-emphasis from flex files to protection types.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
-<p id="section-note.1-4"><em>As a WIP, the XDR extraction may not yet work.</em><a href="#section-note.1-4" class="pilcrow">¶</a></p>
 </section>
 <div id="status-of-memo">
 <section id="section-boilerplate.1">
@@ -1133,7 +1127,7 @@ emphasis from flex files to protection types.<a href="#section-note.1-3" class="
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 23 October 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 24 October 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1467,6 +1461,40 @@ emphasis from flex files to protection types.<a href="#section-note.1-3" class="
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
             <p id="section-toc.1-1.14.1"><a href="#section-14" class="auto internal xref">14</a>. <a href="#name-nfsv42-operations-allowed-t" class="internal xref">NFSv4.2 Operations Allowed to Data Files</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
+                <p id="section-toc.1-1.14.2.1.1"><a href="#section-14.1" class="auto internal xref">14.1</a>.  <a href="#name-control-plane-metadata-serv" class="internal xref">Control Plane: Metadata Server to Data Server</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
+                <p id="section-toc.1-1.14.2.2.1"><a href="#section-14.2" class="auto internal xref">14.2</a>.  <a href="#name-data-path-client-to-data-se" class="internal xref">Data Path: Client to Data Server</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2.2.1">
+                    <p id="section-toc.1-1.14.2.2.2.1.1"><a href="#section-14.2.1" class="auto internal xref">14.2.1</a>.  <a href="#name-session-and-identity-plumbi" class="internal xref">Session and Identity Plumbing</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2.2.2">
+                    <p id="section-toc.1-1.14.2.2.2.2.1"><a href="#section-14.2.2" class="auto internal xref">14.2.2</a>.  <a href="#name-getattr-on-a-data-file" class="internal xref">GETATTR on a Data File</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2.2.3">
+                    <p id="section-toc.1-1.14.2.2.2.3.1"><a href="#section-14.2.3" class="auto internal xref">14.2.3</a>.  <a href="#name-setattr-on-a-data-file" class="internal xref">SETATTR on a Data File</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2.2.4">
+                    <p id="section-toc.1-1.14.2.2.2.4.1"><a href="#section-14.2.4" class="auto internal xref">14.2.4</a>.  <a href="#name-mirrored-data-files-ffv2_co" class="internal xref">Mirrored Data Files (FFV2_CODING_MIRRORED)</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2.2.5">
+                    <p id="section-toc.1-1.14.2.2.2.5.1"><a href="#section-14.2.5" class="auto internal xref">14.2.5</a>.  <a href="#name-erasure-coded-data-files-ff" class="internal xref">Erasure-Coded Data Files (FFV2<em>ENCODING</em>*)</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2.2.6">
+                    <p id="section-toc.1-1.14.2.2.2.6.1"><a href="#section-14.2.6" class="auto internal xref">14.2.6</a>.  <a href="#name-operations-that-must-not-be" class="internal xref">Operations That MUST NOT Be Sent to a Data File</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.3">
+                <p id="section-toc.1-1.14.2.3.1"><a href="#section-14.3" class="auto internal xref">14.3</a>.  <a href="#name-callback-path-data-server-t" class="internal xref">Callback Path: Data Server to Client</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.4">
+                <p id="section-toc.1-1.14.2.4.1"><a href="#section-14.4" class="auto internal xref">14.4</a>.  <a href="#name-summary-table" class="internal xref">Summary Table</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
             <p id="section-toc.1-1.15.1"><a href="#section-15" class="auto internal xref">15</a>. <a href="#name-flexible-file-layout-type-r" class="internal xref">Flexible File Layout Type Return</a></p>
@@ -6327,20 +6355,546 @@ check.<a href="#section-13.6-2.6.1" class="pilcrow">¶</a></p>
       <h2 id="name-nfsv42-operations-allowed-t">
 <a href="#section-14" class="section-number selfRef">14. </a><a href="#name-nfsv42-operations-allowed-t" class="section-name selfRef">NFSv4.2 Operations Allowed to Data Files</a>
       </h2>
-<p id="section-14-1"><span class="cref"> In Flexible File Version 1 Layout Type, the
-emphasis was on NFSv3 DSes.  We limited the operations that clients
-could send to data files to be COMMIT, READ, and WRITE.  We further
-limited the MDS to GETATTR, SETATTR, CREATE, and REMOVE.  (Funny
-enough, this is not mandated here.)  We need to call this out in
-this draft and also we need to limit the NFSv4.2 operations.  Besides
-the ones created here, consider: READ, WRITE, and COMMIT for mirroring
-types and ALLOCATE, CLONE, COPY, DEALLOCATE, GETFH, PUTFH, READ_PLUS,
-RESTOREFH, SAVEFH, SEEK, and SEQUENCE for all types.  <span class="crefSource">Tom</span></span><a href="#section-14-1" class="pilcrow">¶</a></p>
-<p id="section-14-2"><span class="cref"> Of special merit is SETATTR.  Do we want to
-allow the clients to be able to truncate the data files?  Which
-also brings up DEALLOCATE.  Perhaps we want CHUNK_DEALLOCATE?  That
-way we can swap out chunks with the client file.  CHUNK_DEALLOCATE_GUARD.
-Really need to determine capabilities of XFS swap!  <span class="crefSource">Tom</span></span><a href="#section-14-2" class="pilcrow">¶</a></p>
+<p id="section-14-1">In the Flex Files Version 1 Layout Type (<span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>), the data path
+between client and data server was NFSv3 (<span>[<a href="#RFC1813" class="cite xref">RFC1813</a>]</span>); the
+operations a client sent to a data file were limited to READ,
+WRITE, and COMMIT, and the operations the metadata server sent on
+its control plane to the data server were limited to GETATTR,
+SETATTR, CREATE, and REMOVE.  An NFSv4.2 data server, as used by
+the Flex Files Version 2 Layout Type, exposes a much larger
+operation set.  This section defines which operations a client <span class="bcp14">MAY</span>
+send to a data file, which operations the metadata server <span class="bcp14">MAY</span>
+send, and which operations a data server <span class="bcp14">MUST</span> reject.<a href="#section-14-1" class="pilcrow">¶</a></p>
+<p id="section-14-2">The restrictions below apply only to operations directed at a data
+file on a data server.  Clients retain the full NFSv4.2 operation
+set for files visible through the metadata server, including the
+operations prohibited below (RENAME, LINK, CLONE, COPY, ACL-scoped
+SETATTR, and so on).  The metadata server <span class="bcp14">MAY</span> internally use
+operations on data files that clients <span class="bcp14">MUST NOT</span> send, as part of
+its control-plane duties for the file (see
+<a href="#sec-system-model-roles" class="auto internal xref">Section 13.1</a>).<a href="#section-14-2" class="pilcrow">¶</a></p>
+<div id="sec-ops-mds">
+<section id="section-14.1">
+        <h3 id="name-control-plane-metadata-serv">
+<a href="#section-14.1" class="section-number selfRef">14.1. </a><a href="#name-control-plane-metadata-serv" class="section-name selfRef">Control Plane: Metadata Server to Data Server</a>
+        </h3>
+<p id="section-14.1-1">When the metadata server acts as a client to a data server, it is
+managing the data file on behalf of the metadata file's namespace.
+A data server <span class="bcp14">MUST</span> support the following operations on data files
+when issued by the metadata server:<a href="#section-14.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.1-2.1">
+            <p id="section-14.1-2.1.1">SEQUENCE, PUTFH, PUTROOTFH, GETFH (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections 18.46,
+18.19, 18.21, 18.8): session and filehandle plumbing.<a href="#section-14.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.2">
+            <p id="section-14.1-2.2.1">LOOKUP (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.15): runway pool directory
+traversal.<a href="#section-14.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.3">
+            <p id="section-14.1-2.3.1">GETATTR (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.7): reflected GETATTR after a
+write layout is returned, and any other attribute queries the
+metadata server needs to reconcile its cached view.<a href="#section-14.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.4">
+            <p id="section-14.1-2.4.1">SETATTR (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.30): data file truncate for
+MDS-level SETATTR(size) fan-out, synthetic uid/gid rotation
+for fencing, and mode-bit initialisation on runway assignment.<a href="#section-14.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.5">
+            <p id="section-14.1-2.5.1">CREATE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.4): runway pool file creation.<a href="#section-14.1-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.6">
+            <p id="section-14.1-2.6.1">REMOVE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.25): cleanup on MDS file
+unlink.<a href="#section-14.1-2.6.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.7">
+            <p id="section-14.1-2.7.1">OPEN, CLOSE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections 18.16, 18.2): used by the
+metadata server when it acts as a client to the data server
+for InBand or proxy I/O.<a href="#section-14.1-2.7.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.8">
+            <p id="section-14.1-2.8.1">EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION,
+BIND_CONN_TO_SESSION, DESTROY_CLIENTID (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections
+18.35, 18.36, 18.37, 18.34, 18.50): control-session
+management.  The metadata server sets
+EXCHGID4_FLAG_USE_NON_PNFS in its EXCHANGE_ID.  A data
+server that supports the tight-coupling control protocol
+(see <a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a>) identifies the
+metadata server's session by EXCHGID4_FLAG_USE_PNFS_MDS and
+accepts TRUST_STATEID, REVOKE_STATEID, and
+BULK_REVOKE_STATEID on that session.<a href="#section-14.1-2.8.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.1-2.9">
+            <p id="section-14.1-2.9.1">TRUST_STATEID (<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 26.12</a>), REVOKE_STATEID
+(<a href="#sec-REVOKE_STATEID" class="auto internal xref">Section 26.13</a>), BULK_REVOKE_STATEID
+(<a href="#sec-BULK_REVOKE_STATEID" class="auto internal xref">Section 26.14</a>): the MDS-to-DS tight-coupling
+trust-table control operations.<a href="#section-14.1-2.9.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-14.1-3">The metadata server <span class="bcp14">MAY</span> also use other NFSv4.2 operations on data
+files as implementation-defined control-plane actions (for
+example, COPY or CLONE to migrate a data file between data
+servers during a data mover operation).  The list above is the
+minimum set a Flex Files v2 data server <span class="bcp14">MUST</span> support for the
+metadata server's use.<a href="#section-14.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-ops-client">
+<section id="section-14.2">
+        <h3 id="name-data-path-client-to-data-se">
+<a href="#section-14.2" class="section-number selfRef">14.2. </a><a href="#name-data-path-client-to-data-se" class="section-name selfRef">Data Path: Client to Data Server</a>
+        </h3>
+<p id="section-14.2-1">A pNFS client with an active Flex Files v2 layout <span class="bcp14">MUST</span> restrict
+the operations it issues against data files to the operations
+defined below.  A data server <span class="bcp14">MUST</span> reject any other operation on
+a data file with NFS4ERR_NOTSUPP.<a href="#section-14.2-1" class="pilcrow">¶</a></p>
+<div id="session-and-identity-plumbing">
+<section id="section-14.2.1">
+          <h4 id="name-session-and-identity-plumbi">
+<a href="#section-14.2.1" class="section-number selfRef">14.2.1. </a><a href="#name-session-and-identity-plumbi" class="section-name selfRef">Session and Identity Plumbing</a>
+          </h4>
+<p id="section-14.2.1-1">Required for all protection modes:<a href="#section-14.2.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2.1-2.1">
+              <p id="section-14.2.1-2.1.1">SEQUENCE, PUTFH, GETFH, PUTROOTFH (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections 18.46,
+18.19, 18.8, 18.21).<a href="#section-14.2.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.1-2.2">
+              <p id="section-14.2.1-2.2.1">EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION,
+BIND_CONN_TO_SESSION, DESTROY_CLIENTID (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections
+18.35, 18.36, 18.37, 18.34, 18.50).<a href="#section-14.2.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.1-2.3">
+              <p id="section-14.2.1-2.3.1">RECLAIM_COMPLETE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.51).<a href="#section-14.2.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.1-2.4">
+              <p id="section-14.2.1-2.4.1">SECINFO, SECINFO_NO_NAME (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections 18.29, 18.45):
+discovery of acceptable security flavours on the data
+server.<a href="#section-14.2.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-14.2.1-3">These operations are baseline NFSv4.2 session plumbing and are
+supported on data files as on any NFSv4.2 file.<a href="#section-14.2.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="getattr-on-a-data-file">
+<section id="section-14.2.2">
+          <h4 id="name-getattr-on-a-data-file">
+<a href="#section-14.2.2" class="section-number selfRef">14.2.2. </a><a href="#name-getattr-on-a-data-file" class="section-name selfRef">GETATTR on a Data File</a>
+          </h4>
+<p id="section-14.2.2-1">GETATTR <span class="bcp14">MAY</span> be issued by a client against a data file.  The
+primary use case is repair: a repair client selected by
+CB_CHUNK_REPAIR (<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 27.1</a>) may need to query the
+per-server file size or allocation state when reconstructing a
+payload, and the data mover described informally in
+<a href="#sec-system-model-roles" class="auto internal xref">Section 13.1</a> similarly benefits from attribute
+queries on surviving mirrors.  Diagnostic use is also permitted.<a href="#section-14.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-14.2.2-2">Clients <span class="bcp14">MUST NOT</span> treat GETATTR values returned by a data server as
+authoritative for any file attribute (size, timestamps, owner,
+mode, ACL, and so on).  The metadata server is the sole authority
+for file attributes.  Values returned by a data server reflect the
+per-server data file instance only and <span class="bcp14">MAY</span> diverge from the
+metadata server's view, particularly during a write layout's
+lifetime or during a Data Mover transition.  A client that uses a
+data-server GETATTR result to determine the file's visible size
+will observe inconsistencies.<a href="#section-14.2.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="setattr-on-a-data-file">
+<section id="section-14.2.3">
+          <h4 id="name-setattr-on-a-data-file">
+<a href="#section-14.2.3" class="section-number selfRef">14.2.3. </a><a href="#name-setattr-on-a-data-file" class="section-name selfRef">SETATTR on a Data File</a>
+          </h4>
+<p id="section-14.2.3-1">Clients <span class="bcp14">MUST NOT</span> issue SETATTR against a data file.  A data server
+<span class="bcp14">MUST</span> reject a client SETATTR with NFS4ERR_NOTSUPP.<a href="#section-14.2.3-1" class="pilcrow">¶</a></p>
+<p id="section-14.2.3-2">Attribute changes on data files <span class="bcp14">MUST</span> be reconciled with the
+metadata server's view and cannot be applied unilaterally by a
+client.  A client that wants to truncate, change the mode, change
+ownership, or otherwise modify attributes on a file <span class="bcp14">MUST</span> issue
+SETATTR to the metadata server for the file's MDS handle; the
+metadata server fans the change out to the data files as a
+control-plane operation.<a href="#section-14.2.3-2" class="pilcrow">¶</a></p>
+<p id="section-14.2.3-3">This rule explicitly covers truncate (SETATTR with size in the
+bitmap): a client <span class="bcp14">MUST NOT</span> truncate a data file directly.
+Similarly, a client <span class="bcp14">MUST NOT</span> issue DEALLOCATE against a data
+file; see the next subsection.<a href="#section-14.2.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="mirrored-data-files-ffv2codingmirrored">
+<section id="section-14.2.4">
+          <h4 id="name-mirrored-data-files-ffv2_co">
+<a href="#section-14.2.4" class="section-number selfRef">14.2.4. </a><a href="#name-mirrored-data-files-ffv2_co" class="section-name selfRef">Mirrored Data Files (FFV2_CODING_MIRRORED)</a>
+          </h4>
+<p id="section-14.2.4-1">For a mirror whose ffm_coding_type_data is FFV2_CODING_MIRRORED
+(see <a href="#sec-ffv2-mirror4" class="auto internal xref">Section 9.8</a>), client operations on the data file
+follow the same pattern as the File Layout Type in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>
+Section 13.6 and the Flex Files v1 Layout Type in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>:<a href="#section-14.2.4-1" class="pilcrow">¶</a></p>
+<p id="section-14.2.4-2">Required:<a href="#section-14.2.4-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2.4-3.1">
+              <p id="section-14.2.4-3.1.1">READ (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.22).<a href="#section-14.2.4-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.4-3.2">
+              <p id="section-14.2.4-3.2.1">WRITE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.32).<a href="#section-14.2.4-3.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.4-3.3">
+              <p id="section-14.2.4-3.3.1">COMMIT (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.3).<a href="#section-14.2.4-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-14.2.4-4">Optional (the client <span class="bcp14">MAY</span> send, and the data server <span class="bcp14">MAY</span> support):<a href="#section-14.2.4-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2.4-5.1">
+              <p id="section-14.2.4-5.1.1">READ_PLUS (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.10): hole-aware reads.<a href="#section-14.2.4-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.4-5.2">
+              <p id="section-14.2.4-5.2.1">SEEK (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.11): hole and data detection.<a href="#section-14.2.4-5.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.4-5.3">
+              <p id="section-14.2.4-5.3.1">ALLOCATE (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.1): space reservation hint.<a href="#section-14.2.4-5.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-14.2.4-6">The client <span class="bcp14">MUST NOT</span> send:<a href="#section-14.2.4-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2.4-7.1">
+              <p id="section-14.2.4-7.1.1">DEALLOCATE (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.4): hole punching is a
+metadata-server responsibility; the client issues DEALLOCATE
+on the metadata-server filehandle, and the metadata server
+fans out to the data servers as a control-plane operation.<a href="#section-14.2.4-7.1.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="erasure-coded-data-files-ffv2encoding">
+<section id="section-14.2.5">
+          <h4 id="name-erasure-coded-data-files-ff">
+<a href="#section-14.2.5" class="section-number selfRef">14.2.5. </a><a href="#name-erasure-coded-data-files-ff" class="section-name selfRef">Erasure-Coded Data Files (FFV2<em>ENCODING</em>*)</a>
+          </h4>
+<p id="section-14.2.5-1">For a mirror whose ffm_coding_type_data is any of the erasure-
+coding types defined in this document
+(FFV2<em>ENCODING_MOJETTE_SYSTEMATIC,
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
+FFV2_ENCODING_RS_VANDERMONDE), client operations use the CHUNK</em>*
+operations rather than READ / WRITE / COMMIT.<a href="#section-14.2.5-1" class="pilcrow">¶</a></p>
+<p id="section-14.2.5-2">Required for all erasure-coded clients:<a href="#section-14.2.5-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2.5-3.1">
+              <p id="section-14.2.5-3.1.1">CHUNK_WRITE (<a href="#sec-CHUNK_WRITE" class="auto internal xref">Section 26.10</a>).<a href="#section-14.2.5-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-3.2">
+              <p id="section-14.2.5-3.2.1">CHUNK_READ (<a href="#sec-CHUNK_READ" class="auto internal xref">Section 26.6</a>).<a href="#section-14.2.5-3.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-3.3">
+              <p id="section-14.2.5-3.3.1">CHUNK_FINALIZE (<a href="#sec-CHUNK_FINALIZE" class="auto internal xref">Section 26.3</a>).<a href="#section-14.2.5-3.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-3.4">
+              <p id="section-14.2.5-3.4.1">CHUNK_COMMIT (<a href="#sec-CHUNK_COMMIT" class="auto internal xref">Section 26.1</a>).<a href="#section-14.2.5-3.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-3.5">
+              <p id="section-14.2.5-3.5.1">CHUNK_HEADER_READ (<a href="#sec-CHUNK_HEADER_READ" class="auto internal xref">Section 26.4</a>).<a href="#section-14.2.5-3.5.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-3.6">
+              <p id="section-14.2.5-3.6.1">CHUNK_LOCK (<a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 26.5</a>) and CHUNK_UNLOCK
+(<a href="#sec-CHUNK_UNLOCK" class="auto internal xref">Section 26.9</a>).<a href="#section-14.2.5-3.6.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-3.7">
+              <p id="section-14.2.5-3.7.1">CHUNK_ROLLBACK (<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref">Section 26.8</a>).<a href="#section-14.2.5-3.7.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-14.2.5-4">Required for clients that participate in repair:<a href="#section-14.2.5-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2.5-5.1">
+              <p id="section-14.2.5-5.1.1">CHUNK_ERROR (<a href="#sec-CHUNK_ERROR" class="auto internal xref">Section 26.2</a>).<a href="#section-14.2.5-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-5.2">
+              <p id="section-14.2.5-5.2.1">CHUNK_REPAIRED (<a href="#sec-CHUNK_REPAIRED" class="auto internal xref">Section 26.7</a>).<a href="#section-14.2.5-5.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-5.3">
+              <p id="section-14.2.5-5.3.1">CHUNK_WRITE_REPAIR (<a href="#sec-CHUNK_WRITE_REPAIR" class="auto internal xref">Section 26.11</a>).<a href="#section-14.2.5-5.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-14.2.5-6">Clients <span class="bcp14">MUST NOT</span> send:<a href="#section-14.2.5-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2.5-7.1">
+              <p id="section-14.2.5-7.1.1">READ, WRITE, COMMIT against an erasure-coded data file.  A
+data server <span class="bcp14">MUST</span> reject these with NFS4ERR_NOTSUPP and <span class="bcp14">MAY</span>
+log the client for operator attention; this case is almost
+always a client bug in which the client did not inspect the
+mirror's ffm_coding_type_data before issuing I/O.<a href="#section-14.2.5-7.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.5-7.2">
+              <p id="section-14.2.5-7.2.1">READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against an erasure-
+coded data file.  Chunk-level allocation is a
+metadata-server responsibility.<a href="#section-14.2.5-7.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="operations-that-must-not-be-sent-to-a-data-file">
+<section id="section-14.2.6">
+          <h4 id="name-operations-that-must-not-be">
+<a href="#section-14.2.6" class="section-number selfRef">14.2.6. </a><a href="#name-operations-that-must-not-be" class="section-name selfRef">Operations That MUST NOT Be Sent to a Data File</a>
+          </h4>
+<p id="section-14.2.6-1">Clients <span class="bcp14">MUST NOT</span> send the following operations to a data server
+on a data file, regardless of protection mode.  A data server
+<span class="bcp14">MUST</span> return NFS4ERR_NOTSUPP:<a href="#section-14.2.6-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.2.6-2.1">
+              <p id="section-14.2.6-2.1.1">OPEN, CLOSE, OPEN_DOWNGRADE, OPEN_CONFIRM (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>
+Sections 18.16, 18.2, 18.18, 18.20).  Opens occur on the
+metadata server; the stateid obtained there is used on the
+data path.<a href="#section-14.2.6-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.6-2.2">
+              <p id="section-14.2.6-2.2.1">LOCK, LOCKU, LOCKT, RELEASE_LOCKOWNER (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections
+18.10, 18.11, 18.13, 18.24).  Byte-range locks on data files
+are not supported; erasure-coded files use CHUNK_LOCK, and
+mirrored files rely on metadata-server coordination.<a href="#section-14.2.6-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.6-2.3">
+              <p id="section-14.2.6-2.3.1">DELEGPURGE, DELEGRETURN, WANT_DELEGATION (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections
+18.5, 18.6 and <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.3).  Delegations are
+issued by the metadata server.<a href="#section-14.2.6-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.6-2.4">
+              <p id="section-14.2.6-2.4.1">Any operation whose purpose is to manipulate the file's
+namespace: RENAME, LINK, SYMLINK, CREATE (at the file-
+creation use, not MDS runway creation), REMOVE.  Namespace
+operations belong on the metadata server.<a href="#section-14.2.6-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.6-2.5">
+              <p id="section-14.2.6-2.5.1">Any ACL-scoped SETATTR or GETATTR bit (FATTR4_ACL,
+FATTR4_DACL, FATTR4_SACL).  Access control on data files is
+delegated to the metadata server.<a href="#section-14.2.6-2.5.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.6-2.6">
+              <p id="section-14.2.6-2.6.1">CLONE, COPY, COPY_NOTIFY, OFFLOAD_CANCEL, OFFLOAD_STATUS
+(<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Sections 15.13, 15.2, 15.3, 15.8, 15.9).
+File-level data migration is a metadata-server responsibility.<a href="#section-14.2.6-2.6.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.6-2.7">
+              <p id="section-14.2.6-2.7.1">LAYOUTGET, LAYOUTCOMMIT, LAYOUTRETURN, LAYOUTSTATS,
+LAYOUTERROR, GETDEVICEINFO, GETDEVICELIST (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>
+Sections 18.43, 18.42, 18.44, <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Sections 15.7,
+15.6, <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections 18.40, 18.41).  Layout operations
+belong on the metadata server.<a href="#section-14.2.6-2.7.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-14.2.6-2.8">
+              <p id="section-14.2.6-2.8.1">TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID
+(<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 26.12</a>, <a href="#sec-REVOKE_STATEID" class="auto internal xref">Section 26.13</a>,
+<a href="#sec-BULK_REVOKE_STATEID" class="auto internal xref">Section 26.14</a>).  These are MDS-to-DS
+control-plane operations; a data server rejects them with
+NFS4ERR_PERM when received on a client session (see
+<a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a>).<a href="#section-14.2.6-2.8.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="callback-path-data-server-to-client">
+<section id="section-14.3">
+        <h3 id="name-callback-path-data-server-t">
+<a href="#section-14.3" class="section-number selfRef">14.3. </a><a href="#name-callback-path-data-server-t" class="section-name selfRef">Callback Path: Data Server to Client</a>
+        </h3>
+<p id="section-14.3-1">A data server does not call back directly to pNFS clients.
+Recall notifications and repair coordination flow through the
+metadata server's backchannel session with the client.  The
+callbacks a client will observe that affect its data files are:<a href="#section-14.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14.3-2.1">
+            <p id="section-14.3-2.1.1">CB_LAYOUTRECALL (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 20.3).<a href="#section-14.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.3-2.2">
+            <p id="section-14.3-2.2.1">CB_NOTIFY_DEVICEID (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 20.12).<a href="#section-14.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.3-2.3">
+            <p id="section-14.3-2.3.1">CB_RECALL_ANY (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 20.6).<a href="#section-14.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-14.3-2.4">
+            <p id="section-14.3-2.4.1">CB_CHUNK_REPAIR (<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 27.1</a>).<a href="#section-14.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-14.3-3">A data server influences these callbacks only indirectly, via
+LAYOUTERROR reports the client issues to the metadata server or
+by returning error codes that prompt the client to report.  A
+data server <span class="bcp14">MUST NOT</span> attempt to send CB_* operations to clients
+directly.<a href="#section-14.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="summary-table">
+<section id="section-14.4">
+        <h3 id="name-summary-table">
+<a href="#section-14.4" class="section-number selfRef">14.4. </a><a href="#name-summary-table" class="section-name selfRef">Summary Table</a>
+        </h3>
+<p id="section-14.4-1"><a href="#tbl-ops-allowed" class="auto internal xref">Table 5</a> lists each relevant NFSv4.2 operation and its
+applicability on a data file in each direction.  "required" means
+the data server <span class="bcp14">MUST</span> support the operation when received on the
+indicated path; "OPT" means the data server <span class="bcp14">MAY</span> support it and the
+client <span class="bcp14">MUST</span> tolerate the absence of support; "<span class="bcp14">MUST NOT</span>" means the
+client <span class="bcp14">MUST NOT</span> send the operation and the data server <span class="bcp14">MUST</span> reject
+it with NFS4ERR_NOTSUPP; "<span class="bcp14">MAY</span>" means the metadata server <span class="bcp14">MAY</span> use
+the operation as an implementation-defined control-plane action.<a href="#section-14.4-1" class="pilcrow">¶</a></p>
+<span id="name-nfsv42-operations-allowed-o"></span><div id="tbl-ops-allowed">
+<table class="center" id="table-5">
+          <caption>
+<a href="#table-5" class="selfRef">Table 5</a>:
+<a href="#name-nfsv42-operations-allowed-o" class="selfRef">NFSv4.2 operations allowed on data files</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Operation</th>
+              <th class="text-left" rowspan="1" colspan="1">Client -&gt; DS</th>
+              <th class="text-left" rowspan="1" colspan="1">MDS -&gt; DS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">SEQUENCE, PUTFH, GETFH, PUTROOTFH</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION, BIND_CONN_TO_SESSION, DESTROY_CLIENTID</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">RECLAIM_COMPLETE</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">SECINFO, SECINFO_NO_NAME</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MAY</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">GETATTR</td>
+              <td class="text-left" rowspan="1" colspan="1">OPT (non-authoritative)</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">SETATTR</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">LOOKUP, CREATE, REMOVE</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">required</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">READ, WRITE, COMMIT</td>
+              <td class="text-left" rowspan="1" colspan="1">required (mirrored); <span class="bcp14">MUST NOT</span> (erasure-coded)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MAY</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">READ_PLUS, SEEK, ALLOCATE</td>
+              <td class="text-left" rowspan="1" colspan="1">OPT (mirrored); <span class="bcp14">MUST NOT</span> (erasure-coded)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MAY</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">DEALLOCATE</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MAY</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_HEADER_READ, CHUNK_LOCK, CHUNK_UNLOCK, CHUNK_ROLLBACK</td>
+              <td class="text-left" rowspan="1" colspan="1">required (erasure-coded); <span class="bcp14">MUST NOT</span> (mirrored)</td>
+              <td class="text-left" rowspan="1" colspan="1">not used</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CHUNK_ERROR, CHUNK_REPAIRED, CHUNK_WRITE_REPAIR</td>
+              <td class="text-left" rowspan="1" colspan="1">required (erasure-coded repair clients); <span class="bcp14">MUST NOT</span> (mirrored)</td>
+              <td class="text-left" rowspan="1" colspan="1">not used</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">OPEN, CLOSE, OPEN_DOWNGRADE, OPEN_CONFIRM</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">OPT (proxy I/O)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">LOCK, LOCKU, LOCKT, RELEASE_LOCKOWNER</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">DELEGPURGE, DELEGRETURN, WANT_DELEGATION</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">RENAME, LINK, SYMLINK</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CLONE, COPY, COPY_NOTIFY, OFFLOAD_CANCEL, OFFLOAD_STATUS</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MAY</span> (data migration)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">LAYOUTGET, LAYOUTCOMMIT, LAYOUTRETURN, LAYOUTSTATS, LAYOUTERROR, GETDEVICEINFO, GETDEVICELIST</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">ACL-scoped GETATTR/SETATTR bits</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MAY</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span class="bcp14">MUST NOT</span>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">required (tight coupling)</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+</section>
+</div>
 </section>
 </div>
 <div id="sec-layouthint">
@@ -6894,11 +7448,11 @@ revoked clients from the respective data files as described in
         <h3 id="name-error-definitions">
 <a href="#section-22.1" class="section-number selfRef">22.1. </a><a href="#name-error-definitions" class="section-name selfRef">Error Definitions</a>
         </h3>
-<span id="name-x"></span><div id="tbl-protocol-errors">
-<table class="center" id="table-5">
+<span id="name-error-definitions-2"></span><div id="tbl-protocol-errors">
+<table class="center" id="table-6">
           <caption>
-<a href="#table-5" class="selfRef">Table 5</a>:
-<a href="#name-x" class="selfRef">X</a>
+<a href="#table-6" class="selfRef">Table 6</a>:
+<a href="#name-error-definitions-2" class="selfRef">Error Definitions</a>
           </caption>
 <thead>
             <tr>
@@ -7030,12 +7584,12 @@ reduce the header to data cost, but really do not make sense.<span class="crefSo
 <a href="#section-22.2" class="section-number selfRef">22.2. </a><a href="#name-operations-and-their-valid-" class="section-name selfRef">Operations and Their Valid Errors</a>
         </h3>
 <p id="section-22.2-1">The operations and their valid errors are presented in
-<a href="#tbl-ops-and-errors" class="auto internal xref">Table 6</a>.  All error codes not defined in this document
+<a href="#tbl-ops-and-errors" class="auto internal xref">Table 7</a>.  All error codes not defined in this document
 are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 11 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-22.2-1" class="pilcrow">¶</a></p>
 <span id="name-operations-and-their-valid-e"></span><div id="tbl-ops-and-errors">
-<table class="center" id="table-6">
+<table class="center" id="table-7">
           <caption>
-<a href="#table-6" class="selfRef">Table 6</a>:
+<a href="#table-7" class="selfRef">Table 7</a>:
 <a href="#name-operations-and-their-valid-e" class="selfRef">Operations and Their Valid Errors</a>
           </caption>
 <thead>
@@ -7112,12 +7666,12 @@ are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881
 <a href="#section-22.3" class="section-number selfRef">22.3. </a><a href="#name-callback-operations-and-the" class="section-name selfRef">Callback Operations and Their Valid Errors</a>
         </h3>
 <p id="section-22.3-1">The callback operations and their valid errors are presented in
-<a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 7</a>.  All error codes not defined in this document
+<a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 8</a>.  All error codes not defined in this document
 are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 11 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-22.3-1" class="pilcrow">¶</a></p>
 <span id="name-callback-operations-and-thei"></span><div id="tbl-cb-ops-and-errors">
-<table class="center" id="table-7">
+<table class="center" id="table-8">
           <caption>
-<a href="#table-7" class="selfRef">Table 7</a>:
+<a href="#table-8" class="selfRef">Table 8</a>:
 <a href="#name-callback-operations-and-thei" class="selfRef">Callback Operations and Their Valid Errors</a>
           </caption>
 <thead>
@@ -7142,12 +7696,12 @@ are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881
 <a href="#section-22.4" class="section-number selfRef">22.4. </a><a href="#name-errors-and-the-operations-t" class="section-name selfRef">Errors and the Operations That Use Them</a>
         </h3>
 <p id="section-22.4-1">The operations and their valid errors are presented in
-<a href="#tbl-errors-and-ops" class="auto internal xref">Table 8</a>.  All operations not defined in this document
+<a href="#tbl-errors-and-ops" class="auto internal xref">Table 9</a>.  All operations not defined in this document
 are defined in Section 18 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 15 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-22.4-1" class="pilcrow">¶</a></p>
 <span id="name-errors-and-the-operations-th"></span><div id="tbl-errors-and-ops">
-<table class="center" id="table-8">
+<table class="center" id="table-9">
           <caption>
-<a href="#table-8" class="selfRef">Table 8</a>:
+<a href="#table-9" class="selfRef">Table 9</a>:
 <a href="#name-errors-and-the-operations-th" class="selfRef">Errors and the Operations That Use Them</a>
           </caption>
 <thead>
@@ -7199,7 +7753,7 @@ EXCHGID4_FLAG_USE_ERASURE_DS.  I.e., EXCHGID4_FLAG_USE_ERASURE_DS can
 be used in combination with all of the pNFS flags.<a href="#section-23-2" class="pilcrow">¶</a></p>
 <p id="section-23-3">If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
 EXCHANGE_ID operation, then it <span class="bcp14">MUST</span> support all of the operations
-in <a href="#tbl-protocol-ops" class="auto internal xref">Table 9</a>.  Further, this support is orthogonal to the
+in <a href="#tbl-protocol-ops" class="auto internal xref">Table 10</a>.  Further, this support is orthogonal to the
 Erasure Coding Type selected.  The data server is unaware of which type
 is driving the I/O.<a href="#section-23-3" class="pilcrow">¶</a></p>
 </section>
@@ -7435,9 +7989,9 @@ MDS-to-DS control session (see
 <a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a>); they <span class="bcp14">MUST NOT</span> be sent by
 pNFS clients.<a href="#section-26-2" class="pilcrow">¶</a></p>
 <span id="name-protocol-ops"></span><div id="tbl-protocol-ops">
-<table class="center" id="table-9">
+<table class="center" id="table-10">
         <caption>
-<a href="#table-9" class="selfRef">Table 9</a>:
+<a href="#table-10" class="selfRef">Table 10</a>:
 <a href="#name-protocol-ops" class="selfRef">Protocol OPs</a>
         </caption>
 <thead>
@@ -9378,7 +9932,7 @@ ranges into an implementation-defined damaged state.  See
 </dd>
           <dd class="break"></dd>
 </dl>
-<p id="section-27.1.4-3">All other error codes listed in <a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 7</a> are
+<p id="section-27.1.4-3">All other error codes listed in <a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 8</a> are
 treated by the metadata server as retriable: the metadata server
 <span class="bcp14">MAY</span> issue a subsequent CB_CHUNK_REPAIR to the same or a
 different client.  If the client becomes unreachable (no
@@ -9577,11 +10131,11 @@ metadata server.<a href="#section-28.5.2-1" class="pilcrow">¶</a></p>
 <p id="section-29-1"><span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> introduced the "pNFS Layout Types Registry"; new layout
 type numbers in this registry need to be assigned by IANA.  This
 document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
-(see <a href="#tbl_layout_types" class="auto internal xref">Table 10</a>).<a href="#section-29-1" class="pilcrow">¶</a></p>
+(see <a href="#tbl_layout_types" class="auto internal xref">Table 11</a>).<a href="#section-29-1" class="pilcrow">¶</a></p>
 <span id="name-layout-type-assignments"></span><div id="tbl_layout_types">
-<table class="center" id="table-10">
+<table class="center" id="table-11">
         <caption>
-<a href="#table-10" class="selfRef">Table 10</a>:
+<a href="#table-11" class="selfRef">Table 11</a>:
 <a href="#name-layout-type-assignments" class="selfRef">Layout Type Assignments</a>
         </caption>
 <thead>
@@ -9607,11 +10161,11 @@ document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
 <p id="section-29-3"><span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> also introduced the "NFSv4 Recallable Object Types
 Registry".  This document defines new recallable objects for
 RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
-(see <a href="#tbl_recallables" class="auto internal xref">Table 11</a>).<a href="#section-29-3" class="pilcrow">¶</a></p>
+(see <a href="#tbl_recallables" class="auto internal xref">Table 12</a>).<a href="#section-29-3" class="pilcrow">¶</a></p>
 <span id="name-recallable-object-type-assi"></span><div id="tbl_recallables">
-<table class="center" id="table-11">
+<table class="center" id="table-12">
         <caption>
-<a href="#table-11" class="selfRef">Table 11</a>:
+<a href="#table-12" class="selfRef">Table 12</a>:
 <a href="#name-recallable-object-type-assi" class="selfRef">Recallable Object Type Assignments</a>
         </caption>
 <thead>
@@ -9644,11 +10198,11 @@ RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
 <p id="section-29-5">This document introduces the 'Flexible File Version 2 Layout Type
 Erasure Coding Type Registry'.  The registry uses a 32-bit value
 space partitioned into ranges based on the intended scope of the
-encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table 12</a>).<a href="#section-29-5" class="pilcrow">¶</a></p>
+encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table 13</a>).<a href="#section-29-5" class="pilcrow">¶</a></p>
 <span id="name-erasure-coding-type-value-r"></span><div id="tbl-coding-ranges">
-<table class="center" id="table-12">
+<table class="center" id="table-13">
         <caption>
-<a href="#table-12" class="selfRef">Table 12</a>:
+<a href="#table-13" class="selfRef">Table 13</a>:
 <a href="#name-erasure-coding-type-value-r" class="selfRef">Erasure Coding Type Value Ranges</a>
         </caption>
 <thead>
@@ -9729,11 +10283,11 @@ unsupported encoding type.<a href="#section-29-7.8.1" class="pilcrow">¶</a></p>
 Standards Track range and provides a clear signal to clients about
 what level of interoperability to expect.<a href="#section-29-8" class="pilcrow">¶</a></p>
 <p id="section-29-9">This document defines the FFV2_CODING_MIRRORED type for Client-Side
-Mirroring (see <a href="#tbl-coding-types" class="auto internal xref">Table 13</a>).<a href="#section-29-9" class="pilcrow">¶</a></p>
+Mirroring (see <a href="#tbl-coding-types" class="auto internal xref">Table 14</a>).<a href="#section-29-9" class="pilcrow">¶</a></p>
 <span id="name-flexible-file-version-2-layo"></span><div id="tbl-coding-types">
-<table class="center" id="table-13">
+<table class="center" id="table-14">
         <caption>
-<a href="#table-13" class="selfRef">Table 13</a>:
+<a href="#table-14" class="selfRef">Table 14</a>:
 <a href="#name-flexible-file-version-2-layo" class="selfRef">Flexible File Version 2 Layout Type Erasure Coding Type Assignments</a>
         </caption>
 <thead>
