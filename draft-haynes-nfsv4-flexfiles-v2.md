@@ -482,7 +482,7 @@ systematic encoding:
 
 :  An erasure coding scheme in which the first k of the k+m encoded
 shards are identical to the original k data blocks.  A healthy read
-(no failures) requires no decoding — the data shards are read directly.
+(no failures) requires no decoding -- the data shards are read directly.
 Decoding is triggered only when data shards are missing.  Reed-Solomon
 Vandermonde and Mojette systematic are examples.
 
@@ -1423,7 +1423,7 @@ data.  As such, it does not need operations like CHUNK_WRITE (see
 
 ### Encoding Type Interoperability {#encoding-type-interoperability}
 
-The data servers do not interpret erasure-coded data — they store and
+The data servers do not interpret erasure-coded data -- they store and
 return opaque chunks.  The NFS wire protocol likewise does not depend
 on the encoding mathematics.  However, a client that writes data using
 one encoding type MUST be able to read it back, and a different
@@ -3342,7 +3342,7 @@ corner-peeling algorithm of {{NORMAND}}:
 2. Subtract contributions of present data rows (residual).
 3. Corner-peel the residual to recover missing rows.
 
-Reconstruction cost is O(m * k) — a fundamental advantage over RS
+Reconstruction cost is O(m * k) -- a fundamental advantage over RS
 at wide geometries (k >= 8).
 
 ### Non-Systematic Mojette
@@ -6409,7 +6409,7 @@ the client was fenced off.
 
 The CRC32 values carried in CHUNK_WRITE and returned from CHUNK_READ
 are intended to detect accidental data corruption during storage or
-transmission — for example, bit flips in storage media or network
+transmission -- for example, bit flips in storage media or network
 errors.  CRC32 is not a cryptographic hash and does not protect
 against intentional modification: an adversary with access to the
 network path could replace a chunk and recompute a valid CRC32 to
@@ -6437,8 +6437,8 @@ NFS4ERR_PAYLOAD_NOT_CONSISTENT (10098) convey information about
 chunk state to the caller.  Both of these errors MAY be returned
 to callers whose credentials have not been verified by the data
 server (e.g., when the AUTH_SYS uid presented does not match the
-synthetic uid on the data file).  The information they reveal —
-that a chunk is locked, or that a CRC mismatch occurred — does
+synthetic uid on the data file).  The information they reveal --
+that a chunk is locked, or that a CRC mismatch occurred -- does
 not directly disclose file contents but may indicate concurrent
 write activity.  Implementations that are concerned about this
 level of disclosure SHOULD require that operations on CHUNK ops
@@ -6526,28 +6526,28 @@ encoding type (see {{tbl-coding-ranges}}).
 
  | Range | Purpose | Allocation Policy |
  | ---
- | 0x0000–0x00FF | Standards Track | IETF Review (RFC required) |
- | 0x0100–0x0FFF | Experimental | Expert Review |
- | 0x1000–0x7FFF | Vendor (open) | First Come First Served |
- | 0x8000–0xFFFE | Private/proprietary | No registration required |
- | 0xFFFF | Reserved | — |
+ | 0x0000-0x00FF | Standards Track | IETF Review (RFC required) |
+ | 0x0100-0x0FFF | Experimental | Expert Review |
+ | 0x1000-0x7FFF | Vendor (open) | First Come First Served |
+ | 0x8000-0xFFFE | Private/proprietary | No registration required |
+ | 0xFFFF | Reserved | -- |
 {: #tbl-coding-ranges title="Erasure Coding Type Value Ranges"}
 
-Standards Track (0x0000–0x00FF)
+Standards Track (0x0000-0x00FF)
 
 :  Encoding types intended for broad interoperability.  The
 specification MUST include a complete mathematical description
 sufficient for independent interoperable implementations (see
 {{encoding-type-interoperability}}).  Allocated by IETF Review.
 
-Experimental (0x0100–0x0FFF)
+Experimental (0x0100-0x0FFF)
 
 :  Encoding types under development or evaluation.  An Internet-Draft
 is sufficient for allocation.  The specification SHOULD include
 enough detail for interoperability testing.  Allocated by Expert
 Review.
 
-Vendor (open) (0x1000–0x7FFF)
+Vendor (open) (0x1000-0x7FFF)
 
 :  Encoding types with a published specification or patent reference.
 Interoperability is expected among implementations that license or
@@ -6555,7 +6555,7 @@ implement the specification.  The registration MUST include either a
 math specification or a patent reference.  Allocated First Come
 First Served.
 
-Private/proprietary (0x8000–0xFFFE)
+Private/proprietary (0x8000-0xFFFE)
 
 :  Encoding types for use within a single vendor's ecosystem.
 No IANA registration is required.  Interoperability with other
