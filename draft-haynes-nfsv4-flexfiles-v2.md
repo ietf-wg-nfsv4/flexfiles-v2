@@ -196,25 +196,34 @@ between the client and the data servers.  This approach has real
 advantages: a single codec is fixed at the storage system, so
 clients do not have to negotiate codec support; repair never
 traverses the client; and the wire protocol stays minimal because
-no on-wire consistency primitives are needed.  Flex Files v2 does
-not choose that path, for three reasons.  First, the storage
-system becomes a scale bottleneck in exactly the way
-{{sec-motivation}} opens with: large-scale parallel workloads
-drive the aggregate erasure-coding compute beyond what a bounded
-storage tier can supply, while clients are the naturally
-horizontally scaling resource.  Second, a single server-fixed
-codec loses the per-file codec flexibility that client-side
-erasure coding permits, which matters when different files in the
-same namespace have different durability and performance
-requirements.  Third, benchmark evidence summarised in
-{{sec-implementation-status}} shows that client-side encoding
-with the overhead introduced here is competitive with
-server-side encoding on realistic workloads while scaling the
-encoding compute with the writer population rather than with the
-data-server count.  The right answer for a given deployment is
-not universal; {{sec-rejected-alternatives}} records the
-alternatives considered and why each was not chosen for Flex
-Files v2's target workload classes.
+no on-wire consistency primitives are needed.
+
+Flex Files v2 does not choose that path, for three reasons:
+
+-  **Scale bottleneck.**  The storage system becomes a scale
+   bottleneck in exactly the way this section opens with:
+   large-scale parallel workloads drive the aggregate
+   erasure-coding compute beyond what a bounded storage tier can
+   supply, while clients are the naturally horizontally scaling
+   resource.
+
+-  **Loss of per-file codec flexibility.**  A single
+   server-fixed codec forecloses the option of picking different
+   codecs for different files in the same namespace, which
+   matters when files have different durability and performance
+   requirements.
+
+-  **Benchmark evidence.**  Measurements summarised in
+   {{sec-implementation-status}} show that client-side encoding
+   with the overhead introduced here is competitive with
+   server-side encoding on realistic workloads, and scales the
+   encoding compute with the writer population rather than with
+   the data-server count.
+
+The right answer for a given deployment is not universal;
+{{sec-rejected-alternatives}} records the alternatives considered
+and why each was not chosen for Flex Files v2's target workload
+classes.
 
 Client-side erasure coding turns write-hole recovery into a
 protocol-level concern rather than an implementer-internal one.
