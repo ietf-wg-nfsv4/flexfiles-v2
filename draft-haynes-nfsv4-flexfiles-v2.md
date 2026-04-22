@@ -5489,8 +5489,8 @@ returns NFS4ERR_INVAL in that case.
    ///     uint32_t        cr_effective_len;
    ///     chunk_owner4    cr_owner;
    ///     uint32_t        cr_payload_id;
-   ///     bool            cr_locked<>;  // TDH - make a flag
-   ///     nfsstat4        cr_status<>;
+   ///     bool            cr_locked;
+   ///     nfsstat4        cr_status;
    ///     opaque          cr_chunk<>;
    /// };
 ~~~
