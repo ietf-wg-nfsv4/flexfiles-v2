@@ -2333,8 +2333,8 @@ data stably, before replying to the client.
 In the corresponding cases in which unstable writes are done, the
 receiving node does not have any such obligation, although it may
 choose to asynchronously propagate the updates.  However, once a
-COMMIT is replied to, all replicas must reflect the writes that
-have been done, and this data must have been committed to stable
+COMMIT is replied to, all replicas MUST reflect the writes that
+have been done, and this data MUST have been committed to stable
 storage on all replicas.
 
 In order to avoid situations in which stale data is read from
