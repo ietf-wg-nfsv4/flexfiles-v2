@@ -5084,6 +5084,52 @@ across all data files that a chunk corresponds.
 ~~~
 {: #fig-ops-xdr title="Operations XDR" }
 
+The following amendment blocks extend the nfs_argop4 and
+nfs_resop4 dispatch unions defined in {{RFC7863}} with arms for
+each of the new operations defined in this document.  A consumer
+that combines this document's extracted XDR with the RFC 7863
+XDR applies these amendments at the union's extension point.
+
+~~~ xdr
+   /// /* nfs_argop4 amendment block */
+   ///
+   /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4args        opchunkcommit;
+   /// case OP_CHUNK_ERROR:          CHUNK_ERROR4args         opchunkerror;
+   /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4args      opchunkfinalize;
+   /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4args   opchunkheaderread;
+   /// case OP_CHUNK_LOCK:           CHUNK_LOCK4args          opchunklock;
+   /// case OP_CHUNK_READ:           CHUNK_READ4args          opchunkread;
+   /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4args      opchunkrepaired;
+   /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4args      opchunkrollback;
+   /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4args        opchunkunlock;
+   /// case OP_CHUNK_WRITE:          CHUNK_WRITE4args         opchunkwrite;
+   /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4args  opchunkwriterepair;
+   /// case OP_TRUST_STATEID:        TRUST_STATEID4args       optruststateid;
+   /// case OP_REVOKE_STATEID:       REVOKE_STATEID4args      oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4args opbulkrevokestateid;
+~~~
+{: #fig-nfs_argop4-amend title="nfs_argop4 amendment block"}
+
+~~~ xdr
+   /// /* nfs_resop4 amendment block */
+   ///
+   /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4res         opchunkcommit;
+   /// case OP_CHUNK_ERROR:          CHUNK_ERROR4res          opchunkerror;
+   /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4res       opchunkfinalize;
+   /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4res    opchunkheaderread;
+   /// case OP_CHUNK_LOCK:           CHUNK_LOCK4res           opchunklock;
+   /// case OP_CHUNK_READ:           CHUNK_READ4res           opchunkread;
+   /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4res       opchunkrepaired;
+   /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4res       opchunkrollback;
+   /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4res         opchunkunlock;
+   /// case OP_CHUNK_WRITE:          CHUNK_WRITE4res          opchunkwrite;
+   /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4res   opchunkwriterepair;
+   /// case OP_TRUST_STATEID:        TRUST_STATEID4res        optruststateid;
+   /// case OP_REVOKE_STATEID:       REVOKE_STATEID4res       oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4res  opbulkrevokestateid;
+~~~
+{: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
+
 Operations 77 through 87 (the CHUNK_* operations) are sent by
 clients to storage devices on the data path.  Operations 88
 through 90 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
@@ -6214,6 +6260,24 @@ dropping them.
    ///
 ~~~
 {: #fig-cb-ops-xdr title="Callback Operations XDR" }
+
+The following amendment blocks extend the nfs_cb_argop4 and
+nfs_cb_resop4 dispatch unions defined in {{RFC7863}} with arms
+for the new callback operation defined in this document.
+
+~~~ xdr
+   /// /* nfs_cb_argop4 amendment block */
+   ///
+   /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4args  opcbchunkrepair;
+~~~
+{: #fig-nfs_cb_argop4-amend title="nfs_cb_argop4 amendment block"}
+
+~~~ xdr
+   /// /* nfs_cb_resop4 amendment block */
+   ///
+   /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4res   opcbchunkrepair;
+~~~
+{: #fig-nfs_cb_resop4-amend title="nfs_cb_resop4 amendment block"}
 
 ## Callback Operation 16: CB_CHUNK_REPAIR - Request Repair of Inconsistent Chunk Ranges {#sec-CB_CHUNK_REPAIR}
 
