@@ -2738,6 +2738,49 @@ of NFS4ERR_PAYLOAD_NOT_CONSISTENT.
 
 ### Selecting the Repair Client {#sec-repair-selection}
 
+The repair topology involves three actors communicating along
+distinct paths, as shown in {{fig-repair-topology}}.
+
+~~~
+     +------------+              +----------------+
+     | Reporting  |              |                |
+     | client     | ----(1)----> |    Metadata    |
+     | (detects   | LAYOUTERROR  |    server      |
+     |  error)    |              |                |
+     +------------+              +----------------+
+                                   |        ^  ^
+                                   | (2a)   |  |
+                                   |        |  |
+                           +-------+--+  (2b) (3)
+                           |          |  |   |
+                 CB_CHUNK_REPAIR      |   |  |
+                 (RACE or SCRUB)      |   |  |
+                                   |   |   |  |
+                                   v   |   |  |
+     +-------------+           +--------+-------------+
+     |  Repair     | ----(4)-> |                      |
+     |  client     |  CHUNK_   |    Data servers      |
+     |  (selected  |  LOCK_    |    (mirror set for   |
+     |   by MDS)   |  ADOPT,   |    affected ranges)  |
+     |             |  CHUNK_   |                      |
+     |             |  WRITE_   +----------------------+
+     |             |  REPAIR,
+     |             |  CHUNK_
+     |             |  FINALIZE,
+     |             |  CHUNK_
+     |             |  COMMIT,
+     |             |  CHUNK_
+     |             |  REPAIRED
+     +-------------+
+
+     (1) Reporter LAYOUTERRORs the MDS.
+     (2a) MDS selects a repair client (may be same as reporter).
+     (2b) MDS escrows the chunk lock and issues CB_CHUNK_REPAIR.
+     (3)  Repair client adopts the lock and drives the repair.
+     (4)  Repair client issues CHUNK_* ops against the mirror set.
+~~~
+{: #fig-repair-topology title="Repair topology"}
+
 The metadata server is the authority that selects which client
 (or, in a tightly coupled deployment, which data server) repairs
 an inconsistent payload.  This is analogous to the way the
