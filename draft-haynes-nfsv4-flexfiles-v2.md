@@ -1705,7 +1705,13 @@ during the grace period.
 The ffm_coding_type_data is which encoding type is used
 by the mirror.
 
-The ffm_striping is which striping method is used by the mirror.
+The ffm_striping selects the striping method used by the
+mirror.  The three permissible values are FFV2_STRIPING_NONE
+(the mirror is not striped), FFV2_STRIPING_SPARSE (stripe units
+are mapped to the same physical offset on every data server,
+leaving holes), and FFV2_STRIPING_DENSE (stripe units are
+packed contiguously on each data server without holes).  See
+{{sec-striping}} for the mapping math for each option.
 
 The ffm_striping_unit_size is the stripe unit size used
 by the mirror.  The minimum stripe unit size is 64 bytes.  If
@@ -1889,8 +1895,9 @@ The ffm_striping_unit_size field (inside each ffv2_mirror4) is the
 stripe unit size in use for that mirror.  The number of stripes is
 given by the number of elements in ffs_data_servers within each
 ffv2_stripes4.  If the number of stripes is one, then the value for
-ffm_striping_unit_size MUST default to zero.  The only supported
-mapping scheme is sparse and is detailed in {{sec-striping}}.  Note
+ffm_striping_unit_size MUST default to zero.  The mapping scheme
+(sparse or dense) is selected per mirror by ffm_striping and is
+detailed in {{sec-striping}}.  Note
 that there is an assumption here that both the stripe unit size and
 the number of stripes are the same across all mirrors.
 
@@ -2050,31 +2057,65 @@ device.  The client can retry the GETDEVICEINFO to see if the
 metadata server can provide a different combination, or it can fall
 back to doing the I/O through the metadata server.
 
-#  Striping via Sparse Mapping {#sec-striping}
+#  Striping {#sec-striping}
 
-While other layout types support both dense and sparse mapping of
-logical offsets to physical offsets within a file (see, for example,
-Section 13.4 of {{RFC8881}}), the flexible file layout type only
-supports a sparse mapping.
+The flexible file layout type version 2 inherits the dense and
+sparse striping dispositions defined by the file layout type in
+Section 13.4 of {{RFC8881}}.  The disposition for a given
+mirror is selected by the ffm_striping field (see
+{{sec-ffv2-mirror4}}) and applies to every data server in that
+mirror's ffs_data_servers list.  Three values are permitted:
 
-With sparse mappings, the logical offset within a file (L) is also
-the physical offset on the storage device.  As detailed in Section
-13.4.4 of {{RFC8881}}, this results in holes across each storage
-device that does not contain the current stripe index.
+FFV2_STRIPING_NONE:
+:  The mirror is not striped.  ffm_striping_unit_size MUST be 1
+   and ffm_stripes MUST contain exactly one stripe.  The entire
+   mirror lives on that stripe's single data server list, with
+   no offset transformation.
+
+FFV2_STRIPING_SPARSE:
+:  Logical offsets within the file map to the same numeric
+   offset on each data server.  A data server that does not own
+   the stripe unit at a given logical offset presents a hole at
+   that offset.  This is the simpler model and matches the
+   mental picture of "the file is laid out end-to-end on each
+   data server, but each data server stores only its stripe
+   units".
+
+FFV2_STRIPING_DENSE:
+:  Stripe units owned by a given data server are packed
+   contiguously on that data server, with no holes.  The
+   logical offset is transformed into a compact physical offset
+   on the target data server.  This matches pre-existing
+   deployments that follow the dense layout convention of
+   Section 13.4.4 of {{RFC8881}}.
+
+The mapping math for sparse and dense is given in
+{{fig-striping-math}}.  Common definitions apply to both.
 
 ~~~
-L: logical offset within the file
+L: logical offset within the file (bytes)
+U: stripe-unit size in bytes  = ffm_striping_unit_size
+W: stripe width               = length of ffs_data_servers
+S: stripe size in bytes       = W * U
+N: stripe number              = L / S
+i: index (0-based) of the data server that owns L
+                              = (L / U) mod W
+R: byte offset within the stripe unit
+                              = L mod U
 
-W: stripe width
-    W = number of elements in ffs_data_servers
+FFV2_STRIPING_SPARSE:
+  physical offset on data server i:
+      P_sparse(L) = L
+  other data servers see a hole at offset L.
 
-S: number of bytes in a stripe
-    S = W * ffm_striping_unit_size
-
-N: stripe number
-    N = L / S
+FFV2_STRIPING_DENSE:
+  physical offset on data server i:
+      P_dense(L) = N * U + R
+             = (L / S) * U + (L mod U)
+  each data server stores only the stripe units it owns,
+  packed contiguously.
 ~~~
-{: #fig-striping title="Stripe Mapping Math"}
+{: #fig-striping-math title="Sparse and dense stripe mapping math"}
 
 #  Recovering from Client I/O Errors
 
