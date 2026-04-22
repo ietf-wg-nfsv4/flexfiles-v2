@@ -3553,6 +3553,22 @@ Network partitions:
    Message loss is bounded by RPC retransmit; eventual delivery
    is assumed once the partition heals.
 
+   Split-brain scenarios (in which a partitioned minority of
+   the data servers in a mirror set attempts to make progress
+   independently of the majority) cannot drive inconsistent
+   writes to COMMITTED state.  The chunk_guard4 CAS on each
+   write requires the guard value from a successor chunk to
+   strictly advance the guard value of its predecessor; on
+   partition heal, any writes attempted on the minority side
+   are detected by the majority because their guard values do
+   not satisfy the CAS precondition, and those writes are
+   discarded.  When reconciliation is impossible -- for example,
+   the erasure code has lost too many shards across both sides
+   of the partition to reconstruct any single consistent
+   generation -- the repair flow terminates with
+   NFS4ERR_PAYLOAD_LOST (see {{sec-NFS4ERR_PAYLOAD_LOST}}),
+   which is terminal for the affected ranges.
+
 Lease bound:
 :  All state held by a data server on behalf of a metadata server
    is bounded by the TRUST_STATEID expiry (see
