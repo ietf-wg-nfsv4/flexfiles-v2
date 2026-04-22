@@ -4923,13 +4923,6 @@ metadata server MAY extend the deadline or re-select) and from
 NFS4ERR_IO (per-operation failure; metadata server MAY retry or
 re-select).  Only NFS4ERR_PAYLOAD_LOST is terminal.
 
-<cref source="Tom">This really points out either we need an array of
-errors in the chunk operation responses or we need to not send an
-array of chunks in the requests. The arrays were picked in order to
-reduce the header to data cost, but really do not make sense.</cref>
-
-<cref source="Tom">Trying out an array of errors.</cref>
-
 ## Operations and Their Valid Errors
 
 The operations and their valid errors are presented in
@@ -5558,9 +5551,6 @@ back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
    /// };
 ~~~
 {: #fig-CHUNK_HEADER_READ4resok title="XDR for CHUNK_HEADER_READ4resok" }
-
-<cref source="Tom">Do we want to have a chunk_owner for reads versus writes?
-Instead of co-arrays, have one single in the responses?</cref>
 
 ~~~ xdr
    /// union CHUNK_HEADER_READ4res switch (nfsstat4 chrr_status) {
