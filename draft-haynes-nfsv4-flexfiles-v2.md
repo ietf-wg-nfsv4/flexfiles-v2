@@ -6867,6 +6867,48 @@ The current design uses a per-chunk monotonic counter scoped to
 the chunk on the data server, with cg_client_id as the
 disambiguator across clients.  See {{sec-chunk_guard4}}.
 
+##  Layout-Level Generation Counter
+{:numbered="false"}
+
+Christoph Hellwig proposed at IETF 122 (March 2025) adding a
+generation counter to the layout itself, transmitted to the
+data servers alongside each I/O, so that the metadata server
+could redirect writes to new data servers without issuing a
+full CB_LAYOUTRECALL storm across every holder of the file.
+This is a natural extension of the per-chunk cg_gen_id: where
+cg_gen_id disambiguates successive writes to the same chunk, a
+layout-level counter would disambiguate successive placements
+of the same data.  This was rejected because:
+
+-  The use case is already covered.  CB_CHUNK_REPAIR (see
+   {{sec-CB_CHUNK_REPAIR}}) and the Data Mover / Proxy-DS
+   mechanism (see the companion Data Mover design) together
+   handle mid-layout remap without requiring a layout-level
+   epoch on the wire.  CB_CHUNK_REPAIR reaches the specific
+   chunks that need redirection; the Data Mover reaches the
+   broader re-placement case; between them the full remap
+   space is covered.
+
+-  Adding a layout-level counter introduces a second,
+   potentially-conflicting epoch alongside cg_gen_id.  The CAS
+   semantics on the data server would have to compose the two
+   generations (per-chunk and per-layout), which multiplies
+   the states the data server must reason about without
+   strengthening any guarantee the protocol offers today.
+
+-  The CB_LAYOUTRECALL storm that motivated the proposal is a
+   worst-case cost that the current design pays only during a
+   genuine data-server retirement or full re-placement.
+   Partial remaps -- the common case -- already flow through
+   CB_CHUNK_REPAIR + layout refresh on LAYOUTGET without
+   disturbing other holders.
+
+If a future revision determines that layout-level generation is
+needed, it can be added as a protocol extension: the on-wire
+surface is additive rather than a replacement, because
+cg_gen_id's semantics are independent of any outer layout
+epoch.
+
 ##  Declustered RAID with Dynamic Parity Mapping
 {:numbered="false"}
 
