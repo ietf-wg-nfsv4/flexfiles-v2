@@ -3583,21 +3583,287 @@ For clarity, the protocol explicitly does not provide:
 
 # NFSv4.2 Operations Allowed to Data Files
 
-<cref source="Tom"> In Flexible File Version 1 Layout Type, the
-emphasis was on NFSv3 DSes.  We limited the operations that clients
-could send to data files to be COMMIT, READ, and WRITE.  We further
-limited the MDS to GETATTR, SETATTR, CREATE, and REMOVE.  (Funny
-enough, this is not mandated here.)  We need to call this out in
-this draft and also we need to limit the NFSv4.2 operations.  Besides
-the ones created here, consider: READ, WRITE, and COMMIT for mirroring
-types and ALLOCATE, CLONE, COPY, DEALLOCATE, GETFH, PUTFH, READ_PLUS,
-RESTOREFH, SAVEFH, SEEK, and SEQUENCE for all types.  </cref>
+In the Flex Files Version 1 Layout Type ({{RFC8435}}), the data path
+between client and data server was NFSv3 ({{RFC1813}}); the
+operations a client sent to a data file were limited to READ,
+WRITE, and COMMIT, and the operations the metadata server sent on
+its control plane to the data server were limited to GETATTR,
+SETATTR, CREATE, and REMOVE.  An NFSv4.2 data server, as used by
+the Flex Files Version 2 Layout Type, exposes a much larger
+operation set.  This section defines which operations a client MAY
+send to a data file, which operations the metadata server MAY
+send, and which operations a data server MUST reject.
 
-<cref source="Tom"> Of special merit is SETATTR.  Do we want to
-allow the clients to be able to truncate the data files?  Which
-also brings up DEALLOCATE.  Perhaps we want CHUNK_DEALLOCATE?  That
-way we can swap out chunks with the client file.  CHUNK_DEALLOCATE_GUARD.
-Really need to determine capabilities of XFS swap!  </cref>
+The restrictions below apply only to operations directed at a data
+file on a data server.  Clients retain the full NFSv4.2 operation
+set for files visible through the metadata server, including the
+operations prohibited below (RENAME, LINK, CLONE, COPY, ACL-scoped
+SETATTR, and so on).  The metadata server MAY internally use
+operations on data files that clients MUST NOT send, as part of
+its control-plane duties for the file (see
+{{sec-system-model-roles}}).
+
+##  Control Plane: Metadata Server to Data Server {#sec-ops-mds}
+
+When the metadata server acts as a client to a data server, it is
+managing the data file on behalf of the metadata file's namespace.
+A data server MUST support the following operations on data files
+when issued by the metadata server:
+
+-  SEQUENCE, PUTFH, PUTROOTFH, GETFH ({{RFC8881}} Sections 18.46,
+   18.19, 18.21, 18.8): session and filehandle plumbing.
+-  LOOKUP ({{RFC8881}} Section 18.15): runway pool directory
+   traversal.
+-  GETATTR ({{RFC8881}} Section 18.7): reflected GETATTR after a
+   write layout is returned, and any other attribute queries the
+   metadata server needs to reconcile its cached view.
+-  SETATTR ({{RFC8881}} Section 18.30): data file truncate for
+   MDS-level SETATTR(size) fan-out, synthetic uid/gid rotation
+   for fencing, and mode-bit initialisation on runway assignment.
+-  CREATE ({{RFC8881}} Section 18.4): runway pool file creation.
+-  REMOVE ({{RFC8881}} Section 18.25): cleanup on MDS file
+   unlink.
+-  OPEN, CLOSE ({{RFC8881}} Sections 18.16, 18.2): used by the
+   metadata server when it acts as a client to the data server
+   for InBand or proxy I/O.
+-  EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION,
+   BIND_CONN_TO_SESSION, DESTROY_CLIENTID ({{RFC8881}} Sections
+   18.35, 18.36, 18.37, 18.34, 18.50): control-session
+   management.  The metadata server sets
+   EXCHGID4_FLAG_USE_NON_PNFS in its EXCHANGE_ID.  A data
+   server that supports the tight-coupling control protocol
+   (see {{sec-tight-coupling-control-session}}) identifies the
+   metadata server's session by EXCHGID4_FLAG_USE_PNFS_MDS and
+   accepts TRUST_STATEID, REVOKE_STATEID, and
+   BULK_REVOKE_STATEID on that session.
+-  TRUST_STATEID ({{sec-TRUST_STATEID}}), REVOKE_STATEID
+   ({{sec-REVOKE_STATEID}}), BULK_REVOKE_STATEID
+   ({{sec-BULK_REVOKE_STATEID}}): the MDS-to-DS tight-coupling
+   trust-table control operations.
+
+The metadata server MAY also use other NFSv4.2 operations on data
+files as implementation-defined control-plane actions (for
+example, COPY or CLONE to migrate a data file between data
+servers during a data mover operation).  The list above is the
+minimum set a Flex Files v2 data server MUST support for the
+metadata server's use.
+
+##  Data Path: Client to Data Server {#sec-ops-client}
+
+A pNFS client with an active Flex Files v2 layout MUST restrict
+the operations it issues against data files to the operations
+defined below.  A data server MUST reject any other operation on
+a data file with NFS4ERR_NOTSUPP.
+
+### Session and Identity Plumbing
+
+Required for all protection modes:
+
+-  SEQUENCE, PUTFH, GETFH, PUTROOTFH ({{RFC8881}} Sections 18.46,
+   18.19, 18.8, 18.21).
+-  EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION,
+   BIND_CONN_TO_SESSION, DESTROY_CLIENTID ({{RFC8881}} Sections
+   18.35, 18.36, 18.37, 18.34, 18.50).
+-  RECLAIM_COMPLETE ({{RFC8881}} Section 18.51).
+-  SECINFO, SECINFO_NO_NAME ({{RFC8881}} Sections 18.29, 18.45):
+   discovery of acceptable security flavours on the data
+   server.
+
+These operations are baseline NFSv4.2 session plumbing and are
+supported on data files as on any NFSv4.2 file.
+
+### GETATTR on a Data File
+
+GETATTR MAY be issued by a client against a data file.  The
+primary use case is repair: a repair client selected by
+CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}) may need to query the
+per-server file size or allocation state when reconstructing a
+payload, and the data mover described informally in
+{{sec-system-model-roles}} similarly benefits from attribute
+queries on surviving mirrors.  Diagnostic use is also permitted.
+
+Clients MUST NOT treat GETATTR values returned by a data server as
+authoritative for any file attribute (size, timestamps, owner,
+mode, ACL, and so on).  The metadata server is the sole authority
+for file attributes.  Values returned by a data server reflect the
+per-server data file instance only and MAY diverge from the
+metadata server's view, particularly during a write layout's
+lifetime or during a Data Mover transition.  A client that uses a
+data-server GETATTR result to determine the file's visible size
+will observe inconsistencies.
+
+### SETATTR on a Data File
+
+Clients MUST NOT issue SETATTR against a data file.  A data server
+MUST reject a client SETATTR with NFS4ERR_NOTSUPP.
+
+Attribute changes on data files MUST be reconciled with the
+metadata server's view and cannot be applied unilaterally by a
+client.  A client that wants to truncate, change the mode, change
+ownership, or otherwise modify attributes on a file MUST issue
+SETATTR to the metadata server for the file's MDS handle; the
+metadata server fans the change out to the data files as a
+control-plane operation.
+
+This rule explicitly covers truncate (SETATTR with size in the
+bitmap): a client MUST NOT truncate a data file directly.
+Similarly, a client MUST NOT issue DEALLOCATE against a data
+file; see the next subsection.
+
+### Mirrored Data Files (FFV2_CODING_MIRRORED)
+
+For a mirror whose ffm_coding_type_data is FFV2_CODING_MIRRORED
+(see {{sec-ffv2-mirror4}}), client operations on the data file
+follow the same pattern as the File Layout Type in {{RFC8881}}
+Section 13.6 and the Flex Files v1 Layout Type in {{RFC8435}}:
+
+Required:
+
+-  READ ({{RFC8881}} Section 18.22).
+-  WRITE ({{RFC8881}} Section 18.32).
+-  COMMIT ({{RFC8881}} Section 18.3).
+
+Optional (the client MAY send, and the data server MAY support):
+
+-  READ_PLUS ({{RFC7862}} Section 15.10): hole-aware reads.
+-  SEEK ({{RFC7862}} Section 15.11): hole and data detection.
+-  ALLOCATE ({{RFC7862}} Section 15.1): space reservation hint.
+
+The client MUST NOT send:
+
+-  DEALLOCATE ({{RFC7862}} Section 15.4): hole punching is a
+   metadata-server responsibility; the client issues DEALLOCATE
+   on the metadata-server filehandle, and the metadata server
+   fans out to the data servers as a control-plane operation.
+
+### Erasure-Coded Data Files (FFV2_ENCODING_*)
+
+For a mirror whose ffm_coding_type_data is any of the erasure-
+coding types defined in this document
+(FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
+FFV2_ENCODING_RS_VANDERMONDE), client operations use the CHUNK_*
+operations rather than READ / WRITE / COMMIT.
+
+Required for all erasure-coded clients:
+
+-  CHUNK_WRITE ({{sec-CHUNK_WRITE}}).
+-  CHUNK_READ ({{sec-CHUNK_READ}}).
+-  CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}).
+-  CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}).
+-  CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}}).
+-  CHUNK_LOCK ({{sec-CHUNK_LOCK}}) and CHUNK_UNLOCK
+   ({{sec-CHUNK_UNLOCK}}).
+-  CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
+
+Required for clients that participate in repair:
+
+-  CHUNK_ERROR ({{sec-CHUNK_ERROR}}).
+-  CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}).
+-  CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}).
+
+Clients MUST NOT send:
+
+-  READ, WRITE, COMMIT against an erasure-coded data file.  A
+   data server MUST reject these with NFS4ERR_NOTSUPP and MAY
+   log the client for operator attention; this case is almost
+   always a client bug in which the client did not inspect the
+   mirror's ffm_coding_type_data before issuing I/O.
+-  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against an erasure-
+   coded data file.  Chunk-level allocation is a
+   metadata-server responsibility.
+
+### Operations That MUST NOT Be Sent to a Data File
+
+Clients MUST NOT send the following operations to a data server
+on a data file, regardless of protection mode.  A data server
+MUST return NFS4ERR_NOTSUPP:
+
+-  OPEN, CLOSE, OPEN_DOWNGRADE, OPEN_CONFIRM ({{RFC8881}}
+   Sections 18.16, 18.2, 18.18, 18.20).  Opens occur on the
+   metadata server; the stateid obtained there is used on the
+   data path.
+-  LOCK, LOCKU, LOCKT, RELEASE_LOCKOWNER ({{RFC8881}} Sections
+   18.10, 18.11, 18.13, 18.24).  Byte-range locks on data files
+   are not supported; erasure-coded files use CHUNK_LOCK, and
+   mirrored files rely on metadata-server coordination.
+-  DELEGPURGE, DELEGRETURN, WANT_DELEGATION ({{RFC8881}} Sections
+   18.5, 18.6 and {{RFC7862}} Section 15.3).  Delegations are
+   issued by the metadata server.
+-  Any operation whose purpose is to manipulate the file's
+   namespace: RENAME, LINK, SYMLINK, CREATE (at the file-
+   creation use, not MDS runway creation), REMOVE.  Namespace
+   operations belong on the metadata server.
+-  Any ACL-scoped SETATTR or GETATTR bit (FATTR4_ACL,
+   FATTR4_DACL, FATTR4_SACL).  Access control on data files is
+   delegated to the metadata server.
+-  CLONE, COPY, COPY_NOTIFY, OFFLOAD_CANCEL, OFFLOAD_STATUS
+   ({{RFC7862}} Sections 15.13, 15.2, 15.3, 15.8, 15.9).
+   File-level data migration is a metadata-server responsibility.
+-  LAYOUTGET, LAYOUTCOMMIT, LAYOUTRETURN, LAYOUTSTATS,
+   LAYOUTERROR, GETDEVICEINFO, GETDEVICELIST ({{RFC8881}}
+   Sections 18.43, 18.42, 18.44, {{RFC7862}} Sections 15.7,
+   15.6, {{RFC8881}} Sections 18.40, 18.41).  Layout operations
+   belong on the metadata server.
+-  TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID
+   ({{sec-TRUST_STATEID}}, {{sec-REVOKE_STATEID}},
+   {{sec-BULK_REVOKE_STATEID}}).  These are MDS-to-DS
+   control-plane operations; a data server rejects them with
+   NFS4ERR_PERM when received on a client session (see
+   {{sec-tight-coupling-control-session}}).
+
+##  Callback Path: Data Server to Client
+
+A data server does not call back directly to pNFS clients.
+Recall notifications and repair coordination flow through the
+metadata server's backchannel session with the client.  The
+callbacks a client will observe that affect its data files are:
+
+-  CB_LAYOUTRECALL ({{RFC8881}} Section 20.3).
+-  CB_NOTIFY_DEVICEID ({{RFC8881}} Section 20.12).
+-  CB_RECALL_ANY ({{RFC8881}} Section 20.6).
+-  CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).
+
+A data server influences these callbacks only indirectly, via
+LAYOUTERROR reports the client issues to the metadata server or
+by returning error codes that prompt the client to report.  A
+data server MUST NOT attempt to send CB_* operations to clients
+directly.
+
+##  Summary Table
+
+{{tbl-ops-allowed}} lists each relevant NFSv4.2 operation and its
+applicability on a data file in each direction.  "required" means
+the data server MUST support the operation when received on the
+indicated path; "OPT" means the data server MAY support it and the
+client MUST tolerate the absence of support; "MUST NOT" means the
+client MUST NOT send the operation and the data server MUST reject
+it with NFS4ERR_NOTSUPP; "MAY" means the metadata server MAY use
+the operation as an implementation-defined control-plane action.
+
+ | Operation                        | Client -> DS                | MDS -> DS          |
+ | ---
+ | SEQUENCE, PUTFH, GETFH, PUTROOTFH | required                   | required           |
+ | EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION, BIND_CONN_TO_SESSION, DESTROY_CLIENTID | required | required  |
+ | RECLAIM_COMPLETE                  | required                   | required           |
+ | SECINFO, SECINFO_NO_NAME          | required                   | MAY                |
+ | GETATTR                           | OPT (non-authoritative)    | required           |
+ | SETATTR                           | MUST NOT                   | required           |
+ | LOOKUP, CREATE, REMOVE            | MUST NOT                   | required           |
+ | READ, WRITE, COMMIT               | required (mirrored); MUST NOT (erasure-coded) | MAY |
+ | READ_PLUS, SEEK, ALLOCATE         | OPT (mirrored); MUST NOT (erasure-coded)      | MAY |
+ | DEALLOCATE                        | MUST NOT                   | MAY                |
+ | CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_HEADER_READ, CHUNK_LOCK, CHUNK_UNLOCK, CHUNK_ROLLBACK | required (erasure-coded); MUST NOT (mirrored) | not used |
+ | CHUNK_ERROR, CHUNK_REPAIRED, CHUNK_WRITE_REPAIR | required (erasure-coded repair clients); MUST NOT (mirrored) | not used |
+ | OPEN, CLOSE, OPEN_DOWNGRADE, OPEN_CONFIRM | MUST NOT           | OPT (proxy I/O)    |
+ | LOCK, LOCKU, LOCKT, RELEASE_LOCKOWNER | MUST NOT               | MUST NOT           |
+ | DELEGPURGE, DELEGRETURN, WANT_DELEGATION | MUST NOT            | MUST NOT           |
+ | RENAME, LINK, SYMLINK             | MUST NOT                   | MUST NOT           |
+ | CLONE, COPY, COPY_NOTIFY, OFFLOAD_CANCEL, OFFLOAD_STATUS | MUST NOT | MAY (data migration) |
+ | LAYOUTGET, LAYOUTCOMMIT, LAYOUTRETURN, LAYOUTSTATS, LAYOUTERROR, GETDEVICEINFO, GETDEVICELIST | MUST NOT | MUST NOT |
+ | ACL-scoped GETATTR/SETATTR bits   | MUST NOT                   | MAY                |
+ | TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID | MUST NOT  | required (tight coupling) |
+{: #tbl-ops-allowed title="NFSv4.2 operations allowed on data files"}
 
 
 #  Flexible File Layout Type Return {#sec-layouthint}
