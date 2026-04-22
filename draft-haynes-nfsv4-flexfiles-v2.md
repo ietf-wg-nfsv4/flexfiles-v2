@@ -2014,6 +2014,15 @@ the metadata server stateid has no meaning to a storage device that
 is not participating in the control protocol.  In this case the
 metadata server MUST set fffi_stateid to the anonymous stateid.
 
+For an NFSv3 storage device (ffdv_version = 3), the tight-coupling
+model does not apply: {{sec-ff_device_addr4}} requires
+ffdv_tightly_coupled to be FALSE whenever ffdv_version equals 3,
+because NFSv3 has no wire encoding for stateids.  The corresponding
+fffi_stateid element in the ffv2ds_file_info array MUST therefore
+be the anonymous stateid and is unused; an NFSv3 data server uses
+the synthetic-uid fencing model (see {{sec-Fencing-Clients}})
+rather than a stateid-based trust table.
+
 This specification of the fffi_stateid restricts both models for
 NFSv4.x storage protocols:
 
