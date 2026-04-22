@@ -6083,6 +6083,11 @@ dropping them.
 ### ARGUMENTS
 
 ~~~ xdr
+   /// enum cb_chunk_repair_reason4 {
+   ///     CB_REPAIR_REASON_RACE  = 1,
+   ///     CB_REPAIR_REASON_SCRUB = 2
+   /// };
+   ///
    /// struct cb_chunk_range4 {
    ///     offset4         ccr_offset;
    ///     count4          ccr_count;
@@ -6090,10 +6095,11 @@ dropping them.
    /// };
    ///
    /// struct CB_CHUNK_REPAIR4args {
-   ///     nfs_fh4            ccra_fh;
-   ///     stateid4           ccra_layout_stateid;
-   ///     nfstime4           ccra_deadline;
-   ///     cb_chunk_range4    ccra_ranges<>;
+   ///     nfs_fh4                     ccra_fh;
+   ///     stateid4                    ccra_layout_stateid;
+   ///     nfstime4                    ccra_deadline;
+   ///     cb_chunk_repair_reason4     ccra_reason;
+   ///     cb_chunk_range4             ccra_ranges<>;
    /// };
 ~~~
 {: #fig-CB_CHUNK_REPAIR4args title="XDR for CB_CHUNK_REPAIR4args" }
@@ -6135,6 +6141,32 @@ another repair client after the deadline elapses -- but a
 client that has missed the deadline MUST re-verify its layout
 and the chunk lock state before continuing any repair-related
 CHUNK operation.
+
+The ccra_reason distinguishes the two flows that cause the
+metadata server to issue a repair callback:
+
+CB_REPAIR_REASON_RACE:
+:  A live-race repair.  A client (not necessarily the recipient
+   of this callback) detected a chunk-level inconsistency at
+   write or read time and reported it via LAYOUTERROR.  The
+   metadata server is driving repair synchronously because the
+   affected chunk is on the critical path of some I/O.  The
+   recipient SHOULD prioritise the callback over background
+   work.
+
+CB_REPAIR_REASON_SCRUB:
+:  A background scrub.  The metadata server has detected stale
+   or inconsistent payloads during a scheduled integrity sweep
+   and is opportunistically driving repair.  No client is
+   currently blocked on these ranges.  The recipient MAY
+   schedule the callback at lower priority than
+   CB_REPAIR_REASON_RACE, and MAY return NFS4ERR_DELAY to defer
+   repair to a more convenient time; the metadata server will
+   retry.
+
+The two reasons share all other semantics: the same ccra_ranges
+encoding, the same response codes, the same deadline contract.
+Only the priority / retry behaviour differs.
 
 The ccra_ranges array lists every chunk range the metadata
 server requests the client to repair.  Each entry carries its
