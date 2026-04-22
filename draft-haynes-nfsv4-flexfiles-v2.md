@@ -6781,9 +6781,9 @@ authentication model:
 -  Under AUTH_SYS with loose coupling, the residual surface is
    essentially the pre-existing attack surface of NFSv3 writes:
    any host that can reach the data server with a valid uid can
-   write nonsense to chunks that uid owns.  This is the
-   authorization model the rest of Flex Files v1 inherits
-   without modification.
+   write nonsense to chunks that uid owns.  This is the Flex
+   Files v1 authorization model, which Flex Files v2 inherits
+   without modification for this path.
 
 -  Under RPCSEC_GSS or TLS with mutual authentication, the
    residual surface reduces to: only the authenticated client
@@ -6841,10 +6841,19 @@ SECINFO mechanism rather than silently dropping connections.
 
 ##  RPCSEC_GSS and Security Services
 
-_Why we don't want to support RPCSEC_GSS._
-
-Because of the special use of principals within the loosely coupled
-model, the issues are different depending on the coupling model.
+This document does not specify how RPCSEC_GSS {{RFC7861}} is
+used between the client and a storage device in the loosely
+coupled model, and the reasons differ between the two coupling
+models.  Because the loosely coupled model uses synthetic
+credentials that are managed by the metadata server rather than
+shared with the storage device, a full RPCSEC_GSS integration
+would require protocol work (RPCSEC_GSSv3 structured privilege
+assertions, per {{RFC7861}}) on all three of the metadata
+server, the storage device, and the client.  In the tightly
+coupled model the principal used to access the data file is the
+same as the one used to access the metadata file, so
+RPCSEC_GSS applies unchanged.  The two subsections below treat
+each model in turn.
 
 ###  Loosely Coupled
 
