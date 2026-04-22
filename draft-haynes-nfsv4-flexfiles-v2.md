@@ -4009,6 +4009,20 @@ For clarity, the protocol explicitly does not provide:
    transport-integrity check, not an adversarial-integrity
    check.
 
+-  **General-purpose intent primitive.**  Christoph Hellwig
+   observed at IETF 121 (November 2024) that the intent-based
+   pattern used here (CHUNK_WRITE → CHUNK_FINALIZE →
+   CHUNK_COMMIT with CHUNK_ROLLBACK as the abort path) has
+   potential applicability beyond erasure coding -- for
+   example, as a general multi-target atomic-ish write
+   primitive.  This document scopes the mechanism to erasure
+   coding: the on-wire operations carry erasure-coding-specific
+   semantics (chunk_guard4, mirror-set repair, per-codec
+   geometry), and generalising the primitive is explicit
+   future work.  Protocol extensions that reuse the
+   intent / finalize / commit pattern in other contexts are
+   not precluded by this document but are not defined by it.
+
 # NFSv4.2 Operations Allowed to Data Files
 
 In the Flex Files Version 1 Layout Type ({{RFC8435}}), the data path
