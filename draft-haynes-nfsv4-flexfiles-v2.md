@@ -3335,7 +3335,8 @@ In the systematic form (FFV2_ENCODING_MOJETTE_SYSTEMATIC), the first
 k shards are the original data rows and the remaining m shards are
 projections.  Healthy reads require no decoding.
 
-Reconstruction of missing data rows:
+Reconstruction of missing data rows proceeds via the
+corner-peeling algorithm of {{NORMAND}}:
 
 1. Load available parity projections.
 2. Subtract contributions of present data rows (residual).
