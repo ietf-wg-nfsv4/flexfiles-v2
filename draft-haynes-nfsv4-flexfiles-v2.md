@@ -676,7 +676,7 @@ that there is no mapping in any of the name services used by the storage
 device, i.e., each group SHOULD have no members.
 
 If the layout segment has an iomode of LAYOUTIOMODE4_READ, then the
-metadata server should return a synthetic uid that is not set on the
+metadata server SHOULD return a synthetic uid that is not set on the
 storage device.  Only the synthetic gid would be valid.
 
 The client is thus solely responsible for enforcing file permissions
