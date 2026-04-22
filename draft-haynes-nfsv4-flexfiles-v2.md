@@ -785,6 +785,32 @@ devices are NFSv4.2 servers, those facilities are provided by the
 TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID operations
 defined in {{sec-tight-coupling-control}}.
 
+The metadata server and a storage device establish that they can
+use TRUST_STATEID via a two-part handshake, both parts of which
+MUST succeed before the metadata server may issue TRUST_STATEID
+against that storage device for production traffic:
+
+1.  **Capability probe.**  At control-session setup the metadata
+    server sends a TRUST_STATEID against the anonymous stateid
+    (see {{sec-tight-coupling-probe}}).  A storage device that
+    supports tight coupling MUST reject the probe with
+    NFS4ERR_INVAL; a storage device that does not support tight
+    coupling returns NFS4ERR_NOTSUPP and the metadata server
+    falls back to loose coupling.  The metadata server records
+    the result per storage device in ffdv_tightly_coupled.
+
+2.  **Control-session gating.**  The metadata server presents
+    EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID when it opens the
+    control session to the storage device
+    (see {{sec-tight-coupling-control-session}}).  The storage
+    device MUST reject any incoming TRUST_STATEID,
+    REVOKE_STATEID, or BULK_REVOKE_STATEID that does not arrive
+    on such a session with NFS4ERR_PERM.  This is the
+    authorization mechanism that distinguishes the metadata
+    server from ordinary pNFS clients, which connect with
+    EXCHGID4_FLAG_USE_PNFS_DS or EXCHGID4_FLAG_USE_NON_PNFS and
+    are therefore structurally unable to invoke these operations.
+
 Given this basic structure, locking-related operations are handled
 as follows:
 
