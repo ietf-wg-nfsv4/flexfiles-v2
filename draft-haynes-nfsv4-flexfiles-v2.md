@@ -3712,6 +3712,16 @@ Rollback invariant:
    triggered the rollback.  The protocol never relies on locating
    or reconstructing data from outside the mirror set.
 
+Visibility of non-committed state:
+:  PENDING and FINALIZED chunks MUST NOT be globally visible.
+   CHUNK_READ returns only COMMITTED content; a CHUNK_READ whose
+   target chunk is currently PENDING or FINALIZED sees the
+   predecessor COMMITTED content (or an EMPTY chunk if none
+   exists), not the in-progress successor.  A writer observing
+   its own PENDING or FINALIZED chunk MAY receive the in-progress
+   content on the same stateid that produced it, but no other
+   stateid -- on the same or a different client -- sees it.
+
 ##  Progress and Termination {#sec-system-model-progress}
 
 Under the failure model above, the protocol guarantees the
