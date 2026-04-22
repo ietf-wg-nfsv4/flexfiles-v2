@@ -1486,11 +1486,12 @@ require client-side agreement on the mathematics.
 
 ### ffv2_flags4 {#sec-ffv2_flags4}
 ~~~ xdr
-   /// const FFV2_FLAGS_NO_LAYOUTCOMMIT   = FF_FLAGS_NO_LAYOUTCOMMIT;
-   /// const FFV2_FLAGS_NO_IO_THRU_MDS    = FF_FLAGS_NO_IO_THRU_MDS;
-   /// const FFV2_FLAGS_NO_READ_IO        = FF_FLAGS_NO_READ_IO;
-   /// const FFV2_FLAGS_WRITE_ONE_MIRROR  = FF_FLAGS_WRITE_ONE_MIRROR;
-   /// const FFV2_FLAGS_ONLY_ONE_WRITER   = 0x00000010;
+   /// const FFV2_FLAGS_NO_LAYOUTCOMMIT  = FF_FLAGS_NO_LAYOUTCOMMIT;
+   /// const FFV2_FLAGS_NO_IO_THRU_MDS   = FF_FLAGS_NO_IO_THRU_MDS;
+   /// const FFV2_FLAGS_NO_READ_IO       = FF_FLAGS_NO_READ_IO;
+   /// const FFV2_FLAGS_WRITE_ONE_MIRROR =
+   ///     FF_FLAGS_WRITE_ONE_MIRROR;
+   /// const FFV2_FLAGS_ONLY_ONE_WRITER  = 0x00000010;
    ///
    /// typedef uint32_t            ffv2_flags4;
 ~~~
