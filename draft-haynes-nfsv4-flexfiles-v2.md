@@ -760,7 +760,7 @@ As a result:
 
 -  Enforcement of share reservations is the responsibility of the
    client.  Even though I/O is done using the anonymous stateid, the
-   client must ensure that it has a valid stateid associated with the
+   client MUST ensure that it has a valid stateid associated with the
    openowner.
 
 In the event that a stateid is revoked, the metadata server is responsible
@@ -779,7 +779,7 @@ been revoked.
 
 When locking-related operations are requested, they are primarily dealt
 with by the metadata server, which generates the appropriate stateids.
-These stateids must be made known to the storage device using control
+These stateids MUST be made known to the storage device using control
 protocol facilities.  For flex files v2 deployments in which the storage
 devices are NFSv4.2 servers, those facilities are provided by the
 TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID operations
@@ -822,7 +822,7 @@ as follows:
    the association between the metadata-server-chosen stateid and the
    client and openowner that it represents.  OPEN_DOWNGRADE and CLOSE
    are executed initially on the metadata server, but the state change
-   made must be propagated to the storage device.
+   MUST be propagated to the storage device.
 
 -  Advisory byte-range locks can be implemented locally on the
    metadata server.  As in the case of OPENs, the stateids associated
@@ -3848,7 +3848,7 @@ Across multiple chunks the protocol makes **no multi-chunk
 atomicity or ordering guarantee**.  A reader that reads chunk A
 at one offset and chunk B at another MAY observe A's new value
 and B's old value simultaneously.  Applications that require
-multi-chunk atomicity must layer it above this protocol -- for
+multi-chunk atomicity MUST layer it above this protocol -- for
 example, via file-level checksums, application-level generation
 fields, or external transaction managers.
 
@@ -4131,7 +4131,7 @@ For clarity, the protocol explicitly does not provide:
 -  **Byzantine fault tolerance.**  A data server that
    deliberately misreports its state, or a client that
    bypasses its own authentication, is outside the trust model.
-   Deployments requiring Byzantine tolerance must add it in a
+   Deployments requiring Byzantine tolerance MUST add it in a
    layer above or below this protocol.
 
 -  **Metadata server high availability.**  Single-MDS-per-file
