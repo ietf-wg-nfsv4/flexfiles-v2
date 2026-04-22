@@ -1481,39 +1481,47 @@ The ffv2_flags4 in {{fig-ffv2_flags4}}  is a bitmap that allows the
 metadata server to inform the client of particular conditions that
 may result from more or less tight coupling of the storage devices.
 
+Each flag below describes both the semantics when set and the
+normative requirement it places on the client.  When a flag is
+not set, the client MUST follow the default behavior described
+for its unset state.
+
 FFV2_FLAGS_NO_LAYOUTCOMMIT:
 
-:  can be set to indicate that the client is not required to send
-LAYOUTCOMMIT to the metadata server.
+:  When set, the client MAY omit the LAYOUTCOMMIT to the
+metadata server.  When unset, the client MUST send LAYOUTCOMMIT
+per {{RFC8881}} Section 18.42.
 
 FFV2_FLAGS_NO_IO_THRU_MDS:
 
-:  can be set to indicate that the client should not send I/O
-operations to the metadata server.  That is, even if the client
-could determine that there was a network disconnect to a storage
-device, the client should not try to proxy the I/O through the
-metadata server.
+:  When set, the client MUST NOT proxy I/O operations through
+the metadata server, even after detecting a network disconnect
+to a storage device.  When unset, the client MAY retry failed
+I/O via the metadata server.
 
 FFV2_FLAGS_NO_READ_IO:
 
-:  can be set to indicate that the client should not send READ
-requests with the layouts of iomode LAYOUTIOMODE4_RW.  Instead, it
-should request a layout of iomode LAYOUTIOMODE4_READ from the
-metadata server.
+:  When set, the client MUST NOT issue READ against layouts of
+iomode LAYOUTIOMODE4_RW, and MUST instead request a separate
+layout of iomode LAYOUTIOMODE4_READ for any read I/O.  When
+unset, the client MAY issue READ against either iomode.
 
 FFV2_FLAGS_WRITE_ONE_MIRROR:
 
-:  can be set to indicate that the client only needs to update one
-of the mirrors (see {{sec-CSM}}).
+:  When set, the client MAY update only one mirror of each
+layout segment (see {{sec-CSM}}) and rely on the metadata
+server or a peer data server to propagate the update to the
+remaining mirrors.  When unset, the client MUST update all
+mirrors.
 
 FFV2_FLAGS_ONLY_ONE_WRITER:
 
-:  can be set to indicate that the client only needs to use a
-CHUNK_WRITE to update the chunks in the data file.  I.e., keep the
-ability to rollback in case of a write hole caused by overwriting.
-If this flag is not set, then the client MUST write chunks with
-CHUNK_WRITE with the cwa_guard set in order to prevent collision
-across the data servers.
+:  When set, the client is the exclusive writer for the layout
+and MAY issue CHUNK_WRITE without setting cwa_guard, retaining
+the ability to use CHUNK_ROLLBACK in the event of a write hole
+caused by overwriting.  When unset, the client MUST set
+cwa_guard on every CHUNK_WRITE so that chunk_guard4 CAS can
+prevent collisions across concurrent writers.
 
 ## ffv2_file_info4
 
