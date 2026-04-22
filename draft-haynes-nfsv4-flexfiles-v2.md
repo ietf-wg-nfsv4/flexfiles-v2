@@ -43,6 +43,12 @@ informative:
       name: J. Plank
       target: http://web.eecs.utk.edu/~jplank/plank/papers/CS-96-332.htm
     date: September 1997
+  IANA-PEN:
+    title: "Private Enterprise Numbers"
+    target: https://www.iana.org/assignments/enterprise-numbers/
+    author:
+      - org: IANA
+    date: false
   RFC1813:
   RFC4519:
   RFC7942:
@@ -1403,6 +1409,15 @@ Type Registry'.  I.e., instead of defining a new Layout Type for
 each Erasure Coding, we define a new Erasure Coding Type.  Except
 for FFV2_CODING_MIRRORED, each of the types is expected to employ
 the new operations in this document.
+
+The 32-bit ffv2_coding_type4 value space is partitioned by
+intended scope -- Standards Track, Experimental, Vendor (open),
+and Private / proprietary -- with different allocation policies
+per range, so that vendors can assign codec values without
+consuming standards-track codepoints.  See
+{{tbl-coding-ranges}} and the accompanying prose in
+{{iana-considerations}} for the range assignments and allocation
+policies.
 
 FFV2_CODING_MIRRORED offers replication of data and not integrity of
 data.  As such, it does not need operations like CHUNK_WRITE (see
@@ -6044,7 +6059,7 @@ is used as the security mechanism, then the storage device could
 use a control protocol to validate the RPC credentials to the
 metadata server.
 
-#  IANA Considerations
+#  IANA Considerations {#iana-considerations}
 
 {{RFC8881}} introduced the "pNFS Layout Types Registry"; new layout
 type numbers in this registry need to be assigned by IANA.  This
@@ -6106,12 +6121,17 @@ First Served.
 Private/proprietary (0x8000–0xFFFE)
 
 :  Encoding types for use within a single vendor's ecosystem.
-No registration is required.  Interoperability with other
-implementations is not expected.  The encoding type name SHOULD
-include an organizational identifier (e.g.,
-FFV2_ENCODING_ACME_FOOBAR).  A client that encounters a value
-in this range from an unrecognized server SHOULD treat it as an
-unsupported encoding type.
+No IANA registration is required.  Interoperability with other
+implementations is not expected.  To reduce the likelihood of
+accidental codepoint collisions between independent vendors,
+implementations SHOULD derive the low-order 15 bits of any value
+in this range from that vendor's Private Enterprise Number
+{{IANA-PEN}} (for example, by hashing the PEN into the 15-bit
+space and reserving one well-known offset per codec).  The
+encoding type name SHOULD include an organizational identifier
+(e.g., FFV2_ENCODING_ACME_FOOBAR).  A client that encounters a
+value in this range from an unrecognized server SHOULD treat
+it as an unsupported encoding type.
 
 This partitioning prevents contention for small numbers in the
 Standards Track range and provides a clear signal to clients about
