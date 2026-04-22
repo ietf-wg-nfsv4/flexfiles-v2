@@ -404,13 +404,59 @@ the DS, and the DS acts on it.
 # New NFSv4.2 Operations {#sec-new-ops}
 
 This document defines three new NFSv4.2 operations that the
-metadata server uses to manage registered proxies.  All three
-flow on the MDS-to-proxy control session defined by
+metadata server uses together with a registered proxy.  All
+three flow on the MDS-to-proxy control session defined by
 {{I-D.haynes-nfsv4-flexfiles-v2}}.  None of them are sent by
-pNFS clients.  Opcode numbers are TBD pending IANA-coordination
-with other in-flight NFSv4.2 extensions.
+pNFS clients.
 
-## Operation TBD-1: PROXY_REGISTRATION - Register as Data Mover {#sec-PROXY_REGISTRATION}
+PROXY_REGISTRATION (91) is issued by a proxy to the metadata
+server at startup (and on renewal).  PROXY_MOVE (92) and
+PROXY_REPAIR (93) are issued by the metadata server to a
+registered proxy.
+
+~~~ xdr
+/// /* New operations for the Data Mover */
+///
+/// OP_PROXY_REGISTRATION   = 91;
+/// OP_PROXY_MOVE           = 92;
+/// OP_PROXY_REPAIR         = 93;
+~~~
+{: #fig-data-mover-opnums title="Data Mover operation numbers"}
+
+Opcodes 91, 92, and 93 are chosen to continue the MDS-to-DS
+control-plane range that {{I-D.haynes-nfsv4-flexfiles-v2}}
+opens at 88 (TRUST_STATEID through BULK_REVOKE_STATEID at
+88-90).  If other in-flight NFSv4.2 extensions collide on these
+values during IANA coordination, the final assignment will be
+reconciled by the consuming RFC editor.
+
+The following amendment blocks extend the nfs_argop4 and
+nfs_resop4 dispatch unions from {{RFC7863}} with the new ops.
+A consumer that combines this document's extracted XDR with the
+RFC 7863 XDR applies the amendments at the unions' extension
+point.
+
+~~~ xdr
+/// /* nfs_argop4 amendment block */
+///
+/// case OP_PROXY_REGISTRATION:
+///     PROXY_REGISTRATION4args opproxyregistration;
+/// case OP_PROXY_MOVE: PROXY_MOVE4args opproxymove;
+/// case OP_PROXY_REPAIR: PROXY_REPAIR4args opproxyrepair;
+~~~
+{: #fig-nfs_argop4-amend title="nfs_argop4 amendment block"}
+
+~~~ xdr
+/// /* nfs_resop4 amendment block */
+///
+/// case OP_PROXY_REGISTRATION:
+///     PROXY_REGISTRATION4res opproxyregistration;
+/// case OP_PROXY_MOVE: PROXY_MOVE4res opproxymove;
+/// case OP_PROXY_REPAIR: PROXY_REPAIR4res opproxyrepair;
+~~~
+{: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
+
+## Operation 91: PROXY_REGISTRATION - Register as Data Mover {#sec-PROXY_REGISTRATION}
 
 ### ARGUMENTS
 
@@ -494,7 +540,7 @@ control session (per sec-tight-coupling-control-session in
 EXCHGID4_FLAG_USE_PNFS_MDS on that session so the MDS can
 gate the PROXY_* ops the same way it gates TRUST_STATEID.
 
-## Operation TBD-2: PROXY_MOVE - Direct a Registered Proxy to Move a File {#sec-PROXY_MOVE}
+## Operation 92: PROXY_MOVE - Direct a Registered Proxy to Move a File {#sec-PROXY_MOVE}
 
 ### ARGUMENTS
 
@@ -593,7 +639,7 @@ Terminal outcomes:
 -  Other codes: proxy-specific failure; the MDS MAY retry or
    reassign.
 
-## Operation TBD-3: PROXY_REPAIR - Direct a Registered Proxy to Reconstruct a File {#sec-PROXY_REPAIR}
+## Operation 93: PROXY_REPAIR - Direct a Registered Proxy to Reconstruct a File {#sec-PROXY_REPAIR}
 
 ### ARGUMENTS
 
