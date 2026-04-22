@@ -1954,13 +1954,42 @@ Metadata-server selection:
 
 Fallback when no overlap exists:
 :  If the server's policy cannot be satisfied by any codec the
-   client supports, the server returns
-   NFS4ERR_CODING_NOT_SUPPORTED on the LAYOUTGET.  The client
-   MAY retry with a different (possibly empty) fflh_supported
-   _types list to learn the server's codec repertoire through
-   the errors returned, and MAY fall back to I/O via the
-   metadata server if no mutually-supported codec exists
-   (see {{sec-Fencing-Clients}} for the MDS-I/O fallback).
+   client supports, the metadata server has three options:
+
+   1.  Return NFS4ERR_CODING_NOT_SUPPORTED on the LAYOUTGET.
+       The client MAY retry with a different (possibly empty)
+       fflh_supported_types list to learn the server's codec
+       repertoire through the errors returned.
+
+   2.  Fall back to I/O via the metadata server itself, so the
+       client's reads and writes are satisfied by the MDS
+       translating to the underlying DS codec on the client's
+       behalf (see {{sec-Fencing-Clients}} for the MDS-I/O
+       fallback).  This is correct but serializes all I/O for
+       the codec-ignorant client through a single actor.
+
+   3.  Route the client through a **translating proxy** that
+       understands both the file's native codec and a codec
+       the client does support.  The MDS issues a layout with
+       the proxy's data-server entry carrying
+       FFV2_DS_FLAGS_PROXY and a coding_type the client does
+       support (typically FFV2_CODING_MIRRORED for a minimal
+       NFSv4.2 client, or a flat NFSv3 surface for an NFSv3
+       client).  The proxy encodes and decodes on the fly
+       against the real DSes.  This preserves parallel I/O
+       for the codec-ignorant client that the MDS-I/O
+       fallback loses.  The proxy registration, directive, and
+       credential-forwarding rules are defined in the
+       companion Data Mover design; this draft defines only
+       the layout-flag surface (FFV2_DS_FLAGS_PROXY in
+       {{sec-ffv2_ds_flags4}}) that makes the proxy visible to
+       the client.
+
+   Options (1), (2), and (3) are not mutually exclusive: a
+   given deployment MAY implement any combination.  A
+   deployment that supports (3) covers all the clients that
+   (1) and (2) would cover and additionally preserves parallel
+   I/O for codec-ignorant clients.
 
 Runtime codec change:
 :  If a metadata server changes its codec policy after layouts
