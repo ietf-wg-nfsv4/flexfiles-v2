@@ -176,6 +176,11 @@ mechanisms -- a per-chunk CRC32 for on-wire and at-rest bit-flip
 detection, and the chunk_guard4 compare-and-swap primitive (see
 {{sec-chunk_guard4}}) for detecting concurrent-writer
 inconsistency -- while preserving the client-side compute model.
+The chunk_guard4 per-chunk header is 8 bytes total (a 32-bit
+generation id and a 32-bit owning-client short-id); this keeps
+the metadata-server overhead for maintaining erasure-coding
+consistency to the smallest value that still admits a CAS
+tiebreaker.
 
 Client-side erasure coding turns write-hole recovery into a
 protocol-level concern rather than an implementer-internal one.
