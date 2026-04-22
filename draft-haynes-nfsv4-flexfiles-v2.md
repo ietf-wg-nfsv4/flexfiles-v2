@@ -1738,7 +1738,7 @@ The ffv2_layout4 (in {{fig-ffv2_layout4}}) describes the Flexible
 File Layout Version 2.
 
 The ffl_mirrors field is the array of mirrored storage devices that
-provide the storage for the current stripe; see {{fig-parallel-fileystem}}.
+provide the storage for the current stripe; see {{fig-parallel-filesystem}}.
 
 The ffl_stats_collect_hint field provides a hint to the client on
 how often the server wants it to report LAYOUTSTATS for a file.
@@ -1774,9 +1774,9 @@ The time is in seconds.
                                        +|  Devices  |
                                         +-----------+
 ~~~
-{: #fig-parallel-fileystem title="The Relationship between MDS and DSes"}
+{: #fig-parallel-filesystem title="The Relationship between MDS and DSes"}
 
-As shown in {{fig-parallel-fileystem}} if the ffm_coding_type_data
+As shown in {{fig-parallel-filesystem}} if the ffm_coding_type_data
 is FFV2_CODING_MIRRORED, then each of the stripes MUST
 only have 1 storage device. I.e., the length of ffs_data_servers
 MUST be 1. The other encoding types can have any number of
@@ -2213,7 +2213,7 @@ compression or deduplication on the data.  However, the over-the-wire
 transfer of the file contents MUST appear identical.  Note, this
 is a constraint of the selected XDR representation in which each
 mirrored copy of the layout segment has the same striping pattern
-(see {{fig-parallel-fileystem}}).
+(see {{fig-parallel-filesystem}}).
 
 The metadata server is responsible for determining the number of
 mirrored copies and the location of each mirror.  While the client
