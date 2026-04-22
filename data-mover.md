@@ -413,7 +413,9 @@ pNFS clients.
 PROXY_REGISTRATION (91) is issued by a proxy to the metadata
 server at startup (and on renewal).  PROXY_MOVE (92) and
 PROXY_REPAIR (93) are issued by the metadata server to a
-registered proxy.
+registered proxy.  PROXY_PROGRESS (94) is issued by a proxy to
+the metadata server to report the status of an in-flight
+PROXY_MOVE or PROXY_REPAIR.
 
 ~~~ xdr
 /// /* New operations for the Data Mover */
@@ -421,10 +423,11 @@ registered proxy.
 /// OP_PROXY_REGISTRATION   = 91;
 /// OP_PROXY_MOVE           = 92;
 /// OP_PROXY_REPAIR         = 93;
+/// OP_PROXY_PROGRESS       = 94;
 ~~~
 {: #fig-data-mover-opnums title="Data Mover operation numbers"}
 
-Opcodes 91, 92, and 93 are chosen to continue the MDS-to-DS
+Opcodes 91 through 94 are chosen to continue the MDS-to-DS
 control-plane range that {{I-D.haynes-nfsv4-flexfiles-v2}}
 opens at 88 (TRUST_STATEID through BULK_REVOKE_STATEID at
 88-90).  If other in-flight NFSv4.2 extensions collide on these
@@ -444,6 +447,7 @@ point.
 ///     PROXY_REGISTRATION4args opproxyregistration;
 /// case OP_PROXY_MOVE: PROXY_MOVE4args opproxymove;
 /// case OP_PROXY_REPAIR: PROXY_REPAIR4args opproxyrepair;
+/// case OP_PROXY_PROGRESS: PROXY_PROGRESS4args opproxyprogress;
 ~~~
 {: #fig-nfs_argop4-amend title="nfs_argop4 amendment block"}
 
@@ -454,6 +458,7 @@ point.
 ///     PROXY_REGISTRATION4res opproxyregistration;
 /// case OP_PROXY_MOVE: PROXY_MOVE4res opproxymove;
 /// case OP_PROXY_REPAIR: PROXY_REPAIR4res opproxyrepair;
+/// case OP_PROXY_PROGRESS: PROXY_PROGRESS4res opproxyprogress;
 ~~~
 {: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
 
@@ -622,24 +627,28 @@ On success the proxy returns a proxy-assigned pmr_operation_id
 for the in-flight move, used for progress queries and
 cancellation.
 
-The proxy reports progress via asynchronous MDS-bound
-notifications on the same control session; the exact
-progress-reporting op is an open question (see
-{{sec-open-questions}}).  On completion the proxy reports
-terminal status to the MDS, which then issues CB_LAYOUTRECALL
-to any client still on the old layout, waits for
-LAYOUTRETURNs, and retires the source DSes.
+The proxy reports progress by calling PROXY_PROGRESS (see
+{{sec-PROXY_PROGRESS}}) on the same control session.
+PROXY_PROGRESS MAY be issued at any cadence for interim
+updates and MUST be issued exactly once with ppa_terminal=true
+when the operation reaches a terminal state.  On receipt of a
+terminal PROXY_PROGRESS with ppa_status=NFS4_OK, the MDS
+issues CB_LAYOUTRECALL to any client still on the old layout,
+waits for LAYOUTRETURNs, and retires the source DSes.
 
-Terminal outcomes:
+Terminal outcomes (communicated via ppa_status in the terminal
+PROXY_PROGRESS, not as the return code of PROXY_MOVE itself):
 
 -  NFS4_OK: destination fully populated and consistent.
 -  NFS4ERR_PAYLOAD_LOST: source layout degraded beyond
    reconstructibility; operation aborted and the MDS marks
    affected byte ranges lost.
--  NFS4ERR_DELAY: proxy needs more time; the MDS MAY extend
-   the deadline.
 -  Other codes: proxy-specific failure; the MDS MAY retry or
    reassign.
+
+NFS4ERR_DELAY appears only in interim (non-terminal)
+PROXY_PROGRESS updates to signal that the proxy needs more
+time; it MUST NOT be used as a terminal status.
 
 ## Operation 93: PROXY_REPAIR - Direct a Registered Proxy to Reconstruct a File {#sec-PROXY_REPAIR}
 
@@ -698,6 +707,94 @@ into a single internal dispatch.  PROXY_REPAIR is always
 quiesced (no PMA_FLAG_DUAL_WRITE equivalent); client writes
 cannot be safely replicated until the destination is
 consistent.
+
+## Operation 94: PROXY_PROGRESS - Report Progress on an In-Flight Proxy Operation {#sec-PROXY_PROGRESS}
+
+### ARGUMENTS
+
+~~~ xdr
+/// struct PROXY_PROGRESS4args {
+///     uint64_t         ppa_registration_id;
+///     uint64_t         ppa_operation_id;
+///     bool             ppa_terminal;
+///     nfsstat4         ppa_status;
+///     uint64_t         ppa_bytes_done;
+///     uint64_t         ppa_bytes_total;
+/// };
+~~~
+{: #fig-PROXY_PROGRESS4args title="XDR for PROXY_PROGRESS4args"}
+
+### RESULTS
+
+~~~ xdr
+/// struct PROXY_PROGRESS4res {
+///     nfsstat4         ppr_status;
+/// };
+~~~
+{: #fig-PROXY_PROGRESS4res title="XDR for PROXY_PROGRESS4res"}
+
+### DESCRIPTION
+
+A registered proxy calls PROXY_PROGRESS on the MDS-to-proxy
+control session to report the status of an in-flight
+PROXY_MOVE or PROXY_REPAIR.  The proxy MAY send progress
+updates at any cadence it chooses.  The MDS uses non-terminal
+updates for observability and liveness detection; it MUST NOT
+require any specific update cadence as a correctness condition.
+
+The ppa_registration_id field identifies the proxy's
+registration.  The ppa_operation_id field identifies the
+specific PROXY_MOVE or PROXY_REPAIR operation being reported
+on; it is the value the proxy returned in pmr_operation_id or
+prer_operation_id when the directive was issued.
+
+The ppa_terminal field distinguishes interim updates from the
+final status for the operation:
+
+-  When ppa_terminal is false, the update is an interim
+   progress report.  The ppa_status field SHOULD be NFS4_OK
+   (healthy progress) or NFS4ERR_DELAY (slower than expected
+   but still progressing).
+
+-  When ppa_terminal is true, the update is the final status
+   for this operation.  The proxy MUST NOT subsequently issue
+   PROXY_PROGRESS for the same ppa_operation_id.  Terminal
+   values of ppa_status are:
+
+   -  NFS4_OK: the destination layout is fully populated and
+      consistent.  The MDS proceeds to CB_LAYOUTRECALL the old
+      layout, waits for LAYOUTRETURNs, and retires the source
+      DSes.
+
+   -  NFS4ERR_PAYLOAD_LOST: for a PROXY_REPAIR, the source
+      layout was degraded beyond reconstructibility and the
+      MDS MUST mark the affected byte ranges lost.  For a
+      PROXY_MOVE, a catastrophic loss of both source and
+      destination during the move that cannot be recovered.
+
+   -  Any other nfsstat4: proxy-specific failure.  The MDS MAY
+      retry by reassigning the operation to a different
+      registered proxy (subject to the original deadline and
+      any retry policy the MDS applies).
+
+The ppa_bytes_done and ppa_bytes_total fields are advisory.
+When the proxy knows both (for example, moves on files with a
+stable size), it SHOULD populate them.  When the total is not
+known (for example, a source that is still being appended to),
+the proxy MUST set ppa_bytes_total to 0; ppa_bytes_done MAY
+still carry cumulative progress.
+
+The MDS returns ppr_status of NFS4_OK to acknowledge a
+well-formed PROXY_PROGRESS, or an error if the registration
+or operation id is unknown.  For terminal updates, the proxy
+MUST retry if it does not receive an acknowledgment within an
+implementation-defined timeout; the MDS MUST treat duplicate
+terminal updates for the same (ppa_registration_id,
+ppa_operation_id) pair as idempotent.  Non-terminal updates
+are fire-and-forget and need not be retried.
+
+Cancellation of an in-flight operation by the MDS is out of
+scope for this revision; see {{sec-open-questions}}.
 
 # Affinity Matching {#sec-affinity}
 
@@ -1238,12 +1335,18 @@ DS in a tightly coupled deployment.
 
 # Open Questions {#sec-open-questions}
 
-1.  **Progress reporting mechanism.**  PROXY_MOVE sketches
-    asynchronous MDS-bound progress notifications but does not
-    fully specify the transport.  Options: a separate op on
-    the control session; a response piggyback on registration
-    renewal; an MDS-driven poll via a new op.  Worth settling
-    before the XDR is committed.
+1.  **Cancellation of in-flight operations.**  The design
+    specifies PROXY_PROGRESS as the proxy-to-MDS channel for
+    reporting status, but does not define an MDS-to-proxy
+    cancellation mechanism.  When the MDS decides to abort an
+    in-flight PROXY_MOVE or PROXY_REPAIR (for example, because
+    a higher-priority operation needs the same proxy, or the
+    source layout became unusable before the move started),
+    how does it tell the proxy to stop?  Options: a new op
+    PROXY_CANCEL; a cancellation flag carried on the MDS
+    response to a non-terminal PROXY_PROGRESS; an implicit
+    cancellation via REVOKE_STATEID that invalidates the
+    proxy's access.  Worth settling before first submission.
 
 2.  **Registration renewal semantics.**  Is renewal a fresh
     PROXY_REGISTRATION with the same prr_registration_id
