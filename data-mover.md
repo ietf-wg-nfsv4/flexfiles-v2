@@ -401,16 +401,32 @@ TRUST_STATEID / REVOKE_STATEID pattern in the main draft -- a
 dedicated MDS-to-DS control session carries MDS authority to
 the DS, and the DS acts on it.
 
-## Op 1: PROXY_REGISTRATION
+# New NFSv4.2 Operations {#sec-new-ops}
 
-~~~
+This document defines three new NFSv4.2 operations that the
+metadata server uses to manage registered proxies.  All three
+flow on the MDS-to-proxy control session defined by
+{{I-D.haynes-nfsv4-flexfiles-v2}}.  None of them are sent by
+pNFS clients.  Opcode numbers are TBD pending IANA-coordination
+with other in-flight NFSv4.2 extensions.
+
+## Operation TBD-1: PROXY_REGISTRATION - Register as Data Mover {#sec-PROXY_REGISTRATION}
+
+### ARGUMENTS
+
+~~~ xdr
 /// struct PROXY_REGISTRATION4args {
-///     ffv2_coding_type4  prr_codecs<>;   // codec-set membership
-///     opaque             prr_affinity<>; // co-residency token
-///     uint32_t           prr_lease;      // requested, seconds
+///     ffv2_coding_type4  prr_codecs<>;
+///     opaque             prr_affinity<>;
+///     uint32_t           prr_lease;
 ///     uint32_t           prr_flags;
 /// };
-///
+~~~
+{: #fig-PROXY_REGISTRATION4args title="XDR for PROXY_REGISTRATION4args"}
+
+### RESULTS
+
+~~~ xdr
 /// struct PROXY_REGISTRATION4resok {
 ///     uint64_t           prr_registration_id;
 ///     uint32_t           prr_granted_lease;
@@ -423,62 +439,68 @@ the DS, and the DS acts on it.
 ///         void;
 /// };
 ~~~
+{: #fig-PROXY_REGISTRATION4res title="XDR for PROXY_REGISTRATION4res"}
 
-### Arguments
+### DESCRIPTION
 
--  prr_codecs: the ffv2_coding_type4 values the proxy supports.
-   The proxy MUST be able to encode, decode, and transcode
-   between any pair of values in this list.  Because the
-   transformation class of a PROXY_MOVE is inherent in the
-   (source, destination) layout pair, this codec-set
-   membership is all the capability information the MDS needs
-   to match.  An empty list results in NFS4ERR_INVAL in this
-   revision.
+A data server (or other co-located entity) calls
+PROXY_REGISTRATION on the MDS-to-proxy control session to
+declare its capabilities and endpoint.  The MDS records the
+registration and MAY select that proxy for subsequent
+PROXY_MOVE and PROXY_REPAIR directives.
 
--  prr_affinity: an opaque token the proxy supplies for
-   co-residency attestation with a client.  The MDS does not
-   interpret it.  At layout-grant time the MDS compares
-   prr_affinity against the requesting client's co_ownerid
-   (Section 18.35 of {{RFC8881}}); a match indicates the
-   client and proxy share a host, and the MDS MAY use it as
-   input to proxy selection.  See "Affinity Matching" below.
-   An empty prr_affinity means the proxy does not claim
-   co-residency with any client.
+The prr_codecs field lists the ffv2_coding_type4 values the
+proxy supports.  The proxy MUST be able to encode, decode, and
+transcode between any pair of values in this list.  Because
+the transformation class of a PROXY_MOVE is inherent in the
+(source, destination) layout pair, this codec-set membership
+is all the capability information the MDS needs to match.  An
+empty list results in NFS4ERR_INVAL in this revision.
 
--  prr_lease: the lease duration the proxy requests.  The MDS
-   MAY grant a shorter one.  The proxy MUST renew before the
-   granted lease expires; on expiry the MDS drops the
-   registration and any in-flight PROXY_MOVE / PROXY_REPAIR
-   is reassigned.
+The prr_affinity field is an opaque token the proxy supplies
+for co-residency attestation with a client.  The MDS does not
+interpret it.  At layout-grant time the MDS compares
+prr_affinity against the requesting client's co_ownerid
+(Section 18.35 of {{RFC8881}}); a match indicates that the
+client and proxy share a host, and the MDS MAY use it as input
+to proxy selection.  See {{sec-affinity}} for the matching
+algorithm.  An empty prr_affinity means the proxy does not
+claim co-residency with any client.
 
--  prr_flags: reserved for future use.  MUST be 0 in this
-   revision.
+The prr_lease field is the lease duration the proxy requests
+in seconds.  The MDS MAY grant a shorter one, returned in
+prr_granted_lease.  The proxy MUST renew before the granted
+lease expires; on expiry the MDS drops the registration and
+any in-flight PROXY_MOVE or PROXY_REPAIR is reassigned.
 
-### Response
+The prr_flags field is reserved for future use.  It MUST be
+set to 0 in this revision.
 
--  prr_registration_id: an MDS-assigned identifier for this
-   registration.  The proxy uses it to renew the registration
-   and to correlate PROXY_MOVE / PROXY_REPAIR directives.
+On success, the MDS returns a prr_registration_id that
+identifies this registration.  The proxy uses it to renew the
+registration and to correlate PROXY_MOVE and PROXY_REPAIR
+directives the MDS subsequently issues.
 
--  prr_granted_lease: the effective lease in seconds.
-
-### Endpoint
-
-Registration conveys capabilities; the proxy's network endpoint
-is conveyed through the same deviceinfo channel as any other
-DS's address.  When the MDS selects a proxy for an operation,
-the layout issued to clients includes a ffv2_data_server4 entry
-pointing at the proxy's existing deviceinfo.
+Registration conveys capabilities only; the proxy's network
+endpoint is conveyed through the same deviceinfo channel as
+any other DS's address.  When the MDS selects a proxy for an
+operation, the layout issued to clients includes a
+ffv2_data_server4 entry pointing at the proxy's existing
+deviceinfo.
 
 PROXY_REGISTRATION is issued on the dedicated MDS-to-proxy
-control session (per sec-tight-coupling-control-session in the
-main draft).  The proxy MUST present EXCHGID4_FLAG_USE_PNFS_MDS
-on that session so the MDS can gate the PROXY_* ops the same
-way it gates TRUST_STATEID.
+control session (per sec-tight-coupling-control-session in
+{{I-D.haynes-nfsv4-flexfiles-v2}}).  The proxy MUST present
+EXCHGID4_FLAG_USE_PNFS_MDS on that session so the MDS can
+gate the PROXY_* ops the same way it gates TRUST_STATEID.
 
-## Op 2: PROXY_MOVE
+## Operation TBD-2: PROXY_MOVE - Direct a Registered Proxy to Move a File {#sec-PROXY_MOVE}
 
-~~~
+### ARGUMENTS
+
+~~~ xdr
+/// const PMA_FLAG_DUAL_WRITE = 0x00000001;
+///
 /// struct PROXY_MOVE4args {
 ///     uint64_t         pma_registration_id;
 ///     nfs_fh4          pma_fh;
@@ -487,7 +509,12 @@ way it gates TRUST_STATEID.
 ///     nfstime4         pma_deadline;
 ///     uint32_t         pma_flags;
 /// };
-///
+~~~
+{: #fig-PROXY_MOVE4args title="XDR for PROXY_MOVE4args"}
+
+### RESULTS
+
+~~~ xdr
 /// struct PROXY_MOVE4resok {
 ///     uint64_t         pmr_operation_id;
 /// };
@@ -499,36 +526,38 @@ way it gates TRUST_STATEID.
 ///         void;
 /// };
 ~~~
+{: #fig-PROXY_MOVE4res title="XDR for PROXY_MOVE4res"}
 
-### Arguments
+### DESCRIPTION
 
--  pma_registration_id: the registration the MDS is invoking.
-   MUST reference an active registration.
+The metadata server issues PROXY_MOVE to a registered proxy to
+direct it to move a file from one layout to another.  The move
+covers the whole file; partial-range moves are out of scope for
+this revision.
 
--  pma_fh: the MDS filehandle of the file to move.
+The pma_registration_id field MUST reference an active
+registration (an unexpired prr_registration_id returned by a
+prior PROXY_REGISTRATION).  An expired or unknown registration
+MUST be rejected.
 
--  pma_source_layout, pma_destination_layout: full layout
-   specifications.  The proxy reads from the source layout's
-   DSes and writes to the destination layout's DSes.  Either
-   layout MAY reference DSes not otherwise participating in
-   the operation; the proxy acts as an NFSv4.2 client to each
-   DS named in either layout.  The transformation class
-   (encode, decode, transcode, or identity-with-relocation)
-   is determined entirely by the pair.
+The pma_fh field is the MDS filehandle of the file to move.
 
--  pma_deadline: a wall-clock nfstime4 by which the proxy is
-   expected to have completed the move.  Missing the deadline
-   does not corrupt state, but the MDS MAY cancel and
-   reassign.
+The pma_source_layout and pma_destination_layout fields are
+full layout specifications.  The proxy reads from the source
+layout's DSes and writes to the destination layout's DSes.
+Either layout MAY reference DSes not otherwise participating
+in the operation; the proxy acts as an NFSv4.2 client to each
+DS named in either layout.  The transformation class (encode,
+decode, transcode, or identity-with-relocation) is determined
+entirely by the (source, destination) pair; no separate
+transformation field is needed.
 
--  pma_flags: see below.
+The pma_deadline field is a wall-clock nfstime4 by which the
+proxy is expected to have completed the move.  Missing the
+deadline does not corrupt state, but the MDS MAY cancel and
+reassign.
 
-### Flags
-
-~~~
-const PMA_FLAG_DUAL_WRITE = 0x00000001;  // replicate writes
-                                          // to source during move
-~~~
+The pma_flags field currently defines one flag:
 
 -  PMA_FLAG_DUAL_WRITE: during the move the proxy accepts
    client writes and replicates them to both source and
@@ -541,20 +570,17 @@ const PMA_FLAG_DUAL_WRITE = 0x00000001;  // replicate writes
    are directed through the proxy, and the proxy does not
    replicate to the source because no client is writing.
 
-### Response
-
--  pmr_operation_id: a proxy-assigned identifier for the
-   in-flight move.  Used for progress queries and
-   cancellation.
-
-### Progress and Completion
+On success the proxy returns a proxy-assigned pmr_operation_id
+for the in-flight move, used for progress queries and
+cancellation.
 
 The proxy reports progress via asynchronous MDS-bound
 notifications on the same control session; the exact
-progress-reporting op is an open question (see below).  On
-completion the proxy reports terminal status to the MDS, which
-then issues CB_LAYOUTRECALL to any client still on the old
-layout, waits for LAYOUTRETURNs, and retires the source DSes.
+progress-reporting op is an open question (see
+{{sec-open-questions}}).  On completion the proxy reports
+terminal status to the MDS, which then issues CB_LAYOUTRECALL
+to any client still on the old layout, waits for
+LAYOUTRETURNs, and retires the source DSes.
 
 Terminal outcomes:
 
@@ -567,23 +593,24 @@ Terminal outcomes:
 -  Other codes: proxy-specific failure; the MDS MAY retry or
    reassign.
 
-## Op 3: PROXY_REPAIR
+## Operation TBD-3: PROXY_REPAIR - Direct a Registered Proxy to Reconstruct a File {#sec-PROXY_REPAIR}
 
-PROXY_REPAIR is a convenience specialization of PROXY_MOVE
-where the source layout is degraded.  The wire shape is nearly
-identical; the op exists for readability (MDS intent is
-apparent from the op name) and to reserve the option of
-repair-specific progress semantics.
+### ARGUMENTS
 
-~~~
+~~~ xdr
 /// struct PROXY_REPAIR4args {
 ///     uint64_t         pra_registration_id;
 ///     nfs_fh4          pra_fh;
-///     ffv2_layout4     pra_source_layout;       // degraded
+///     ffv2_layout4     pra_source_layout;
 ///     ffv2_layout4     pra_destination_layout;
 ///     nfstime4         pra_deadline;
 /// };
-///
+~~~
+{: #fig-PROXY_REPAIR4args title="XDR for PROXY_REPAIR4args"}
+
+### RESULTS
+
+~~~ xdr
 /// struct PROXY_REPAIR4resok {
 ///     uint64_t         prer_operation_id;
 /// };
@@ -595,13 +622,35 @@ repair-specific progress semantics.
 ///         void;
 /// };
 ~~~
+{: #fig-PROXY_REPAIR4res title="XDR for PROXY_REPAIR4res"}
 
-An implementation MAY collapse PROXY_MOVE and PROXY_REPAIR into
-a single internal dispatch.  PROXY_REPAIR is always quiesced
-(no PMA_FLAG_DUAL_WRITE equivalent); client writes cannot be
-safely replicated until the destination is consistent.
+### DESCRIPTION
 
-# Affinity Matching
+PROXY_REPAIR is a convenience specialization of PROXY_MOVE
+where the source layout is degraded.  The wire shape is nearly
+identical to PROXY_MOVE; the separate op exists for
+readability (MDS intent is apparent from the op name) and to
+reserve the option of repair-specific progress semantics.
+
+The argument fields are analogous to the corresponding fields
+in PROXY_MOVE4args, with pra_source_layout understood to
+describe a degraded layout -- one or more DSes in the source
+layout are unreachable or hold shards that cannot be validated.
+The proxy reconstructs the file's data from whatever surviving
+shards the source layout references and writes the
+reconstructed content to the destination layout.  If fewer
+than k shards survive across the mirror set, the operation
+terminates with NFS4ERR_PAYLOAD_LOST for the affected byte
+ranges, matching the per-chunk repair semantics in
+sec-repair-selection of {{I-D.haynes-nfsv4-flexfiles-v2}}.
+
+An implementation MAY collapse PROXY_MOVE and PROXY_REPAIR
+into a single internal dispatch.  PROXY_REPAIR is always
+quiesced (no PMA_FLAG_DUAL_WRITE equivalent); client writes
+cannot be safely replicated until the destination is
+consistent.
+
+# Affinity Matching {#sec-affinity}
 
 A proxy MAY populate prr_affinity at registration time with a
 token that lets the MDS recognize co-residency with a client.
@@ -1073,7 +1122,7 @@ support it; deployments that can use GSSv3 SHOULD prefer it
 over AUTH_SYS passthrough for the credential-forwarding
 channel.
 
-# Interaction with the Main Draft
+# Interaction with the Main Draft {#interaction}
 
 ## chunk_guard4
 
@@ -1111,7 +1160,7 @@ issues REVOKE_STATEID on the retired proxy.  This is the same
 mechanism the main draft defines for any DS in a tightly
 coupled deployment.
 
-# Open Questions
+# Open Questions {#sec-open-questions}
 
 1.  **Progress reporting mechanism.**  PROXY_MOVE sketches
     asynchronous MDS-bound progress notifications but does not
