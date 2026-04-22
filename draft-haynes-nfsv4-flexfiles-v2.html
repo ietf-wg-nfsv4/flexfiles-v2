@@ -3719,10 +3719,39 @@ different data servers.  Such an implementation would typically see
 FFV2_DS_FLAGS_ACTIVE and FFV2_DS_FLAGS_PARITY data servers.  If the
 implementation wanted to allow for local repair, it would also use
 FFV2_DS_FLAGS_SPARE.<a href="#section-8.4-3" class="pilcrow">¶</a></p>
-<p id="section-8.4-4">The FFV2_DS_FLAGS_REPAIR flag can be used by the metadata server
-to inform the client that the indicated data server is a replacement
-data server as far as existing data is concerned.  <span class="cref">Fill in<span class="crefSource">Tom</span></span><a href="#section-8.4-4" class="pilcrow">¶</a></p>
-<p id="section-8.4-5">See <span>[<a href="#Plank97" class="cite xref">Plank97</a>]</span> for further reference to storage layouts for coding.<a href="#section-8.4-5" class="pilcrow">¶</a></p>
+<p id="section-8.4-4">The FFV2_DS_FLAGS_REPAIR flag informs the client that the
+indicated data server is a replacement for a previously failed
+ACTIVE data server, whose content has been (or is being)
+reconstructed from the surviving shards of the mirror set.  A
+REPAIR data server differs from a SPARE in two ways:<a href="#section-8.4-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.4-5.1">
+            <p id="section-8.4-5.1.1">A SPARE is standing by with no payload; the client <span class="bcp14">MAY</span> fail
+over to it at write time without metadata-server coordination.<a href="#section-8.4-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.4-5.2">
+            <p id="section-8.4-5.2.1">A REPAIR has been promoted by the metadata server to replace a
+failed ACTIVE, and its payload was placed there by a repair
+client executing the flow in <a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a> rather
+than directly by the original writer.  The flag is the
+client's indication that reads from this data server return
+erasure-decoded content rather than content produced by the
+original write.<a href="#section-8.4-5.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-8.4-6">Clients that rely on write-provenance information (for example,
+deployments that track which client wrote which generation)
+<span class="bcp14">SHOULD</span> be aware of the REPAIR flag so they do not treat the
+reconstructed payload as if it had been written directly by the
+cg_client_id recorded in the chunk_guard4; the guard values
+still match across the mirror set by construction, but the
+physical write path differs.<a href="#section-8.4-6" class="pilcrow">¶</a></p>
+<p id="section-8.4-7">Over the lifetime of a file, a single data server <span class="bcp14">MAY</span> transition
+ACTIVE -&gt; REPAIR (on replacement) or REPAIR -&gt; ACTIVE (once the
+metadata server has accepted the reconstructed content as
+authoritative and the fail-over is complete); the metadata
+server reflects the current flag set in the next layout it
+returns.<a href="#section-8.4-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="ffv2dataserver4">
@@ -5710,7 +5739,10 @@ return data.<a href="#section-11.3-4" class="pilcrow">¶</a></p>
 <p id="section-11.4.1-1">Reed-Solomon (RS) codes are Maximum Distance Separable (MDS) codes:
 for a (k+m, k) code, any k of the k+m encoded shards suffice to
 recover the original data.  The code tolerates the simultaneous loss
-of up to m shards.<a href="#section-11.4.1-1" class="pilcrow">¶</a></p>
+of up to m shards.  <span>[<a href="#Plank97" class="cite xref">Plank97</a>]</span> is a tutorial treatment of RS
+coding in RAID-like systems and is the recommended background
+reading for implementers unfamiliar with the construction used
+here.<a href="#section-11.4.1-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="galois-field-arithmetic">
@@ -8220,11 +8252,6 @@ and restore-from-snapshot are out of scope for this specification.<a href="#sect
 metadata server <span class="bcp14">MAY</span> extend the deadline or re-select) and from
 NFS4ERR_IO (per-operation failure; metadata server <span class="bcp14">MAY</span> retry or
 re-select).  Only NFS4ERR_PAYLOAD_LOST is terminal.<a href="#section-21.1.5-3" class="pilcrow">¶</a></p>
-<p id="section-21.1.5-4"><span class="cref">This really points out either we need an array of
-errors in the chunk operation responses or we need to not send an
-array of chunks in the requests. The arrays were picked in order to
-reduce the header to data cost, but really do not make sense.<span class="crefSource">Tom</span></span><a href="#section-21.1.5-4" class="pilcrow">¶</a></p>
-<p id="section-21.1.5-5"><span class="cref">Trying out an array of errors.<span class="crefSource">Tom</span></span><a href="#section-21.1.5-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -9311,11 +9338,9 @@ back via CHUNK_ROLLBACK (<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref
 <a href="#name-xdr-for-chunk_header_read4r" class="selfRef">XDR for CHUNK_HEADER_READ4resok</a>
             </figcaption></figure>
 </div>
-<p id="section-25.4.2-2"><span class="cref">Do we want to have a chunk_owner for reads versus writes?
-Instead of co-arrays, have one single in the responses?<span class="crefSource">Tom</span></span><a href="#section-25.4.2-2" class="pilcrow">¶</a></p>
 <span id="name-xdr-for-chunk_header_read4re"></span><div id="fig-CHUNK_HEADER_READ4res">
 <figure id="figure-66">
-            <div class="lang-xdr sourcecode" id="section-25.4.2-3.1">
+            <div class="lang-xdr sourcecode" id="section-25.4.2-2.1">
 <pre>
    /// union CHUNK_HEADER_READ4res switch (nfsstat4 chrr_status) {
    ///     case NFS4_OK:
