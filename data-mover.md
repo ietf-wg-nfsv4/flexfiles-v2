@@ -63,9 +63,22 @@ and transport / filehandle migrations.
       is the reconstructed geometry.
 -  The layout conventions clients see during a proxy operation,
    and how clients discover the proxy.
+-  **Codec translation for codec-ignorant clients**, including
+   NFSv3 clients.  The same proxy machinery that handles move
+   and repair also provides the persistent-per-client
+   translation that lets a client which cannot participate in a
+   file's native codec still read and write the file.  Unlike
+   move and repair (which are transient transitions on a file),
+   codec translation is an ongoing routing arrangement that
+   persists as long as the codec-ignorant client is active.
 -  Co-residency attestation ("affinity matching") between a
    client and a local proxy via the PROXY_REGISTRATION affinity
    token.
+-  **Credential forwarding rules** for proxies that translate
+   on behalf of clients.  The proxy is a translator, not an
+   authority; authorization decisions MUST remain with the
+   MDS, using the client's forwarded credentials.  See the
+   Security Considerations section.
 -  Recovery semantics for proxy / MDS / DS failures during a
    proxy operation.
 
@@ -203,6 +216,88 @@ This case also covers:
    (e.g., transition from local POSIX store to object store).
 -  Backend-opaque FH migration where the DS's FH structure is
    internally versioned and old clients hold stale versions.
+
+### Codec Translation for Codec-Ignorant Clients
+
+The coding-type registry ({{iana-considerations}} of the main
+draft) is expected to grow.  Not every client is required to
+implement every registered codec; a minimal client, a legacy
+client, or an NFSv3 client typically cannot participate in
+erasure-coded files at all.  Per the codec-negotiation rules
+in the main draft, such a client either retries with a
+different supported_types hint, falls back to MDS-terminated
+I/O, or (this case) is routed through a proxy that translates
+on its behalf.
+
+Unlike the move / repair / evacuation / transition use cases
+above, codec translation is **persistent per client**.  The
+file itself is not changing state.  What changes is the layout
+the MDS hands to a codec-ignorant client: that client gets a
+layout with FFV2_DS_FLAGS_PROXY set and a coding_type the
+client does support (typically FFV2_CODING_MIRRORED, or for
+NFSv3 clients just a flat NFSv3 data surface).  The proxy
+encodes and decodes on the fly against the real DSes; the
+client sees a flat file.
+
+The same file may be accessed directly by codec-aware clients
+(with a normal layout naming the real DSes) and through the
+proxy by codec-ignorant clients (with a proxy layout)
+simultaneously.  The MDS issues a different layout per
+request; FFV2_DS_FLAGS_PROXY is set only in the layouts that
+need translation.
+
+#### Mechanism
+
+A translating proxy runs two sides:
+
+1.  **Client-facing**: the protocol the codec-ignorant client
+    can speak.  For an NFSv3 client this is an NFSv3 server
+    that re-exports the MDS's namespace.  For a legacy
+    NFSv4.2 client that understands only some codecs, this is
+    an NFSv4.2 data-server surface presenting
+    FFV2_CODING_MIRRORED (or an equivalent codec the client
+    supports).
+
+2.  **MDS-facing**: an NFSv4.2 client to the MDS, plus
+    whatever DS protocol the MDS's real DSes speak.  The
+    proxy translates each client-facing op into the
+    corresponding MDS / DS ops, applies the codec
+    transformation, and returns results.
+
+For an NFSv3 client, a read flows:
+
+-  Client: NFSv3 `READ` against the proxy.
+-  Proxy: if it does not hold a layout for the file, issues
+   `LAYOUTGET` on the MDS with the client's forwarded
+   credentials (see Security Considerations).
+-  Proxy: issues `CHUNK_READ` (or v3 `READ` if the DS is
+   NFSv3) against the real DSes, decodes the shards back to
+   plaintext.
+-  Proxy: returns the plaintext bytes in the NFSv3 READ
+   reply.
+
+A write flows:
+
+-  Client: NFSv3 `WRITE` with stable_how and a byte range.
+-  Proxy: encodes the bytes per the file's codec, issues
+   `CHUNK_WRITE` / `CHUNK_FINALIZE` / `CHUNK_COMMIT` against
+   the real DSes.
+-  Proxy: returns NFSv3 WRITE ok with the stable_how it was
+   able to honor (which may be downgraded based on the
+   back-end DS's own stable_how behavior).
+
+#### Why the same PROXY_REGISTRATION machinery
+
+The registered-proxy mechanism gives the MDS the information
+it needs for translation-proxy selection: `prr_codecs`
+enumerates the codecs the proxy can translate between, the
+control session carries MDS directives to the proxy, and the
+lease bounds the relationship.  No new op is required for the
+translation case -- the existing `PROXY_REGISTRATION` covers
+it.  `PROXY_MOVE` and `PROXY_REPAIR` are not used for pure
+translation (the file is not moving or being repaired); the
+proxy simply serves the codec-ignorant client's I/O requests
+against the unchanged source layout.
 
 ## Design Model
 
@@ -755,13 +850,20 @@ draft uses for InBand I/O.
     enforcing the effective security policy (e.g., do not
     downgrade encrypted data to a plaintext DS).
 
-3.  **Principal binding during a proxy operation.**  The
-    client's authenticated identity is NOT automatically
-    forwarded through the proxy.  When tight coupling is in
-    use, the proxy presents a principal to source and
-    destination DSes that those DSes will accept; this is the
-    proxy's own service identity unless constrained
-    delegation or equivalent is arranged.
+3.  **Principal binding during a proxy operation.**  For
+    proxy-to-DS traffic (the proxy reading source DSes and
+    writing destination DSes to carry out a PROXY_MOVE or
+    PROXY_REPAIR), the proxy presents a principal to those
+    DSes that they will accept; this is the proxy's own
+    service identity unless constrained delegation or
+    equivalent is arranged.  Forwarding the client's identity
+    to the peer DSes for proxy-driven data movement is NOT
+    required and is typically NOT practical (the client is
+    not in the conversation at that point).  See however the
+    Credential Forwarding and Privilege Boundary section
+    below for the case of client-initiated file I/O through a
+    translating proxy, where the credential-forwarding rule
+    is different and stricter.
 
 4.  **Proxy impersonation.**  A malicious MDS could register a
     hostile entity as a proxy.  The existing MDS trust model
@@ -783,6 +885,126 @@ draft uses for InBand I/O.
     layouts, mark destination DSes for cleanup).  The MDS
     MUST NOT continue to route client I/O to a proxy whose
     registration has lapsed.
+
+### Credential Forwarding and the Privilege Boundary
+
+A translating proxy (see Codec Translation for Codec-Ignorant
+Clients) has structurally elevated privilege by design.  To
+perform its management tasks -- moves, repairs, evacuations,
+cross-tenant re-exports -- the deployment grants the proxy's
+service identity broad access: typically not-root-squashed,
+often read/write to every file in the namespace, and session
+authority to every DS.  That privilege is intentional.
+
+A codec-ignorant client that reaches the proxy, however,
+arrives with its own RPC credentials that the proxy does not
+itself need in order to function.  An NFSv3 client's uid/gid,
+an AUTH_SYS-squashed identity, an RPCSEC_GSS principal -- none
+of these are the proxy's own.  If the proxy ignores the
+client's credentials and issues MDS / DS operations under its
+own service identity when translating client I/O, every
+client that reaches the proxy silently inherits the proxy's
+privilege.  This is a protocol-level privilege-escalation
+vector, and this document calls it out rather than hiding it.
+
+The normative requirements below apply whenever a proxy is
+translating client-initiated file I/O (as distinct from
+proxy-driven move / repair work, which runs under the proxy's
+own authority on directives from the MDS).
+
+1.  **Credential pass-through.**  The proxy MUST present the
+    client's credentials (RPC auth flavor and principal) on
+    every MDS or DS operation it issues as a consequence of a
+    client-initiated request.  Specifically, a client `READ`
+    that the proxy expands into `LAYOUTGET` + `CHUNK_READ`
+    MUST carry the client's credentials on both the
+    `LAYOUTGET` against the MDS and the `CHUNK_READ` against
+    the DSes.  The proxy MUST NOT substitute its own service
+    identity for client-initiated operations.
+
+2.  **No squash inversion.**  If the client arrives with a
+    root-squashed identity (for example, uid 0 mapped to
+    nobody by the NFSv3 export configuration on the
+    client-facing side of the proxy), the proxy MUST preserve
+    the squashed identity when forwarding.  The proxy MUST NOT
+    translate a client's squashed credentials back into
+    unsquashed root, even though the proxy's own identity is
+    typically unsquashed.
+
+3.  **Authorization remains with the MDS.**  The MDS MUST
+    perform access-control checks against the forwarded client
+    credentials, not against the proxy's service identity, for
+    any client-initiated file operation.  The proxy is a
+    translator, not an authority.  This is what prevents
+    proxy deployment from becoming a blanket ACL override.
+
+4.  **Proxy service identity is for the control plane only.**
+    The proxy MAY, and typically MUST, use its own service
+    identity for:
+    -  The MDS-to-proxy control session (EXCHANGE_ID with
+       EXCHGID4_FLAG_USE_PNFS_MDS, the session on which
+       PROXY_REGISTRATION and PROXY_MOVE / PROXY_REPAIR
+       directives flow).
+    -  Peer-DS session setup for proxy-driven data movement
+       (reading source DSes, writing destination DSes under
+       a PROXY_MOVE that the MDS has authorized).
+    -  Proxy housekeeping.
+
+    The proxy's service identity MUST NOT be used for
+    client-initiated file data operations.
+
+5.  **Failure mode on missing credentials.**  If the proxy
+    cannot forward a client's credentials for some reason
+    (e.g., the client presented AUTH_NONE, or the client-facing
+    side used a security flavor the proxy cannot propagate),
+    the proxy MUST reject the client operation with the
+    equivalent of NFS4ERR_ACCESS (or NFS3ERR_ACCES for NFSv3
+    clients).  The proxy MUST NOT fall back to serving the
+    operation under its own identity.
+
+Deployment-level requirements:
+
+-  PROXY_REGISTRATION MUST be allowlisted.  An unknown DS
+   presenting PROXY_REGISTRATION MUST be rejected.  This is
+   the only wire-level defense against a hostile entity
+   registering as a proxy and then receiving client-forwarded
+   credentials.
+
+-  The MDS-to-proxy control session MUST use RPCSEC_GSS
+   {{RFC7861}} or RPC-over-TLS {{RFC9289}} with mutual
+   authentication.  AUTH_SYS on the control session is
+   forbidden.
+
+-  Deployments SHOULD audit both the proxy's credential-
+   forwarding behavior (the proxy logs what it forwards) and
+   the MDS's authorization checks (the MDS logs what principal
+   authorized each operation).  Divergence between the two
+   indicates a credential-forwarding bug or compromise.
+
+What the protocol cannot defend against:
+
+-  A compromised proxy has direct access to whatever
+   credentials pass through it.  Credential confidentiality
+   collapses the moment the proxy is under adversary control.
+   Mitigation is operational: restrict which hosts can
+   register as proxies, audit PROXY_REGISTRATION events,
+   rotate deployment-level keys.
+
+-  A deployment that configures a proxy to run AS root while
+   the client is root-squashed has already violated rule 2
+   above; no wire mechanism detects a proxy deliberately
+   mis-implementing credential forwarding.  Deployments SHOULD
+   verify their proxy implementation's credential-forwarding
+   behavior through conformance testing before production use.
+
+Future work (noted as an Open Question below): RPCSEC_GSSv3
+structured privilege assertion per {{RFC7861}} Section 2.5.2
+is the natural strong-authentication mechanism for
+proxy-forwarded credentials.  This revision does not require
+GSSv3 because the broader NFSv4 deployment base does not yet
+support it; deployments that can use GSSv3 SHOULD prefer it
+over AUTH_SYS passthrough for the credential-forwarding
+channel.
 
 ## Interaction with the Main Draft
 
@@ -874,6 +1096,18 @@ coupled deployment.
     future sparse-read or TRIM op) would warrant a richer
     capability descriptor.  Worth revisiting when those ops
     are defined.
+
+9.  **RPCSEC_GSSv3 for translating-proxy credential
+    forwarding.**  Credential forwarding under AUTH_SYS is
+    weak (uid spoofable, no integrity protection).  RPCSEC_GSSv3
+    structured privilege assertion ({{RFC7861}} Section 2.5.2)
+    is the natural strong-authentication mechanism, but its
+    deployment base in the NFSv4 community is narrow.  Should
+    the draft REQUIRE GSSv3 for translating proxies, RECOMMEND
+    it, or leave it as implementation-optional?  The answer
+    likely depends on how aggressively the WG wants to push
+    GSSv3 adoption as a side effect of standardizing this
+    mechanism.
 
 ## Deferred
 
