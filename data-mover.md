@@ -243,8 +243,8 @@ backed by replacement DSes and issues PROXY_REPAIR to a proxy,
 which drives reconstruction from whatever surviving shards
 remain.  If fewer than k shards survive across the mirror set,
 the operation terminates with NFS4ERR_PAYLOAD_LOST, matching
-the per-chunk repair semantics in sec-repair-selection of the
-main draft.
+the per-chunk repair semantics in the Repair Client Selection
+section of {{I-D.haynes-nfsv4-flexfiles-v2}}.
 
 ## TLS Coverage Transition
 
@@ -286,15 +286,15 @@ This case also covers:
 
 ## Codec Translation for Codec-Ignorant Clients
 
-The coding-type registry ({{iana-considerations}} of the main
-draft) is expected to grow.  Not every client is required to
-implement every registered codec; a minimal client, a legacy
-client, or an NFSv3 client typically cannot participate in
-erasure-coded files at all.  Per the codec-negotiation rules
-in the main draft, such a client either retries with a
-different supported_types hint, falls back to MDS-terminated
-I/O, or (this case) is routed through a proxy that translates
-on its behalf.
+The coding-type registry defined in the IANA Considerations of
+{{I-D.haynes-nfsv4-flexfiles-v2}} is expected to grow.  Not
+every client is required to implement every registered codec;
+a minimal client, a legacy client, or an NFSv3 client typically
+cannot participate in erasure-coded files at all.  Per the
+codec-negotiation rules in {{I-D.haynes-nfsv4-flexfiles-v2}},
+such a client either retries with a different supported_types
+hint, falls back to MDS-terminated I/O, or (this case) is
+routed through a proxy that translates on its behalf.
 
 Unlike the move / repair / evacuation / transition use cases
 above, codec translation is **persistent per client**.  The
@@ -397,9 +397,10 @@ This is a deliberate inversion of an earlier CB_PROXY-driven
 design: the proxy is the registered server side of the
 conversation, not a callback target.  The control flow is
 MDS->proxy, not MDS->client.  This matches the
-TRUST_STATEID / REVOKE_STATEID pattern in the main draft -- a
-dedicated MDS-to-DS control session carries MDS authority to
-the DS, and the DS acts on it.
+TRUST_STATEID / REVOKE_STATEID pattern in
+{{I-D.haynes-nfsv4-flexfiles-v2}} -- a dedicated MDS-to-DS
+control session carries MDS authority to the DS, and the DS
+acts on it.
 
 # New NFSv4.2 Operations {#sec-new-ops}
 
@@ -535,10 +536,11 @@ ffv2_data_server4 entry pointing at the proxy's existing
 deviceinfo.
 
 PROXY_REGISTRATION is issued on the dedicated MDS-to-proxy
-control session (per sec-tight-coupling-control-session in
-{{I-D.haynes-nfsv4-flexfiles-v2}}).  The proxy MUST present
-EXCHGID4_FLAG_USE_PNFS_MDS on that session so the MDS can
-gate the PROXY_* ops the same way it gates TRUST_STATEID.
+control session (per the Tight Coupling Control Session
+subsection of {{I-D.haynes-nfsv4-flexfiles-v2}}).  The proxy
+MUST present EXCHGID4_FLAG_USE_PNFS_MDS on that session so
+the MDS can gate the PROXY_* ops the same way it gates
+TRUST_STATEID.
 
 ## Operation 92: PROXY_MOVE - Direct a Registered Proxy to Move a File {#sec-PROXY_MOVE}
 
@@ -687,8 +689,9 @@ shards the source layout references and writes the
 reconstructed content to the destination layout.  If fewer
 than k shards survive across the mirror set, the operation
 terminates with NFS4ERR_PAYLOAD_LOST for the affected byte
-ranges, matching the per-chunk repair semantics in
-sec-repair-selection of {{I-D.haynes-nfsv4-flexfiles-v2}}.
+ranges, matching the per-chunk repair semantics in the Repair
+Client Selection section of
+{{I-D.haynes-nfsv4-flexfiles-v2}}.
 
 An implementation MAY collapse PROXY_MOVE and PROXY_REPAIR
 into a single internal dispatch.  PROXY_REPAIR is always
@@ -1210,9 +1213,9 @@ destination is preserved.
 If a client holds a chunk lock on a file when a proxy
 operation activates, the lock follows the file: the proxy
 takes ownership of the lock on the destination mirror set, and
-the MDS-escrow semantics (sec-chunk_guard_mds in the main
-draft) apply if the original holder becomes unreachable
-during the operation.
+the MDS-escrow semantics (the Reserved cg_client_id Value
+subsection of {{I-D.haynes-nfsv4-flexfiles-v2}}) apply if the
+original holder becomes unreachable during the operation.
 
 ## CB_CHUNK_REPAIR
 
@@ -1230,8 +1233,8 @@ When the MDS selects a proxy, it issues TRUST_STATEID on the
 proxy for every client layout stateid that will route through
 the proxy during PROXY_ACTIVE.  On proxy retirement the MDS
 issues REVOKE_STATEID on the retired proxy.  This is the same
-mechanism the main draft defines for any DS in a tightly
-coupled deployment.
+mechanism {{I-D.haynes-nfsv4-flexfiles-v2}} defines for any
+DS in a tightly coupled deployment.
 
 # Open Questions {#sec-open-questions}
 
