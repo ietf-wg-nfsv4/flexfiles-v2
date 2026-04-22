@@ -923,7 +923,7 @@ Table of Contents
 
    *  Enforcement of share reservations is the responsibility of the
       client.  Even though I/O is done using the anonymous stateid, the
-      client must ensure that it has a valid stateid associated with the
+      client MUST ensure that it has a valid stateid associated with the
       openowner.
 
    In the event that a stateid is revoked, the metadata server is
@@ -943,7 +943,7 @@ Table of Contents
 
    When locking-related operations are requested, they are primarily
    dealt with by the metadata server, which generates the appropriate
-   stateids.  These stateids must be made known to the storage device
+   stateids.  These stateids MUST be made known to the storage device
    using control protocol facilities.  For flex files v2 deployments in
    which the storage devices are NFSv4.2 servers, those facilities are
    provided by the TRUST_STATEID, REVOKE_STATEID, and
@@ -985,7 +985,7 @@ Table of Contents
       of the association between the metadata-server-chosen stateid and
       the client and openowner that it represents.  OPEN_DOWNGRADE and
       CLOSE are executed initially on the metadata server, but the state
-      change made must be propagated to the storage device.
+      change MUST be propagated to the storage device.
 
    *  Advisory byte-range locks can be implemented locally on the
       metadata server.  As in the case of OPENs, the stateids associated
@@ -1631,11 +1631,12 @@ Table of Contents
 
 8.2.1.  ffv2_flags4
 
-      /// const FFV2_FLAGS_NO_LAYOUTCOMMIT   = FF_FLAGS_NO_LAYOUTCOMMIT;
-      /// const FFV2_FLAGS_NO_IO_THRU_MDS    = FF_FLAGS_NO_IO_THRU_MDS;
-      /// const FFV2_FLAGS_NO_READ_IO        = FF_FLAGS_NO_READ_IO;
-      /// const FFV2_FLAGS_WRITE_ONE_MIRROR  = FF_FLAGS_WRITE_ONE_MIRROR;
-      /// const FFV2_FLAGS_ONLY_ONE_WRITER   = 0x00000010;
+      /// const FFV2_FLAGS_NO_LAYOUTCOMMIT  = FF_FLAGS_NO_LAYOUTCOMMIT;
+      /// const FFV2_FLAGS_NO_IO_THRU_MDS   = FF_FLAGS_NO_IO_THRU_MDS;
+      /// const FFV2_FLAGS_NO_READ_IO       = FF_FLAGS_NO_READ_IO;
+      /// const FFV2_FLAGS_WRITE_ONE_MIRROR =
+      ///     FF_FLAGS_WRITE_ONE_MIRROR;
+      /// const FFV2_FLAGS_ONLY_ONE_WRITER  = 0x00000010;
       ///
       /// typedef uint32_t            ffv2_flags4;
 
@@ -3842,45 +3843,45 @@ Table of Contents
    data server's chunk state table MUST admit these transitions and no
    others.
 
-                       CHUNK_WRITE
-                    (fresh cg_gen_id)
-      +---------+ ------------------> +-----------+
-      |  EMPTY  |                     |  PENDING  |
-      +---------+ <------------------ +-----------+
-           ^        CHUNK_ROLLBACK        |  ^
-           |       (discard PENDING)      |  | CHUNK_WRITE
-           |                              |  | (replace PENDING,
-           |                              |  |  same writer, same
-           |                              |  |  cg_gen_id)
-           |                              |  |
-           |             CHUNK_FINALIZE   v  |
-           |          (writer stops       |
-           |           further writes)    |
-           |                              v
-           |                       +-------------+
-           |        CHUNK_ROLLBACK |  FINALIZED  |
-           |       (discard        +-------------+
-           |        FINALIZED)           |
-           |                             | CHUNK_COMMIT
-           |                             |  (make durable and
-           |                             |   globally visible)
-           |                             v
-           |                       +-------------+
-           +-------------------- > |  COMMITTED  |
-                CHUNK_ROLLBACK     +-------------+
-             (only via repair;          |
-              replaces with a newer     | CHUNK_WRITE with a higher
-              COMMITTED generation      | cg_gen_id begins a new
-              or discards per the       | PENDING successor;
-              rollback invariant)       | the prior COMMITTED is
-                                        | retained until its
-                                        | successor is COMMITTED
-                                        | (rollback invariant,
-                                        v  sec-system-model-consistency)
-                                  (next PENDING
-                                   against same chunk)
+                          CHUNK_WRITE
+                       (fresh cg_gen_id)
+         +---------+ ------------------> +-----------+
+         |  EMPTY  |                     |  PENDING  |
+         +---------+ <------------------ +-----------+
+              ^        CHUNK_ROLLBACK        |  ^
+              |       (discard PENDING)      |  | CHUNK_WRITE
+              |                              |  | (replace PENDING,
+              |                              |  |  same writer, same
+              |                              |  |  cg_gen_id)
+              |                              |  |
+              |             CHUNK_FINALIZE   v  |
+              |          (writer stops       |
+              |           further writes)    |
+              |                              v
+              |                       +-------------+
+              |        CHUNK_ROLLBACK |  FINALIZED  |
+              |       (discard        +-------------+
+              |        FINALIZED)           |
+              |                             | CHUNK_COMMIT
+              |                             |  (make durable and
+              |                             |   globally visible)
+              |                             v
+              |                       +-------------+
+              +-------------------- > |  COMMITTED  |
+                   CHUNK_ROLLBACK     +-------------+
+                (only via repair;          |
+                 replaces with a newer     | CHUNK_WRITE with a higher
+                 COMMITTED generation      | cg_gen_id begins a new
+                 or discards per the       | PENDING successor;
+                 rollback invariant)       | the prior COMMITTED is
+                                           | retained until its
+                                           | successor is COMMITTED
+                                           | (see the rollback
+                                           v  invariant below)
+                                     (next PENDING
+                                      against same chunk)
 
-            Figure 33: Chunk lifecycle on the data server
+               Figure 33: Chunk lifecycle on the data server
 
    States:
 
@@ -3936,7 +3937,7 @@ Table of Contents
    Across multiple chunks the protocol makes *no multi-chunk atomicity
    or ordering guarantee*.  A reader that reads chunk A at one offset
    and chunk B at another MAY observe A's new value and B's old value
-   simultaneously.  Applications that require multi-chunk atomicity must
+   simultaneously.  Applications that require multi-chunk atomicity MUST
    layer it above this protocol -- for example, via file-level
    checksums, application-level generation fields, or external
    transaction managers.
@@ -4190,7 +4191,7 @@ Table of Contents
    *  *Byzantine fault tolerance.* A data server that deliberately
       misreports its state, or a client that bypasses its own
       authentication, is outside the trust model.  Deployments requiring
-      Byzantine tolerance must add it in a layer above or below this
+      Byzantine tolerance MUST add it in a layer above or below this
       protocol.
 
    *  *Metadata server high availability.* Single-MDS-per-file is the
@@ -4217,7 +4218,7 @@ Table of Contents
 
    *  *General-purpose intent primitive.* Christoph Hellwig observed at
       IETF 121 (November 2024) that the intent-based pattern used here
-      (CHUNK_WRITE → CHUNK_FINALIZE → CHUNK_COMMIT with CHUNK_ROLLBACK
+      (CHUNK_WRITE -> CHUNK_FINALIZE -> CHUNK_COMMIT with CHUNK_ROLLBACK
       as the abort path) has potential applicability beyond erasure
       coding -- for example, as a general multi-target atomic-ish write
       primitive.  This document scopes the mechanism to erasure coding:
@@ -5414,39 +5415,45 @@ Table of Contents
 
       /// /* nfs_argop4 amendment block */
       ///
-      /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4args        opchunkcommit;
-      /// case OP_CHUNK_ERROR:          CHUNK_ERROR4args         opchunkerror;
-      /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4args      opchunkfinalize;
-      /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4args   opchunkheaderread;
-      /// case OP_CHUNK_LOCK:           CHUNK_LOCK4args          opchunklock;
-      /// case OP_CHUNK_READ:           CHUNK_READ4args          opchunkread;
-      /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4args      opchunkrepaired;
-      /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4args      opchunkrollback;
-      /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4args        opchunkunlock;
-      /// case OP_CHUNK_WRITE:          CHUNK_WRITE4args         opchunkwrite;
-      /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4args  opchunkwriterepair;
-      /// case OP_TRUST_STATEID:        TRUST_STATEID4args       optruststateid;
-      /// case OP_REVOKE_STATEID:       REVOKE_STATEID4args      oprevokestateid;
-      /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4args opbulkrevokestateid;
+      /// case OP_CHUNK_COMMIT: CHUNK_COMMIT4args opchunkcommit;
+      /// case OP_CHUNK_ERROR: CHUNK_ERROR4args opchunkerror;
+      /// case OP_CHUNK_FINALIZE: CHUNK_FINALIZE4args opchunkfinalize;
+      /// case OP_CHUNK_HEADER_READ:
+      ///     CHUNK_HEADER_READ4args opchunkheaderread;
+      /// case OP_CHUNK_LOCK: CHUNK_LOCK4args opchunklock;
+      /// case OP_CHUNK_READ: CHUNK_READ4args opchunkread;
+      /// case OP_CHUNK_REPAIRED: CHUNK_REPAIRED4args opchunkrepaired;
+      /// case OP_CHUNK_ROLLBACK: CHUNK_ROLLBACK4args opchunkrollback;
+      /// case OP_CHUNK_UNLOCK: CHUNK_UNLOCK4args opchunkunlock;
+      /// case OP_CHUNK_WRITE: CHUNK_WRITE4args opchunkwrite;
+      /// case OP_CHUNK_WRITE_REPAIR:
+      ///     CHUNK_WRITE_REPAIR4args opchunkwriterepair;
+      /// case OP_TRUST_STATEID: TRUST_STATEID4args optruststateid;
+      /// case OP_REVOKE_STATEID: REVOKE_STATEID4args oprevokestateid;
+      /// case OP_BULK_REVOKE_STATEID:
+      ///     BULK_REVOKE_STATEID4args opbulkrevokestateid;
 
                    Figure 54: nfs_argop4 amendment block
 
       /// /* nfs_resop4 amendment block */
       ///
-      /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4res         opchunkcommit;
-      /// case OP_CHUNK_ERROR:          CHUNK_ERROR4res          opchunkerror;
-      /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4res       opchunkfinalize;
-      /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4res    opchunkheaderread;
-      /// case OP_CHUNK_LOCK:           CHUNK_LOCK4res           opchunklock;
-      /// case OP_CHUNK_READ:           CHUNK_READ4res           opchunkread;
-      /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4res       opchunkrepaired;
-      /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4res       opchunkrollback;
-      /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4res         opchunkunlock;
-      /// case OP_CHUNK_WRITE:          CHUNK_WRITE4res          opchunkwrite;
-      /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4res   opchunkwriterepair;
-      /// case OP_TRUST_STATEID:        TRUST_STATEID4res        optruststateid;
-      /// case OP_REVOKE_STATEID:       REVOKE_STATEID4res       oprevokestateid;
-      /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4res  opbulkrevokestateid;
+      /// case OP_CHUNK_COMMIT: CHUNK_COMMIT4res opchunkcommit;
+      /// case OP_CHUNK_ERROR: CHUNK_ERROR4res opchunkerror;
+      /// case OP_CHUNK_FINALIZE: CHUNK_FINALIZE4res opchunkfinalize;
+      /// case OP_CHUNK_HEADER_READ:
+      ///     CHUNK_HEADER_READ4res opchunkheaderread;
+      /// case OP_CHUNK_LOCK: CHUNK_LOCK4res opchunklock;
+      /// case OP_CHUNK_READ: CHUNK_READ4res opchunkread;
+      /// case OP_CHUNK_REPAIRED: CHUNK_REPAIRED4res opchunkrepaired;
+      /// case OP_CHUNK_ROLLBACK: CHUNK_ROLLBACK4res opchunkrollback;
+      /// case OP_CHUNK_UNLOCK: CHUNK_UNLOCK4res opchunkunlock;
+      /// case OP_CHUNK_WRITE: CHUNK_WRITE4res opchunkwrite;
+      /// case OP_CHUNK_WRITE_REPAIR:
+      ///     CHUNK_WRITE_REPAIR4res opchunkwriterepair;
+      /// case OP_TRUST_STATEID: TRUST_STATEID4res optruststateid;
+      /// case OP_REVOKE_STATEID: REVOKE_STATEID4res oprevokestateid;
+      /// case OP_BULK_REVOKE_STATEID:
+      ///     BULK_REVOKE_STATEID4res opbulkrevokestateid;
 
                    Figure 55: nfs_resop4 amendment block
 
@@ -5567,7 +5574,7 @@ Table of Contents
       with NFS4ERR_CHUNK_GUARDED.  A client that sees this has lost a
       race and SHOULD re-read the chunk (see sec-chunk_guard4).
 
-   The three-step CHUNK_WRITE → CHUNK_FINALIZE → CHUNK_COMMIT sequence
+   The three-step CHUNK_WRITE -> CHUNK_FINALIZE -> CHUNK_COMMIT sequence
    MAY be pipelined within a single NFSv4.2 compound (see sec-system-
    model-progress); each operation evaluates the current state of the
    target chunks independently.
@@ -6660,13 +6667,13 @@ Table of Contents
 
       /// /* nfs_cb_argop4 amendment block */
       ///
-      /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4args  opcbchunkrepair;
+      /// case OP_CB_CHUNK_REPAIR: CB_CHUNK_REPAIR4args opcbchunkrepair;
 
                   Figure 96: nfs_cb_argop4 amendment block
 
       /// /* nfs_cb_resop4 amendment block */
       ///
-      /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4res   opcbchunkrepair;
+      /// case OP_CB_CHUNK_REPAIR: CB_CHUNK_REPAIR4res opcbchunkrepair;
 
                   Figure 97: nfs_cb_resop4 amendment block
 
@@ -6894,8 +6901,9 @@ Table of Contents
    *  Under AUTH_SYS with loose coupling, the residual surface is
       essentially the pre-existing attack surface of NFSv3 writes: any
       host that can reach the data server with a valid uid can write
-      nonsense to chunks that uid owns.  This is the authorization model
-      the rest of Flex Files v1 inherits without modification.
+      nonsense to chunks that uid owns.  This is the Flex Files v1
+      authorization model, which Flex Files v2 inherits without
+      modification for this path.
 
    *  Under RPCSEC_GSS or TLS with mutual authentication, the residual
       surface reduces to: only the authenticated client can write
@@ -6952,10 +6960,17 @@ Table of Contents
 
 27.5.  RPCSEC_GSS and Security Services
 
-   _Why we don't want to support RPCSEC_GSS._
-
-   Because of the special use of principals within the loosely coupled
-   model, the issues are different depending on the coupling model.
+   This document does not specify how RPCSEC_GSS [RFC7861] is used
+   between the client and a storage device in the loosely coupled model,
+   and the reasons differ between the two coupling models.  Because the
+   loosely coupled model uses synthetic credentials that are managed by
+   the metadata server rather than shared with the storage device, a
+   full RPCSEC_GSS integration would require protocol work (RPCSEC_GSSv3
+   structured privilege assertions, per [RFC7861]) on all three of the
+   metadata server, the storage device, and the client.  In the tightly
+   coupled model the principal used to access the data file is the same
+   as the one used to access the metadata file, so RPCSEC_GSS applies
+   unchanged.  The two subsections below treat each model in turn.
 
 27.5.1.  Loosely Coupled
 
@@ -7526,11 +7541,6 @@ References
 
 Normative References
 
-   [RFC1813]  Callaghan, B., Pawlowski, B., and P. Staubach, "NFS
-              Version 3 Protocol Specification", RFC 1813,
-              DOI 10.17487/RFC1813, June 1995,
-              <https://www.rfc-editor.org/rfc/rfc1813>.
-
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
               DOI 10.17487/RFC2119, March 1997,
@@ -7617,6 +7627,11 @@ Informative References
 
    [Plank97]  Plank, J., "A Tutorial on Reed-Solomon Coding for Fault-
               Tolerance in RAID-like System", September 1997.
+
+   [RFC1813]  Callaghan, B., Pawlowski, B., and P. Staubach, "NFS
+              Version 3 Protocol Specification", RFC 1813,
+              DOI 10.17487/RFC1813, June 1995,
+              <https://www.rfc-editor.org/rfc/rfc1813>.
 
    [RFC4519]  Sciberras, A., Ed., "Lightweight Directory Access Protocol
               (LDAP): Schema for User Applications", RFC 4519,

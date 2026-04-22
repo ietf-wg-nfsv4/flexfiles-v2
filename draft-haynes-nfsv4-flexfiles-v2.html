@@ -2726,7 +2726,7 @@ the lock owner from those done by others.<a href="#section-6.3.1-5.1.1" class="p
             <li class="normal" id="section-6.3.1-5.2">
               <p id="section-6.3.1-5.2.1">Enforcement of share reservations is the responsibility of the
 client.  Even though I/O is done using the anonymous stateid, the
-client must ensure that it has a valid stateid associated with the
+client <span class="bcp14">MUST</span> ensure that it has a valid stateid associated with the
 openowner.<a href="#section-6.3.1-5.2.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
@@ -2749,7 +2749,7 @@ been revoked.<a href="#section-6.3.1-7" class="pilcrow">¶</a></p>
           </h4>
 <p id="section-6.3.2-1">When locking-related operations are requested, they are primarily dealt
 with by the metadata server, which generates the appropriate stateids.
-These stateids must be made known to the storage device using control
+These stateids <span class="bcp14">MUST</span> be made known to the storage device using control
 protocol facilities.  For flex files v2 deployments in which the storage
 devices are NFSv4.2 servers, those facilities are provided by the
 TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID operations
@@ -2795,7 +2795,7 @@ locate the file to be opened and to make the storage device aware of
 the association between the metadata-server-chosen stateid and the
 client and openowner that it represents.  OPEN_DOWNGRADE and CLOSE
 are executed initially on the metadata server, but the state change
-made must be propagated to the storage device.<a href="#section-6.3.2-5.1.1" class="pilcrow">¶</a></p>
+<span class="bcp14">MUST</span> be propagated to the storage device.<a href="#section-6.3.2-5.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.3.2-5.2">
               <p id="section-6.3.2-5.2.1">Advisory byte-range locks can be implemented locally on the
@@ -3589,11 +3589,12 @@ require client-side agreement on the mathematics.<a href="#section-8.1.1-5" clas
 <figure id="figure-10">
             <div class="lang-xdr sourcecode" id="section-8.2.1-1.1">
 <pre>
-   /// const FFV2_FLAGS_NO_LAYOUTCOMMIT   = FF_FLAGS_NO_LAYOUTCOMMIT;
-   /// const FFV2_FLAGS_NO_IO_THRU_MDS    = FF_FLAGS_NO_IO_THRU_MDS;
-   /// const FFV2_FLAGS_NO_READ_IO        = FF_FLAGS_NO_READ_IO;
-   /// const FFV2_FLAGS_WRITE_ONE_MIRROR  = FF_FLAGS_WRITE_ONE_MIRROR;
-   /// const FFV2_FLAGS_ONLY_ONE_WRITER   = 0x00000010;
+   /// const FFV2_FLAGS_NO_LAYOUTCOMMIT  = FF_FLAGS_NO_LAYOUTCOMMIT;
+   /// const FFV2_FLAGS_NO_IO_THRU_MDS   = FF_FLAGS_NO_IO_THRU_MDS;
+   /// const FFV2_FLAGS_NO_READ_IO       = FF_FLAGS_NO_READ_IO;
+   /// const FFV2_FLAGS_WRITE_ONE_MIRROR =
+   ///     FF_FLAGS_WRITE_ONE_MIRROR;
+   /// const FFV2_FLAGS_ONLY_ONE_WRITER  = 0x00000010;
    ///
    /// typedef uint32_t            ffv2_flags4;
 </pre>
@@ -6557,8 +6558,8 @@ transitions and no others.<a href="#section-12.4-1" class="pilcrow">¶</a></p>
               rollback invariant)       | the prior COMMITTED is
                                         | retained until its
                                         | successor is COMMITTED
-                                        | (rollback invariant,
-                                        v  sec-system-model-consistency)
+                                        | (see the rollback
+                                        v  invariant below)
                                   (next PENDING
                                    against same chunk)
 </pre>
@@ -6645,7 +6646,7 @@ owner at any instant" is preserved across revocation.<a href="#section-12.5-2.3.
 atomicity or ordering guarantee</strong>.  A reader that reads chunk A
 at one offset and chunk B at another <span class="bcp14">MAY</span> observe A's new value
 and B's old value simultaneously.  Applications that require
-multi-chunk atomicity must layer it above this protocol -- for
+multi-chunk atomicity <span class="bcp14">MUST</span> layer it above this protocol -- for
 example, via file-level checksums, application-level generation
 fields, or external transaction managers.<a href="#section-12.5-3" class="pilcrow">¶</a></p>
 <p id="section-12.5-4"><strong>The chunk is the unit of atomicity.</strong>  Two properties follow:<a href="#section-12.5-4" class="pilcrow">¶</a></p>
@@ -6981,7 +6982,7 @@ requires nor precludes such an implementation.<a href="#section-12.8-5" class="p
             <p id="section-12.9-2.1.1"><strong>Byzantine fault tolerance.</strong>  A data server that
 deliberately misreports its state, or a client that
 bypasses its own authentication, is outside the trust model.
-Deployments requiring Byzantine tolerance must add it in a
+Deployments requiring Byzantine tolerance <span class="bcp14">MUST</span> add it in a
 layer above or below this protocol.<a href="#section-12.9-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-12.9-2.2">
@@ -7016,7 +7017,7 @@ check.<a href="#section-12.9-2.6.1" class="pilcrow">¶</a></p>
           <li class="normal" id="section-12.9-2.7">
             <p id="section-12.9-2.7.1"><strong>General-purpose intent primitive.</strong>  Christoph Hellwig
 observed at IETF 121 (November 2024) that the intent-based
-pattern used here (CHUNK_WRITE → CHUNK_FINALIZE →
+pattern used here (CHUNK_WRITE -&gt; CHUNK_FINALIZE -&gt;
 CHUNK_COMMIT with CHUNK_ROLLBACK as the abort path) has
 potential applicability beyond erasure coding -- for
 example, as a general multi-target atomic-ish write
@@ -8778,20 +8779,23 @@ XDR applies these amendments at the union's extension point.<a href="#section-25
 <pre>
    /// /* nfs_argop4 amendment block */
    ///
-   /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4args        opchunkcommit;
-   /// case OP_CHUNK_ERROR:          CHUNK_ERROR4args         opchunkerror;
-   /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4args      opchunkfinalize;
-   /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4args   opchunkheaderread;
-   /// case OP_CHUNK_LOCK:           CHUNK_LOCK4args          opchunklock;
-   /// case OP_CHUNK_READ:           CHUNK_READ4args          opchunkread;
-   /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4args      opchunkrepaired;
-   /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4args      opchunkrollback;
-   /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4args        opchunkunlock;
-   /// case OP_CHUNK_WRITE:          CHUNK_WRITE4args         opchunkwrite;
-   /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4args  opchunkwriterepair;
-   /// case OP_TRUST_STATEID:        TRUST_STATEID4args       optruststateid;
-   /// case OP_REVOKE_STATEID:       REVOKE_STATEID4args      oprevokestateid;
-   /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4args opbulkrevokestateid;
+   /// case OP_CHUNK_COMMIT: CHUNK_COMMIT4args opchunkcommit;
+   /// case OP_CHUNK_ERROR: CHUNK_ERROR4args opchunkerror;
+   /// case OP_CHUNK_FINALIZE: CHUNK_FINALIZE4args opchunkfinalize;
+   /// case OP_CHUNK_HEADER_READ:
+   ///     CHUNK_HEADER_READ4args opchunkheaderread;
+   /// case OP_CHUNK_LOCK: CHUNK_LOCK4args opchunklock;
+   /// case OP_CHUNK_READ: CHUNK_READ4args opchunkread;
+   /// case OP_CHUNK_REPAIRED: CHUNK_REPAIRED4args opchunkrepaired;
+   /// case OP_CHUNK_ROLLBACK: CHUNK_ROLLBACK4args opchunkrollback;
+   /// case OP_CHUNK_UNLOCK: CHUNK_UNLOCK4args opchunkunlock;
+   /// case OP_CHUNK_WRITE: CHUNK_WRITE4args opchunkwrite;
+   /// case OP_CHUNK_WRITE_REPAIR:
+   ///     CHUNK_WRITE_REPAIR4args opchunkwriterepair;
+   /// case OP_TRUST_STATEID: TRUST_STATEID4args optruststateid;
+   /// case OP_REVOKE_STATEID: REVOKE_STATEID4args oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:
+   ///     BULK_REVOKE_STATEID4args opbulkrevokestateid;
 </pre>
 </div>
 <figcaption><a href="#figure-54" class="selfRef">Figure 54</a>:
@@ -8804,20 +8808,23 @@ XDR applies these amendments at the union's extension point.<a href="#section-25
 <pre>
    /// /* nfs_resop4 amendment block */
    ///
-   /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4res         opchunkcommit;
-   /// case OP_CHUNK_ERROR:          CHUNK_ERROR4res          opchunkerror;
-   /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4res       opchunkfinalize;
-   /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4res    opchunkheaderread;
-   /// case OP_CHUNK_LOCK:           CHUNK_LOCK4res           opchunklock;
-   /// case OP_CHUNK_READ:           CHUNK_READ4res           opchunkread;
-   /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4res       opchunkrepaired;
-   /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4res       opchunkrollback;
-   /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4res         opchunkunlock;
-   /// case OP_CHUNK_WRITE:          CHUNK_WRITE4res          opchunkwrite;
-   /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4res   opchunkwriterepair;
-   /// case OP_TRUST_STATEID:        TRUST_STATEID4res        optruststateid;
-   /// case OP_REVOKE_STATEID:       REVOKE_STATEID4res       oprevokestateid;
-   /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4res  opbulkrevokestateid;
+   /// case OP_CHUNK_COMMIT: CHUNK_COMMIT4res opchunkcommit;
+   /// case OP_CHUNK_ERROR: CHUNK_ERROR4res opchunkerror;
+   /// case OP_CHUNK_FINALIZE: CHUNK_FINALIZE4res opchunkfinalize;
+   /// case OP_CHUNK_HEADER_READ:
+   ///     CHUNK_HEADER_READ4res opchunkheaderread;
+   /// case OP_CHUNK_LOCK: CHUNK_LOCK4res opchunklock;
+   /// case OP_CHUNK_READ: CHUNK_READ4res opchunkread;
+   /// case OP_CHUNK_REPAIRED: CHUNK_REPAIRED4res opchunkrepaired;
+   /// case OP_CHUNK_ROLLBACK: CHUNK_ROLLBACK4res opchunkrollback;
+   /// case OP_CHUNK_UNLOCK: CHUNK_UNLOCK4res opchunkunlock;
+   /// case OP_CHUNK_WRITE: CHUNK_WRITE4res opchunkwrite;
+   /// case OP_CHUNK_WRITE_REPAIR:
+   ///     CHUNK_WRITE_REPAIR4res opchunkwriterepair;
+   /// case OP_TRUST_STATEID: TRUST_STATEID4res optruststateid;
+   /// case OP_REVOKE_STATEID: REVOKE_STATEID4res oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:
+   ///     BULK_REVOKE_STATEID4res opbulkrevokestateid;
 </pre>
 </div>
 <figcaption><a href="#figure-55" class="selfRef">Figure 55</a>:
@@ -9083,7 +9090,7 @@ this has lost a race and <span class="bcp14">SHOULD</span> re-read the chunk (se
 sec-chunk_guard4).<a href="#section-25.1.3.1-2.4.1" class="pilcrow">¶</a></p>
 </li>
             </ul>
-<p id="section-25.1.3.1-3">The three-step CHUNK_WRITE → CHUNK_FINALIZE → CHUNK_COMMIT
+<p id="section-25.1.3.1-3">The three-step CHUNK_WRITE -&gt; CHUNK_FINALIZE -&gt; CHUNK_COMMIT
 sequence <span class="bcp14">MAY</span> be pipelined within a single NFSv4.2 compound
 (see sec-system-model-progress); each operation evaluates the
 current state of the target chunks independently.<a href="#section-25.1.3.1-3" class="pilcrow">¶</a></p>
@@ -10762,7 +10769,7 @@ for the new callback operation defined in this document.<a href="#section-26-2" 
 <pre>
    /// /* nfs_cb_argop4 amendment block */
    ///
-   /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4args  opcbchunkrepair;
+   /// case OP_CB_CHUNK_REPAIR: CB_CHUNK_REPAIR4args opcbchunkrepair;
 </pre>
 </div>
 <figcaption><a href="#figure-96" class="selfRef">Figure 96</a>:
@@ -10775,7 +10782,7 @@ for the new callback operation defined in this document.<a href="#section-26-2" 
 <pre>
    /// /* nfs_cb_resop4 amendment block */
    ///
-   /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4res   opcbchunkrepair;
+   /// case OP_CB_CHUNK_REPAIR: CB_CHUNK_REPAIR4res opcbchunkrepair;
 </pre>
 </div>
 <figcaption><a href="#figure-97" class="selfRef">Figure 97</a>:
@@ -11064,9 +11071,9 @@ authentication model:<a href="#section-27.1-2" class="pilcrow">¶</a></p>
             <p id="section-27.1-3.1.1">Under AUTH_SYS with loose coupling, the residual surface is
 essentially the pre-existing attack surface of NFSv3 writes:
 any host that can reach the data server with a valid uid can
-write nonsense to chunks that uid owns.  This is the
-authorization model the rest of Flex Files v1 inherits
-without modification.<a href="#section-27.1-3.1.1" class="pilcrow">¶</a></p>
+write nonsense to chunks that uid owns.  This is the Flex
+Files v1 authorization model, which Flex Files v2 inherits
+without modification for this path.<a href="#section-27.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-27.1-3.2">
             <p id="section-27.1-3.2.1">Under RPCSEC_GSS or TLS with mutual authentication, the
@@ -11142,9 +11149,19 @@ SECINFO mechanism rather than silently dropping connections.<a href="#section-27
         <h3 id="name-rpcsec_gss-and-security-ser">
 <a href="#section-27.5" class="section-number selfRef">27.5. </a><a href="#name-rpcsec_gss-and-security-ser" class="section-name selfRef">RPCSEC_GSS and Security Services</a>
         </h3>
-<p id="section-27.5-1"><em>Why we don't want to support RPCSEC_GSS.</em><a href="#section-27.5-1" class="pilcrow">¶</a></p>
-<p id="section-27.5-2">Because of the special use of principals within the loosely coupled
-model, the issues are different depending on the coupling model.<a href="#section-27.5-2" class="pilcrow">¶</a></p>
+<p id="section-27.5-1">This document does not specify how RPCSEC_GSS <span>[<a href="#RFC7861" class="cite xref">RFC7861</a>]</span> is
+used between the client and a storage device in the loosely
+coupled model, and the reasons differ between the two coupling
+models.  Because the loosely coupled model uses synthetic
+credentials that are managed by the metadata server rather than
+shared with the storage device, a full RPCSEC_GSS integration
+would require protocol work (RPCSEC_GSSv3 structured privilege
+assertions, per <span>[<a href="#RFC7861" class="cite xref">RFC7861</a>]</span>) on all three of the metadata
+server, the storage device, and the client.  In the tightly
+coupled model the principal used to access the data file is the
+same as the one used to access the metadata file, so
+RPCSEC_GSS applies unchanged.  The two subsections below treat
+each model in turn.<a href="#section-27.5-1" class="pilcrow">¶</a></p>
 <div id="loosely-coupled">
 <section id="section-27.5.1">
           <h4 id="name-loosely-coupled">
@@ -11985,10 +12002,6 @@ process.<a href="#section-32-5" class="pilcrow">¶</a></p>
 <a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
 <dl class="references">
-<dt id="RFC1813">[RFC1813]</dt>
-        <dd>
-<span class="refAuthor">Callaghan, B.</span>, <span class="refAuthor">Pawlowski, B.</span>, and <span class="refAuthor">P. Staubach</span>, <span class="refTitle">"NFS Version 3 Protocol Specification"</span>, <span class="seriesInfo">RFC 1813</span>, <span class="seriesInfo">DOI 10.17487/RFC1813</span>, <time datetime="1995-06" class="refDate">June 1995</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc1813">https://www.rfc-editor.org/rfc/rfc1813</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="RFC2119">[RFC2119]</dt>
         <dd>
 <span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
@@ -12077,6 +12090,10 @@ process.<a href="#section-32-5" class="pilcrow">¶</a></p>
 <dt id="Plank97">[Plank97]</dt>
         <dd>
 <span class="refAuthor">Plank, J.</span>, <span class="refTitle">"A Tutorial on Reed-Solomon Coding for Fault-Tolerance in RAID-like System"</span>, <time datetime="1997-09" class="refDate">September 1997</time>. </dd>
+<dd class="break"></dd>
+<dt id="RFC1813">[RFC1813]</dt>
+        <dd>
+<span class="refAuthor">Callaghan, B.</span>, <span class="refAuthor">Pawlowski, B.</span>, and <span class="refAuthor">P. Staubach</span>, <span class="refTitle">"NFS Version 3 Protocol Specification"</span>, <span class="seriesInfo">RFC 1813</span>, <span class="seriesInfo">DOI 10.17487/RFC1813</span>, <time datetime="1995-06" class="refDate">June 1995</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc1813">https://www.rfc-editor.org/rfc/rfc1813</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC4519">[RFC4519]</dt>
         <dd>
