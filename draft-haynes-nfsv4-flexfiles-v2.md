@@ -6427,6 +6427,52 @@ The current design uses a per-chunk monotonic counter scoped to
 the chunk on the data server, with cg_client_id as the
 disambiguator across clients.  See {{sec-chunk_guard4}}.
 
+##  Declustered RAID with Dynamic Parity Mapping
+{:numbered="false"}
+
+Christoph Hellwig raised at IETF 121 (November 2024) the
+possibility of borrowing from declustered RAID designs: the
+metadata server maintains, for every fixed-size region of each
+file, a mapping from logical address to the specific data
+servers that currently hold that region's data and parity
+shards; writes do not update chunks in place but instead produce
+a new parity stripe on a freshly allocated set of data servers,
+and the mapping is atomically swapped on the metadata server
+once the new stripe is durable.  The attraction is that
+overwrite is replaced by remap, eliminating the write-hole
+problem entirely at the cost of moving consistency into the
+mapping table.  This was rejected because:
+
+-  The mapping load scales with the file's chunk count, not with
+   the file count.  A single large file with billions of chunks
+   produces a billion-entry mapping that the metadata server
+   must maintain with transactional semantics; the overhead is
+   inverted from the usual "a few large files" regime that
+   pNFS is designed for.
+
+-  Remapping storms during rebalancing, data-server addition, or
+   data-server failure require atomic updates to many mapping
+   entries at once.  Providing those updates with the
+   reasonable-latency bounds required by HPC checkpoint
+   workloads is an open research problem, not a specifiable
+   protocol.
+
+-  The approach reintroduces the metadata-server scale bottleneck
+   that client-side erasure coding is designed to avoid: every
+   write traverses the mapping table, and the mapping table is
+   the hot-spot under concurrent writes.
+
+-  The mapping table becomes the single point of failure that
+   the rest of the Flex Files architecture works hard to avoid;
+   replicating it with strong consistency requires a consensus
+   protocol on the metadata server, which the current design
+   deliberately does not require (see {{sec-system-model-consensus}}).
+
+The current design uses fixed per-file chunk placement decided
+at LAYOUTGET time plus chunk_guard4 CAS for writes, which
+localises consistency decisions to the chunks being written
+rather than to a global mapping table.
+
 # Acknowledgments
 {:numbered="false"}
 
