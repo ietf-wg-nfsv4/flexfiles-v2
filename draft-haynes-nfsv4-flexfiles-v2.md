@@ -21,7 +21,6 @@ author:
     email: loghyr@gmail.com
 
 normative:
-  RFC1813:
   RFC4121:
   RFC4506:
   RFC5531:
@@ -50,6 +49,7 @@ informative:
     author:
       - org: IANA
     date: false
+  RFC1813:
   RFC4519:
   RFC7942:
   PARREIN:
