@@ -94,14 +94,6 @@ code and issues list for this draft can be found at
 
 Working Group information can be found at [](https://github.com/ietf-wg-nfsv4).
 
-This draft is currently a work in progress.  It needs to be
-determined if we want to copy v1 text to v2 or if we want just a diff
-of the new content.  For right now, we are copying the v1 text and
-adding the new v2 text.  Also, expect sections to move as we push the
-emphasis from flex files to protection types.
-
-_As a WIP, the XDR extraction may not yet work._
-
 --- middle
 
 # Introduction
