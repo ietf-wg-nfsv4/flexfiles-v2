@@ -6510,6 +6510,36 @@ document refers to error detection, not protection against an active
 attacker.  Deployments requiring protection against active attackers
 SHOULD use RPC-over-TLS (see {{sec-tls}}) or RPCSEC_GSS.
 
+An authenticated client is in the "active attacker" role with
+respect to its own chunks, in a restricted sense.  The data
+server validates the CRC32 against the bytes the client
+provided, so an authenticated client that chooses to send
+semantically-invalid bytes with a correctly computed CRC32 will
+have those bytes accepted.  The residual surface differs per
+authentication model:
+
+-  Under AUTH_SYS with loose coupling, the residual surface is
+   essentially the pre-existing attack surface of NFSv3 writes:
+   any host that can reach the data server with a valid uid can
+   write nonsense to chunks that uid owns.  This is the
+   authorization model the rest of Flex Files v1 inherits
+   without modification.
+
+-  Under RPCSEC_GSS or TLS with mutual authentication, the
+   residual surface reduces to: only the authenticated client
+   can write nonsense into chunks it owns.  Cross-client
+   corruption is prevented because the data server verifies the
+   principal before accepting the write.  The remaining attack
+   surface is the client's own integrity: any deployment that
+   relies on data integrity above the wire MUST apply
+   application-level content validation.
+
+Flex Files v2 does not attempt to defend against this
+authenticated-but-malicious case.  The CRC32 mechanism is a
+transport-integrity check, not a content-integrity check; the
+system trust model assumes that an authenticated principal is
+entitled to destroy the content of chunks it owns.
+
 ##  Chunk Lock and Lease Expiry
 
 When a client holds a chunk lock (acquired via CHUNK_LOCK) and its
