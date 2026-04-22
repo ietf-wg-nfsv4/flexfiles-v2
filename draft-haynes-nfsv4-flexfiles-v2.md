@@ -1651,9 +1651,9 @@ by the metadata server and is opaque to the client.
    ///         ffv2_coding_type_data4  ffm_coding_type_data;
    ///         ffv2_key4               ffm_key;
    ///         ffv2_striping           ffm_striping;
-   ///         uint32_t                ffm_striping_unit_size; // The minimum stripe unit size is 64 bytes.
+   ///         uint32_t                ffm_striping_unit_size;
    ///         uint32_t                ffm_client_id;
-   ///         ffv2_stripes4           ffm_stripes<>; // Length of this array is the stripe count
+   ///         ffv2_stripes4           ffm_stripes<>;
    /// };
 ~~~
 {: #fig-ffv2_mirror4 title="The ffv2_mirror4" }
@@ -1708,11 +1708,13 @@ by the mirror.
 The ffm_striping is which striping method is used by the mirror.
 
 The ffm_striping_unit_size is the stripe unit size used
-by the mirror. If the value of ffm_striping is FFV2_STRIPING_NONE,
-then the value of ffm_striping_unit_size MUST be 1.
+by the mirror.  The minimum stripe unit size is 64 bytes.  If
+the value of ffm_striping is FFV2_STRIPING_NONE, then the value
+of ffm_striping_unit_size MUST be 1.
 
-The ffm_stripes is the array of stripes for the mirror. If there
-is no striping or the ffm_coding_type_data is FFV2_CODING_MIRRORED,
+The ffm_stripes is the array of stripes for the mirror; the
+length of the array is the stripe count.  If there is no
+striping or the ffm_coding_type_data is FFV2_CODING_MIRRORED,
 then the length of ffm_stripes MUST be 1.
 
 ## ffv2_layout4
