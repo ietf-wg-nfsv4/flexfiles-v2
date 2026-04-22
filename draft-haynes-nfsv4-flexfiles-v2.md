@@ -177,6 +177,24 @@ detection, and the chunk_guard4 compare-and-swap primitive (see
 {{sec-chunk_guard4}}) for detecting concurrent-writer
 inconsistency -- while preserving the client-side compute model.
 
+Client-side erasure coding turns write-hole recovery into a
+protocol-level concern rather than an implementer-internal one.
+In Flex Files v1, the replication transform produces independent
+full-copy mirrors, so a partial write is detected and repaired by
+resilvering from a surviving copy.  A single server-side
+coordinator has enough visibility to drive that repair without
+help from the client.  Under a (k, m) erasure code, in contrast,
+a write transaction fans out across multiple data servers with no
+single server-side actor holding whole-transaction visibility:
+when the client fails mid-fan-out, the partial state across data
+servers must be reconciled by the metadata server, and the
+reconciliation protocol must be specified on the wire so that any
+compliant client, data server, or repair agent can participate.
+The chunk_guard4 CAS primitive, the PENDING / FINALIZED /
+COMMITTED state machine, the CHUNK_LOCK escrow mechanism, and
+CB_CHUNK_REPAIR together form that on-wire reconciliation
+protocol.
+
 Scope note: the consistency goal of Flex Files v2 is RAID
 consistency across the chunks that make up an encoded stripe, not
 POSIX write ordering across arbitrary application writes.  The
