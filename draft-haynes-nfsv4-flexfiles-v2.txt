@@ -106,8 +106,9 @@ Table of Contents
      8.9.  ffv2_layout4
      8.10. ffv2_data_protection4
      8.11. ffv2_layouthint4
-       8.11.1.  Error Codes from LAYOUTGET
-       8.11.2.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
+       8.11.1.  Codec Negotiation
+       8.11.2.  Error Codes from LAYOUTGET
+       8.11.3.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
      8.12. LAYOUTCOMMIT
      8.13. Interactions between Devices and Layouts
      8.14. Handling Version Errors
@@ -153,13 +154,15 @@ Table of Contents
      11.7.  First-Line Substitution to a Spare
      11.8.  Handling write holes
    12. System Model and Correctness
-     12.1.  Actors and Roles
-     12.2.  Failure Model
-     12.3.  Chunk State Machine
-     12.4.  Consistency Guarantees
-     12.5.  Progress and Termination
-     12.6.  Relation to Classical Consensus
-     12.7.  Non-Goals
+     12.1.  Wire Semantics vs Implementation
+     12.2.  Actors and Roles
+     12.3.  Failure Model
+     12.4.  Chunk State Machine
+     12.5.  Consistency Guarantees
+     12.6.  Ownership and Scope of Retained Prior Content
+     12.7.  Progress and Termination
+     12.8.  Relation to Classical Consensus
+     12.9.  Non-Goals
    13. NFSv4.2 Operations Allowed to Data Files
      13.1.  Control Plane: Metadata Server to Data Server
      13.2.  Data Path: Client to Data Server
@@ -299,6 +302,7 @@ Table of Contents
      Modified Two-Touch Paxos on Each Chunk
      Automatic Commit of Empty Chunks
      Global Clock or Wall-Clock-Based Generation Counter
+     Layout-Level Generation Counter
      Declustered RAID with Dynamic Parity Mapping
    Acknowledgments
    References
@@ -474,7 +478,7 @@ Table of Contents
    deployments):  The common case is a file written by one client and
       subsequently read by many.  Examples include artifacts deposited
       by batch jobs, container images, and media files.  The protocol is
-      optimized for this case; see Section 12.5.
+      optimized for this case; see Section 12.7.
 
    Multiple writers without sustained contention (approximately 9% of
 
@@ -1995,6 +1999,54 @@ Table of Contents
    return FFV2_CODING_MIRRORED with (fdp_data=1, fdp_parity=2) for 3-way
    mirroring.
 
+8.11.1.  Codec Negotiation
+
+   Because the coding-type registry is expected to grow over time (new
+   erasure codes are added, older ones fall out of favour, vendors
+   register private codes; see Section 28), neither clients nor metadata
+   servers are required to implement every registered codec.  The
+   protocol uses ffv2_layouthint4 as the negotiation surface:
+
+   Client-side advertisement:  A client that wishes to influence codec
+      selection SHOULD send the set of codecs it actually implements in
+      fflh_supported_types.  A client MUST NOT claim support for a codec
+      it cannot encode or decode: a false advertisement produces silent
+      data unavailability when the resulting layout is issued.
+
+   Metadata-server selection:  The metadata server SHOULD select a codec
+      from the client's fflh_supported_types list when the server's
+      policy permits.  The server MAY override the hint when its policy
+      dictates a specific codec (for example, per-export objectives); in
+      that case the server issues a layout with the policy-dictated
+      codec and the client MUST either honour it or fail its I/O with
+      NFS4ERR_CODING_NOT_SUPPORTED.
+
+   Fallback when no overlap exists:  If the server's policy cannot be
+      satisfied by any codec the client supports, the server returns
+      NFS4ERR_CODING_NOT_SUPPORTED on the LAYOUTGET.  The client MAY
+      retry with a different (possibly empty) fflh_supported _types list
+      to learn the server's codec repertoire through the errors
+      returned, and MAY fall back to I/O via the metadata server if no
+      mutually-supported codec exists (see Section 6.2 for the MDS-I/O
+      fallback).
+
+   Runtime codec change:  If a metadata server changes its codec policy
+      after layouts have been issued (for example, a deployment upgrade
+      that retires an older codec), the metadata server MUST recall the
+      affected layouts via CB_LAYOUTRECALL and may re-issue new layouts
+      with the new codec.  Clients that do not support the new codec
+      LAYOUTRETURN with NFS4ERR_CODING_NOT_SUPPORTED, and the server
+      either grants a layout using a mutually- supported codec or the
+      client falls back to I/O via the metadata server.
+
+   This mechanism deliberately avoids a separate capability-bit
+   handshake at EXCHANGE_ID.  ffv2_layouthint4 already provides per-
+   request negotiation surface; adding a session-level capability set
+   would duplicate it and would complicate codec upgrades without
+   additional value, because a client that genuinely upgrades its codec
+   set at runtime can simply update the fflh_supported_types on its next
+   LAYOUTGET.
+
    Note: In Figure 17 ffv2_coding_type_data4 is an enumerated union with
    the payload of each arm being defined by the protection type.
    ffm_client_id tells the client which id to use when interacting with
@@ -2093,7 +2145,7 @@ Table of Contents
    higher perceived utility.  The way the client can select the best
    mirror to access is discussed in Section 11.1.1.
 
-8.11.1.  Error Codes from LAYOUTGET
+8.11.2.  Error Codes from LAYOUTGET
 
    [RFC8881] provides little guidance as to how the client is to proceed
    with a LAYOUTGET that returns an error of either
@@ -2112,7 +2164,7 @@ Table of Contents
       granted.  If the client already has an appropriate layout, it
       should not continue with I/O to the storage devices.
 
-8.11.2.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
+8.11.3.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
 
    Even if the metadata server provides the FF_FLAGS_NO_IO_THRU_MDS
    flag, the client can still perform I/O to the metadata server.  The
@@ -2775,6 +2827,17 @@ Table of Contents
    wall-clock deadline.  A client that receives CB_CHUNK_REPAIR for a
    file for which it does not already hold a layout MUST acquire a
    layout via LAYOUTGET before attempting the repair.
+
+   Operational expectations for CB_CHUNK_REPAIR: CB_CHUNK_REPAIR is an
+   exceptional path, triggered only by concurrent-writer races or data-
+   server failures.  It is not a steady-state operation and its
+   frequency is a function of racing-writer and data-server-failure
+   rates in the deployment rather than of normal client workload.
+   Implementations SHOULD treat the CB_CHUNK_REPAIR handler as rare-path
+   code and avoid over-optimising it.  Implementations SHOULD, however,
+   provision enough client-side compute to handle a repair transaction
+   without stalling their foreground I/O, because foreground throughput
+   during repair is the externally observable cost of this callback.
 
 11.2.5.  Repair Protocol: Normative vs. Informative
 
@@ -3531,7 +3594,51 @@ Table of Contents
    reviewers; the normative wire behavior is defined in the preceding
    sections.
 
-12.1.  Actors and Roles
+12.1.  Wire Semantics vs Implementation
+
+   The protocol defines wire semantics, not data-server implementation.
+   The operations introduced in Section 25 (CHUNK_WRITE, CHUNK_FINALIZE,
+   CHUNK_COMMIT, CHUNK_ROLLBACK, CHUNK_LOCK / CHUNK_UNLOCK, CHUNK_READ,
+   CHUNK_REPAIRED, CHUNK_ERROR, CHUNK_HEADER_READ, CHUNK_WRITE_REPAIR)
+   together with the per-chunk state machine (Section 12.4) and the
+   chunk_guard4 CAS (Section 24.1) are the entire surface a peer
+   observes.  The data server's internal representation of persistent
+   state is not exposed on the wire, and two data-server implementations
+   that satisfy the same wire semantics MAY differ arbitrarily in their
+   internal structure.
+
+   In particular, the protocol does NOT exchange:
+
+   *  which on-disk layout (log-structured, append-only, in-place-
+      overwrite, external object store, key-value store, or any other) a
+      data server uses to persist chunks;
+
+   *  whether a data server holds PENDING and FINALIZED chunks in a
+      single blob or in distinct regions;
+
+   *  how a data server represents the CHUNK_LOCK table, the guard
+      epoch, or the escrow owner;
+
+   *  whether a data server's chunk retention beyond COMMIT is
+      implemented via shadow blocks, journals, reference counts, or
+      copy-on-write.
+
+   This decoupling is deliberate.  It lets the protocol accommodate
+   future smart-DS designs -- including designs that integrate more
+   closely with storage back-ends that already provide atomic replace,
+   multi-version concurrency, or internal erasure coding -- without
+   protocol revisions, provided the wire semantics are preserved.
+   Conversely, a data server implementer is free to pick the
+   representation that best fits the underlying storage stack without
+   fear that some less common implementation choice is disallowed.
+
+   The counterpart of this rule is that the wire is the entire contract.
+   Any behavior a client relies on MUST be observable via the operations
+   listed above; any behavior that is not observable (cache state,
+   background scrubbing cadence, internal retry ordering, on-disk
+   layout) is implementation detail and MUST NOT be depended upon.
+
+12.2.  Actors and Roles
 
    Three actors participate on behalf of any given file:
 
@@ -3571,9 +3678,9 @@ Table of Contents
    Each file is owned by exactly one metadata server at any given
    instant.  Ownership transfer between metadata servers (for example,
    during MDS failover) is implementation-defined and out of scope for
-   this document; see Section 12.6.
+   this document; see Section 12.8.
 
-12.2.  Failure Model
+12.3.  Failure Model
 
    The protocol assumes:
 
@@ -3588,7 +3695,7 @@ Table of Contents
       via CRC32 (see Section 25.10) but does not defend against a data
       server that deliberately lies about whether a chunk is COMMITTED
       or what its contents are.  Byzantine data servers are explicitly
-      outside the trust model; see Section 12.7.
+      outside the trust model; see Section 12.9.
 
    Authenticated writers and their own data:  An authenticated client
       may write arbitrary (even semantically-invalid) bytes into chunks
@@ -3607,12 +3714,26 @@ Table of Contents
       loss is bounded by RPC retransmit; eventual delivery is assumed
       once the partition heals.
 
+      Split-brain scenarios (in which a partitioned minority of the data
+      servers in a mirror set attempts to make progress independently of
+      the majority) cannot drive inconsistent writes to COMMITTED state.
+      The chunk_guard4 CAS on each write requires the guard value from a
+      successor chunk to strictly advance the guard value of its
+      predecessor; on partition heal, any writes attempted on the
+      minority side are detected by the majority because their guard
+      values do not satisfy the CAS precondition, and those writes are
+      discarded.  When reconciliation is impossible -- for example, the
+      erasure code has lost too many shards across both sides of the
+      partition to reconstruct any single consistent generation -- the
+      repair flow terminates with NFS4ERR_PAYLOAD_LOST (see
+      Section 21.1.5), which is terminal for the affected ranges.
+
    Lease bound:  All state held by a data server on behalf of a metadata
       server is bounded by the TRUST_STATEID expiry (see Section 6.4.6).
       An orphaned entry will eventually expire even if the metadata
       server never returns.
 
-12.3.  Chunk State Machine
+12.4.  Chunk State Machine
 
    Each chunk on a data server occupies exactly one of four states.  The
    transitions below are the complete set; any implementation of the
@@ -3665,7 +3786,7 @@ Table of Contents
       result; CHUNK_WRITE against an EMPTY chunk is the first write.
 
    PENDING:  The chunk has payload accepted by CHUNK_WRITE but not yet
-      finalized.  Not visible to CHUNK_READ (see Section 12.4).  Further
+      finalized.  Not visible to CHUNK_READ (see Section 12.5).  Further
       CHUNK_WRITEs from the same writer MAY replace the payload in place
       (same cg_gen_id).
 
@@ -3676,7 +3797,7 @@ Table of Contents
    COMMITTED:  The chunk is durable and globally visible.  Subsequent
       CHUNK_READs return this content until a newer COMMITTED generation
       replaces it.  A higher-generation PENDING successor MAY exist
-      concurrently; the rollback invariant in Section 12.4 requires the
+      concurrently; the rollback invariant in Section 12.5 requires the
       data server to retain the COMMITTED content while that successor
       exists.
 
@@ -3686,7 +3807,7 @@ Table of Contents
    generation chosen by the repair client, rather than returning the
    chunk to EMPTY.
 
-12.4.  Consistency Guarantees
+12.5.  Consistency Guarantees
 
    The protocol provides *per-chunk linearizability on COMMITTED state*:
 
@@ -3718,6 +3839,42 @@ Table of Contents
    checksums, application-level generation fields, or external
    transaction managers.
 
+   *The chunk is the unit of atomicity.* Two properties follow:
+
+   1.  Chunk-aligned writes do not interfere.  Two concurrent writers
+       whose writes cover disjoint chunks -- even writes that cover
+       adjacent chunks -- never race.  Each write terminates
+       independently at COMMITTED per the per-chunk linearizability rule
+       above.
+
+   2.  Sub-chunk overlapping writes from different writers produce
+       chunk-resolution-granularity contention.  When two concurrent
+       writers target overlapping byte ranges within a single chunk,
+       chunk_guard4 resolves them: one writer's entire chunk-generation
+       wins and becomes COMMITTED; the other writer sees
+       NFS4ERR_CHUNK_GUARDED and is expected to re-read and retry if it
+       wishes to apply its change on top of the winning generation (see
+       Section 21.1.4).  The protocol does NOT produce byte-level merges
+       of overlapping sub-chunk writes: the losing writer's bytes are
+       not preserved as a partial update within the winning generation.
+
+   Applications that require byte-level write merging or sub-chunk
+   ordering guarantees MUST serialize such writes externally, for
+   example via NFSv4 byte-range locks ([RFC8881], Section 12).  The
+   chunk size that bounds the atomicity unit for a given file is the
+   product of ffm_striping_unit_size and the stripe width W in
+   Figure 21; applications can query fattr4_coding_block_size (see
+   Section 23.1) to learn the effective chunk size and align their
+   writes accordingly.
+
+   This choice -- chunk-boundary atomicity rather than stripe- or block-
+   boundary atomicity -- is load-bearing for the rest of the consistency
+   story: the chunk_guard4 CAS evaluates at the chunk level, the PENDING
+   / FINALIZED / COMMITTED state machine is per chunk, CHUNK_LOCK is per
+   chunk, and repair via CB_CHUNK_REPAIR operates on chunks.  A
+   different atomicity boundary would require redefining those
+   primitives, which this revision does not.
+
    Erasure-coded reads:  A reader of an erasure-coded file reconstructs
       the plaintext from any sufficient subset of k shards of the (k+m)-
       shard stripe; the guard values on those shards MUST agree.  Shards
@@ -3739,7 +3896,60 @@ Table of Contents
       chunks that triggered the rollback.  The protocol never relies on
       locating or reconstructing data from outside the mirror set.
 
-12.5.  Progress and Termination
+   Visibility of non-committed state:  PENDING and FINALIZED chunks MUST
+      NOT be globally visible.  CHUNK_READ returns only COMMITTED
+      content; a CHUNK_READ whose target chunk is currently PENDING or
+      FINALIZED sees the predecessor COMMITTED content (or an EMPTY
+      chunk if none exists), not the in-progress successor.  A writer
+      observing its own PENDING or FINALIZED chunk MAY receive the in-
+      progress content on the same stateid that produced it, but no
+      other stateid -- on the same or a different client -- sees it.
+      The retention window that makes the prior COMMITTED content
+      available to CHUNK_READ and to CHUNK_ROLLBACK is itself bounded;
+      see Section 12.6 for the normative scoping rule.
+
+12.6.  Ownership and Scope of Retained Prior Content
+
+   The rollback invariant in Section 12.5 requires a data server to
+   retain the prior FINALIZED or COMMITTED content of a chunk while any
+   successor PENDING chunk exists.  That retained content -- sometimes
+   informally called the "safe buffer" -- is not global state.  It is
+   scoped to the stateid that wrote the PENDING successor, and its
+   retention and visibility are governed by that owning stateid's lease.
+
+   Owner:  The data server MUST record, alongside each PENDING chunk,
+      the owning stateid (the stateid presented on the CHUNK_WRITE that
+      produced the PENDING).  This is the owning writer's stateid; it
+      identifies the client and openowner/lockowner that the data server
+      will release the PENDING to on CHUNK_FINALIZE or CHUNK_COMMIT, and
+      that the MDS will treat as the authoritative owner for purposes of
+      Section 12.7.
+
+   Visibility:  Before transition to COMMITTED, the PENDING content is
+      visible only on the owning stateid.  A CHUNK_READ presenting any
+      other stateid (from the same client or a different client) MUST
+      observe the predecessor COMMITTED or EMPTY state, not the PENDING
+      successor.  This is the normative form of the "non-committed data
+      MUST NOT be globally visible" rule in the Visibility bullet above.
+
+   Retention window:  The data server MUST retain the predecessor
+      COMMITTED (or FINALIZED) content that the PENDING is superseding
+      for as long as the owning stateid's lease is valid.  If the owning
+      stateid's lease expires without the PENDING reaching COMMITTED,
+      the retention obligation for that PENDING ends (see Section 12.7
+      for the scavenger rule that drives demotion).  If the PENDING does
+      reach COMMITTED, the new COMMITTED generation supersedes the prior
+      one under the standard rollback invariant and its own retention is
+      governed by any newer PENDING successor.
+
+   The practical effect is that the "safe buffer" for a chunk is not an
+   unbounded chunk-global state but a per-writer window bounded by that
+   writer's lease.  The data server always has a rule for discarding
+   retained prior content -- it is the owning stateid's lease expiry --
+   so a chunk cannot accumulate indefinitely many retained generations
+   even in the presence of dropped or partitioned writers.
+
+12.7.  Progress and Termination
 
    Under the failure model above, the protocol guarantees the following
    progress properties:
@@ -3785,11 +3995,44 @@ Table of Contents
       pending-revalidation back to active on the next TRUST_STATEID (see
       Section 6.4.8).
 
+   Orphaned PENDING scavenger:  A PENDING chunk whose owning stateid
+      (see Section 12.6) has expired without transition to FINALIZED or
+      COMMITTED is an orphan.  The metadata server MUST drive demotion
+      of orphaned PENDINGs so that no chunk remains in a non-terminal
+      state indefinitely:
+
+      1.  When an owning stateid's lease expires, the metadata server
+          identifies every PENDING chunk owned by that stateid (either
+          from its own bookkeeping or by query against the data server)
+          and issues the control-plane operations needed to demote each
+          PENDING.
+
+      2.  Demotion replaces the PENDING with the predecessor COMMITTED
+          (or EMPTY) content that the data server has been retaining
+          under Section 12.6.  The data server MUST NOT wait for a
+          separate client action before performing the demotion.
+
+      3.  Any CHUNK_LOCK held in escrow on behalf of the expired stateid
+          (see Section 24.1.1) is released after an MDS-defined grace
+          period.  The grace period exists to let a recovering client
+          reclaim its lock via the grace / reclaim path defined in
+          [RFC8881]; on expiry of the grace period without reclaim, the
+          lock becomes available for new CHUNK_LOCK_FLAGS_ADOPT
+          acquirers.
+
+      The scavenger timeout (the delay between lease expiry and
+      demotion) is implementation-defined but SHOULD be tied to the
+      metadata server lease period so that it composes naturally with
+      existing NFSv4 grace / reclaim semantics.  A scavenger timeout
+      shorter than the lease risks racing an in-progress client reclaim;
+      a timeout substantially longer than the lease extends the
+      retention budget without a commensurate benefit.
+
    The protocol does NOT guarantee progress if the metadata server is
    unavailable for longer than its lease period -- this is the standard
    NFSv4 lease assumption and is inherited unchanged.
 
-12.6.  Relation to Classical Consensus
+12.8.  Relation to Classical Consensus
 
    Classical consensus protocols (Paxos, Raft, Viewstamped Replication)
    solve the problem of reaching agreement among mutually-distrusting
@@ -3838,7 +4081,7 @@ Table of Contents
    and the client's behavior is already specified by [RFC8881].  This
    protocol neither requires nor precludes such an implementation.
 
-12.7.  Non-Goals
+12.9.  Non-Goals
 
    For clarity, the protocol explicitly does not provide:
 
@@ -3870,6 +4113,19 @@ Table of Contents
       computed CRC32; see Section 27.1.  The CRC32 check is a transport-
       integrity check, not an adversarial-integrity check.
 
+   *  *General-purpose intent primitive.* Christoph Hellwig observed at
+      IETF 121 (November 2024) that the intent-based pattern used here
+      (CHUNK_WRITE → CHUNK_FINALIZE → CHUNK_COMMIT with CHUNK_ROLLBACK
+      as the abort path) has potential applicability beyond erasure
+      coding -- for example, as a general multi-target atomic-ish write
+      primitive.  This document scopes the mechanism to erasure coding:
+      the on-wire operations carry erasure-coding-specific semantics
+      (chunk_guard4, mirror-set repair, per-codec geometry), and
+      generalising the primitive is explicit future work.  Protocol
+      extensions that reuse the intent / finalize / commit pattern in
+      other contexts are not precluded by this document but are not
+      defined by it.
+
 13.  NFSv4.2 Operations Allowed to Data Files
 
    In the Flex Files Version 1 Layout Type ([RFC8435]), the data path
@@ -3889,7 +4145,7 @@ Table of Contents
    operations prohibited below (RENAME, LINK, CLONE, COPY, ACL-scoped
    SETATTR, and so on).  The metadata server MAY internally use
    operations on data files that clients MUST NOT send, as part of its
-   control-plane duties for the file (see Section 12.1).
+   control-plane duties for the file (see Section 12.2).
 
 13.1.  Control Plane: Metadata Server to Data Server
 
@@ -3971,7 +4227,7 @@ Table of Contents
    use case is repair: a repair client selected by CB_CHUNK_REPAIR
    (Section 26.1) may need to query the per-server file size or
    allocation state when reconstructing a payload, and the data mover
-   described informally in Section 12.1 similarly benefits from
+   described informally in Section 12.2 similarly benefits from
    attribute queries on surviving mirrors.  Diagnostic use is also
    permitted.
 
@@ -6117,6 +6373,11 @@ Table of Contents
 
 26.1.1.  ARGUMENTS
 
+      /// enum cb_chunk_repair_reason4 {
+      ///     CB_REPAIR_REASON_RACE  = 1,
+      ///     CB_REPAIR_REASON_SCRUB = 2
+      /// };
+      ///
       /// struct cb_chunk_range4 {
       ///     offset4         ccr_offset;
       ///     count4          ccr_count;
@@ -6124,10 +6385,11 @@ Table of Contents
       /// };
       ///
       /// struct CB_CHUNK_REPAIR4args {
-      ///     nfs_fh4            ccra_fh;
-      ///     stateid4           ccra_layout_stateid;
-      ///     nfstime4           ccra_deadline;
-      ///     cb_chunk_range4    ccra_ranges<>;
+      ///     nfs_fh4                     ccra_fh;
+      ///     stateid4                    ccra_layout_stateid;
+      ///     nfstime4                    ccra_deadline;
+      ///     cb_chunk_repair_reason4     ccra_reason;
+      ///     cb_chunk_range4             ccra_ranges<>;
       /// };
 
                   Figure 91: XDR for CB_CHUNK_REPAIR4args
@@ -6167,6 +6429,28 @@ Table of Contents
    deadline elapses -- but a client that has missed the deadline MUST
    re-verify its layout and the chunk lock state before continuing any
    repair-related CHUNK operation.
+
+   The ccra_reason distinguishes the two flows that cause the metadata
+   server to issue a repair callback:
+
+   CB_REPAIR_REASON_RACE:  A live-race repair.  A client (not
+      necessarily the recipient of this callback) detected a chunk-level
+      inconsistency at write or read time and reported it via
+      LAYOUTERROR.  The metadata server is driving repair synchronously
+      because the affected chunk is on the critical path of some I/O.
+      The recipient SHOULD prioritise the callback over background work.
+
+   CB_REPAIR_REASON_SCRUB:  A background scrub.  The metadata server has
+      detected stale or inconsistent payloads during a scheduled
+      integrity sweep and is opportunistically driving repair.  No
+      client is currently blocked on these ranges.  The recipient MAY
+      schedule the callback at lower priority than
+      CB_REPAIR_REASON_RACE, and MAY return NFS4ERR_DELAY to defer
+      repair to a more convenient time; the metadata server will retry.
+
+   The two reasons share all other semantics: the same ccra_ranges
+   encoding, the same response codes, the same deadline contract.  Only
+   the priority / retry behaviour differs.
 
    The ccra_ranges array lists every chunk range the metadata server
    requests the client to repair.  Each entry carries its own ccr_error
@@ -6758,7 +7042,7 @@ Modified Two-Touch Paxos on Each Chunk
    Working-group feedback on this proposal was uniformly negative.  The
    current design retains the option -- nothing in this specification
    prevents an implementation from running classical consensus
-   internally among MDS replicas (see Section 12.6) -- but does not
+   internally among MDS replicas (see Section 12.8) -- but does not
    require it per write.
 
 Automatic Commit of Empty Chunks
@@ -6795,6 +7079,44 @@ Global Clock or Wall-Clock-Based Generation Counter
    chunk on the data server, with cg_client_id as the disambiguator
    across clients.  See Section 24.1.
 
+Layout-Level Generation Counter
+
+   Christoph Hellwig proposed at IETF 122 (March 2025) adding a
+   generation counter to the layout itself, transmitted to the data
+   servers alongside each I/O, so that the metadata server could
+   redirect writes to new data servers without issuing a full
+   CB_LAYOUTRECALL storm across every holder of the file.  This is a
+   natural extension of the per-chunk cg_gen_id: where cg_gen_id
+   disambiguates successive writes to the same chunk, a layout-level
+   counter would disambiguate successive placements of the same data.
+   This was rejected because:
+
+   *  The use case is already covered.  CB_CHUNK_REPAIR (see
+      Section 26.1) and the Data Mover / Proxy-DS mechanism (see the
+      companion Data Mover design) together handle mid-layout remap
+      without requiring a layout-level epoch on the wire.
+      CB_CHUNK_REPAIR reaches the specific chunks that need redirection;
+      the Data Mover reaches the broader re-placement case; between them
+      the full remap space is covered.
+
+   *  Adding a layout-level counter introduces a second, potentially-
+      conflicting epoch alongside cg_gen_id.  The CAS semantics on the
+      data server would have to compose the two generations (per-chunk
+      and per-layout), which multiplies the states the data server must
+      reason about without strengthening any guarantee the protocol
+      offers today.
+
+   *  The CB_LAYOUTRECALL storm that motivated the proposal is a worst-
+      case cost that the current design pays only during a genuine data-
+      server retirement or full re-placement.  Partial remaps -- the
+      common case -- already flow through CB_CHUNK_REPAIR + layout
+      refresh on LAYOUTGET without disturbing other holders.
+
+   If a future revision determines that layout-level generation is
+   needed, it can be added as a protocol extension: the on-wire surface
+   is additive rather than a replacement, because cg_gen_id's semantics
+   are independent of any outer layout epoch.
+
 Declustered RAID with Dynamic Parity Mapping
 
    Christoph Hellwig raised at IETF 121 (November 2024) the possibility
@@ -6830,7 +7152,7 @@ Declustered RAID with Dynamic Parity Mapping
       rest of the Flex Files architecture works hard to avoid;
       replicating it with strong consistency requires a consensus
       protocol on the metadata server, which the current design
-      deliberately does not require (see Section 12.6).
+      deliberately does not require (see Section 12.8).
 
    The current design uses fixed per-file chunk placement decided at
    LAYOUTGET time plus chunk_guard4 CAS for writes, which localises
@@ -6855,7 +7177,7 @@ Acknowledgments
    David Black clarified at IETF 124 that the consistency goal of Flex
    Files v2 is RAID consistency across the chunks of a stripe rather
    than POSIX write ordering across application writes; that framing is
-   reflected in Section 3 and in the Non-Goals of Section 12.4.
+   reflected in Section 3 and in the Non-Goals of Section 12.5.
 
    Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
    process.
