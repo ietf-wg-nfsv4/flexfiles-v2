@@ -5005,6 +5005,32 @@ chunks.
 ~~~
 {: #fig-chunk_guard4 title="XDR for chunk_guard4" }
 
+On the wire, a single CHUNK_WRITE carries the 8-byte header
+followed by the opaque payload, as shown in
+{{fig-chunk-wire-layout}}.  The payload length is carried
+separately in the CHUNK_WRITE4args cwa_chunks<> slot; the
+diagram shows the per-chunk framing only.
+
+~~~
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          cg_gen_id                            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                         cg_client_id                          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                           cr_crc                              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    opaque payload ...                         |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   Bytes 0-3:   cg_gen_id      (per-chunk generation counter)
+   Bytes 4-7:   cg_client_id   (owning-client short id)
+   Bytes 8-11:  cr_crc         (CRC32 over the opaque payload)
+   Bytes 12-N:  opaque payload (encoded shard; variable length)
+~~~
+{: #fig-chunk-wire-layout title="Per-chunk wire layout"}
+
 The chunk_guard4 (see {{fig-chunk_guard4}}) is effectively a 64-bit
 value identifying a specific write transaction on a specific chunk.
 It has two fields:
