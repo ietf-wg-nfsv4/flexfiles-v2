@@ -4159,7 +4159,7 @@ For clarity, the protocol explicitly does not provide:
 
 -  **General-purpose intent primitive.**  Christoph Hellwig
    observed at IETF 121 (November 2024) that the intent-based
-   pattern used here (CHUNK_WRITE → CHUNK_FINALIZE →
+   pattern used here (CHUNK_WRITE -> CHUNK_FINALIZE ->
    CHUNK_COMMIT with CHUNK_ROLLBACK as the abort path) has
    potential applicability beyond erasure coding -- for
    example, as a general multi-target atomic-ish write
@@ -5396,7 +5396,7 @@ CHUNK_FINALIZE before CHUNK_COMMIT is accepted:
    this has lost a race and SHOULD re-read the chunk (see
    sec-chunk_guard4).
 
-The three-step CHUNK_WRITE → CHUNK_FINALIZE → CHUNK_COMMIT
+The three-step CHUNK_WRITE -> CHUNK_FINALIZE -> CHUNK_COMMIT
 sequence MAY be pipelined within a single NFSv4.2 compound
 (see sec-system-model-progress); each operation evaluates the
 current state of the target chunks independently.
