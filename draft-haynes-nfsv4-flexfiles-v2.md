@@ -5266,8 +5266,67 @@ cca_count are redundant to cca_chunks, the purpose of cca_chunks
 is to allow the data server to differentiate between potentially
 multiple pending blocks.
 
-<cref source="Tom">Describe how CHUNK_COMMIT and CHUNK_FINALIZE interact.
-How does CHUNK_COMMIT interact with a locked chunk?</cref>
+#### Interaction with CHUNK_FINALIZE
+
+CHUNK_COMMIT transitions a chunk from FINALIZED to COMMITTED
+(see {{sec-system-model-chunk-state}}).  A chunk MUST have
+previously been transitioned from PENDING to FINALIZED via
+CHUNK_FINALIZE before CHUNK_COMMIT is accepted:
+
+-  If the target chunk is PENDING (i.e., the writer never
+   issued CHUNK_FINALIZE), the data server MUST reject the
+   CHUNK_COMMIT entry for that chunk with
+   NFS4ERR_PAYLOAD_NOT_CONSISTENT in the corresponding
+   ccr_status slot.  The writer is expected to either issue
+   CHUNK_FINALIZE to advance the state or CHUNK_ROLLBACK to
+   abandon the PENDING generation.
+
+-  If the target chunk is EMPTY (no generation to commit), the
+   data server MUST reject with NFS4ERR_PAYLOAD_NOT_CONSISTENT
+   for that chunk.
+
+-  If the target chunk is already COMMITTED at the generation
+   identified by the cca_chunks entry's cg_gen_id, the
+   CHUNK_COMMIT is idempotent and MUST succeed.  Idempotence
+   preserves the NFSv4 COMMIT contract for duplicate-request
+   retransmission.
+
+-  If the target chunk is FINALIZED at a different generation
+   than the one named in the cca_chunks entry, the data server
+   MUST reject with NFS4ERR_CHUNK_GUARDED.  A client that sees
+   this has lost a race and SHOULD re-read the chunk (see
+   sec-chunk_guard4).
+
+The three-step CHUNK_WRITE → CHUNK_FINALIZE → CHUNK_COMMIT
+sequence MAY be pipelined within a single NFSv4.2 compound
+(see sec-system-model-progress); each operation evaluates the
+current state of the target chunks independently.
+
+#### Interaction with a Locked Chunk
+
+When a chunk is locked via CHUNK_LOCK (see {{sec-CHUNK_LOCK}}),
+CHUNK_COMMIT is permitted only when the submitter owns the
+lock -- that is, when the stateid carried on the compound
+matches the lock holder's stateid (or is an
+CHUNK_LOCK_FLAGS_ADOPT-transferred continuation):
+
+-  The owning writer MAY issue CHUNK_COMMIT; the chunk
+   transitions from FINALIZED to COMMITTED normally.
+
+-  A non-owning client MUST receive NFS4ERR_CHUNK_LOCKED in
+   the corresponding ccr_status slot.  The chunk's state is
+   not changed.
+
+-  During repair, the MDS-escrow owner
+   (CHUNK_GUARD_CLIENT_ID_MDS, see {{sec-chunk_guard_mds}})
+   holds the lock while the repair client adopts it via
+   CHUNK_LOCK_FLAGS_ADOPT.  CHUNK_COMMIT during the escrow
+   window is permitted only to the holder of the adopted
+   lock.
+
+This rule is what {{sec-system-model-consistency}} calls
+"lock continuity across revocation": the COMMIT privilege
+follows the lock without gaps in which a non-owner could race.
 
 ## Operation 78: CHUNK_ERROR - Report Error on Cached Chunk Data {#sec-CHUNK_ERROR}
 
