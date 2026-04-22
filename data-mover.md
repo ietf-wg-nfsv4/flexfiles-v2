@@ -1168,6 +1168,33 @@ support it; deployments that can use GSSv3 SHOULD prefer it
 over AUTH_SYS passthrough for the credential-forwarding
 channel.
 
+# IANA Considerations {#iana-considerations}
+
+This document does not require any IANA action.
+
+The three new NFSv4.2 operations defined in
+{{sec-new-ops}} (OP_PROXY_REGISTRATION = 91, OP_PROXY_MOVE = 92,
+OP_PROXY_REPAIR = 93) follow the convention that NFSv4.2
+operation numbers are governed by the publishing document and
+do not require a separate IANA registry entry.  The same
+convention applies to the new flag bit
+FFV2_DS_FLAGS_PROXY, which is an additional bit in the
+ffv2_ds_flags4 bitmap defined by
+{{I-D.haynes-nfsv4-flexfiles-v2}}; that document explicitly
+records its flag-word bitmaps as not IANA-registered, and any
+future bit allocations are made by a document that updates or
+obsoletes it.
+
+The PMA_FLAG_DUAL_WRITE bit in pma_flags (defined in
+{{sec-PROXY_MOVE}}) is a bit in a bitmap this document
+introduces.  Following the precedent in
+{{I-D.haynes-nfsv4-flexfiles-v2}} (which in turn follows
+{{RFC8435}}), this document does not establish an IANA
+registry for its bit spaces; future bit allocations are made
+by a document that updates or obsoletes this one.
+Implementations MUST treat unknown bits as reserved and MUST
+NOT assign meaning to them locally.
+
 # Interaction with the Main Draft {#interaction}
 
 ## chunk_guard4
