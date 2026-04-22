@@ -5013,6 +5013,63 @@ that requires a specific client to win a race MUST arrange
 cg_client_id assignment at the metadata server; the protocol does
 not provide a preference mechanism at layout-grant time.
 
+### Metadata-Server Assignment Rules for cg_client_id
+
+To uphold the uniqueness contract, the metadata server MUST
+follow these rules when assigning cg_client_id (that is, when
+populating ffm_client_id at layout-grant time):
+
+-  Two clients holding concurrent write layouts on the same
+   file MUST receive distinct cg_client_id values.  A client
+   that holds only a read layout need not be assigned a
+   distinct value.
+
+-  The reserved sentinel CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF)
+   MUST NOT be assigned to any client.
+
+-  A cg_client_id MAY be reused by the metadata server after
+   the prior holder's layout has been fully returned (via
+   LAYOUTRETURN or revocation).  The metadata server SHOULD
+   avoid reusing a cg_client_id within a single lease period
+   to simplify diagnosis of stale writes.
+
+-  cg_client_id values do not persist across metadata-server
+   restart.  Clients reclaiming layouts during the grace period
+   receive freshly assigned values; the protocol does not rely
+   on any pre-restart assignment surviving.
+
+### Data-Server Collision Handling
+
+A (cg_gen_id, cg_client_id) pair that the uniqueness contract
+would otherwise render unique can nonetheless collide if a
+client and the metadata server disagree about which
+cg_client_id the client currently holds, or if a client
+presents a spoofed cg_client_id.  The data server enforces the
+contract locally:
+
+-  If the data server receives a CHUNK_WRITE whose
+   chunk_guard4 has the same (cg_gen_id, cg_client_id) as a
+   chunk already in PENDING, FINALIZED, or COMMITTED state
+   AND the presented payload differs from the retained
+   payload, the data server MUST reject the write with
+   NFS4ERR_CHUNK_GUARDED and SHOULD report the collision to
+   the metadata server via LAYOUTERROR.  This situation is a
+   protocol violation on one side of the conversation; the
+   metadata server resolves it by revoking the offending
+   client's layout and selecting a repair client under
+   {{sec-repair-selection}}.
+
+-  If a client presents CHUNK_GUARD_CLIENT_ID_MDS as
+   cg_client_id in any client-originated operation, the data
+   server MUST reject the operation with NFS4ERR_INVAL (see
+   {{sec-chunk_guard_mds}}).
+
+-  A cg_client_id that does not match any layout the data
+   server has been told about (via TRUST_STATEID) MUST be
+   rejected.  Unknown cg_client_id values are treated as stale
+   layouts; the data server returns the error specified in
+   {{sec-tight-coupling-control}} for unknown stateids.
+
 ### Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS {#sec-chunk_guard_mds}
 
 The value `CHUNK_GUARD_CLIENT_ID_MDS` (0xFFFFFFFF) is reserved.
