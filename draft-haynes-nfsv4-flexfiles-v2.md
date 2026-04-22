@@ -6504,9 +6504,15 @@ Pierre Evenou contributed the Mojette Transform encoding type
 specification, drawing on the work of Nicolas Normand, Benoit Parrein,
 and the discrete geometry research group at the University of Nantes.
 
-Christoph Helwig was instrumental in making sure the Flexible File
+Christoph Hellwig was instrumental in making sure the Flexible File
 Version 2 Layout Type was applicable to more than the Mojette
 Transformation.
+
+David Black clarified at IETF 124 that the consistency goal of
+Flex Files v2 is RAID consistency across the chunks of a stripe
+rather than POSIX write ordering across application writes; that
+framing is reflected in {{sec-motivation}} and in the Non-Goals
+of {{sec-system-model-consistency}}.
 
 Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
 process.
