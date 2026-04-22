@@ -115,7 +115,7 @@ time; coexistence rules are in {{interaction}}.
 
 # Scope
 
-### In Scope
+## In Scope
 
 -  A **registered proxy** role that a data server (or other
    co-located entity) can assume.
@@ -149,7 +149,7 @@ time; coexistence rules are in {{interaction}}.
 -  Recovery semantics for proxy / MDS / DS failures during a
    proxy operation.
 
-### Out of Scope
+## Out of Scope
 
 -  Journaled delta capture during a move.  A PROXY_MOVE in this
    revision is either quiesced (clients recalled, new layout
@@ -185,7 +185,7 @@ time; coexistence rules are in {{interaction}}.
    beyond what PROXY_MOVE already provides.  A proxy MAY
    implement any or all of them.
 
-## Use Cases
+# Use Cases
 
 Six motivating scenarios converge on the same mechanism.  In
 each case a registered proxy becomes the source of truth for a
@@ -193,7 +193,7 @@ file's data during a transition, and clients are redirected to
 route I/O through that proxy rather than directly to the
 original layout's data servers.
 
-### Administrative Ingest
+## Administrative Ingest
 
 An administrator rsyncs a file from an external source into the
 cluster as a single-copy file.  Server policy requires the file
@@ -209,7 +209,7 @@ NFSv4.2 client.  Throughout the move the proxy presents the
 file to pNFS clients as if the move had not started, while
 populating the destination in the background.
 
-### Policy-Driven Layout Transition
+## Policy-Driven Layout Transition
 
 A server-objective or policy change ("files older than 30 days
 must be erasure coded", "high-access-rate files must have
@@ -222,7 +222,7 @@ Because the transformation type (encode / decode / transcode)
 is entirely specified by the (source, destination) layout pair,
 the op does not need a separate transformation-class field.
 
-### DS Maintenance / Evacuation
+## DS Maintenance / Evacuation
 
 A data server is scheduled for maintenance (hardware
 replacement, software upgrade, decommission).  All files whose
@@ -235,7 +235,7 @@ per-client per-chunk repair over every file would be
 prohibitively expensive, but a single registered proxy can
 drive many concurrent PROXY_MOVE operations.
 
-### Whole-File Repair
+## Whole-File Repair
 
 Multiple DSes have failed such that per-chunk repair cannot
 reconstruct the file in place.  The MDS constructs a new layout
@@ -246,7 +246,7 @@ the operation terminates with NFS4ERR_PAYLOAD_LOST, matching
 the per-chunk repair semantics in sec-repair-selection of the
 main draft.
 
-### TLS Coverage Transition
+## TLS Coverage Transition
 
 A file whose layout currently points at non-TLS-capable DSes
 needs to be migrated to TLS-capable DSes, or vice versa (an
@@ -263,7 +263,7 @@ profiles (non-TLS to source, mutual TLS {{RFC9289}} to
 destination, or any other combination).  The proxy's per-DS
 security is independent of the client's security to the proxy.
 
-### Filehandle / Storage-Backend Transition
+## Filehandle / Storage-Backend Transition
 
 A DS changes the filehandles it issues for a file; this
 happens when the DS's underlying storage is migrated (e.g.,
@@ -284,7 +284,7 @@ This case also covers:
 -  Backend-opaque FH migration where the DS's FH structure is
    internally versioned and old clients hold stale versions.
 
-### Codec Translation for Codec-Ignorant Clients
+## Codec Translation for Codec-Ignorant Clients
 
 The coding-type registry ({{iana-considerations}} of the main
 draft) is expected to grow.  Not every client is required to
@@ -313,7 +313,7 @@ simultaneously.  The MDS issues a different layout per
 request; FFV2_DS_FLAGS_PROXY is set only in the layouts that
 need translation.
 
-#### Mechanism
+### Mechanism
 
 A translating proxy runs two sides:
 
@@ -353,7 +353,7 @@ A write flows:
    able to honor (which may be downgraded based on the
    back-end DS's own stable_how behavior).
 
-#### Why the same PROXY_REGISTRATION machinery
+### Why the same PROXY_REGISTRATION machinery
 
 The registered-proxy mechanism gives the MDS the information
 it needs for translation-proxy selection: `prr_codecs`
@@ -366,7 +366,7 @@ translation (the file is not moving or being repaired); the
 proxy simply serves the codec-ignorant client's I/O requests
 against the unchanged source layout.
 
-## Design Model
+# Design Model
 
 A proxy is a persistent, registered peer of the MDS.  At
 startup, a proxy calls **PROXY_REGISTRATION** on the MDS to
@@ -601,7 +601,7 @@ a single internal dispatch.  PROXY_REPAIR is always quiesced
 (no PMA_FLAG_DUAL_WRITE equivalent); client writes cannot be
 safely replicated until the destination is consistent.
 
-## Affinity Matching
+# Affinity Matching
 
 A proxy MAY populate prr_affinity at registration time with a
 token that lets the MDS recognize co-residency with a client.
@@ -647,7 +647,7 @@ filehandle.  The MDS has already performed the match before the
 layout reaches the client, and the layout's deviceinfo carries
 all the information a client-side shortcut needs.
 
-## Layout Shape During a Proxy Operation
+# Layout Shape During a Proxy Operation
 
 When a PROXY_MOVE or PROXY_REPAIR is active for a file, the
 layout the MDS hands out to clients contains:
@@ -673,7 +673,7 @@ DS rather than to any other data server in the layout.  The
 proxy DS internally dispatches reads and writes to the source
 and destination DSes.
 
-### Single-Layout Model
+## Single-Layout Model
 
 This design uses a single layout with a PROXY-flagged entry,
 not two linked layouts.  Rationale:
@@ -686,7 +686,7 @@ not two linked layouts.  Rationale:
 -  Late-arriving clients see the proxy layout from the start;
    no separate path for them.
 
-## Client Behavior
+# Client Behavior
 
 A client that observes a layout with FFV2_DS_FLAGS_PROXY:
 
@@ -707,7 +707,7 @@ A client that observes a layout with FFV2_DS_FLAGS_PROXY:
     error: LAYOUTERROR to the MDS and expect a new layout or
     proxy reassignment.
 
-### When the Layout Is Recalled
+## When the Layout Is Recalled
 
 If the MDS recalls the layout mid-operation (the proxy failed
 and is being replaced, or the operation completed and normal DS
@@ -716,7 +716,7 @@ and reacquires via LAYOUTGET.  The new layout may have a
 different proxy, a different proxy set, or no proxy entry if
 the operation has completed.
 
-### In-Flight I/O When the Proxy Changes
+## In-Flight I/O When the Proxy Changes
 
 In-flight I/O to the old proxy when the MDS recalls the layout
 MAY complete at the old proxy; results remain valid under the
@@ -724,7 +724,7 @@ old proxy's authority.  New I/O issued after LAYOUTRETURN MUST
 go through the replacement proxy (or, if the new layout has no
 proxy, directly to the DSes named there).
 
-## State Machine
+# State Machine
 
 ~~~
             (admin, policy, repair, or maintenance trigger)
@@ -779,7 +779,7 @@ proxy, directly to the DSes named there).
                          +------------+
 ~~~
 
-### Transitions
+## Transitions
 
 | From | To | Trigger | Actions |
 |------|-----|---------|---------|
@@ -788,9 +788,9 @@ proxy, directly to the DSes named there).
 | COMMITTING | DONE | All clients LAYOUTRETURNed | MDS issues post-move layouts; source DSes retired |
 | PROXY_ACTIVE | READY | Proxy failed, no replacement | MDS cancels; layouts revert to pre-move source set |
 
-## Proxy Failure and Recovery
+# Proxy Failure and Recovery
 
-### Proxy Crash During PROXY_ACTIVE
+## Proxy Crash During PROXY_ACTIVE
 
 1.  Client I/O to the proxy receives NFS4ERR_DELAY (if the
     proxy is reachable but unhealthy) or connection errors (if
@@ -812,14 +812,14 @@ proxy, directly to the DSes named there).
     pre-move source layout, do not issue a destination layout,
     mark the destination DSes for cleanup or retry.
 
-### Cascading Proxy Failure
+## Cascading Proxy Failure
 
 Repeated proxy failures on the same operation SHOULD trigger
 escalation to deployment management rather than recursive
 retry.  Recurring failures likely indicate an environmental
 issue the proxy cannot work around.
 
-### Source DS Crash During PROXY_ACTIVE
+## Source DS Crash During PROXY_ACTIVE
 
 Reduces the proxy's read parallelism but does not block forward
 progress as long as the erasure code can still reconstruct
@@ -829,7 +829,7 @@ repair semantics automatically: partial reconstruction
 succeeds; ranges that cannot be reconstructed terminate the
 operation with NFS4ERR_PAYLOAD_LOST.
 
-### Destination DS Crash During PROXY_ACTIVE
+## Destination DS Crash During PROXY_ACTIVE
 
 Treated as a normal DS failure on the destination side.  The
 proxy acts like a client to the destination DSes: LAYOUTERROR
@@ -837,7 +837,7 @@ to the MDS, which MAY substitute a spare or mark the
 destination FFV2_DS_FLAGS_REPAIR.  The proxy continues pushing
 to the remaining destinations.  Clients are unaffected.
 
-## MDS Crash Recovery
+# MDS Crash Recovery
 
 1.  Clients and the proxy detect MDS session loss and enter
     RECLAIM per {{RFC8881}}.
@@ -861,9 +861,9 @@ to the remaining destinations.  Clients are unaffected.
     and the MDS issuing CB_LAYOUTRECALL, the MDS on restart
     SHOULD re-drive the COMMITTING phase.
 
-## Backward Compatibility
+# Backward Compatibility
 
-### Clients
+## Clients
 
 Client behavior is a normal layout path with a new flag.
 Clients that do not recognize FFV2_DS_FLAGS_PROXY will treat
@@ -876,7 +876,7 @@ Clients that require strict per-DS identity checking (e.g.,
 should extend their allowlist to include registered proxies.
 This is a deployment concern, not a protocol one.
 
-### Data Servers
+## Data Servers
 
 DSes without proxy capability simply do not call
 PROXY_REGISTRATION and are never selected as proxies.  A
@@ -892,14 +892,14 @@ Deployments SHOULD ensure at least one registered proxy exists
 per failure domain to avoid a single point of failure on move
 operations.
 
-### NFSv3 Source DSes
+## NFSv3 Source DSes
 
 When the source mirror is an NFSv3 DS, the proxy reads from it
 using NFSv3 semantics and writes to the NFSv4.2 destination
 using CHUNK semantics.  This is the same pattern the main
 draft uses for InBand I/O.
 
-## Security Considerations
+# Security Considerations
 
 1.  **Proxy authority.**  A proxy in PROXY_ACTIVE sees all
     client I/O for the proxied file.  A compromised proxy can
@@ -953,7 +953,7 @@ draft uses for InBand I/O.
     MUST NOT continue to route client I/O to a proxy whose
     registration has lapsed.
 
-### Credential Forwarding and the Privilege Boundary
+## Credential Forwarding and the Privilege Boundary
 
 A translating proxy (see Codec Translation for Codec-Ignorant
 Clients) has structurally elevated privilege by design.  To
@@ -1073,9 +1073,9 @@ support it; deployments that can use GSSv3 SHOULD prefer it
 over AUTH_SYS passthrough for the credential-forwarding
 channel.
 
-## Interaction with the Main Draft
+# Interaction with the Main Draft
 
-### chunk_guard4
+## chunk_guard4
 
 The proxy enforces chunk_guard4 CAS on the destination mirror
 set on behalf of clients.  The proxy MAY use the same guard
@@ -1083,7 +1083,7 @@ values client writes carry through it, or generate fresh guard
 values on the destination side, provided uniqueness on the
 destination is preserved.
 
-### CHUNK_LOCK
+## CHUNK_LOCK
 
 If a client holds a chunk lock on a file when a proxy
 operation activates, the lock follows the file: the proxy
@@ -1092,7 +1092,7 @@ the MDS-escrow semantics (sec-chunk_guard_mds in the main
 draft) apply if the original holder becomes unreachable
 during the operation.
 
-### CB_CHUNK_REPAIR
+## CB_CHUNK_REPAIR
 
 Per-chunk CB_CHUNK_REPAIR and a PROXY_MOVE or PROXY_REPAIR on
 the same file are mutually exclusive at any given time.  The
@@ -1102,7 +1102,7 @@ internally.  If the MDS decides a proxied file also needs
 per-chunk repair after the proxy operation completes, it
 issues CB_CHUNK_REPAIR against the post-move layout.
 
-### TRUST_STATEID / REVOKE_STATEID
+## TRUST_STATEID / REVOKE_STATEID
 
 When the MDS selects a proxy, it issues TRUST_STATEID on the
 proxy for every client layout stateid that will route through
@@ -1111,7 +1111,7 @@ issues REVOKE_STATEID on the retired proxy.  This is the same
 mechanism the main draft defines for any DS in a tightly
 coupled deployment.
 
-## Open Questions
+# Open Questions
 
 1.  **Progress reporting mechanism.**  PROXY_MOVE sketches
     asynchronous MDS-bound progress notifications but does not
@@ -1176,7 +1176,7 @@ coupled deployment.
     GSSv3 adoption as a side effect of standardizing this
     mechanism.
 
-## Deferred
+# Deferred
 
 -  Partial-range PROXY_MOVE.
 -  Multi-proxy pipelines for very large files.
@@ -1192,7 +1192,7 @@ coupled deployment.
    already carries the necessary information for client-side
    locality shortcuts).
 
-## Key Files (If Split to Its Own Repo)
+# Key Files (If Split to Its Own Repo)
 
 When this design moves to its own Internet-Draft:
 
