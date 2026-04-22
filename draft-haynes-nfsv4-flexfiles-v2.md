@@ -1873,6 +1873,61 @@ and (fdp_data=4, fdp_parity=2).  A server without erasure coding
 might return FFV2_CODING_MIRRORED with (fdp_data=1, fdp_parity=2)
 for 3-way mirroring.
 
+### Codec Negotiation {#sec-codec-negotiation}
+
+Because the coding-type registry is expected to grow over time
+(new erasure codes are added, older ones fall out of favour,
+vendors register private codes; see {{iana-considerations}}),
+neither clients nor metadata servers are required to implement
+every registered codec.  The protocol uses ffv2_layouthint4 as
+the negotiation surface:
+
+Client-side advertisement:
+:  A client that wishes to influence codec selection SHOULD
+   send the set of codecs it actually implements in
+   fflh_supported_types.  A client MUST NOT claim support for
+   a codec it cannot encode or decode: a false advertisement
+   produces silent data unavailability when the resulting layout
+   is issued.
+
+Metadata-server selection:
+:  The metadata server SHOULD select a codec from the client's
+   fflh_supported_types list when the server's policy permits.
+   The server MAY override the hint when its policy dictates a
+   specific codec (for example, per-export objectives); in that
+   case the server issues a layout with the policy-dictated
+   codec and the client MUST either honour it or fail its I/O
+   with NFS4ERR_CODING_NOT_SUPPORTED.
+
+Fallback when no overlap exists:
+:  If the server's policy cannot be satisfied by any codec the
+   client supports, the server returns
+   NFS4ERR_CODING_NOT_SUPPORTED on the LAYOUTGET.  The client
+   MAY retry with a different (possibly empty) fflh_supported
+   _types list to learn the server's codec repertoire through
+   the errors returned, and MAY fall back to I/O via the
+   metadata server if no mutually-supported codec exists
+   (see {{sec-Fencing-Clients}} for the MDS-I/O fallback).
+
+Runtime codec change:
+:  If a metadata server changes its codec policy after layouts
+   have been issued (for example, a deployment upgrade that
+   retires an older codec), the metadata server MUST recall the
+   affected layouts via CB_LAYOUTRECALL and may re-issue new
+   layouts with the new codec.  Clients that do not support the
+   new codec LAYOUTRETURN with NFS4ERR_CODING_NOT_SUPPORTED,
+   and the server either grants a layout using a mutually-
+   supported codec or the client falls back to I/O via the
+   metadata server.
+
+This mechanism deliberately avoids a separate capability-bit
+handshake at EXCHANGE_ID.  ffv2_layouthint4 already provides
+per-request negotiation surface; adding a session-level
+capability set would duplicate it and would complicate codec
+upgrades without additional value, because a client that
+genuinely upgrades its codec set at runtime can simply update
+the fflh_supported_types on its next LAYOUTGET.
+
 Note: In {{fig-ffv2_layout4}} ffv2_coding_type_data4 is an enumerated
 union with the payload of each arm being defined by the protection
 type. ffm_client_id tells the client which id to use when interacting
