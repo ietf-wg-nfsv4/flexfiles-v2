@@ -2685,6 +2685,19 @@ receives CB_CHUNK_REPAIR for a file for which it does not
 already hold a layout MUST acquire a layout via LAYOUTGET before
 attempting the repair.
 
+Operational expectations for CB_CHUNK_REPAIR:
+CB_CHUNK_REPAIR is an exceptional path, triggered only by
+concurrent-writer races or data-server failures.  It is not a
+steady-state operation and its frequency is a function of
+racing-writer and data-server-failure rates in the deployment
+rather than of normal client workload.  Implementations SHOULD
+treat the CB_CHUNK_REPAIR handler as rare-path code and avoid
+over-optimising it.  Implementations SHOULD, however, provision
+enough client-side compute to handle a repair transaction
+without stalling their foreground I/O, because foreground
+throughput during repair is the externally observable cost of
+this callback.
+
 ### Repair Protocol: Normative vs. Informative
 
 The selection algorithm is non-normative and deployment-tunable.
