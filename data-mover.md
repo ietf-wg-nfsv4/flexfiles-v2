@@ -1241,18 +1241,13 @@ coupled deployment.
    already carries the necessary information for client-side
    locality shortcuts).
 
-# Key Files (If Split to Its Own Repo)
+--- back
 
-When this design moves to its own Internet-Draft:
+# Acknowledgments
+{:numbered="false"}
 
-| File | Purpose |
-|------|---------|
-| draft-haynes-nfsv4-flexfiles-v2-data-mover.md | the I-D |
-| flexfiles-v2-data-mover.x | extracted XDR |
-| Normative refs | draft-haynes-nfsv4-flexfiles-v2, RFC 8881, RFC 9289 |
+David Flynn and Trond Myklebust shaped the data-mover
+architecture, in particular the split between proxy
+registration and MDS-issued directives.
 
-The main draft needs a short forward reference in
-sec-repair-selection: "whole-file repair is out of scope for
-this document; see the Data Mover draft for the proxy-driven
-repair mechanism."  The pointer exists today and would simply
-be updated to the new draft name.
+Brian Pawlowski and Gorry Fairhurst guided this process.
