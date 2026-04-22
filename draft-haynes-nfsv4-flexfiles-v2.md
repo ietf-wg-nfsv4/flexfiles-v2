@@ -147,9 +147,10 @@ the other instance locations.
 However, lacking integrity checks, silent corruptions are not able to
 be detected and the choice of what constitutes the good copy is
 difficult.  This document updates the Flexible File Layout Type to
-version 2 by providing error-detection integrity (CRC32) for erasure coding.  Data
-blocks are transformed into a header and a chunk.  It introduces new
-operations that allow the client to rollback writes to the data file.
+version 2 by providing error-detection integrity (CRC32) for erasure
+coding.  Data blocks are transformed into a header and a chunk.  This
+document also introduces new operations that allow the client to roll
+back writes to the data file.
 
 Using the process detailed in {{RFC8178}}, the revisions in this
 document become an extension of NFSv4.2 {{RFC7862}}.  They are built on
