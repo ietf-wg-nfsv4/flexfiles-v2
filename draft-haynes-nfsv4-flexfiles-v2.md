@@ -5918,12 +5918,53 @@ MUST have the same cg_gen_id and cg_client_id.  The client SHOULD
 present the smallest set of blocks as possible to meet this
 requirement.
 
-<cref source="Tom"> Is the DS supposed to vet all blocks first or
-proceed to the first error?  Or do all blocks and return an array
-of errors?  (This last one is a no-go.)  Also, if we do the vet
-first, what happens if a CHUNK_WRITE comes in after the vetting?
-Are we to lock the file during this process.  Even if we do that,
-we still have the issue of multiple DSes.  </cref>
+#### Per-Block Acceptance Semantics
+
+A CHUNK_WRITE targets a contiguous range of blocks on a single
+data server.  The data server evaluates each block independently
+and reports the outcome per block in cwr_block_status (see
+{{fig-CHUNK_WRITE4resok}}):
+
+-  Each block is subjected to the guard check (when
+   cwa_guard.cwg_check is TRUE), the cg_client_id validation
+   (see {{sec-chunk_guard4}}), and any other local preconditions
+   (storage-space limits, tight-coupling trust-table state,
+   etc.).
+
+-  Blocks that pass their preconditions are written and their
+   cwr_block_status entry is NFS4_OK.  Blocks that fail produce
+   the appropriate error code
+   (NFS4ERR_CHUNK_GUARDED, NFS4ERR_NOSPC, etc.) in the
+   corresponding cwr_block_status slot, and their data is
+   NOT persisted.
+
+-  cwr_count reflects only the blocks that were written
+   successfully; failed blocks do not contribute.
+
+-  The top-level cwr_status is NFS4_OK when the call itself was
+   structurally valid and the data server could evaluate each
+   block.  Per-block failures are reported in cwr_block_status,
+   not by failing the whole operation.  The data server returns
+   a top-level error only if it could not evaluate the request
+   at all (for example, NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).
+
+This is the "continue and report" discipline.  It is
+intentionally not all-or-none: atomicity is already per-chunk
+(see {{sec-system-model-consistency}}), so there is no
+file-level correctness reason to reject the entire compound
+because of a single chunk guard failure.  Per-block reporting
+gives the client the information it needs to construct a
+targeted CHUNK_ROLLBACK or CHUNK_WRITE retry that covers only
+the blocks that failed.
+
+The data server does not hold a file-wide lock across the
+per-block evaluation.  The chunk_guard4 CAS is evaluated
+atomically per chunk at the point the data server updates that
+chunk's state, so an interleaving CHUNK_WRITE from a different
+client that arrives mid-compound will either win its own CAS
+race (and the losing client sees NFS4ERR_CHUNK_GUARDED for the
+contested block) or be rejected itself, without introducing
+data-server-level locking beyond the per-chunk scope.
 
 ## Operation 87: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk Data {#sec-CHUNK_WRITE_REPAIR}
 
