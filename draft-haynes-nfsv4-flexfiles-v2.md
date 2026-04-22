@@ -3825,6 +3825,43 @@ Eventual trust-table convergence:
    from pending-revalidation back to active on the next
    TRUST_STATEID (see {{sec-tight-coupling-mds-crash}}).
 
+Orphaned PENDING scavenger:
+:  A PENDING chunk whose owning stateid (see
+   {{sec-system-model-retention-scope}}) has expired without
+   transition to FINALIZED or COMMITTED is an orphan.  The
+   metadata server MUST drive demotion of orphaned PENDINGs so
+   that no chunk remains in a non-terminal state indefinitely:
+
+   1.  When an owning stateid's lease expires, the metadata
+       server identifies every PENDING chunk owned by that
+       stateid (either from its own bookkeeping or by query
+       against the data server) and issues the control-plane
+       operations needed to demote each PENDING.
+
+   2.  Demotion replaces the PENDING with the predecessor
+       COMMITTED (or EMPTY) content that the data server has
+       been retaining under
+       {{sec-system-model-retention-scope}}.  The data server
+       MUST NOT wait for a separate client action before
+       performing the demotion.
+
+   3.  Any CHUNK_LOCK held in escrow on behalf of the expired
+       stateid (see {{sec-chunk_guard_mds}}) is released after
+       an MDS-defined grace period.  The grace period exists to
+       let a recovering client reclaim its lock via the grace /
+       reclaim path defined in {{RFC8881}}; on expiry of the
+       grace period without reclaim, the lock becomes available
+       for new CHUNK_LOCK_FLAGS_ADOPT acquirers.
+
+   The scavenger timeout (the delay between lease expiry and
+   demotion) is implementation-defined but SHOULD be tied to
+   the metadata server lease period so that it composes
+   naturally with existing NFSv4 grace / reclaim semantics.  A
+   scavenger timeout shorter than the lease risks racing an
+   in-progress client reclaim; a timeout substantially longer
+   than the lease extends the retention budget without a
+   commensurate benefit.
+
 The protocol does NOT guarantee progress if the metadata server
 is unavailable for longer than its lease period -- this is the
 standard NFSv4 lease assumption and is inherited unchanged.
