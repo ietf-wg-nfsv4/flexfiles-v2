@@ -177,6 +177,19 @@ detection, and the chunk_guard4 compare-and-swap primitive (see
 {{sec-chunk_guard4}}) for detecting concurrent-writer
 inconsistency -- while preserving the client-side compute model.
 
+Scope note: the consistency goal of Flex Files v2 is RAID
+consistency across the chunks that make up an encoded stripe, not
+POSIX write ordering across arbitrary application writes.  The
+protocol does not attempt to make overlapping application writes
+from different clients atomic: that is the province of file
+locking ({{RFC8881}}, Section 12) and of application-level
+coordination.  What the protocol does guarantee is that the
+chunks comprising a given stripe agree on which write produced
+them, so that readers and repair clients never observe a
+half-applied stripe.  Readers who need cross-write ordering
+beyond a single stripe MUST use the existing NFSv4 locking
+primitives.
+
 #  Use Cases {#sec-use-cases}
 
 The protocol is designed around three workload classes.  The
