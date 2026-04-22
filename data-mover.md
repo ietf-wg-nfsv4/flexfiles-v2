@@ -1,52 +1,119 @@
-# Data Mover: Registered Proxies and MDS Directives for Layout Transitions
+---
+title: Proxy-Driven Data Mover for Flexible Files Version 2
+abbrev: FFv2 Data Mover
+docname: draft-haynes-nfsv4-flexfiles-v2-data-mover-latest
+category: std
+date: {DATE}
+consensus: true
+ipr: trust200902
+area: General
+workgroup: Network File System Version 4
+keyword: Internet-Draft
 
-## Status
+stand_alone: yes
+pi: [toc, sortrefs, symrefs, docmapping, comments]
 
-Design document.  This is the companion design for the
-whole-file / migration / repair mechanisms that sit alongside
-the per-chunk repair in draft-haynes-nfsv4-flexfiles-v2.  When
-this design is ready for WG submission it will move into its
-own repository (flexfiles-v2-data-mover) and become a separate
-Internet-Draft that normatively depends on flexfiles-v2.
+author:
+ -
+    ins: T. Haynes
+    name: Thomas Haynes
+    organization: Hammerspace
+    email: loghyr@gmail.com
 
-## Background
+normative:
+  RFC7861:
+  RFC7862:
+  RFC8881:
+  RFC9289:
+  I-D.haynes-nfsv4-flexfiles-v2:
 
-Parallel-filesystem deployments running Flex Files v1 (RFC 8435)
-commonly include an internal mechanism for moving, copying, and
-repairing file data across data servers without blocking
-concurrent client I/O.  Those mechanisms are
-implementation-specific -- the existing pNFS surface does not
-specify how a file's layout can transition between geometries,
-how a whole file is repaired when per-chunk reconstruction is
-not viable, or how one data server's content is evacuated to
-another for maintenance.  Each deployment handles this under
-the covers of its own server code, typically via a proprietary
-control protocol between the metadata server and a designated
-helper process.
+informative:
+  RFC1813:
+  RFC8435:
 
-This design codifies the mechanism as a standard Flex Files v2
-primitive.  Goals:
+--- abstract
 
-1.  Multiple implementations can interoperate on the same
-    mover-driven workflows.  Today this is the single biggest
-    interop gap between pNFS deployments and parallel-filesystem
-    competitors that already expose migration primitives.
+Parallel NFS (pNFS) with the Flexible Files Version 2 layout
+type supports client-side erasure coding and per-chunk repair
+between clients and data servers.  This document extends that
+architecture with a "data mover" role: a registered proxy that
+the metadata server directs, via dedicated MDS-to-proxy
+operations, to move a file from one layout to another or to
+reconstruct a whole file from surviving shards.  The same
+mechanism provides codec translation for clients that cannot
+participate in a file's native erasure code, including NFSv3
+clients.
 
-2.  The whole-file repair case referenced from
-    sec-repair-selection in the main draft has a well-defined
-    specification rather than a pointer to ad-hoc server logic.
+--- note_Note_to_Readers
 
-3.  Policy-driven and maintenance-driven data movement stop
-    being server-internal and become inspectable on the wire.
+Discussion of this draft takes place on the NFSv4 working group
+mailing list (nfsv4@ietf.org), which is archived at
+[](https://mailarchive.ietf.org/arch/search/?email_list=nfsv4).
+Source code and issues list for this draft can be found at
+[](https://github.com/ietf-wg-nfsv4/flexfiles-v2-data-mover).
 
-Relation to the main draft: the main draft defines
-CB_CHUNK_REPAIR and the per-chunk repair model
-(sec-repair-selection).  This design addresses the file-scoped
-cases that per-chunk repair cannot cover without substantial
-overhead: whole-file repair, policy transitions, DS evacuation,
-and transport / filehandle migrations.
+Working Group information can be found at
+[](https://github.com/ietf-wg-nfsv4).
 
-## Scope
+--- middle
+
+# Introduction
+
+The Flexible Files Version 2 layout type
+({{I-D.haynes-nfsv4-flexfiles-v2}}) introduces client-side
+erasure coding for pNFS and a per-chunk repair protocol
+(CB_CHUNK_REPAIR) that lets the metadata server direct an
+active client to reconstruct individual damaged chunks.  That
+mechanism is sufficient for repairs whose scope is a handful of
+chunks in a file that has at least one live client.
+
+Three classes of work are outside the per-chunk repair model:
+
+1.  **Whole-file repair**, when enough data servers have failed
+    that per-chunk reconstruction would require visiting every
+    chunk, or when no live client is available to drive the
+    repair.
+
+2.  **Layout transitions**, when a file must move from one
+    layout geometry to another -- for policy reasons (migrating
+    to a new coding type, re-mirroring), for maintenance reasons
+    (data-server evacuation), or for environmental reasons
+    (migrating between transport-security profiles or between
+    filehandle backends).
+
+3.  **Codec translation**, when a client that cannot participate
+    in the file's native codec -- including NFSv3 clients --
+    still needs to read and write the file.
+
+This document specifies a **data mover** role to address those
+three cases with a single mechanism: a proxy that registers with
+the metadata server, receives MDS-initiated directives on a
+dedicated control session, and provides the server-side of a
+client-facing data path during the operation.  Clients discover
+the proxy through the normal pNFS layout path -- a layout that
+names the proxy with a new data-server flag
+(FFV2_DS_FLAGS_PROXY) -- and route their I/O through it while
+it is active.
+
+This design codifies a mechanism that is common, but
+implementation-specific, in existing Flex Files v1 deployments.
+Today the lack of a standardized version is the single biggest
+interop gap between pNFS and parallel-filesystem competitors
+that already expose migration primitives.
+
+# Requirements Language
+
+{::boilerplate bcp14-tagged}
+
+## Relation to the Main Draft
+
+{{I-D.haynes-nfsv4-flexfiles-v2}} defines CB_CHUNK_REPAIR and
+the per-chunk repair model.  This document is the companion
+whole-file and per-client mechanism.  Per-chunk and whole-file
+operations are mutually exclusive for a given file at a given
+time; coexistence rules are in {{interaction}}.
+
+# Scope
 
 ### In Scope
 
