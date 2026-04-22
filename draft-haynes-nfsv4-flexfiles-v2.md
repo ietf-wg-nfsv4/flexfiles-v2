@@ -1225,44 +1225,6 @@ A single deployment MAY contain a mix of tight-coupled and
 loose-coupled storage devices; each is negotiated independently
 via the probe.
 
-#  XDR Description of the Flexible File Layout Type
-
-This document contains the External Data Representation (XDR)
-{{RFC4506}} description of the flexible file layout type.  The XDR
-description is embedded in this document in a way that makes it simple
-for the reader to extract into a ready-to-compile form.  The reader can
-feed this document into the shell script in {{fig-extract}} to produce
-the machine-readable XDR description of the flexible file layout type.
-
-~~~ shell
-#!/bin/sh
-grep '^ *///' $* | sed 's?^ */// ??' | sed 's?^ *///$??'
-~~~
-{: #fig-extract title="extract.sh"}
-
-That is, if the above script is stored in a file called "extract.sh"
-and this document is in a file called "spec.txt", then the reader can
-run the script as in {{fig-extract-example}}.
-
-~~~ shell
-sh extract.sh < spec.txt > flex_files2_prot.x
-~~~
-{: #fig-extract-example title="Example use of extract.sh"}
-
-The effect of the script is to remove leading blank space from each
-line, plus a sentinel sequence of "///".
-
-XDR descriptions with the sentinel sequence are embedded throughout
-the document.
-
-Note that the XDR code contained in this document depends on types
-from the NFSv4.1 nfs4_prot.x file {{RFC5662}}.  This includes both nfs
-types that end with a 4, such as offset4, length4, etc., as well as
-more generic types such as uint32_t and uint64_t.
-
-While the XDR can be appended to that from {{RFC7863}}, the various
-code snippets belong in their respective areas of that XDR.
-
 #  Device Addressing and Discovery
 
 Data operations to a storage device require the client to know the
@@ -6263,6 +6225,44 @@ Mirroring (see {{tbl-coding-types}}).
  | FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC | 3     | RFCTBD10 | L   | 2        |
  | FFV2_ENCODING_RS_VANDERMONDE         | 4     | RFCTBD10 | L   | 2        |
 {: #tbl-coding-types title="Flexible File Version 2 Layout Type Erasure Coding Type Assignments"}
+
+#  XDR Description of the Flexible File Layout Type
+
+This document contains the External Data Representation (XDR)
+{{RFC4506}} description of the flexible file layout type.  The XDR
+description is embedded in this document in a way that makes it simple
+for the reader to extract into a ready-to-compile form.  The reader can
+feed this document into the shell script in {{fig-extract}} to produce
+the machine-readable XDR description of the flexible file layout type.
+
+~~~ shell
+#!/bin/sh
+grep '^ *///' $* | sed 's?^ */// ??' | sed 's?^ *///$??'
+~~~
+{: #fig-extract title="extract.sh"}
+
+That is, if the above script is stored in a file called "extract.sh"
+and this document is in a file called "spec.txt", then the reader can
+run the script as in {{fig-extract-example}}.
+
+~~~ shell
+sh extract.sh < spec.txt > flex_files2_prot.x
+~~~
+{: #fig-extract-example title="Example use of extract.sh"}
+
+The effect of the script is to remove leading blank space from each
+line, plus a sentinel sequence of "///".
+
+XDR descriptions with the sentinel sequence are embedded throughout
+the document.
+
+Note that the XDR code contained in this document depends on types
+from the NFSv4.1 nfs4_prot.x file {{RFC5662}}.  This includes both nfs
+types that end with a 4, such as offset4, length4, etc., as well as
+more generic types such as uint32_t and uint64_t.
+
+While the XDR can be appended to that from {{RFC7863}}, the various
+code snippets belong in their respective areas of that XDR.
 
 # Implementation Status {#sec-implementation-status}
 {:numbered="false"}
