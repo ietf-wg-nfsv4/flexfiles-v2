@@ -1587,11 +1587,36 @@ FFV2_DS_FLAGS_ACTIVE and FFV2_DS_FLAGS_PARITY data servers.  If the
 implementation wanted to allow for local repair, it would also use
 FFV2_DS_FLAGS_SPARE.
 
-The FFV2_DS_FLAGS_REPAIR flag can be used by the metadata server
-to inform the client that the indicated data server is a replacement
-data server as far as existing data is concerned.  <cref source="Tom">Fill in</cref>
+The FFV2_DS_FLAGS_REPAIR flag informs the client that the
+indicated data server is a replacement for a previously failed
+ACTIVE data server, whose content has been (or is being)
+reconstructed from the surviving shards of the mirror set.  A
+REPAIR data server differs from a SPARE in two ways:
 
-See {{Plank97}} for further reference to storage layouts for coding.
+-  A SPARE is standing by with no payload; the client MAY fail
+   over to it at write time without metadata-server coordination.
+-  A REPAIR has been promoted by the metadata server to replace a
+   failed ACTIVE, and its payload was placed there by a repair
+   client executing the flow in {{sec-repair-selection}} rather
+   than directly by the original writer.  The flag is the
+   client's indication that reads from this data server return
+   erasure-decoded content rather than content produced by the
+   original write.
+
+Clients that rely on write-provenance information (for example,
+deployments that track which client wrote which generation)
+SHOULD be aware of the REPAIR flag so they do not treat the
+reconstructed payload as if it had been written directly by the
+cg_client_id recorded in the chunk_guard4; the guard values
+still match across the mirror set by construction, but the
+physical write path differs.
+
+Over the lifetime of a file, a single data server MAY transition
+ACTIVE -> REPAIR (on replacement) or REPAIR -> ACTIVE (once the
+metadata server has accepted the reconstructed content as
+authoritative and the fail-over is complete); the metadata
+server reflects the current flag set in the next layout it
+returns.
 
 ## ffv2_data_server4
 
@@ -3212,7 +3237,10 @@ return data.
 Reed-Solomon (RS) codes are Maximum Distance Separable (MDS) codes:
 for a (k+m, k) code, any k of the k+m encoded shards suffice to
 recover the original data.  The code tolerates the simultaneous loss
-of up to m shards.
+of up to m shards.  {{Plank97}} is a tutorial treatment of RS
+coding in RAID-like systems and is the recommended background
+reading for implementers unfamiliar with the construction used
+here.
 
 ### Galois Field Arithmetic
 
