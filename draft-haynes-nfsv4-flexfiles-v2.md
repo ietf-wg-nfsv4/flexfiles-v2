@@ -1239,6 +1239,11 @@ is returned by the server as the layout-type-specific opaque field
 da_addr_body in the device_addr4 structure by a successful GETDEVICEINFO
 operation.
 
+The ff_device_versions4 and ff_device_addr4 structures are
+reused unchanged from {{RFC8435}}; they are reproduced here for
+reader convenience and are not part of the XDR extracted from
+this document.
+
 ~~~ xdr
    struct ff_device_versions4 {
            uint32_t        ffdv_version;
@@ -1248,7 +1253,7 @@ operation.
            bool            ffdv_tightly_coupled;
    };
 ~~~
-{: #fig-ff_device_versions4 title="ff_device_versions4"}
+{: #fig-ff_device_versions4 title="ff_device_versions4 (reused from RFC 8435)"}
 
 ~~~ xdr
    struct ff_device_addr4 {
@@ -1256,7 +1261,7 @@ operation.
            ff_device_versions4 ffda_versions<>;
    };
 ~~~
-{: #fig-ff_device_addr4 title="ff_device_addr4"}
+{: #fig-ff_device_addr4 title="ff_device_addr4 (reused from RFC 8435)"}
 
 The ffda_netaddrs field is used to locate the storage device.  It
 MUST be set by the server to a list holding one or more of the device
@@ -1357,7 +1362,13 @@ the data consist of exact replicas.
 #  Flexible File Version 2 Layout Type
 
 The original layouttype4 introduced in {{RFC5662}} is extended as shown in
-{{fig-orig-layout}}.
+{{fig-orig-layout}}.  The layout_content4 and layout4 structures are
+reused unchanged from {{RFC5662}}; the layouttype4 enum is extended
+with the new LAYOUT4_FLEX_FILES_V2 value.  The full enum and
+surrounding structures below are reproduced for reader
+convenience; only the new constant LAYOUT4_FLEX_FILES_V2 is part
+of the XDR extracted from this document (see
+{{fig-orig-layout-extract}}).
 
 ~~~ xdr
        enum layouttype4 {
@@ -1380,7 +1391,15 @@ The original layouttype4 introduced in {{RFC5662}} is extended as shown in
            layout_content4         lo_content;
        };
 ~~~
-{: #fig-orig-layout title="The original layout type"}
+{: #fig-orig-layout title="The original layout type (illustrative; reused from RFC 5662 with extension)"}
+
+The extracted XDR contribution for this extension is the new
+layouttype4 constant alone:
+
+~~~ xdr
+   /// const LAYOUT4_FLEX_FILES_V2 = 5;
+~~~
+{: #fig-orig-layout-extract title="New layouttype4 value (extracted)"}
 
 This document defines structures associated with the layouttype4
 value LAYOUT4_FLEX_FILES_V2.  {{RFC8881}} specifies the loc_body structure
