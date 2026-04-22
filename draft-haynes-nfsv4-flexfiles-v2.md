@@ -5040,17 +5040,18 @@ CHUNK_LOCK_FLAGS_ADOPT.  See {{sec-CHUNK_LOCK}}.
 ~~~ xdr
    /// struct chunk_owner4 {
    ///     chunk_guard4   co_guard;
-   ///     uint32_t       co_id;
+   ///     uint32_t       co_chunk_id;
    /// };
 ~~~
 {: #fig-chunk_owner4 title="XDR for chunk_owner4" }
 
 The chunk_owner4 (see {{fig-chunk_owner4}}) is used to determine
-when and by whom a block was written.  The co_id is used to identify
-the block and MUST be the index of the chunk within the file.  I.e.,
-it is the offset of the start of the chunk divided by the chunk
-length.  The co_guard is a chunk_guard4 (see {{sec-chunk_guard4}}),
-used to identify a given transaction.
+when and by whom a block was written.  The co_chunk_id is used
+to identify the chunk and MUST be the index of the chunk within
+the file.  I.e., it is the offset of the start of the chunk
+divided by the chunk length.  The co_guard is a chunk_guard4
+(see {{sec-chunk_guard4}}), used to identify a given
+transaction.
 
 The co_guard is like the change attribute (see Section 5.8.1.4 of
 {{RFC8881}}) in that each chunk write by a given client has to have
