@@ -3424,6 +3424,51 @@ on) classical consensus.  It is intended as the correctness
 framing for implementers and reviewers; the normative wire
 behavior is defined in the preceding sections.
 
+##  Wire Semantics vs Implementation {#sec-system-model-wire}
+
+The protocol defines wire semantics, not data-server
+implementation.  The operations introduced in
+{{sec-new-ops}} (CHUNK_WRITE, CHUNK_FINALIZE, CHUNK_COMMIT,
+CHUNK_ROLLBACK, CHUNK_LOCK / CHUNK_UNLOCK, CHUNK_READ,
+CHUNK_REPAIRED, CHUNK_ERROR, CHUNK_HEADER_READ,
+CHUNK_WRITE_REPAIR) together with the per-chunk state machine
+({{sec-system-model-chunk-state}}) and the chunk_guard4 CAS
+({{sec-chunk_guard4}}) are the entire surface a peer observes.
+The data server's internal representation of persistent state is
+not exposed on the wire, and two data-server implementations
+that satisfy the same wire semantics MAY differ arbitrarily in
+their internal structure.
+
+In particular, the protocol does NOT exchange:
+
+-  which on-disk layout (log-structured, append-only,
+   in-place-overwrite, external object store, key-value store,
+   or any other) a data server uses to persist chunks;
+-  whether a data server holds PENDING and FINALIZED chunks in
+   a single blob or in distinct regions;
+-  how a data server represents the CHUNK_LOCK table, the guard
+   epoch, or the escrow owner;
+-  whether a data server's chunk retention beyond COMMIT is
+   implemented via shadow blocks, journals, reference counts,
+   or copy-on-write.
+
+This decoupling is deliberate.  It lets the protocol accommodate
+future smart-DS designs -- including designs that integrate more
+closely with storage back-ends that already provide atomic
+replace, multi-version concurrency, or internal erasure coding --
+without protocol revisions, provided the wire semantics are
+preserved.  Conversely, a data server implementer is free to
+pick the representation that best fits the underlying storage
+stack without fear that some less common implementation choice
+is disallowed.
+
+The counterpart of this rule is that the wire is the entire
+contract.  Any behavior a client relies on MUST be observable
+via the operations listed above; any behavior that is not
+observable (cache state, background scrubbing cadence,
+internal retry ordering, on-disk layout) is implementation
+detail and MUST NOT be depended upon.
+
 ##  Actors and Roles {#sec-system-model-roles}
 
 Three actors participate on behalf of any given file:
@@ -4759,7 +4804,7 @@ The co_guard is like the change attribute (see Section 5.8.1.4 of
 an unique co_guard.  I.e., it can be determined which transaction
 across all data files that a chunk corresponds.
 
-# New NFSv4.2 Operations
+# New NFSv4.2 Operations {#sec-new-ops}
 
 ~~~ xdr
    ///
