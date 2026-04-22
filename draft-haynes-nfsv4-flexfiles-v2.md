@@ -3743,6 +3743,46 @@ multi-chunk atomicity must layer it above this protocol -- for
 example, via file-level checksums, application-level generation
 fields, or external transaction managers.
 
+**The chunk is the unit of atomicity.**  Two properties follow:
+
+1.  Chunk-aligned writes do not interfere.  Two concurrent
+    writers whose writes cover disjoint chunks -- even writes
+    that cover adjacent chunks -- never race.  Each write
+    terminates independently at COMMITTED per the per-chunk
+    linearizability rule above.
+
+2.  Sub-chunk overlapping writes from different writers
+    produce chunk-resolution-granularity contention.  When two
+    concurrent writers target overlapping byte ranges within a
+    single chunk, chunk_guard4 resolves them: one writer's
+    entire chunk-generation wins and becomes COMMITTED; the
+    other writer sees NFS4ERR_CHUNK_GUARDED and is expected to
+    re-read and retry if it wishes to apply its change on top
+    of the winning generation (see
+    {{sec-NFS4ERR_CHUNK_GUARDED}}).  The protocol does NOT
+    produce byte-level merges of overlapping sub-chunk writes:
+    the losing writer's bytes are not preserved as a partial
+    update within the winning generation.
+
+Applications that require byte-level write merging or sub-chunk
+ordering guarantees MUST serialize such writes externally, for
+example via NFSv4 byte-range locks ({{RFC8881}}, Section 12).
+The chunk size that bounds the atomicity unit for a given file
+is the product of ffm_striping_unit_size and the stripe width
+W in {{fig-striping-math}}; applications can query
+fattr4_coding_block_size (see {{sec-fattr4_coding_block_size}})
+to learn the effective chunk size and align their writes
+accordingly.
+
+This choice -- chunk-boundary atomicity rather than stripe- or
+block-boundary atomicity -- is load-bearing for the rest of the
+consistency story: the chunk_guard4 CAS evaluates at the chunk
+level, the PENDING / FINALIZED / COMMITTED state machine is per
+chunk, CHUNK_LOCK is per chunk, and repair via CB_CHUNK_REPAIR
+operates on chunks.  A different atomicity boundary would
+require redefining those primitives, which this revision does
+not.
+
 Erasure-coded reads:
 :  A reader of an erasure-coded file reconstructs the plaintext
    from any sufficient subset of k shards of the (k+m)-shard
@@ -4854,7 +4894,7 @@ is driving the I/O.
 
 # New NFSv4.2 Attributes
 
-## Attribute 89: fattr4_coding_block_size
+## Attribute 89: fattr4_coding_block_size {#sec-fattr4_coding_block_size}
 
 ~~~ xdr
    /// typedef uint64_t                  fattr4_coding_block_size;
