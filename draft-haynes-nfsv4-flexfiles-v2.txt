@@ -204,7 +204,9 @@ Table of Contents
      23.1.  Attribute 89: fattr4_coding_block_size
    24. New NFSv4.2 Common Data Structures
      24.1.  chunk_guard4
-       24.1.1.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
+       24.1.1.  Metadata-Server Assignment Rules for cg_client_id
+       24.1.2.  Data-Server Collision Handling
+       24.1.3.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
      24.2.  chunk_owner4
    25. New NFSv4.2 Operations
      25.1.  Operation 77: CHUNK_COMMIT - Activate Cached Chunk Data
@@ -291,6 +293,7 @@ Table of Contents
        27.5.1.  Loosely Coupled
        27.5.2.  Tightly Coupled
    28. IANA Considerations
+     28.1.  Flag-Word Allocation
    29. XDR Description of the Flexible File Layout Type
    Implementation Status
      reffs (MDS and DS) and ec_demo (Client)
@@ -642,7 +645,7 @@ Table of Contents
 
    systematic encoding:  An erasure coding scheme in which the first k
       of the k+m encoded shards are identical to the original k data
-      blocks.  A healthy read (no failures) requires no decoding — the
+      blocks.  A healthy read (no failures) requires no decoding -- the
       data shards are read directly.  Decoding is triggered only when
       data shards are missing.  Reed-Solomon Vandermonde and Mojette
       systematic are examples.
@@ -832,7 +835,7 @@ Table of Contents
    storage device, i.e., each group SHOULD have no members.
 
    If the layout segment has an iomode of LAYOUTIOMODE4_READ, then the
-   metadata server should return a synthetic uid that is not set on the
+   metadata server SHOULD return a synthetic uid that is not set on the
    storage device.  Only the synthetic gid would be valid.
 
    The client is thus solely responsible for enforcing file permissions
@@ -1389,6 +1392,10 @@ Table of Contents
    server as the layout-type-specific opaque field da_addr_body in the
    device_addr4 structure by a successful GETDEVICEINFO operation.
 
+   The ff_device_versions4 and ff_device_addr4 structures are reused
+   unchanged from [RFC8435]; they are reproduced here for reader
+   convenience and are not part of the XDR extracted from this document.
+
       struct ff_device_versions4 {
               uint32_t        ffdv_version;
               uint32_t        ffdv_minorversion;
@@ -1397,14 +1404,14 @@ Table of Contents
               bool            ffdv_tightly_coupled;
       };
 
-                       Figure 5: ff_device_versions4
+            Figure 5: ff_device_versions4 (reused from RFC 8435)
 
       struct ff_device_addr4 {
               multipath_list4     ffda_netaddrs;
               ff_device_versions4 ffda_versions<>;
       };
 
-                         Figure 6: ff_device_addr4
+              Figure 6: ff_device_addr4 (reused from RFC 8435)
 
    The ffda_netaddrs field is used to locate the storage device.  It
    MUST be set by the server to a list holding one or more of the device
@@ -1505,7 +1512,12 @@ Table of Contents
 8.  Flexible File Version 2 Layout Type
 
    The original layouttype4 introduced in [RFC5662] is extended as shown
-   in Figure 7.
+   in Figure 7.  The layout_content4 and layout4 structures are reused
+   unchanged from [RFC5662]; the layouttype4 enum is extended with the
+   new LAYOUT4_FLEX_FILES_V2 value.  The full enum and surrounding
+   structures below are reproduced for reader convenience; only the new
+   constant LAYOUT4_FLEX_FILES_V2 is part of the XDR extracted from this
+   document (see Figure 8).
 
           enum layouttype4 {
               LAYOUT4_NFSV4_1_FILES   = 1,
@@ -1527,7 +1539,15 @@ Table of Contents
               layout_content4         lo_content;
           };
 
-                     Figure 7: The original layout type
+     Figure 7: The original layout type (illustrative; reused from RFC
+                            5662 with extension)
+
+   The extracted XDR contribution for this extension is the new
+   layouttype4 constant alone:
+
+      /// const LAYOUT4_FLEX_FILES_V2 = 5;
+
+                Figure 8: New layouttype4 value (extracted)
 
    This document defines structures associated with the layouttype4
    value LAYOUT4_FLEX_FILES_V2.  [RFC8881] specifies the loc_body
@@ -1545,9 +1565,9 @@ Table of Contents
       ///     FFV2_ENCODING_RS_VANDERMONDE          = 4
       /// };
 
-                         Figure 8: The coding type
+                         Figure 9: The coding type
 
-   The ffv2_coding_type4 (see Figure 8) encompasses a new IANA registry
+   The ffv2_coding_type4 (see Figure 9) encompasses a new IANA registry
    for 'Flexible Files Version 2 Erasure Coding Type Registry'.  I.e.,
    instead of defining a new Layout Type for each Erasure Coding, we
    define a new Erasure Coding Type.  Except for FFV2_CODING_MIRRORED,
@@ -1567,12 +1587,12 @@ Table of Contents
 
 8.1.1.  Encoding Type Interoperability
 
-   The data servers do not interpret erasure-coded data — they store and
-   return opaque chunks.  The NFS wire protocol likewise does not depend
-   on the encoding mathematics.  However, a client that writes data
-   using one encoding type MUST be able to read it back, and a different
-   client implementation MUST be able to read data written by the first
-   client if both claim to support the same encoding type.
+   The data servers do not interpret erasure-coded data -- they store
+   and return opaque chunks.  The NFS wire protocol likewise does not
+   depend on the encoding mathematics.  However, a client that writes
+   data using one encoding type MUST be able to read it back, and a
+   different client implementation MUST be able to read data written by
+   the first client if both claim to support the same encoding type.
 
    This interoperability requirement means that each registered encoding
    type MUST fully specify the encoding and decoding mathematics such
@@ -1619,35 +1639,44 @@ Table of Contents
       ///
       /// typedef uint32_t            ffv2_flags4;
 
-                         Figure 9: The ffv2_flags4
+                         Figure 10: The ffv2_flags4
 
-   The ffv2_flags4 in Figure 9 is a bitmap that allows the metadata
+   The ffv2_flags4 in Figure 10 is a bitmap that allows the metadata
    server to inform the client of particular conditions that may result
    from more or less tight coupling of the storage devices.
 
-   FFV2_FLAGS_NO_LAYOUTCOMMIT:  can be set to indicate that the client
-      is not required to send LAYOUTCOMMIT to the metadata server.
+   Each flag below describes both the semantics when set and the
+   normative requirement it places on the client.  When a flag is not
+   set, the client MUST follow the default behavior described for its
+   unset state.
 
-   FFV2_FLAGS_NO_IO_THRU_MDS:  can be set to indicate that the client
-      should not send I/O operations to the metadata server.  That is,
-      even if the client could determine that there was a network
-      disconnect to a storage device, the client should not try to proxy
-      the I/O through the metadata server.
+   FFV2_FLAGS_NO_LAYOUTCOMMIT:  When set, the client MAY omit the
+      LAYOUTCOMMIT to the metadata server.  When unset, the client MUST
+      send LAYOUTCOMMIT per [RFC8881] Section 18.42.
 
-   FFV2_FLAGS_NO_READ_IO:  can be set to indicate that the client should
-      not send READ requests with the layouts of iomode
-      LAYOUTIOMODE4_RW.  Instead, it should request a layout of iomode
-      LAYOUTIOMODE4_READ from the metadata server.
+   FFV2_FLAGS_NO_IO_THRU_MDS:  When set, the client MUST NOT proxy I/O
+      operations through the metadata server, even after detecting a
+      network disconnect to a storage device.  When unset, the client
+      MAY retry failed I/O via the metadata server.
 
-   FFV2_FLAGS_WRITE_ONE_MIRROR:  can be set to indicate that the client
-      only needs to update one of the mirrors (see Section 11.1).
+   FFV2_FLAGS_NO_READ_IO:  When set, the client MUST NOT issue READ
+      against layouts of iomode LAYOUTIOMODE4_RW, and MUST instead
+      request a separate layout of iomode LAYOUTIOMODE4_READ for any
+      read I/O.  When unset, the client MAY issue READ against either
+      iomode.
 
-   FFV2_FLAGS_ONLY_ONE_WRITER:  can be set to indicate that the client
-      only needs to use a CHUNK_WRITE to update the chunks in the data
-      file.  I.e., keep the ability to rollback in case of a write hole
-      caused by overwriting.  If this flag is not set, then the client
-      MUST write chunks with CHUNK_WRITE with the cwa_guard set in order
-      to prevent collision across the data servers.
+   FFV2_FLAGS_WRITE_ONE_MIRROR:  When set, the client MAY update only
+      one mirror of each layout segment (see Section 11.1) and rely on
+      the metadata server or a peer data server to propagate the update
+      to the remaining mirrors.  When unset, the client MUST update all
+      mirrors.
+
+   FFV2_FLAGS_ONLY_ONE_WRITER:  When set, the client is the exclusive
+      writer for the layout and MAY issue CHUNK_WRITE without setting
+      cwa_guard, retaining the ability to use CHUNK_ROLLBACK in the
+      event of a write hole caused by overwriting.  When unset, the
+      client MUST set cwa_guard on every CHUNK_WRITE so that
+      chunk_guard4 CAS can prevent collisions across concurrent writers.
 
 8.3.  ffv2_file_info4
 
@@ -1656,13 +1685,13 @@ Table of Contents
       ///     nfs_fh4                 fffi_fh_vers;
       /// };
 
-                       Figure 10: The ffv2_file_info4
+                       Figure 11: The ffv2_file_info4
 
    The ffv2_file_info4 is a new structure to help with the stateid issue
    discussed in Section 5.1 of [RFC8435].  I.e., in version 1 of the
    Flexible File Layout Type, there was the singleton ffv2ds_stateid
    combined with the ffv2ds_fh_vers array.  I.e., each NFSv4 version has
-   its own stateid.  In Figure 10, each NFSv4 filehandle has a one-to-
+   its own stateid.  In Figure 11, each NFSv4 filehandle has a one-to-
    one correspondence to a stateid.
 
 8.4.  ffv2_ds_flags4
@@ -1673,9 +1702,9 @@ Table of Contents
       /// const FFV2_DS_FLAGS_REPAIR        = 0x00000008;
       /// typedef uint32_t            ffv2_ds_flags4;
 
-                       Figure 11: The ffv2_ds_flags4
+                       Figure 12: The ffv2_ds_flags4
 
-   The ffv2_ds_flags4 (in Figure 11) flags details the state of the data
+   The ffv2_ds_flags4 (in Figure 12) flags details the state of the data
    servers.  With Erasure Coding algorithms, there are both Systematic
    and Non-Systematic approaches.  In the Systematic, the bits for
    integrity are placed amongst the resulting transformed chunk.  Such
@@ -1712,9 +1741,9 @@ Table of Contents
       ///     ffv2_ds_flags4          ffv2ds_flags;
       /// };
 
-                      Figure 12: The ffv2_data_server4
+                      Figure 13: The ffv2_data_server4
 
-   The ffv2_data_server4 (in Figure 12) describes a data file and how to
+   The ffv2_data_server4 (in Figure 13) describes a data file and how to
    access it via the different NFS protocols.
 
 8.6.  ffv2_coding_type_data4
@@ -1727,11 +1756,11 @@ Table of Contents
       ///         ffv2_data_protection4   fctd_protection;
       /// };
 
-                   Figure 13: The ffv2_coding_type_data4
+                   Figure 14: The ffv2_coding_type_data4
 
-   The ffv2_coding_type_data4 (in Figure 13) describes the data
+   The ffv2_coding_type_data4 (in Figure 14) describes the data
    protection geometry for the layout.  All coding types carry an
-   ffv2_data_protection4 (Figure 19) specifying the number of data and
+   ffv2_data_protection4 (Figure 20) specifying the number of data and
    parity shards.  The coding type enum determines how the shards are
    encoded; the protection structure determines how many shards there
    are.
@@ -1758,7 +1787,7 @@ Table of Contents
       ///         ffv2_data_server4       ffs_data_servers<>;
       /// };
 
-                         Figure 14: The stripes v2
+                         Figure 15: The stripes v2
 
    Each stripe contains a set of data servers in ffs_data_servers.  If
    the stripe is part of a ffv2_coding_type_data4 of
@@ -1768,7 +1797,7 @@ Table of Contents
 
       /// typedef uint64_t ffv2_key4;
 
-                          Figure 15: The ffv2_key4
+                          Figure 16: The ffv2_key4
 
    The ffv2_key4 is an opaque 64-bit identifier used to associate a
    mirror instance with its backing storage key.  The value is assigned
@@ -1785,9 +1814,9 @@ Table of Contents
       ///         ffv2_stripes4           ffm_stripes<>;
       /// };
 
-                        Figure 16: The ffv2_mirror4
+                        Figure 17: The ffv2_mirror4
 
-   The ffv2_mirror4 (in Figure 16) describes the Flexible File Layout
+   The ffv2_mirror4 (in Figure 17) describes the Flexible File Layout
    Version 2 specific fields.
 
    The ffm_client_id is a 32-bit value, assigned by the metadata server
@@ -1857,13 +1886,13 @@ Table of Contents
       ///     uint32_t                ffl_stats_collect_hint;
       /// };
 
-                        Figure 17: The ffv2_layout4
+                        Figure 18: The ffv2_layout4
 
-   The ffv2_layout4 (in Figure 17) describes the Flexible File Layout
+   The ffv2_layout4 (in Figure 18) describes the Flexible File Layout
    Version 2.
 
    The ffl_mirrors field is the array of mirrored storage devices that
-   provide the storage for the current stripe; see Figure 18.
+   provide the storage for the current stripe; see Figure 19.
 
    The ffl_stats_collect_hint field provides a hint to the client on how
    often the server wants it to report LAYOUTSTATS for a file.  The time
@@ -1898,9 +1927,9 @@ Table of Contents
                                           +|  Devices  |
                                            +-----------+
 
-              Figure 18: The Relationship between MDS and DSes
+              Figure 19: The Relationship between MDS and DSes
 
-   As shown in Figure 18 if the ffm_coding_type_data is
+   As shown in Figure 19 if the ffm_coding_type_data is
    FFV2_CODING_MIRRORED, then each of the stripes MUST only have 1
    storage device.  I.e., the length of ffs_data_servers MUST be 1.  The
    other encoding types can have any number of storage devices.
@@ -1918,9 +1947,9 @@ Table of Contents
       ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
       /// };
 
-                    Figure 19: The ffv2_data_protection4
+                    Figure 20: The ffv2_data_protection4
 
-   The ffv2_data_protection4 (in Figure 19) describes the data
+   The ffv2_data_protection4 (in Figure 20) describes the data
    protection geometry as a pair of counts: the number of data shards
    (fdp_data, also known as k) and the number of parity or redundancy
    shards (fdp_parity, also known as m).  This structure is used in both
@@ -1948,7 +1977,7 @@ Table of Contents
 
    By expressing all protection modes as (fdp_data, fdp_parity) pairs, a
    single structure serves mirroring, striping, and all erasure coding
-   types.  The coding type (Figure 8) determines HOW the shards are
+   types.  The coding type (Figure 9) determines HOW the shards are
    encoded; the protection structure determines HOW MANY shards there
    are.
 
@@ -1963,9 +1992,9 @@ Table of Contents
       ///     ffv2_data_protection4   fflh_preferred_protection;
       /// };
 
-                      Figure 20: The ffv2_layouthint4
+                      Figure 21: The ffv2_layouthint4
 
-   The ffv2_layouthint4 (in Figure 20) describes the layout_hint (see
+   The ffv2_layouthint4 (in Figure 21) describes the layout_hint (see
    Section 5.12.4 of [RFC8881]) that the client can provide to the
    metadata server.
 
@@ -2047,18 +2076,18 @@ Table of Contents
    set at runtime can simply update the fflh_supported_types on its next
    LAYOUTGET.
 
-   Note: In Figure 17 ffv2_coding_type_data4 is an enumerated union with
+   Note: In Figure 18 ffv2_coding_type_data4 is an enumerated union with
    the payload of each arm being defined by the protection type.
    ffm_client_id tells the client which id to use when interacting with
    the data servers.
 
-   The ffv2_layout4 structure (see Figure 17) specifies a layout in that
+   The ffv2_layout4 structure (see Figure 18) specifies a layout in that
    portion of the data file described in the current layout segment.  It
    is either a single instance or a set of mirrored copies of that
    portion of the data file.  When mirroring is in effect, it protects
    against loss of data in layout segments.
 
-   While not explicitly shown in Figure 17, each layout4 element
+   While not explicitly shown in Figure 18, each layout4 element
    returned in the logr_layout array of LAYOUTGET4res (see
    Section 18.43.2 of [RFC8881]) describes a layout segment.  Hence,
    each ffv2_layout4 also describes a layout segment.  It is possible
@@ -2105,6 +2134,14 @@ Table of Contents
    the metadata server stateid has no meaning to a storage device that
    is not participating in the control protocol.  In this case the
    metadata server MUST set fffi_stateid to the anonymous stateid.
+
+   For an NFSv3 storage device (ffdv_version = 3), the tight-coupling
+   model does not apply: Section 7.1 requires ffdv_tightly_coupled to be
+   FALSE whenever ffdv_version equals 3, because NFSv3 has no wire
+   encoding for stateids.  The corresponding fffi_stateid element in the
+   ffv2ds_file_info array MUST therefore be the anonymous stateid and is
+   unused; an NFSv3 data server uses the synthetic-uid fencing model
+   (see Section 6.2) rather than a stateid-based trust table.
 
    This specification of the fffi_stateid restricts both models for
    NFSv4.x storage protocols:
@@ -2247,7 +2284,7 @@ Table of Contents
       that follow the dense layout convention of Section 13.4.4 of
       [RFC8881].
 
-   The mapping math for sparse and dense is given in Figure 21.  Common
+   The mapping math for sparse and dense is given in Figure 22.  Common
    definitions apply to both.
 
    L: logical offset within the file (bytes)
@@ -2272,7 +2309,7 @@ Table of Contents
      each data server stores only the stripe units it owns,
      packed contiguously.
 
-              Figure 21: Sparse and dense stripe mapping math
+              Figure 22: Sparse and dense stripe mapping math
 
 10.  Recovering from Client I/O Errors
 
@@ -2315,7 +2352,7 @@ Table of Contents
    transfer of the file contents MUST appear identical.  Note, this is a
    constraint of the selected XDR representation in which each mirrored
    copy of the layout segment has the same striping pattern (see
-   Figure 18).
+   Figure 19).
 
    The metadata server is responsible for determining the number of
    mirrored copies and the location of each mirror.  While the client
@@ -2434,8 +2471,8 @@ Table of Contents
    In the corresponding cases in which unstable writes are done, the
    receiving node does not have any such obligation, although it may
    choose to asynchronously propagate the updates.  However, once a
-   COMMIT is replied to, all replicas must reflect the writes that have
-   been done, and this data must have been committed to stable storage
+   COMMIT is replied to, all replicas MUST reflect the writes that have
+   been done, and this data MUST have been committed to stable storage
    on all replicas.
 
    In order to avoid situations in which stale data is read from
@@ -2468,7 +2505,7 @@ Table of Contents
 11.2.  Erasure Coding
 
    Erasure Coding takes a data block and transforms it to a payload to
-   send to the data servers (see Figure 22).  It generates a metadata
+   send to the data servers (see Figure 23).  It generates a metadata
    header and transformed block per data server.  The header is metadata
    information for the transformed block.  From now on, the metadata is
    simply referred to as the header and the transformed block as the
@@ -2492,7 +2529,7 @@ Table of Contents
 
    The payload contains redundancy which will allow the erasure coding
    type algorithm to repair chunks in the payload as it is transformed
-   back to a data block (see Figure 27).
+   back to a data block (see Figure 28).
 
    The protocol provides two levels of payload integrity, consumed at
    different points in the read path:
@@ -2558,13 +2595,13 @@ Table of Contents
       +----------------+     +----------------+     +----------------+
         Data Server 1          Data Server N          Data Server 6
 
-                      Figure 22: Encoding a Data Block
+                      Figure 23: Encoding a Data Block
 
    Each data block of the file resident in the client's cache of the
    file will be encoded into N different payloads to be sent to the data
-   servers as shown in Figure 22.  As CHUNK_WRITE (see Section 25.10)
+   servers as shown in Figure 23.  As CHUNK_WRITE (see Section 25.10)
    can encode multiple write_chunk4 into a single transaction, a more
-   accurate description of a CHUNK_WRITE is in Figure 23.
+   accurate description of a CHUNK_WRITE is in Figure 24.
 
      +------------------------------------+
      | CHUNK_WRITEargs                    |
@@ -2585,7 +2622,7 @@ Table of Contents
      | cwa_chunks  :  ......              |
      +------------------------------------+
 
-                   Figure 23: Example of CHUNK_WRITE_args
+                   Figure 24: Example of CHUNK_WRITE_args
 
    This describes a 3 block write of data from an offset of 1 block in
    the file.  As each block shares the cwa_owner, it is only presented
@@ -2594,7 +2631,7 @@ Table of Contents
    cwa_owner, and the i'th crc32 from the cw_crc32s.  The cwa_chunks are
    sent together as a byte stream to increase performance.
 
-   Assuming that there were no issues, Figure 24 illustrates the
+   Assuming that there were no issues, Figure 25 illustrates the
    results.  The payload sequence id is implicit in the CHUNK_WRITEargs.
 
      +-------------------------------+
@@ -2620,7 +2657,7 @@ Table of Contents
      |            cg_client_id: 6    |
      +-------------------------------+
 
-                   Figure 24: Example of CHUNK_WRITE_res
+                   Figure 25: Example of CHUNK_WRITE_res
 
 11.2.1.1.  Calculating the CRC32
 
@@ -2639,13 +2676,13 @@ Table of Contents
      +--------------------+
            Data Server 1
 
-                    Figure 25: CRC32 Before Calculation
+                    Figure 26: CRC32 Before Calculation
 
-   Assuming the header and payload as in Figure 25, the crc32 needs to
+   Assuming the header and payload as in Figure 26, the crc32 needs to
    be calculated in order to fill in the cw_crc field.  In this case,
    the crc32 is calculated over the 4 fields as shown in the header and
    the cw_chunk.  In this example, it is calculated to be 0x21de8.  The
-   resulting CHUNK_WRITE is shown in Figure 26.
+   resulting CHUNK_WRITE is shown in Figure 27.
 
      +------------------------------------+
      | CHUNK_WRITEargs                    |
@@ -2664,7 +2701,7 @@ Table of Contents
      | cwa_chunks  :  ......              |
      +------------------------------------+
 
-                     Figure 26: CRC32 After Calculation
+                     Figure 27: CRC32 After Calculation
 
 11.2.2.  Decoding a Data Block
 
@@ -2693,10 +2730,10 @@ Table of Contents
                    | data block  |
                    +-------------+
 
-                      Figure 27: Decoding a Data Block
+                      Figure 28: Decoding a Data Block
 
    When reading chunks via a CHUNK_READ operation, the client will
-   decode them into data blocks as shown in Figure 27.
+   decode them into data blocks as shown in Figure 28.
 
    At this time, the client could detect issues in the integrity of the
    data.  The handling and repair are out of the scope of this document
@@ -2718,11 +2755,11 @@ Table of Contents
      |        cr_chunk  :  ......         |
      +------------------------------------+
 
-                        Figure 28: CRC32 on the Wire
+                        Figure 29: CRC32 on the Wire
 
-   Assuming the CHUNK_READ results as in Figure 28, the crc32 needs to
+   Assuming the CHUNK_READ results as in Figure 29, the crc32 needs to
    be checked in order to ensure data integrity.  Conceptually, a header
-   and payload can be built as shown in Figure 29.  The crc32 is
+   and payload can be built as shown in Figure 30.  The crc32 is
    calculated over the 4 fields as shown in the header and the cr_chunk.
    In this example, it is calculated to be 0x21de8.  Thus this payload
    for the data server has data integrity.
@@ -2742,13 +2779,13 @@ Table of Contents
      +--------------------+
           Data Server 1
 
-                       Figure 29: CRC32 Being Checked
+                       Figure 30: CRC32 Being Checked
 
 11.2.3.  Write Modes
 
    There are two basic writing modes for erasure coding and they depend
    on the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER in the
-   ffl_flags in the ffv2_layout4 (see Figure 17) to inform the client
+   ffl_flags in the ffv2_layout4 (see Figure 18) to inform the client
    whether it is the only writer to the file or not.  If it is the only
    writer, then CHUNK_WRITE with the cwa_guard not set can be used to
    write chunks.  In this scenario, there is no write contention, but
@@ -2788,6 +2825,48 @@ Table of Contents
    of NFS4ERR_PAYLOAD_NOT_CONSISTENT.
 
 11.2.4.  Selecting the Repair Client
+
+   The repair topology involves three actors communicating along
+   distinct paths, as shown in Figure 31.
+
+        +------------+              +----------------+
+        | Reporting  |              |                |
+        | client     | ----(1)----> |    Metadata    |
+        | (detects   | LAYOUTERROR  |    server      |
+        |  error)    |              |                |
+        +------------+              +----------------+
+                                      |        ^  ^
+                                      | (2a)   |  |
+                                      |        |  |
+                              +-------+--+  (2b) (3)
+                              |          |  |   |
+                    CB_CHUNK_REPAIR      |   |  |
+                    (RACE or SCRUB)      |   |  |
+                                      |   |   |  |
+                                      v   |   |  |
+        +-------------+           +--------+-------------+
+        |  Repair     | ----(4)-> |                      |
+        |  client     |  CHUNK_   |    Data servers      |
+        |  (selected  |  LOCK_    |    (mirror set for   |
+        |   by MDS)   |  ADOPT,   |    affected ranges)  |
+        |             |  CHUNK_   |                      |
+        |             |  WRITE_   +----------------------+
+        |             |  REPAIR,
+        |             |  CHUNK_
+        |             |  FINALIZE,
+        |             |  CHUNK_
+        |             |  COMMIT,
+        |             |  CHUNK_
+        |             |  REPAIRED
+        +-------------+
+
+        (1) Reporter LAYOUTERRORs the MDS.
+        (2a) MDS selects a repair client (may be same as reporter).
+        (2b) MDS escrows the chunk lock and issues CB_CHUNK_REPAIR.
+        (3)  Repair client adopts the lock and drives the repair.
+        (4)  Repair client issues CHUNK_* ops against the mirror set.
+
+                         Figure 31: Repair topology
 
    The metadata server is the authority that selects which client (or,
    in a tightly coupled deployment, which data server) repairs an
@@ -3160,7 +3239,7 @@ Table of Contents
    Assume there is an additional ffv2_coding_type4 of
    FFV2_CODING_REED_SOLOMON and it needs 8 active chunks.  The user
    wants to actively assimilate a regular file.  As such, a layout might
-   be as represented in Figure 30.  As this is an assimilation, most of
+   be as represented in Figure 32.  As this is an assimilation, most of
    the data reads will be satisfied by READ (see Section 18.22 of
    [RFC8881]) calls to index 0.  However, as this is also an active
    file, there could also be CHUNK_READ (see Section 25.6) calls to the
@@ -3196,7 +3275,7 @@ Table of Contents
     |     ffm_coding: FFV2_CODING_REED_SOLOMON            |
     +-----------------------------------------------------+
 
-            Figure 30: Example of Mixed Coding Types in a Layout
+            Figure 32: Example of Mixed Coding Types in a Layout
 
    When performing I/O via a FFV2_CODING_MIRRORED coding type, the non-
    transformed data will be used, Whereas with other coding types, a
@@ -3204,7 +3283,7 @@ Table of Contents
    reading data from the instance files, the client MUST be prepared to
    have one of the coding types supply data and the other type not to
    supply data.  I.e., the CHUNK_READ call to the data servers in mirror
-   1 might return rlr_eof set to true (see Figure 65), which indicates
+   1 might return rlr_eof set to true (see Figure 70), which indicates
    that there is no data, where the READ call to the data server in
    mirror 0 might return eof to be false, which indicates that there is
    data.  The client MUST determine that there is in fact data.  An
@@ -3429,7 +3508,8 @@ Table of Contents
    k shards are the original data rows and the remaining m shards are
    projections.  Healthy reads require no decoding.
 
-   Reconstruction of missing data rows:
+   Reconstruction of missing data rows proceeds via the corner-peeling
+   algorithm of [NORMAND]:
 
    1.  Load available parity projections.
 
@@ -3437,7 +3517,7 @@ Table of Contents
 
    3.  Corner-peel the residual to recover missing rows.
 
-   Reconstruction cost is O(m * k) — a fundamental advantage over RS at
+   Reconstruction cost is O(m * k) -- a fundamental advantage over RS at
    wide geometries (k >= 8).
 
 11.5.8.  Non-Systematic Mojette
@@ -3778,7 +3858,7 @@ Table of Contents
                                   (next PENDING
                                    against same chunk)
 
-            Figure 31: Chunk lifecycle on the data server
+            Figure 33: Chunk lifecycle on the data server
 
    States:
 
@@ -3863,7 +3943,7 @@ Table of Contents
    example via NFSv4 byte-range locks ([RFC8881], Section 12).  The
    chunk size that bounds the atomicity unit for a given file is the
    product of ffm_striping_unit_size and the stripe width W in
-   Figure 21; applications can query fattr4_coding_block_size (see
+   Figure 22; applications can query fattr4_coding_block_size (see
    Section 23.1) to learn the effective chunk size and align their
    writes accordingly.
 
@@ -4013,7 +4093,7 @@ Table of Contents
           separate client action before performing the demotion.
 
       3.  Any CHUNK_LOCK held in escrow on behalf of the expired stateid
-          (see Section 24.1.1) is released after an MDS-defined grace
+          (see Section 24.1.3) is released after an MDS-defined grace
           period.  The grace period exists to let a recovering client
           reclaim its lock via the grace / reclaim path defined in
           [RFC8881]; on expiry of the grace period without reclaim, the
@@ -4058,7 +4138,7 @@ Table of Contents
 
    3.  *Pessimistic locks off the critical path.* CHUNK_LOCK is used
        only during repair, never on the normal write path.  Lock escrow
-       (see Section 24.1.1) preserves the "exactly one owner" invariant
+       (see Section 24.1.3) preserves the "exactly one owner" invariant
        across stateid revocation without requiring a consensus round to
        elect the next owner.
 
@@ -4481,7 +4561,7 @@ Table of Contents
 
    layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
    layout-type-specific information to the server.  It is defined in
-   Section 18.44.1 of [RFC8881] (also shown in Figure 32).
+   Section 18.44.1 of [RFC8881] (also shown in Figure 34).
 
          /* Constants used for LAYOUTRETURN and CB_LAYOUTRECALL */
          const LAYOUT4_RET_REC_FILE      = 1;
@@ -4517,7 +4597,7 @@ Table of Contents
               layoutreturn4           lora_layoutreturn;
       };
 
-                        Figure 32: Layout Return XDR
+                        Figure 34: Layout Return XDR
 
    If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
    lr_returntype is LAYOUTRETURN4_FILE, then the lrf_body opaque value
@@ -4541,9 +4621,9 @@ Table of Contents
       /// };
       ///
 
-                            Figure 33: ff_ioerr4
+                            Figure 35: ff_ioerr4
 
-   Recall that [RFC7862] defines device_error4 as in Figure 34:
+   Recall that [RFC7862] defines device_error4 as in Figure 36:
 
       struct device_error4 {
               deviceid4       de_deviceid;
@@ -4551,7 +4631,7 @@ Table of Contents
               nfs_opnum4      de_opnum;
       };
 
-                          Figure 34: device_error4
+                          Figure 36: device_error4
 
    The ff_ioerr4 structure is used to return error indications for data
    files that generated errors during data transfers.  These are hints
@@ -4583,10 +4663,10 @@ Table of Contents
       /// };
       ///
 
-                         Figure 35: ff_io_latency4
+                         Figure 37: ff_io_latency4
 
    Both operation counts and bytes transferred are kept in the
-   ff_io_latency4 (see Figure 35.  As seen in ff_layoutupdate4 (see
+   ff_io_latency4 (see Figure 37.  As seen in ff_layoutupdate4 (see
    Section 14.2.2), READ and WRITE operations are aggregated separately.
    READ operations are used for the ff_io_latency4 ffl_read.  Both WRITE
    and COMMIT operations are used for the ff_io_latency4 ffl_write.
@@ -4627,7 +4707,7 @@ Table of Contents
       /// };
       ///
 
-                        Figure 36: ff_layoutupdate4
+                        Figure 38: ff_layoutupdate4
 
    ffl_addr differentiates which network address the client is connected
    to on the storage device.  In the case of multipathing, ffl_fhandle
@@ -4652,16 +4732,16 @@ Table of Contents
       /// };
       ///
 
-                           Figure 37: ff_iostats4
+                           Figure 39: ff_iostats4
 
-   [RFC7862] defines io_info4 as in Figure 37.
+   [RFC7862] defines io_info4 as in Figure 39.
 
       struct io_info4 {
               uint64_t        ii_count;
               uint64_t        ii_bytes;
       };
 
-                            Figure 38: io_info4
+                            Figure 40: io_info4
 
    With pNFS, data transfers are performed directly between the pNFS
    client and the storage devices.  Therefore, the metadata server has
@@ -4702,7 +4782,7 @@ Table of Contents
       /// };
       ///
 
-                        Figure 39: ff_layoutreturn4
+                        Figure 41: ff_layoutreturn4
 
    When data file I/O operations fail, fflr_ioerr_report<> is used to
    report these errors to the metadata server as an array of elements of
@@ -4736,14 +4816,14 @@ Table of Contents
 
 17.  Flexible File Layout Type Creation Hint
 
-   The layouthint4 type is defined in the [RFC8881] as in Figure 40.
+   The layouthint4 type is defined in the [RFC8881] as in Figure 42.
 
       struct layouthint4 {
           layouttype4        loh_type;
           opaque             loh_body<>;
       };
 
-                         Figure 40: layouthint4 v1
+                         Figure 42: layouthint4 v1
 
                              {{fig-layouthint4-v1}}
 
@@ -4765,13 +4845,13 @@ Table of Contents
           ff_mirrors_hint    fflh_mirrors_hint;
       };
 
-                Figure 41: ff_layouthint4 (v1 compatibility)
+                Figure 43: ff_layouthint4 (v1 compatibility)
 
    The ff_layouthint4 is retained for backwards compatibility with Flex
    Files v1 layouts.  For Flex Files v2 layouts, clients SHOULD use
-   ffv2_layouthint4 (Figure 20) instead, which provides coding type
+   ffv2_layouthint4 (Figure 21) instead, which provides coding type
    selection and data protection geometry hints via
-   ffv2_data_protection4 (Figure 19).
+   ffv2_data_protection4 (Figure 20).
 
 19.  Recalling a Layout
 
@@ -4803,21 +4883,21 @@ Table of Contents
       /// const RCA4_TYPE_MASK_FF2_LAYOUT_MAX     = 21;
       ///
 
-                        Figure 42: RCA4 masks for v2
+                        Figure 44: RCA4 masks for v2
 
       struct  CB_RECALL_ANY4args      {
           uint32_t        craa_layouts_to_keep;
           bitmap4         craa_type_mask;
       };
 
-                     Figure 43: CB_RECALL_ANY4args XDR
+                     Figure 45: CB_RECALL_ANY4args XDR
 
    Typically, CB_RECALL_ANY will be used to recall client state when the
    server needs to reclaim resources.  The craa_type_mask bitmap
    specifies the type of resources that are recalled, and the
    craa_layouts_to_keep value specifies how many of the recalled
    flexible file layouts the client is allowed to keep.  The mask flags
-   for the flexible file layout type are defined as in Figure 44.
+   for the flexible file layout type are defined as in Figure 46.
 
       /// enum ffv2_cb_recall_any_mask {
       ///     PNFS_FF_RCA4_TYPE_MASK_READ = 20,
@@ -4825,7 +4905,7 @@ Table of Contents
       /// };
       ///
 
-                    Figure 44: Recall Mask Flags for v2
+                    Figure 46: Recall Mask Flags for v2
 
    The flags represent the iomode of the recalled layouts.  In response,
    the client SHOULD return layouts of the recalled iomode that it needs
@@ -4859,9 +4939,9 @@ Table of Contents
       /// const NFS4ERR_PAYLOAD_LOST           = 10101;
       ///
 
-                           Figure 45: Errors XDR
+                           Figure 47: Errors XDR
 
-   The new error codes are shown in Figure 45.
+   The new error codes are shown in Figure 47.
 
 21.1.  Error Definitions
 
@@ -5072,11 +5152,11 @@ Table of Contents
 
       /// const EXCHGID4_FLAG_USE_ERASURE_DS      = 0x00100000;
 
-                  Figure 46: The EXCHGID4_FLAG_USE_PNFS_DS
+                  Figure 48: The EXCHGID4_FLAG_USE_PNFS_DS
 
    When a data server connects to a metadata server it can via
    EXCHANGE_ID (see Section 18.35 of [RFC8881]) state its pNFS role.
-   The data server can use EXCHGID4_FLAG_USE_ERASURE_DS (see Figure 46)
+   The data server can use EXCHGID4_FLAG_USE_ERASURE_DS (see Figure 48)
    to indicate that it supports the new NFSv4.2 operations introduced in
    this document.  Section 13.1 of [RFC8881] describes the interaction
    of the various pNFS roles masked by EXCHGID4_FLAG_MASK_PNFS.
@@ -5099,9 +5179,9 @@ Table of Contents
       /// const FATTR4_CODING_BLOCK_SIZE  = 89;
       ///
 
-                Figure 47: XDR for fattr4_coding_block_size
+                Figure 49: XDR for fattr4_coding_block_size
 
-   The new attribute fattr4_coding_block_size (see Figure 47) is an
+   The new attribute fattr4_coding_block_size (see Figure 49) is an
    OPTIONAL to NFSv4.2 attribute which MUST be supported if the metadata
    server supports the Flexible File Version 2 Layout Type.  By querying
    it, the client can determine the data block size it is to use when
@@ -5118,9 +5198,33 @@ Table of Contents
       ///     uint32_t   cg_client_id;
       /// };
 
-                      Figure 48: XDR for chunk_guard4
+                      Figure 50: XDR for chunk_guard4
 
-   The chunk_guard4 (see Figure 48) is effectively a 64-bit value
+   On the wire, a single CHUNK_WRITE carries the 8-byte header followed
+   by the opaque payload, as shown in Figure 51.  The payload length is
+   carried separately in the CHUNK_WRITE4args cwa_chunks<> slot; the
+   diagram shows the per-chunk framing only.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                          cg_gen_id                            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                         cg_client_id                          |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                           cr_crc                              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                    opaque payload ...                         |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+      Bytes 0-3:   cg_gen_id      (per-chunk generation counter)
+      Bytes 4-7:   cg_client_id   (owning-client short id)
+      Bytes 8-11:  cr_crc         (CRC32 over the opaque payload)
+      Bytes 12-N:  opaque payload (encoded shard; variable length)
+
+                      Figure 51: Per-chunk wire layout
+
+   The chunk_guard4 (see Figure 50) is effectively a 64-bit value
    identifying a specific write transaction on a specific chunk.  It has
    two fields:
 
@@ -5174,7 +5278,58 @@ Table of Contents
    server; the protocol does not provide a preference mechanism at
    layout-grant time.
 
-24.1.1.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
+24.1.1.  Metadata-Server Assignment Rules for cg_client_id
+
+   To uphold the uniqueness contract, the metadata server MUST follow
+   these rules when assigning cg_client_id (that is, when populating
+   ffm_client_id at layout-grant time):
+
+   *  Two clients holding concurrent write layouts on the same file MUST
+      receive distinct cg_client_id values.  A client that holds only a
+      read layout need not be assigned a distinct value.
+
+   *  The reserved sentinel CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF) MUST
+      NOT be assigned to any client.
+
+   *  A cg_client_id MAY be reused by the metadata server after the
+      prior holder's layout has been fully returned (via LAYOUTRETURN or
+      revocation).  The metadata server SHOULD avoid reusing a
+      cg_client_id within a single lease period to simplify diagnosis of
+      stale writes.
+
+   *  cg_client_id values do not persist across metadata-server restart.
+      Clients reclaiming layouts during the grace period receive freshly
+      assigned values; the protocol does not rely on any pre-restart
+      assignment surviving.
+
+24.1.2.  Data-Server Collision Handling
+
+   A (cg_gen_id, cg_client_id) pair that the uniqueness contract would
+   otherwise render unique can nonetheless collide if a client and the
+   metadata server disagree about which cg_client_id the client
+   currently holds, or if a client presents a spoofed cg_client_id.  The
+   data server enforces the contract locally:
+
+   *  If the data server receives a CHUNK_WRITE whose chunk_guard4 has
+      the same (cg_gen_id, cg_client_id) as a chunk already in PENDING,
+      FINALIZED, or COMMITTED state AND the presented payload differs
+      from the retained payload, the data server MUST reject the write
+      with NFS4ERR_CHUNK_GUARDED and SHOULD report the collision to the
+      metadata server via LAYOUTERROR.  This situation is a protocol
+      violation on one side of the conversation; the metadata server
+      resolves it by revoking the offending client's layout and
+      selecting a repair client under Section 11.2.4.
+
+   *  If a client presents CHUNK_GUARD_CLIENT_ID_MDS as cg_client_id in
+      any client-originated operation, the data server MUST reject the
+      operation with NFS4ERR_INVAL (see Section 24.1.3).
+
+   *  A cg_client_id that does not match any layout the data server has
+      been told about (via TRUST_STATEID) MUST be rejected.  Unknown
+      cg_client_id values are treated as stale layouts; the data server
+      returns the error specified in Section 6.4 for unknown stateids.
+
+24.1.3.  Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS
 
    The value CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF) is reserved.  It
    denotes that the chunk lock is held by the metadata server itself, in
@@ -5199,16 +5354,16 @@ Table of Contents
 
       /// struct chunk_owner4 {
       ///     chunk_guard4   co_guard;
-      ///     uint32_t       co_id;
+      ///     uint32_t       co_chunk_id;
       /// };
 
-                      Figure 49: XDR for chunk_owner4
+                      Figure 52: XDR for chunk_owner4
 
-   The chunk_owner4 (see Figure 49) is used to determine when and by
-   whom a block was written.  The co_id is used to identify the block
-   and MUST be the index of the chunk within the file.  I.e., it is the
-   offset of the start of the chunk divided by the chunk length.  The
-   co_guard is a chunk_guard4 (see Section 24.1), used to identify a
+   The chunk_owner4 (see Figure 52) is used to determine when and by
+   whom a block was written.  The co_chunk_id is used to identify the
+   chunk and MUST be the index of the chunk within the file.  I.e., it
+   is the offset of the start of the chunk divided by the chunk length.
+   The co_guard is a chunk_guard4 (see Section 24.1), used to identify a
    given transaction.
 
    The co_guard is like the change attribute (see Section 5.8.1.4 of
@@ -5240,7 +5395,51 @@ Table of Contents
       ///  OP_BULK_REVOKE_STATEID = 90,
       ///
 
-                         Figure 50: Operations XDR
+                         Figure 53: Operations XDR
+
+   The following amendment blocks extend the nfs_argop4 and nfs_resop4
+   dispatch unions defined in [RFC7863] with arms for each of the new
+   operations defined in this document.  A consumer that combines this
+   document's extracted XDR with the RFC 7863 XDR applies these
+   amendments at the union's extension point.
+
+      /// /* nfs_argop4 amendment block */
+      ///
+      /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4args        opchunkcommit;
+      /// case OP_CHUNK_ERROR:          CHUNK_ERROR4args         opchunkerror;
+      /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4args      opchunkfinalize;
+      /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4args   opchunkheaderread;
+      /// case OP_CHUNK_LOCK:           CHUNK_LOCK4args          opchunklock;
+      /// case OP_CHUNK_READ:           CHUNK_READ4args          opchunkread;
+      /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4args      opchunkrepaired;
+      /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4args      opchunkrollback;
+      /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4args        opchunkunlock;
+      /// case OP_CHUNK_WRITE:          CHUNK_WRITE4args         opchunkwrite;
+      /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4args  opchunkwriterepair;
+      /// case OP_TRUST_STATEID:        TRUST_STATEID4args       optruststateid;
+      /// case OP_REVOKE_STATEID:       REVOKE_STATEID4args      oprevokestateid;
+      /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4args opbulkrevokestateid;
+
+                   Figure 54: nfs_argop4 amendment block
+
+      /// /* nfs_resop4 amendment block */
+      ///
+      /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4res         opchunkcommit;
+      /// case OP_CHUNK_ERROR:          CHUNK_ERROR4res          opchunkerror;
+      /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4res       opchunkfinalize;
+      /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4res    opchunkheaderread;
+      /// case OP_CHUNK_LOCK:           CHUNK_LOCK4res           opchunklock;
+      /// case OP_CHUNK_READ:           CHUNK_READ4res           opchunkread;
+      /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4res       opchunkrepaired;
+      /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4res       opchunkrollback;
+      /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4res         opchunkunlock;
+      /// case OP_CHUNK_WRITE:          CHUNK_WRITE4res          opchunkwrite;
+      /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4res   opchunkwriterepair;
+      /// case OP_TRUST_STATEID:        TRUST_STATEID4res        optruststateid;
+      /// case OP_REVOKE_STATEID:       REVOKE_STATEID4res       oprevokestateid;
+      /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4res  opbulkrevokestateid;
+
+                   Figure 55: nfs_resop4 amendment block
 
    Operations 77 through 87 (the CHUNK_* operations) are sent by clients
    to storage devices on the data path.  Operations 88 through 90
@@ -5293,7 +5492,7 @@ Table of Contents
       ///     chunk_owner4    cca_chunks<>;
       /// };
 
-                    Figure 51: XDR for CHUNK_COMMIT4args
+                    Figure 56: XDR for CHUNK_COMMIT4args
 
 25.1.2.  RESULTS
 
@@ -5302,7 +5501,7 @@ Table of Contents
       ///     nfsstat4        ccr_status<>;
       /// };
 
-                   Figure 52: XDR for CHUNK_COMMIT4resok
+                   Figure 57: XDR for CHUNK_COMMIT4resok
 
       /// union CHUNK_COMMIT4res switch (nfsstat4 ccr_status) {
       ///     case NFS4_OK:
@@ -5311,7 +5510,7 @@ Table of Contents
       ///         void;
       /// };
 
-                    Figure 53: XDR for CHUNK_COMMIT4res
+                    Figure 58: XDR for CHUNK_COMMIT4res
 
 25.1.3.  DESCRIPTION
 
@@ -5331,11 +5530,61 @@ Table of Contents
    to allow the data server to differentiate between potentially
    multiple pending blocks.
 
+25.1.3.1.  Interaction with CHUNK_FINALIZE
 
-   // Describe how CHUNK_COMMIT and CHUNK_FINALIZE interact.  How does
-   // CHUNK_COMMIT interact with a locked chunk?
-   //
-   // -- Tom
+   CHUNK_COMMIT transitions a chunk from FINALIZED to COMMITTED (see
+   Section 12.4).  A chunk MUST have previously been transitioned from
+   PENDING to FINALIZED via CHUNK_FINALIZE before CHUNK_COMMIT is
+   accepted:
+
+   *  If the target chunk is PENDING (i.e., the writer never issued
+      CHUNK_FINALIZE), the data server MUST reject the CHUNK_COMMIT
+      entry for that chunk with NFS4ERR_PAYLOAD_NOT_CONSISTENT in the
+      corresponding ccr_status slot.  The writer is expected to either
+      issue CHUNK_FINALIZE to advance the state or CHUNK_ROLLBACK to
+      abandon the PENDING generation.
+
+   *  If the target chunk is EMPTY (no generation to commit), the data
+      server MUST reject with NFS4ERR_PAYLOAD_NOT_CONSISTENT for that
+      chunk.
+
+   *  If the target chunk is already COMMITTED at the generation
+      identified by the cca_chunks entry's cg_gen_id, the CHUNK_COMMIT
+      is idempotent and MUST succeed.  Idempotence preserves the NFSv4
+      COMMIT contract for duplicate-request retransmission.
+
+   *  If the target chunk is FINALIZED at a different generation than
+      the one named in the cca_chunks entry, the data server MUST reject
+      with NFS4ERR_CHUNK_GUARDED.  A client that sees this has lost a
+      race and SHOULD re-read the chunk (see sec-chunk_guard4).
+
+   The three-step CHUNK_WRITE → CHUNK_FINALIZE → CHUNK_COMMIT sequence
+   MAY be pipelined within a single NFSv4.2 compound (see sec-system-
+   model-progress); each operation evaluates the current state of the
+   target chunks independently.
+
+25.1.3.2.  Interaction with a Locked Chunk
+
+   When a chunk is locked via CHUNK_LOCK (see Section 25.5),
+   CHUNK_COMMIT is permitted only when the submitter owns the lock --
+   that is, when the stateid carried on the compound matches the lock
+   holder's stateid (or is an CHUNK_LOCK_FLAGS_ADOPT-transferred
+   continuation):
+
+   *  The owning writer MAY issue CHUNK_COMMIT; the chunk transitions
+      from FINALIZED to COMMITTED normally.
+
+   *  A non-owning client MUST receive NFS4ERR_CHUNK_LOCKED in the
+      corresponding ccr_status slot.  The chunk's state is not changed.
+
+   *  During repair, the MDS-escrow owner (CHUNK_GUARD_CLIENT_ID_MDS,
+      see Section 24.1.3) holds the lock while the repair client adopts
+      it via CHUNK_LOCK_FLAGS_ADOPT.  CHUNK_COMMIT during the escrow
+      window is permitted only to the holder of the adopted lock.
+
+   This rule is what Section 12.5 calls "lock continuity across
+   revocation": the COMMIT privilege follows the lock without gaps in
+   which a non-owner could race.
 
 25.2.  Operation 78: CHUNK_ERROR - Report Error on Cached Chunk Data
 
@@ -5350,7 +5599,7 @@ Table of Contents
       ///     chunk_owner4    cea_owner;
       /// };
 
-                    Figure 54: XDR for CHUNK_ERROR4args
+                    Figure 59: XDR for CHUNK_ERROR4args
 
 25.2.2.  RESULTS
 
@@ -5358,7 +5607,7 @@ Table of Contents
       ///     nfsstat4        cer_status;
       /// };
 
-                     Figure 55: XDR for CHUNK_ERROR4res
+                     Figure 60: XDR for CHUNK_ERROR4res
 
 25.2.3.  DESCRIPTION
 
@@ -5390,7 +5639,7 @@ Table of Contents
       ///     chunk_owner4    cfa_chunks<>;
       /// };
 
-                   Figure 56: XDR for CHUNK_FINALIZE4args
+                   Figure 61: XDR for CHUNK_FINALIZE4args
 
 25.3.2.  RESULTS
 
@@ -5399,7 +5648,7 @@ Table of Contents
       ///     nfsstat4        cfr_status<>;
       /// };
 
-                  Figure 57: XDR for CHUNK_FINALIZE4resok
+                  Figure 62: XDR for CHUNK_FINALIZE4resok
 
       /// union CHUNK_FINALIZE4res switch (nfsstat4 cfr_status) {
       ///     case NFS4_OK:
@@ -5408,7 +5657,7 @@ Table of Contents
       ///         void;
       /// };
 
-                   Figure 58: XDR for CHUNK_FINALIZE4res
+                   Figure 63: XDR for CHUNK_FINALIZE4res
 
 25.3.3.  DESCRIPTION
 
@@ -5443,7 +5692,7 @@ Table of Contents
       ///     count4      chra_count;
       /// };
 
-                 Figure 59: XDR for CHUNK_HEADER_READ4args
+                 Figure 64: XDR for CHUNK_HEADER_READ4args
 
 25.4.2.  RESULTS
 
@@ -5454,7 +5703,7 @@ Table of Contents
       ///     chunk_owner4    chrr_chunks<>;
       /// };
 
-                 Figure 60: XDR for CHUNK_HEADER_READ4resok
+                 Figure 65: XDR for CHUNK_HEADER_READ4resok
 
 
    // Do we want to have a chunk_owner for reads versus writes?  Instead
@@ -5469,7 +5718,7 @@ Table of Contents
       ///         void;
       /// };
 
-                 Figure 61: XDR for CHUNK_HEADER_READ4resok
+                 Figure 66: XDR for CHUNK_HEADER_READ4resok
 
 25.4.3.  DESCRIPTION
 
@@ -5491,7 +5740,7 @@ Table of Contents
       ///     chunk_owner4    cla_owner;
       /// };
 
-                     Figure 62: XDR for CHUNK_LOCK4args
+                     Figure 67: XDR for CHUNK_LOCK4args
 
 25.5.2.  RESULTS
 
@@ -5504,7 +5753,7 @@ Table of Contents
       ///         void;
       /// };
 
-                     Figure 63: XDR for CHUNK_LOCK4res
+                     Figure 68: XDR for CHUNK_LOCK4res
 
 25.5.3.  DESCRIPTION
 
@@ -5572,7 +5821,7 @@ Table of Contents
        CHUNK_COMMIT.
 
    2.  The metadata server itself, acting through the
-       CHUNK_GUARD_CLIENT_ID_MDS escrow owner (Section 24.1.1).  This
+       CHUNK_GUARD_CLIENT_ID_MDS escrow owner (Section 24.1.3).  This
        occurs when the metadata server has revoked the prior holder's
        stateid in a tightly coupled deployment.
 
@@ -5596,7 +5845,7 @@ Table of Contents
       ///     count4      cra_count;
       /// };
 
-                     Figure 64: XDR for CHUNK_READ4args
+                     Figure 69: XDR for CHUNK_READ4args
 
 25.6.2.  RESULTS
 
@@ -5605,19 +5854,19 @@ Table of Contents
       ///     uint32_t        cr_effective_len;
       ///     chunk_owner4    cr_owner;
       ///     uint32_t        cr_payload_id;
-      ///     bool            cr_locked<>;  // TDH - make a flag
-      ///     nfsstat4        cr_status<>;
+      ///     bool            cr_locked;
+      ///     nfsstat4        cr_status;
       ///     opaque          cr_chunk<>;
       /// };
 
-                       Figure 65: XDR for read_chunk4
+                       Figure 70: XDR for read_chunk4
 
       /// struct CHUNK_READ4resok {
       ///     bool        crr_eof;
       ///     read_chunk4 crr_chunks<>;
       /// };
 
-                    Figure 66: XDR for CHUNK_READ4resok
+                    Figure 71: XDR for CHUNK_READ4resok
 
       /// union CHUNK_READ4res switch (nfsstat4 crr_status) {
       ///     case NFS4_OK:
@@ -5626,7 +5875,7 @@ Table of Contents
       ///          void;
       /// };
 
-                     Figure 67: XDR for CHUNK_READ4res
+                     Figure 72: XDR for CHUNK_READ4res
 
 25.6.3.  DESCRIPTION
 
@@ -5647,9 +5896,9 @@ Table of Contents
    exceeds the number of blocks that the data server is aware or it
    returns an empty block for that block.
 
-   For example, in Figure 68, the client asks for 4 blocks starting with
+   For example, in Figure 73, the client asks for 4 blocks starting with
    the 3rd block in the file.  The second data server responds as in
-   Figure 69.  The client would read this as there is valid data for
+   Figure 74.  The client would read this as there is valid data for
    blocks 2 and 4, there is a hole at block 3, and there is no data for
    block 5.  The data server MUST calculate a valid cr_crc for block 3
    based on the generated fields.
@@ -5663,7 +5912,7 @@ Table of Contents
      | cra_count: 4                   |
      +----------+---------------------+
 
-               Figure 68: Example: CHUNK_READ4args parameters
+               Figure 73: Example: CHUNK_READ4args parameters
 
            Data Server 2
      +--------------------------------+
@@ -5699,7 +5948,7 @@ Table of Contents
      |     cr_chunk: ....             |
      +--------------------------------+
 
-            Figure 69: Example: Resulting CHUNK_READ4resok reply
+            Figure 74: Example: Resulting CHUNK_READ4resok reply
 
 25.7.  Operation 83: CHUNK_REPAIRED - Confirm Repair of Errored Chunk
        Data
@@ -5714,7 +5963,7 @@ Table of Contents
       ///     chunk_owner4    cra_owner;
       /// };
 
-                   Figure 70: XDR for CHUNK_REPAIRED4args
+                   Figure 75: XDR for CHUNK_REPAIRED4args
 
 25.7.2.  RESULTS
 
@@ -5725,7 +5974,7 @@ Table of Contents
       ///         void;
       /// };
 
-                   Figure 71: XDR for CHUNK_REPAIRED4res
+                   Figure 76: XDR for CHUNK_REPAIRED4res
 
 25.7.3.  DESCRIPTION
 
@@ -5755,7 +6004,7 @@ Table of Contents
       ///     chunk_owner4    cra_chunks<>;
       /// };
 
-                   Figure 72: XDR for CHUNK_ROLLBACK4args
+                   Figure 77: XDR for CHUNK_ROLLBACK4args
 
 25.8.2.  RESULTS
 
@@ -5763,7 +6012,7 @@ Table of Contents
       ///     verifier4       crr_writeverf;
       /// };
 
-                  Figure 73: XDR for CHUNK_ROLLBACK4resok
+                  Figure 78: XDR for CHUNK_ROLLBACK4resok
 
       /// union CHUNK_ROLLBACK4res switch (nfsstat4 crr_status) {
       ///     case NFS4_OK:
@@ -5772,7 +6021,7 @@ Table of Contents
       ///         void;
       /// };
 
-                   Figure 74: XDR for CHUNK_ROLLBACK4res
+                   Figure 79: XDR for CHUNK_ROLLBACK4res
 
 25.8.3.  DESCRIPTION
 
@@ -5811,7 +6060,7 @@ Table of Contents
       ///     chunk_owner4    cua_owner;
       /// };
 
-                    Figure 75: XDR for CHUNK_UNLOCK4args
+                    Figure 80: XDR for CHUNK_UNLOCK4args
 
 25.9.2.  RESULTS
 
@@ -5822,7 +6071,7 @@ Table of Contents
       ///         void;
       /// };
 
-                    Figure 76: XDR for CHUNK_UNLOCK4res
+                    Figure 81: XDR for CHUNK_UNLOCK4res
 
 25.9.3.  DESCRIPTION
 
@@ -5849,7 +6098,7 @@ Table of Contents
       ///         void;
       /// };
 
-                   Figure 77: XDR for write_chunk_guard4
+                   Figure 82: XDR for write_chunk_guard4
 
       /// const CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY = 0x00000001;
       ///
@@ -5867,7 +6116,7 @@ Table of Contents
       ///     opaque             cwa_chunks<>;
       /// };
 
-                    Figure 78: XDR for CHUNK_WRITE4args
+                    Figure 83: XDR for CHUNK_WRITE4args
 
 25.10.2.  RESULTS
 
@@ -5880,7 +6129,7 @@ Table of Contents
       ///     chunk_owner4    cwr_owners<>;
       /// };
 
-                    Figure 79: XDR for CHUNK_WRITE4resok
+                    Figure 84: XDR for CHUNK_WRITE4resok
 
       /// union CHUNK_WRITE4res switch (nfsstat4 cwr_status) {
       ///     case NFS4_OK:
@@ -5889,7 +6138,7 @@ Table of Contents
       ///         void;
       /// };
 
-                     Figure 80: XDR for CHUNK_WRITE4res
+                     Figure 85: XDR for CHUNK_WRITE4res
 
 25.10.3.  DESCRIPTION
 
@@ -5956,21 +6205,55 @@ Table of Contents
    another writer has modified the block, the data server will reject
    the modification.
 
-   As the chunk_guard4 (see Figure 48 does not have a chunk_id and the
+   As the chunk_guard4 (see Figure 50 does not have a chunk_id and the
    CHUNK_WRITE applies to all blocks in the range of cwa_offset to the
    length of cwa_data, then each of the target blocks MUST have the same
    cg_gen_id and cg_client_id.  The client SHOULD present the smallest
    set of blocks as possible to meet this requirement.
 
+25.10.3.2.  Per-Block Acceptance Semantics
 
-   // Is the DS supposed to vet all blocks first or proceed to the first
-   // error?  Or do all blocks and return an array of errors?  (This
-   // last one is a no-go.)  Also, if we do the vet first, what happens
-   // if a CHUNK_WRITE comes in after the vetting?  Are we to lock the
-   // file during this process.  Even if we do that, we still have the
-   // issue of multiple DSes.
-   //
-   // -- Tom
+   A CHUNK_WRITE targets a contiguous range of blocks on a single data
+   server.  The data server evaluates each block independently and
+   reports the outcome per block in cwr_block_status (see Figure 84):
+
+   *  Each block is subjected to the guard check (when
+      cwa_guard.cwg_check is TRUE), the cg_client_id validation (see
+      Section 24.1), and any other local preconditions (storage-space
+      limits, tight-coupling trust-table state, etc.).
+
+   *  Blocks that pass their preconditions are written and their
+      cwr_block_status entry is NFS4_OK.  Blocks that fail produce the
+      appropriate error code (NFS4ERR_CHUNK_GUARDED, NFS4ERR_NOSPC,
+      etc.) in the corresponding cwr_block_status slot, and their data
+      is NOT persisted.
+
+   *  cwr_count reflects only the blocks that were written successfully;
+      failed blocks do not contribute.
+
+   *  The top-level cwr_status is NFS4_OK when the call itself was
+      structurally valid and the data server could evaluate each block.
+      Per-block failures are reported in cwr_block_status, not by
+      failing the whole operation.  The data server returns a top-level
+      error only if it could not evaluate the request at all (for
+      example, NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).
+
+   This is the "continue and report" discipline.  It is intentionally
+   not all-or-none: atomicity is already per-chunk (see Section 12.5),
+   so there is no file-level correctness reason to reject the entire
+   compound because of a single chunk guard failure.  Per-block
+   reporting gives the client the information it needs to construct a
+   targeted CHUNK_ROLLBACK or CHUNK_WRITE retry that covers only the
+   blocks that failed.
+
+   The data server does not hold a file-wide lock across the per-block
+   evaluation.  The chunk_guard4 CAS is evaluated atomically per chunk
+   at the point the data server updates that chunk's state, so an
+   interleaving CHUNK_WRITE from a different client that arrives mid-
+   compound will either win its own CAS race (and the losing client sees
+   NFS4ERR_CHUNK_GUARDED for the contested block) or be rejected itself,
+   without introducing data-server-level locking beyond the per-chunk
+   scope.
 
 25.11.  Operation 87: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk
         Data
@@ -5989,7 +6272,7 @@ Table of Contents
       ///     opaque             cwra_chunks<>;
       /// };
 
-                 Figure 81: XDR for CHUNK_WRITE_REPAIR4args
+                 Figure 86: XDR for CHUNK_WRITE_REPAIR4args
 
 25.11.2.  RESULTS
 
@@ -6000,7 +6283,7 @@ Table of Contents
       ///     nfsstat4        cwrr_status<>;
       /// };
 
-                Figure 82: XDR for CHUNK_WRITE_REPAIR4resok
+                Figure 87: XDR for CHUNK_WRITE_REPAIR4resok
 
       /// union CHUNK_WRITE_REPAIR4res switch (nfsstat4 cwrr_status) {
       ///     case NFS4_OK:
@@ -6009,7 +6292,7 @@ Table of Contents
       ///         void;
       /// };
 
-                 Figure 83: XDR for CHUNK_WRITE_REPAIR4res
+                 Figure 88: XDR for CHUNK_WRITE_REPAIR4res
 
 25.11.3.  DESCRIPTION
 
@@ -6062,7 +6345,7 @@ Table of Contents
       ///     utf8str_cs      tsa_principal;
       /// };
 
-                   Figure 84: XDR for TRUST_STATEID4args
+                   Figure 89: XDR for TRUST_STATEID4args
 
 25.12.2.  RESULTS
 
@@ -6073,7 +6356,7 @@ Table of Contents
       ///         void;
       /// };
 
-                    Figure 85: XDR for TRUST_STATEID4res
+                    Figure 90: XDR for TRUST_STATEID4res
 
 25.12.3.  DESCRIPTION
 
@@ -6170,7 +6453,7 @@ Table of Contents
       ///     stateid4        rsa_layout_stateid;
       /// };
 
-                   Figure 86: XDR for REVOKE_STATEID4args
+                   Figure 91: XDR for REVOKE_STATEID4args
 
 25.13.2.  RESULTS
 
@@ -6181,7 +6464,7 @@ Table of Contents
       ///         void;
       /// };
 
-                   Figure 87: XDR for REVOKE_STATEID4res
+                   Figure 92: XDR for REVOKE_STATEID4res
 
 25.13.3.  DESCRIPTION
 
@@ -6218,7 +6501,7 @@ Table of Contents
 
    Lock state (see Section 25.5) held by the revoked stateid is NOT
    released as part of REVOKE_STATEID; the data server MUST transfer
-   each held lock to the MDS-escrow owner (see Section 24.1.1).
+   each held lock to the MDS-escrow owner (see Section 24.1.3).
    Dropping a chunk lock during revocation would permit a write hole and
    is prohibited; the repair coordination sequence in Section 11.2.4
    assumes that locks held by a revoked writer remain held until a
@@ -6275,7 +6558,7 @@ Table of Contents
       ///     clientid4       brsa_clientid;
       /// };
 
-                Figure 88: XDR for BULK_REVOKE_STATEID4args
+                Figure 93: XDR for BULK_REVOKE_STATEID4args
 
 25.14.2.  RESULTS
 
@@ -6286,7 +6569,7 @@ Table of Contents
       ///         void;
       /// };
 
-                 Figure 89: XDR for BULK_REVOKE_STATEID4res
+                 Figure 94: XDR for BULK_REVOKE_STATEID4res
 
 25.14.3.  DESCRIPTION
 
@@ -6337,7 +6620,7 @@ Table of Contents
    Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent (no error is
    returned if there are no matching entries) and preserves chunk locks
    held under any revoked stateid by transferring them to the MDS-escrow
-   owner (see Section 24.1.1), rather than dropping them.
+   owner (see Section 24.1.3), rather than dropping them.
 
 25.14.4.  RESPONSE CODES
 
@@ -6366,7 +6649,23 @@ Table of Contents
       ///  OP_CB_CHUNK_REPAIR     = 16,
       ///
 
-                     Figure 90: Callback Operations XDR
+                     Figure 95: Callback Operations XDR
+
+   The following amendment blocks extend the nfs_cb_argop4 and
+   nfs_cb_resop4 dispatch unions defined in [RFC7863] with arms for the
+   new callback operation defined in this document.
+
+      /// /* nfs_cb_argop4 amendment block */
+      ///
+      /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4args  opcbchunkrepair;
+
+                  Figure 96: nfs_cb_argop4 amendment block
+
+      /// /* nfs_cb_resop4 amendment block */
+      ///
+      /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4res   opcbchunkrepair;
+
+                  Figure 97: nfs_cb_resop4 amendment block
 
 26.1.  Callback Operation 16: CB_CHUNK_REPAIR - Request Repair of
        Inconsistent Chunk Ranges
@@ -6392,7 +6691,7 @@ Table of Contents
       ///     cb_chunk_range4             ccra_ranges<>;
       /// };
 
-                  Figure 91: XDR for CB_CHUNK_REPAIR4args
+                  Figure 98: XDR for CB_CHUNK_REPAIR4args
 
 26.1.2.  RESULTS
 
@@ -6400,7 +6699,7 @@ Table of Contents
       ///     nfsstat4           ccrr_status;
       /// };
 
-                   Figure 92: XDR for CB_CHUNK_REPAIR4res
+                   Figure 99: XDR for CB_CHUNK_REPAIR4res
 
 26.1.3.  DESCRIPTION
 
@@ -6573,7 +6872,7 @@ Table of Contents
 
    The CRC32 values carried in CHUNK_WRITE and returned from CHUNK_READ
    are intended to detect accidental data corruption during storage or
-   transmission — for example, bit flips in storage media or network
+   transmission -- for example, bit flips in storage media or network
    errors.  CRC32 is not a cryptographic hash and does not protect
    against intentional modification: an adversary with access to the
    network path could replace a chunk and recompute a valid CRC32 to
@@ -6581,6 +6880,33 @@ Table of Contents
    document refers to error detection, not protection against an active
    attacker.  Deployments requiring protection against active attackers
    SHOULD use RPC-over-TLS (see Section 27.4) or RPCSEC_GSS.
+
+   An authenticated client is in the "active attacker" role with respect
+   to its own chunks, in a restricted sense.  The data server validates
+   the CRC32 against the bytes the client provided, so an authenticated
+   client that chooses to send semantically-invalid bytes with a
+   correctly computed CRC32 will have those bytes accepted.  The
+   residual surface differs per authentication model:
+
+   *  Under AUTH_SYS with loose coupling, the residual surface is
+      essentially the pre-existing attack surface of NFSv3 writes: any
+      host that can reach the data server with a valid uid can write
+      nonsense to chunks that uid owns.  This is the authorization model
+      the rest of Flex Files v1 inherits without modification.
+
+   *  Under RPCSEC_GSS or TLS with mutual authentication, the residual
+      surface reduces to: only the authenticated client can write
+      nonsense into chunks it owns.  Cross-client corruption is
+      prevented because the data server verifies the principal before
+      accepting the write.  The remaining attack surface is the client's
+      own integrity: any deployment that relies on data integrity above
+      the wire MUST apply application-level content validation.
+
+   Flex Files v2 does not attempt to defend against this authenticated-
+   but-malicious case.  The CRC32 mechanism is a transport-integrity
+   check, not a content-integrity check; the system trust model assumes
+   that an authenticated principal is entitled to destroy the content of
+   chunks it owns.
 
 27.2.  Chunk Lock and Lease Expiry
 
@@ -6601,8 +6927,8 @@ Table of Contents
    state to the caller.  Both of these errors MAY be returned to callers
    whose credentials have not been verified by the data server (e.g.,
    when the AUTH_SYS uid presented does not match the synthetic uid on
-   the data file).  The information they reveal — that a chunk is
-   locked, or that a CRC mismatch occurred — does not directly disclose
+   the data file).  The information they reveal -- that a chunk is
+   locked, or that a CRC mismatch occurred -- does not directly disclose
    file contents but may indicate concurrent write activity.
    Implementations that are concerned about this level of disclosure
    SHOULD require that operations on CHUNK ops only succeed after
@@ -6699,36 +7025,36 @@ Table of Contents
    +===============+=====================+============================+
    | Range         | Purpose             | Allocation Policy          |
    +===============+=====================+============================+
-   | 0x0000–0x00FF | Standards Track     | IETF Review (RFC required) |
+   | 0x0000-0x00FF | Standards Track     | IETF Review (RFC required) |
    +---------------+---------------------+----------------------------+
-   | 0x0100–0x0FFF | Experimental        | Expert Review              |
+   | 0x0100-0x0FFF | Experimental        | Expert Review              |
    +---------------+---------------------+----------------------------+
-   | 0x1000–0x7FFF | Vendor (open)       | First Come First Served    |
+   | 0x1000-0x7FFF | Vendor (open)       | First Come First Served    |
    +---------------+---------------------+----------------------------+
-   | 0x8000–0xFFFE | Private/proprietary | No registration required   |
+   | 0x8000-0xFFFE | Private/proprietary | No registration required   |
    +---------------+---------------------+----------------------------+
-   | 0xFFFF        | Reserved            | —                          |
+   | 0xFFFF        | Reserved            | --                         |
    +---------------+---------------------+----------------------------+
 
                 Table 13: Erasure Coding Type Value Ranges
 
-   Standards Track (0x0000–0x00FF)  Encoding types intended for broad
+   Standards Track (0x0000-0x00FF)  Encoding types intended for broad
       interoperability.  The specification MUST include a complete
       mathematical description sufficient for independent interoperable
       implementations (see Section 8.1.1).  Allocated by IETF Review.
 
-   Experimental (0x0100–0x0FFF)  Encoding types under development or
+   Experimental (0x0100-0x0FFF)  Encoding types under development or
       evaluation.  An Internet-Draft is sufficient for allocation.  The
       specification SHOULD include enough detail for interoperability
       testing.  Allocated by Expert Review.
 
-   Vendor (open) (0x1000–0x7FFF)  Encoding types with a published
+   Vendor (open) (0x1000-0x7FFF)  Encoding types with a published
       specification or patent reference.  Interoperability is expected
       among implementations that license or implement the specification.
       The registration MUST include either a math specification or a
       patent reference.  Allocated First Come First Served.
 
-   Private/proprietary (0x8000–0xFFFE)  Encoding types for use within a
+   Private/proprietary (0x8000-0xFFFE)  Encoding types for use within a
       single vendor's ecosystem.  No IANA registration is required.
       Interoperability with other implementations is not expected.  To
       reduce the likelihood of accidental codepoint collisions between
@@ -6764,28 +7090,39 @@ Table of Contents
        Table 14: Flexible File Version 2 Layout Type Erasure Coding
                              Type Assignments
 
+28.1.  Flag-Word Allocation
+
+   This document defines three bitmap spaces -- ffv2_flags4 (see
+   Section 8.2.1), ffv2_ds_flags4 (see Section 8.4), and cwa_flags (see
+   Section 25.10) -- whose allocated bits are enumerated in this
+   document.  Following the precedent of ff_flags4 in [RFC8435], IANA
+   does not maintain a registry for any of these bitmap spaces.  Future
+   bit allocations are made by a document that updates or obsoletes this
+   one.  Implementations MUST treat unknown bits as reserved and MUST
+   NOT assign meaning to them locally.
+
 29.  XDR Description of the Flexible File Layout Type
 
    This document contains the External Data Representation (XDR)
    [RFC4506] description of the flexible file layout type.  The XDR
    description is embedded in this document in a way that makes it
    simple for the reader to extract into a ready-to-compile form.  The
-   reader can feed this document into the shell script in Figure 93 to
+   reader can feed this document into the shell script in Figure 100 to
    produce the machine-readable XDR description of the flexible file
    layout type.
 
    #!/bin/sh
    grep '^ *///' $* | sed 's?^ */// ??' | sed 's?^ *///$??'
 
-                           Figure 93: extract.sh
+                           Figure 100: extract.sh
 
    That is, if the above script is stored in a file called "extract.sh"
    and this document is in a file called "spec.txt", then the reader can
-   run the script as in Figure 94.
+   run the script as in Figure 101.
 
    sh extract.sh < spec.txt > flex_files2_prot.x
 
-                    Figure 94: Example use of extract.sh
+                   Figure 101: Example use of extract.sh
 
    The effect of the script is to remove leading blank space from each
    line, plus a sentinel sequence of "///".
@@ -7186,6 +7523,11 @@ References
 
 Normative References
 
+   [RFC1813]  Callaghan, B., Pawlowski, B., and P. Staubach, "NFS
+              Version 3 Protocol Specification", RFC 1813,
+              DOI 10.17487/RFC1813, June 1995,
+              <https://www.rfc-editor.org/rfc/rfc1813>.
+
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
               DOI 10.17487/RFC2119, March 1997,
@@ -7272,11 +7614,6 @@ Informative References
 
    [Plank97]  Plank, J., "A Tutorial on Reed-Solomon Coding for Fault-
               Tolerance in RAID-like System", September 1997.
-
-   [RFC1813]  Callaghan, B., Pawlowski, B., and P. Staubach, "NFS
-              Version 3 Protocol Specification", RFC 1813,
-              DOI 10.17487/RFC1813, June 1995,
-              <https://www.rfc-editor.org/rfc/rfc1813>.
 
    [RFC4519]  Sciberras, A., Ed., "Lightweight Directory Access Protocol
               (LDAP): Schema for User Applications", RFC 4519,

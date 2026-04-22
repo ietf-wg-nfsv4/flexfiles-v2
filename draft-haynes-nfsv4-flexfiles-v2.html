@@ -1610,7 +1610,13 @@ code and issues list for this draft can be found at
                 <p id="section-toc.1-1.24.2.1.1"><a href="#section-24.1" class="auto internal xref">24.1</a>.  <a href="#name-chunk_guard4" class="internal xref">chunk_guard4</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.24.2.1.2.1">
-                    <p id="section-toc.1-1.24.2.1.2.1.1"><a href="#section-24.1.1" class="auto internal xref">24.1.1</a>.  <a href="#name-reserved-cg_client_id-value" class="internal xref">Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS</a></p>
+                    <p id="section-toc.1-1.24.2.1.2.1.1"><a href="#section-24.1.1" class="auto internal xref">24.1.1</a>.  <a href="#name-metadata-server-assignment-" class="internal xref">Metadata-Server Assignment Rules for cg_client_id</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.24.2.1.2.2">
+                    <p id="section-toc.1-1.24.2.1.2.2.1"><a href="#section-24.1.2" class="auto internal xref">24.1.2</a>.  <a href="#name-data-server-collision-handl" class="internal xref">Data-Server Collision Handling</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.24.2.1.2.3">
+                    <p id="section-toc.1-1.24.2.1.2.3.1"><a href="#section-24.1.3" class="auto internal xref">24.1.3</a>.  <a href="#name-reserved-cg_client_id-value" class="internal xref">Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS</a></p>
 </li>
                 </ul>
 </li>
@@ -1881,6 +1887,11 @@ code and issues list for this draft can be found at
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.28">
             <p id="section-toc.1-1.28.1"><a href="#section-28" class="auto internal xref">28</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.28.2.1">
+                <p id="section-toc.1-1.28.2.1.1"><a href="#section-28.1" class="auto internal xref">28.1</a>.  <a href="#name-flag-word-allocation" class="internal xref">Flag-Word Allocation</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.29">
             <p id="section-toc.1-1.29.1"><a href="#section-29" class="auto internal xref">29</a>. <a href="#name-xdr-description-of-the-flex" class="internal xref">XDR Description of the Flexible File Layout Type</a></p>
@@ -2391,7 +2402,7 @@ device.  Each layout type specifies the set of storage protocols.<a href="#secti
         <dd style="margin-left: 1.5em" id="section-5-1.64">
           <p id="section-5-1.64.1">An erasure coding scheme in which the first k of the k+m encoded
 shards are identical to the original k data blocks.  A healthy read
-(no failures) requires no decoding — the data shards are read directly.
+(no failures) requires no decoding -- the data shards are read directly.
 Decoding is triggered only when data shards are missing.  Reed-Solomon
 Vandermonde and Mojette systematic are examples.<a href="#section-5-1.64.1" class="pilcrow">¶</a></p>
 </dd>
@@ -2614,7 +2625,7 @@ fencing.<a href="#section-6.2.2-7" class="pilcrow">¶</a></p>
 that there is no mapping in any of the name services used by the storage
 device, i.e., each group <span class="bcp14">SHOULD</span> have no members.<a href="#section-6.2.2-9" class="pilcrow">¶</a></p>
 <p id="section-6.2.2-10">If the layout segment has an iomode of LAYOUTIOMODE4_READ, then the
-metadata server should return a synthetic uid that is not set on the
+metadata server <span class="bcp14">SHOULD</span> return a synthetic uid that is not set on the
 storage device.  Only the synthetic gid would be valid.<a href="#section-6.2.2-10" class="pilcrow">¶</a></p>
 <p id="section-6.2.2-11">The client is thus solely responsible for enforcing file permissions
 in a loosely coupled model.  To allow loghyr write access, it will send
@@ -3285,9 +3296,13 @@ retrieve that information.<a href="#section-7-1" class="pilcrow">¶</a></p>
 is returned by the server as the layout-type-specific opaque field
 da_addr_body in the device_addr4 structure by a successful GETDEVICEINFO
 operation.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
-<span id="name-ff_device_versions4"></span><div id="fig-ff_device_versions4">
+<p id="section-7.1-2">The ff_device_versions4 and ff_device_addr4 structures are
+reused unchanged from <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>; they are reproduced here for
+reader convenience and are not part of the XDR extracted from
+this document.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
+<span id="name-ff_device_versions4-reused-"></span><div id="fig-ff_device_versions4">
 <figure id="figure-5">
-          <div class="lang-xdr sourcecode" id="section-7.1-2.1">
+          <div class="lang-xdr sourcecode" id="section-7.1-3.1">
 <pre>
    struct ff_device_versions4 {
            uint32_t        ffdv_version;
@@ -3299,12 +3314,12 @@ operation.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
 </pre>
 </div>
 <figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
-<a href="#name-ff_device_versions4" class="selfRef">ff_device_versions4</a>
+<a href="#name-ff_device_versions4-reused-" class="selfRef">ff_device_versions4 (reused from RFC 8435)</a>
           </figcaption></figure>
 </div>
-<span id="name-ff_device_addr4-2"></span><div id="fig-ff_device_addr4">
+<span id="name-ff_device_addr4-reused-from"></span><div id="fig-ff_device_addr4">
 <figure id="figure-6">
-          <div class="lang-xdr sourcecode" id="section-7.1-3.1">
+          <div class="lang-xdr sourcecode" id="section-7.1-4.1">
 <pre>
    struct ff_device_addr4 {
            multipath_list4     ffda_netaddrs;
@@ -3313,13 +3328,13 @@ operation.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
 </pre>
 </div>
 <figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
-<a href="#name-ff_device_addr4-2" class="selfRef">ff_device_addr4</a>
+<a href="#name-ff_device_addr4-reused-from" class="selfRef">ff_device_addr4 (reused from RFC 8435)</a>
           </figcaption></figure>
 </div>
-<p id="section-7.1-4">The ffda_netaddrs field is used to locate the storage device.  It
+<p id="section-7.1-5">The ffda_netaddrs field is used to locate the storage device.  It
 <span class="bcp14">MUST</span> be set by the server to a list holding one or more of the device
-network addresses.<a href="#section-7.1-4" class="pilcrow">¶</a></p>
-<p id="section-7.1-5">The ffda_versions array allows the metadata server to present choices
+network addresses.<a href="#section-7.1-5" class="pilcrow">¶</a></p>
+<p id="section-7.1-6">The ffda_versions array allows the metadata server to present choices
 as to NFS version, minor version, and coupling strength to the
 client.  The ffdv_version and ffdv_minorversion represent the NFS
 protocol to be used to access the storage device.  This layout
@@ -3329,21 +3344,21 @@ ffdv_version equals 3, then the server <span class="bcp14">MUST</span> set ffdv_
 storage device using the NFSv3 protocol <span>[<a href="#RFC1813" class="cite xref">RFC1813</a>]</span>.  If ffdv_version
 equals 4, then the server <span class="bcp14">MUST</span> set ffdv_minorversion to one of the
 NFSv4 minor version numbers, and the client <span class="bcp14">MUST</span> access the storage
-device using NFSv4 with the specified minor version.<a href="#section-7.1-5" class="pilcrow">¶</a></p>
-<p id="section-7.1-6">Note that while the client might determine that it cannot use any of
+device using NFSv4 with the specified minor version.<a href="#section-7.1-6" class="pilcrow">¶</a></p>
+<p id="section-7.1-7">Note that while the client might determine that it cannot use any of
 the configured combinations of ffdv_version, ffdv_minorversion, and
 ffdv_tightly_coupled, when it gets the device list from the metadata
 server, there is no way to indicate to the metadata server as to
 which device it is version incompatible.  However, if the client
 waits until it retrieves the layout from the metadata server, it can
 at that time clearly identify the storage device in question (see
-<a href="#sec-version-errors" class="auto internal xref">Section 8.14</a>).<a href="#section-7.1-6" class="pilcrow">¶</a></p>
-<p id="section-7.1-7">The ffdv_rsize and ffdv_wsize are used to communicate the maximum
+<a href="#sec-version-errors" class="auto internal xref">Section 8.14</a>).<a href="#section-7.1-7" class="pilcrow">¶</a></p>
+<p id="section-7.1-8">The ffdv_rsize and ffdv_wsize are used to communicate the maximum
 rsize and wsize supported by the storage device.  As the storage
 device can have a different rsize or wsize than the metadata server,
 the ffdv_rsize and ffdv_wsize allow the metadata server to
-communicate that information on behalf of the storage device.<a href="#section-7.1-7" class="pilcrow">¶</a></p>
-<p id="section-7.1-8">ffdv_tightly_coupled informs the client as to whether the
+communicate that information on behalf of the storage device.<a href="#section-7.1-8" class="pilcrow">¶</a></p>
+<p id="section-7.1-9">ffdv_tightly_coupled informs the client as to whether the
 metadata server is tightly coupled with this storage device.  Note
 that even if the data protocol is at least NFSv4.1, it may still
 be the case that there is loose coupling in effect.  For an NFSv4.2
@@ -3352,13 +3367,13 @@ true only after confirming the storage device implements the
 TRUST_STATEID control protocol via the capability probe described
 in <a href="#sec-tight-coupling-probe" class="auto internal xref">Section 6.4.1</a>.  An NFSv4.2 storage device that
 does not implement TRUST_STATEID (returning NFS4ERR_NOTSUPP to the
-probe) <span class="bcp14">MUST</span> be advertised with ffdv_tightly_coupled set to false.<a href="#section-7.1-8" class="pilcrow">¶</a></p>
-<p id="section-7.1-9">If ffdv_tightly_coupled is not set, then the client <span class="bcp14">MUST</span> commit
+probe) <span class="bcp14">MUST</span> be advertised with ffdv_tightly_coupled set to false.<a href="#section-7.1-9" class="pilcrow">¶</a></p>
+<p id="section-7.1-10">If ffdv_tightly_coupled is not set, then the client <span class="bcp14">MUST</span> commit
 writes to the storage devices for the file before sending a
 LAYOUTCOMMIT to the metadata server.  That is, the writes <span class="bcp14">MUST</span> be
 committed by the client to stable storage via issuing WRITEs with
 stable_how == FILE_SYNC or by issuing a COMMIT after WRITEs with
-stable_how != FILE_SYNC (see Section 3.3.7 of <span>[<a href="#RFC1813" class="cite xref">RFC1813</a>]</span>).<a href="#section-7.1-9" class="pilcrow">¶</a></p>
+stable_how != FILE_SYNC (see Section 3.3.7 of <span>[<a href="#RFC1813" class="cite xref">RFC1813</a>]</span>).<a href="#section-7.1-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="storage-device-multipathing">
@@ -3417,8 +3432,14 @@ the data consist of exact replicas.<a href="#section-7.2-4" class="pilcrow">¶</
 <a href="#section-8" class="section-number selfRef">8. </a><a href="#name-flexible-file-version-2-lay" class="section-name selfRef">Flexible File Version 2 Layout Type</a>
       </h2>
 <p id="section-8-1">The original layouttype4 introduced in <span>[<a href="#RFC5662" class="cite xref">RFC5662</a>]</span> is extended as shown in
-<a href="#fig-orig-layout" class="auto internal xref">Figure 7</a>.<a href="#section-8-1" class="pilcrow">¶</a></p>
-<span id="name-the-original-layout-type"></span><div id="fig-orig-layout">
+<a href="#fig-orig-layout" class="auto internal xref">Figure 7</a>.  The layout_content4 and layout4 structures are
+reused unchanged from <span>[<a href="#RFC5662" class="cite xref">RFC5662</a>]</span>; the layouttype4 enum is extended
+with the new LAYOUT4_FLEX_FILES_V2 value.  The full enum and
+surrounding structures below are reproduced for reader
+convenience; only the new constant LAYOUT4_FLEX_FILES_V2 is part
+of the XDR extracted from this document (see
+<a href="#fig-orig-layout-extract" class="auto internal xref">Figure 8</a>).<a href="#section-8-1" class="pilcrow">¶</a></p>
+<span id="name-the-original-layout-type-il"></span><div id="fig-orig-layout">
 <figure id="figure-7">
         <div class="lang-xdr sourcecode" id="section-8-2.1">
 <pre>
@@ -3444,22 +3465,35 @@ the data consist of exact replicas.<a href="#section-7.2-4" class="pilcrow">¶</
 </pre>
 </div>
 <figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
-<a href="#name-the-original-layout-type" class="selfRef">The original layout type</a>
+<a href="#name-the-original-layout-type-il" class="selfRef">The original layout type (illustrative; reused from RFC 5662 with extension)</a>
         </figcaption></figure>
 </div>
-<p id="section-8-3">This document defines structures associated with the layouttype4
+<p id="section-8-3">The extracted XDR contribution for this extension is the new
+layouttype4 constant alone:<a href="#section-8-3" class="pilcrow">¶</a></p>
+<span id="name-new-layouttype4-value-extra"></span><div id="fig-orig-layout-extract">
+<figure id="figure-8">
+        <div class="lang-xdr sourcecode" id="section-8-4.1">
+<pre>
+   /// const LAYOUT4_FLEX_FILES_V2 = 5;
+</pre>
+</div>
+<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
+<a href="#name-new-layouttype4-value-extra" class="selfRef">New layouttype4 value (extracted)</a>
+        </figcaption></figure>
+</div>
+<p id="section-8-5">This document defines structures associated with the layouttype4
 value LAYOUT4_FLEX_FILES_V2.  <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> specifies the loc_body structure
 as an XDR type "opaque".  The opaque layout is uninterpreted by the
 generic pNFS client layers but is interpreted by the flexible file
 layout type implementation.  This section defines the structure of
-this otherwise opaque value, ffv2_layout4.<a href="#section-8-3" class="pilcrow">¶</a></p>
+this otherwise opaque value, ffv2_layout4.<a href="#section-8-5" class="pilcrow">¶</a></p>
 <div id="ffv2codingtype4">
 <section id="section-8.1">
         <h3 id="name-ffv2_coding_type4">
 <a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-ffv2_coding_type4" class="section-name selfRef">ffv2_coding_type4</a>
         </h3>
 <span id="name-the-coding-type"></span><div id="fig-ffv2_coding_type4">
-<figure id="figure-8">
+<figure id="figure-9">
           <div class="lang-xdr sourcecode" id="section-8.1-1.1">
 <pre>
    /// enum ffv2_coding_type4 {
@@ -3470,11 +3504,11 @@ this otherwise opaque value, ffv2_layout4.<a href="#section-8-3" class="pilcrow"
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
+<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
 <a href="#name-the-coding-type" class="selfRef">The coding type</a>
           </figcaption></figure>
 </div>
-<p id="section-8.1-2">The ffv2_coding_type4 (see <a href="#fig-ffv2_coding_type4" class="auto internal xref">Figure 8</a>) encompasses
+<p id="section-8.1-2">The ffv2_coding_type4 (see <a href="#fig-ffv2_coding_type4" class="auto internal xref">Figure 9</a>) encompasses
 a new IANA registry for 'Flexible Files Version 2 Erasure Coding
 Type Registry'.  I.e., instead of defining a new Layout Type for
 each Erasure Coding, we define a new Erasure Coding Type.  Except
@@ -3496,7 +3530,7 @@ data.  As such, it does not need operations like CHUNK_WRITE (see
           <h4 id="name-encoding-type-interoperabil">
 <a href="#section-8.1.1" class="section-number selfRef">8.1.1. </a><a href="#name-encoding-type-interoperabil" class="section-name selfRef">Encoding Type Interoperability</a>
           </h4>
-<p id="section-8.1.1-1">The data servers do not interpret erasure-coded data — they store and
+<p id="section-8.1.1-1">The data servers do not interpret erasure-coded data -- they store and
 return opaque chunks.  The NFS wire protocol likewise does not depend
 on the encoding mathematics.  However, a client that writes data using
 one encoding type <span class="bcp14">MUST</span> be able to read it back, and a different
@@ -3552,7 +3586,7 @@ require client-side agreement on the mathematics.<a href="#section-8.1.1-5" clas
 <a href="#section-8.2.1" class="section-number selfRef">8.2.1. </a><a href="#name-ffv2_flags4" class="section-name selfRef">ffv2_flags4</a>
           </h4>
 <span id="name-the-ffv2_flags4"></span><div id="fig-ffv2_flags4">
-<figure id="figure-9">
+<figure id="figure-10">
             <div class="lang-xdr sourcecode" id="section-8.2.1-1.1">
 <pre>
    /// const FFV2_FLAGS_NO_LAYOUTCOMMIT   = FF_FLAGS_NO_LAYOUTCOMMIT;
@@ -3564,51 +3598,58 @@ require client-side agreement on the mathematics.<a href="#section-8.1.1-5" clas
    /// typedef uint32_t            ffv2_flags4;
 </pre>
 </div>
-<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
+<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
 <a href="#name-the-ffv2_flags4" class="selfRef">The ffv2_flags4</a>
             </figcaption></figure>
 </div>
-<p id="section-8.2.1-2">The ffv2_flags4 in <a href="#fig-ffv2_flags4" class="auto internal xref">Figure 9</a>  is a bitmap that allows the
+<p id="section-8.2.1-2">The ffv2_flags4 in <a href="#fig-ffv2_flags4" class="auto internal xref">Figure 10</a>  is a bitmap that allows the
 metadata server to inform the client of particular conditions that
 may result from more or less tight coupling of the storage devices.<a href="#section-8.2.1-2" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-8.2.1-3">
-            <dt id="section-8.2.1-3.1">FFV2_FLAGS_NO_LAYOUTCOMMIT:</dt>
-            <dd style="margin-left: 1.5em" id="section-8.2.1-3.2">
-              <p id="section-8.2.1-3.2.1">can be set to indicate that the client is not required to send
-LAYOUTCOMMIT to the metadata server.<a href="#section-8.2.1-3.2.1" class="pilcrow">¶</a></p>
+<p id="section-8.2.1-3">Each flag below describes both the semantics when set and the
+normative requirement it places on the client.  When a flag is
+not set, the client <span class="bcp14">MUST</span> follow the default behavior described
+for its unset state.<a href="#section-8.2.1-3" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-8.2.1-4">
+            <dt id="section-8.2.1-4.1">FFV2_FLAGS_NO_LAYOUTCOMMIT:</dt>
+            <dd style="margin-left: 1.5em" id="section-8.2.1-4.2">
+              <p id="section-8.2.1-4.2.1">When set, the client <span class="bcp14">MAY</span> omit the LAYOUTCOMMIT to the
+metadata server.  When unset, the client <span class="bcp14">MUST</span> send LAYOUTCOMMIT
+per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.42.<a href="#section-8.2.1-4.2.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-8.2.1-3.3">FFV2_FLAGS_NO_IO_THRU_MDS:</dt>
-            <dd style="margin-left: 1.5em" id="section-8.2.1-3.4">
-              <p id="section-8.2.1-3.4.1">can be set to indicate that the client should not send I/O
-operations to the metadata server.  That is, even if the client
-could determine that there was a network disconnect to a storage
-device, the client should not try to proxy the I/O through the
-metadata server.<a href="#section-8.2.1-3.4.1" class="pilcrow">¶</a></p>
+<dt id="section-8.2.1-4.3">FFV2_FLAGS_NO_IO_THRU_MDS:</dt>
+            <dd style="margin-left: 1.5em" id="section-8.2.1-4.4">
+              <p id="section-8.2.1-4.4.1">When set, the client <span class="bcp14">MUST NOT</span> proxy I/O operations through
+the metadata server, even after detecting a network disconnect
+to a storage device.  When unset, the client <span class="bcp14">MAY</span> retry failed
+I/O via the metadata server.<a href="#section-8.2.1-4.4.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-8.2.1-3.5">FFV2_FLAGS_NO_READ_IO:</dt>
-            <dd style="margin-left: 1.5em" id="section-8.2.1-3.6">
-              <p id="section-8.2.1-3.6.1">can be set to indicate that the client should not send READ
-requests with the layouts of iomode LAYOUTIOMODE4_RW.  Instead, it
-should request a layout of iomode LAYOUTIOMODE4_READ from the
-metadata server.<a href="#section-8.2.1-3.6.1" class="pilcrow">¶</a></p>
+<dt id="section-8.2.1-4.5">FFV2_FLAGS_NO_READ_IO:</dt>
+            <dd style="margin-left: 1.5em" id="section-8.2.1-4.6">
+              <p id="section-8.2.1-4.6.1">When set, the client <span class="bcp14">MUST NOT</span> issue READ against layouts of
+iomode LAYOUTIOMODE4_RW, and <span class="bcp14">MUST</span> instead request a separate
+layout of iomode LAYOUTIOMODE4_READ for any read I/O.  When
+unset, the client <span class="bcp14">MAY</span> issue READ against either iomode.<a href="#section-8.2.1-4.6.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-8.2.1-3.7">FFV2_FLAGS_WRITE_ONE_MIRROR:</dt>
-            <dd style="margin-left: 1.5em" id="section-8.2.1-3.8">
-              <p id="section-8.2.1-3.8.1">can be set to indicate that the client only needs to update one
-of the mirrors (see <a href="#sec-CSM" class="auto internal xref">Section 11.1</a>).<a href="#section-8.2.1-3.8.1" class="pilcrow">¶</a></p>
+<dt id="section-8.2.1-4.7">FFV2_FLAGS_WRITE_ONE_MIRROR:</dt>
+            <dd style="margin-left: 1.5em" id="section-8.2.1-4.8">
+              <p id="section-8.2.1-4.8.1">When set, the client <span class="bcp14">MAY</span> update only one mirror of each
+layout segment (see <a href="#sec-CSM" class="auto internal xref">Section 11.1</a>) and rely on the metadata
+server or a peer data server to propagate the update to the
+remaining mirrors.  When unset, the client <span class="bcp14">MUST</span> update all
+mirrors.<a href="#section-8.2.1-4.8.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-8.2.1-3.9">FFV2_FLAGS_ONLY_ONE_WRITER:</dt>
-            <dd style="margin-left: 1.5em" id="section-8.2.1-3.10">
-              <p id="section-8.2.1-3.10.1">can be set to indicate that the client only needs to use a
-CHUNK_WRITE to update the chunks in the data file.  I.e., keep the
-ability to rollback in case of a write hole caused by overwriting.
-If this flag is not set, then the client <span class="bcp14">MUST</span> write chunks with
-CHUNK_WRITE with the cwa_guard set in order to prevent collision
-across the data servers.<a href="#section-8.2.1-3.10.1" class="pilcrow">¶</a></p>
+<dt id="section-8.2.1-4.9">FFV2_FLAGS_ONLY_ONE_WRITER:</dt>
+            <dd style="margin-left: 1.5em" id="section-8.2.1-4.10">
+              <p id="section-8.2.1-4.10.1">When set, the client is the exclusive writer for the layout
+and <span class="bcp14">MAY</span> issue CHUNK_WRITE without setting cwa_guard, retaining
+the ability to use CHUNK_ROLLBACK in the event of a write hole
+caused by overwriting.  When unset, the client <span class="bcp14">MUST</span> set
+cwa_guard on every CHUNK_WRITE so that chunk_guard4 CAS can
+prevent collisions across concurrent writers.<a href="#section-8.2.1-4.10.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
@@ -3622,7 +3663,7 @@ across the data servers.<a href="#section-8.2.1-3.10.1" class="pilcrow">¶</a></
 <a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-ffv2_file_info4" class="section-name selfRef">ffv2_file_info4</a>
         </h3>
 <span id="name-the-ffv2_file_info4"></span><div id="fig-ffv2_file_info4">
-<figure id="figure-10">
+<figure id="figure-11">
           <div class="lang-xdr sourcecode" id="section-8.3-1.1">
 <pre>
    /// struct ffv2_file_info4 {
@@ -3631,7 +3672,7 @@ across the data servers.<a href="#section-8.2.1-3.10.1" class="pilcrow">¶</a></
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
+<figcaption><a href="#figure-11" class="selfRef">Figure 11</a>:
 <a href="#name-the-ffv2_file_info4" class="selfRef">The ffv2_file_info4</a>
           </figcaption></figure>
 </div>
@@ -3639,7 +3680,7 @@ across the data servers.<a href="#section-8.2.1-3.10.1" class="pilcrow">¶</a></
 issue discussed in Section 5.1 of <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  I.e., in version 1
 of the Flexible File Layout Type, there was the singleton ffv2ds_stateid
 combined with the ffv2ds_fh_vers array.  I.e., each NFSv4 version
-has its own stateid.  In <a href="#fig-ffv2_file_info4" class="auto internal xref">Figure 10</a>, each NFSv4
+has its own stateid.  In <a href="#fig-ffv2_file_info4" class="auto internal xref">Figure 11</a>, each NFSv4
 filehandle has a one-to-one correspondence to a stateid.<a href="#section-8.3-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -3649,7 +3690,7 @@ filehandle has a one-to-one correspondence to a stateid.<a href="#section-8.3-2"
 <a href="#section-8.4" class="section-number selfRef">8.4. </a><a href="#name-ffv2_ds_flags4" class="section-name selfRef">ffv2_ds_flags4</a>
         </h3>
 <span id="name-the-ffv2_ds_flags4"></span><div id="fig-ffv2_ds_flags4">
-<figure id="figure-11">
+<figure id="figure-12">
           <div class="lang-xdr sourcecode" id="section-8.4-1.1">
 <pre>
    /// const FFV2_DS_FLAGS_ACTIVE        = 0x00000001;
@@ -3659,11 +3700,11 @@ filehandle has a one-to-one correspondence to a stateid.<a href="#section-8.3-2"
    /// typedef uint32_t            ffv2_ds_flags4;
 </pre>
 </div>
-<figcaption><a href="#figure-11" class="selfRef">Figure 11</a>:
+<figcaption><a href="#figure-12" class="selfRef">Figure 12</a>:
 <a href="#name-the-ffv2_ds_flags4" class="selfRef">The ffv2_ds_flags4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.4-2">The ffv2_ds_flags4 (in <a href="#fig-ffv2_ds_flags4" class="auto internal xref">Figure 11</a>) flags details the
+<p id="section-8.4-2">The ffv2_ds_flags4 (in <a href="#fig-ffv2_ds_flags4" class="auto internal xref">Figure 12</a>) flags details the
 state of the data servers.  With Erasure Coding algorithms, there
 are both Systematic and Non-Systematic approaches.  In the Systematic,
 the bits for integrity are placed amongst the resulting transformed
@@ -3690,7 +3731,7 @@ data server as far as existing data is concerned.  <span class="cref">Fill in<sp
 <a href="#section-8.5" class="section-number selfRef">8.5. </a><a href="#name-ffv2_data_server4" class="section-name selfRef">ffv2_data_server4</a>
         </h3>
 <span id="name-the-ffv2_data_server4"></span><div id="fig-ffv2_data_server4">
-<figure id="figure-12">
+<figure id="figure-13">
           <div class="lang-xdr sourcecode" id="section-8.5-1.1">
 <pre>
    /// struct ffv2_data_server4 {
@@ -3703,11 +3744,11 @@ data server as far as existing data is concerned.  <span class="cref">Fill in<sp
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-12" class="selfRef">Figure 12</a>:
+<figcaption><a href="#figure-13" class="selfRef">Figure 13</a>:
 <a href="#name-the-ffv2_data_server4" class="selfRef">The ffv2_data_server4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.5-2">The ffv2_data_server4 (in <a href="#fig-ffv2_data_server4" class="auto internal xref">Figure 12</a>) describes a data
+<p id="section-8.5-2">The ffv2_data_server4 (in <a href="#fig-ffv2_data_server4" class="auto internal xref">Figure 13</a>) describes a data
 file and how to access it via the different NFS protocols.<a href="#section-8.5-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -3717,7 +3758,7 @@ file and how to access it via the different NFS protocols.<a href="#section-8.5-
 <a href="#section-8.6" class="section-number selfRef">8.6. </a><a href="#name-ffv2_coding_type_data4" class="section-name selfRef">ffv2_coding_type_data4</a>
         </h3>
 <span id="name-the-ffv2_coding_type_data4"></span><div id="fig-ffv2_coding_type_data4">
-<figure id="figure-13">
+<figure id="figure-14">
           <div class="lang-xdr sourcecode" id="section-8.6-1.1">
 <pre>
    /// union ffv2_coding_type_data4 switch
@@ -3729,13 +3770,13 @@ file and how to access it via the different NFS protocols.<a href="#section-8.5-
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-13" class="selfRef">Figure 13</a>:
+<figcaption><a href="#figure-14" class="selfRef">Figure 14</a>:
 <a href="#name-the-ffv2_coding_type_data4" class="selfRef">The ffv2_coding_type_data4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.6-2">The ffv2_coding_type_data4 (in <a href="#fig-ffv2_coding_type_data4" class="auto internal xref">Figure 13</a>) describes
+<p id="section-8.6-2">The ffv2_coding_type_data4 (in <a href="#fig-ffv2_coding_type_data4" class="auto internal xref">Figure 14</a>) describes
 the data protection geometry for the layout.  All coding types carry an
-ffv2_data_protection4 (<a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 19</a>) specifying the
+ffv2_data_protection4 (<a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 20</a>) specifying the
 number of data and parity shards.  The coding type enum determines how
 the shards are encoded; the protection structure determines how many
 shards there are.<a href="#section-8.6-2" class="pilcrow">¶</a></p>
@@ -3750,7 +3791,7 @@ Erasure coding types registered in companion documents (e.g.,
 Reed-Solomon Vandermonde, Mojette systematic) use fdp_data &gt;= 2 and
 fdp_parity &gt;= 1.<a href="#section-8.6-4" class="pilcrow">¶</a></p>
 <span id="name-the-stripes-v2"></span><div id="fig-ffv2_stripes4">
-<figure id="figure-14">
+<figure id="figure-15">
           <div class="lang-xdr sourcecode" id="section-8.6-5.1">
 <pre>
    /// enum ffv2_striping {
@@ -3764,7 +3805,7 @@ fdp_parity &gt;= 1.<a href="#section-8.6-4" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-14" class="selfRef">Figure 14</a>:
+<figcaption><a href="#figure-15" class="selfRef">Figure 15</a>:
 <a href="#name-the-stripes-v2" class="selfRef">The stripes v2</a>
           </figcaption></figure>
 </div>
@@ -3780,13 +3821,13 @@ FFV2_CODING_MIRRORED, then the length of ffs_data_servers
 <a href="#section-8.7" class="section-number selfRef">8.7. </a><a href="#name-ffv2_key4" class="section-name selfRef">ffv2_key4</a>
         </h3>
 <span id="name-the-ffv2_key4"></span><div id="fig-ffv2_key4">
-<figure id="figure-15">
+<figure id="figure-16">
           <div class="lang-xdr sourcecode" id="section-8.7-1.1">
 <pre>
    /// typedef uint64_t ffv2_key4;
 </pre>
 </div>
-<figcaption><a href="#figure-15" class="selfRef">Figure 15</a>:
+<figcaption><a href="#figure-16" class="selfRef">Figure 16</a>:
 <a href="#name-the-ffv2_key4" class="selfRef">The ffv2_key4</a>
           </figcaption></figure>
 </div>
@@ -3801,7 +3842,7 @@ by the metadata server and is opaque to the client.<a href="#section-8.7-2" clas
 <a href="#section-8.8" class="section-number selfRef">8.8. </a><a href="#name-ffv2_mirror4" class="section-name selfRef">ffv2_mirror4</a>
         </h3>
 <span id="name-the-ffv2_mirror4"></span><div id="fig-ffv2_mirror4">
-<figure id="figure-16">
+<figure id="figure-17">
           <div class="lang-xdr sourcecode" id="section-8.8-1.1">
 <pre>
    /// struct ffv2_mirror4 {
@@ -3814,11 +3855,11 @@ by the metadata server and is opaque to the client.<a href="#section-8.7-2" clas
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-16" class="selfRef">Figure 16</a>:
+<figcaption><a href="#figure-17" class="selfRef">Figure 17</a>:
 <a href="#name-the-ffv2_mirror4" class="selfRef">The ffv2_mirror4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.8-2">The ffv2_mirror4 (in <a href="#fig-ffv2_mirror4" class="auto internal xref">Figure 16</a>) describes the Flexible
+<p id="section-8.8-2">The ffv2_mirror4 (in <a href="#fig-ffv2_mirror4" class="auto internal xref">Figure 17</a>) describes the Flexible
 File Layout Version 2 specific fields.<a href="#section-8.8-2" class="pilcrow">¶</a></p>
 <p id="section-8.8-3">The ffm_client_id is a 32-bit value, assigned by the metadata
 server at layout-grant time, that the client <span class="bcp14">MUST</span> use as the
@@ -3889,7 +3930,7 @@ then the length of ffm_stripes <span class="bcp14">MUST</span> be 1.<a href="#se
 <a href="#section-8.9" class="section-number selfRef">8.9. </a><a href="#name-ffv2_layout4-2" class="section-name selfRef">ffv2_layout4</a>
         </h3>
 <span id="name-the-ffv2_layout4"></span><div id="fig-ffv2_layout4">
-<figure id="figure-17">
+<figure id="figure-18">
           <div class="lang-xdr sourcecode" id="section-8.9-1.1">
 <pre>
    /// struct ffv2_layout4 {
@@ -3899,19 +3940,19 @@ then the length of ffm_stripes <span class="bcp14">MUST</span> be 1.<a href="#se
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-17" class="selfRef">Figure 17</a>:
+<figcaption><a href="#figure-18" class="selfRef">Figure 18</a>:
 <a href="#name-the-ffv2_layout4" class="selfRef">The ffv2_layout4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.9-2">The ffv2_layout4 (in <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 17</a>) describes the Flexible
+<p id="section-8.9-2">The ffv2_layout4 (in <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 18</a>) describes the Flexible
 File Layout Version 2.<a href="#section-8.9-2" class="pilcrow">¶</a></p>
 <p id="section-8.9-3">The ffl_mirrors field is the array of mirrored storage devices that
-provide the storage for the current stripe; see <a href="#fig-parallel-fileystem" class="auto internal xref">Figure 18</a>.<a href="#section-8.9-3" class="pilcrow">¶</a></p>
+provide the storage for the current stripe; see <a href="#fig-parallel-filesystem" class="auto internal xref">Figure 19</a>.<a href="#section-8.9-3" class="pilcrow">¶</a></p>
 <p id="section-8.9-4">The ffl_stats_collect_hint field provides a hint to the client on
 how often the server wants it to report LAYOUTSTATS for a file.
 The time is in seconds.<a href="#section-8.9-4" class="pilcrow">¶</a></p>
-<span id="name-the-relationship-between-md"></span><div id="fig-parallel-fileystem">
-<figure id="figure-18">
+<span id="name-the-relationship-between-md"></span><div id="fig-parallel-filesystem">
+<figure id="figure-19">
           <div class="alignLeft art-text artwork" id="section-8.9-5.1">
 <pre>
                 +-----------+
@@ -3944,11 +3985,11 @@ The time is in seconds.<a href="#section-8.9-4" class="pilcrow">¶</a></p>
                                         +-----------+
 </pre>
 </div>
-<figcaption><a href="#figure-18" class="selfRef">Figure 18</a>:
+<figcaption><a href="#figure-19" class="selfRef">Figure 19</a>:
 <a href="#name-the-relationship-between-md" class="selfRef">The Relationship between MDS and DSes</a>
           </figcaption></figure>
 </div>
-<p id="section-8.9-6">As shown in <a href="#fig-parallel-fileystem" class="auto internal xref">Figure 18</a> if the ffm_coding_type_data
+<p id="section-8.9-6">As shown in <a href="#fig-parallel-filesystem" class="auto internal xref">Figure 19</a> if the ffm_coding_type_data
 is FFV2_CODING_MIRRORED, then each of the stripes <span class="bcp14">MUST</span>
 only have 1 storage device. I.e., the length of ffs_data_servers
 <span class="bcp14">MUST</span> be 1. The other encoding types can have any number of
@@ -3966,7 +4007,7 @@ the payload length can be different per stripe.<a href="#section-8.9-7" class="p
 <a href="#section-8.10" class="section-number selfRef">8.10. </a><a href="#name-ffv2_data_protection4" class="section-name selfRef">ffv2_data_protection4</a>
         </h3>
 <span id="name-the-ffv2_data_protection4"></span><div id="fig-ffv2_data_protection4">
-<figure id="figure-19">
+<figure id="figure-20">
           <div class="lang-xdr sourcecode" id="section-8.10-1.1">
 <pre>
    /// struct ffv2_data_protection4 {
@@ -3975,11 +4016,11 @@ the payload length can be different per stripe.<a href="#section-8.9-7" class="p
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-19" class="selfRef">Figure 19</a>:
+<figcaption><a href="#figure-20" class="selfRef">Figure 20</a>:
 <a href="#name-the-ffv2_data_protection4" class="selfRef">The ffv2_data_protection4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.10-2">The ffv2_data_protection4 (in <a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 19</a>) describes
+<p id="section-8.10-2">The ffv2_data_protection4 (in <a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 20</a>) describes
 the data protection geometry as a pair of counts: the number of data
 shards (fdp_data, also known as k) and the number of parity or
 redundancy shards (fdp_parity, also known as m).  This structure is
@@ -4034,7 +4075,7 @@ uniformly to all coding types:<a href="#section-8.10-2" class="pilcrow">¶</a></
 </div>
 <p id="section-8.10-4">By expressing all protection modes as (fdp_data, fdp_parity) pairs,
 a single structure serves mirroring, striping, and all erasure
-coding types.  The coding type (<a href="#fig-ffv2_coding_type4" class="auto internal xref">Figure 8</a>) determines
+coding types.  The coding type (<a href="#fig-ffv2_coding_type4" class="auto internal xref">Figure 9</a>) determines
 HOW the shards are encoded; the protection structure determines
 HOW MANY shards there are.<a href="#section-8.10-4" class="pilcrow">¶</a></p>
 <p id="section-8.10-5">The total number of data servers required is fdp_data + fdp_parity.
@@ -4048,7 +4089,7 @@ The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
 <a href="#section-8.11" class="section-number selfRef">8.11. </a><a href="#name-ffv2_layouthint4" class="section-name selfRef">ffv2_layouthint4</a>
         </h3>
 <span id="name-the-ffv2_layouthint4"></span><div id="fig-ffv2_layouthint4">
-<figure id="figure-20">
+<figure id="figure-21">
           <div class="lang-xdr sourcecode" id="section-8.11-1.1">
 <pre>
    /// struct ffv2_layouthint4 {
@@ -4057,11 +4098,11 @@ The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-20" class="selfRef">Figure 20</a>:
+<figcaption><a href="#figure-21" class="selfRef">Figure 21</a>:
 <a href="#name-the-ffv2_layouthint4" class="selfRef">The ffv2_layouthint4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.11-2">The ffv2_layouthint4 (in <a href="#fig-ffv2_layouthint4" class="auto internal xref">Figure 20</a>) describes the
+<p id="section-8.11-2">The ffv2_layouthint4 (in <a href="#fig-ffv2_layouthint4" class="auto internal xref">Figure 21</a>) describes the
 layout_hint (see Section 5.12.4 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) that the client can
 provide to the metadata server.<a href="#section-8.11-2" class="pilcrow">¶</a></p>
 <p id="section-8.11-3">The client provides two hints:<a href="#section-8.11-3" class="pilcrow">¶</a></p>
@@ -4168,16 +4209,16 @@ capability set would duplicate it and would complicate codec
 upgrades without additional value, because a client that
 genuinely upgrades its codec set at runtime can simply update
 the fflh_supported_types on its next LAYOUTGET.<a href="#section-8.11.1-3" class="pilcrow">¶</a></p>
-<p id="section-8.11.1-4">Note: In <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 17</a> ffv2_coding_type_data4 is an enumerated
+<p id="section-8.11.1-4">Note: In <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 18</a> ffv2_coding_type_data4 is an enumerated
 union with the payload of each arm being defined by the protection
 type. ffm_client_id tells the client which id to use when interacting
 with the data servers.<a href="#section-8.11.1-4" class="pilcrow">¶</a></p>
-<p id="section-8.11.1-5">The ffv2_layout4 structure (see <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 17</a>) specifies a layout
+<p id="section-8.11.1-5">The ffv2_layout4 structure (see <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 18</a>) specifies a layout
 in that portion of the data file described in the current layout
 segment.  It is either a single instance or a set of mirrored copies
 of that portion of the data file.  When mirroring is in effect, it
 protects against loss of data in layout segments.<a href="#section-8.11.1-5" class="pilcrow">¶</a></p>
-<p id="section-8.11.1-6">While not explicitly shown in <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 17</a>, each layout4
+<p id="section-8.11.1-6">While not explicitly shown in <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 18</a>, each layout4
 element returned in the logr_layout array of LAYOUTGET4res (see
 Section 18.43.2 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) describes a layout segment.  Hence,
 each ffv2_layout4 also describes a layout segment.  It is possible
@@ -4218,33 +4259,41 @@ the anonymous stateid to perform I/O on the storage device, because
 the metadata server stateid has no meaning to a storage device that
 is not participating in the control protocol.  In this case the
 metadata server <span class="bcp14">MUST</span> set fffi_stateid to the anonymous stateid.<a href="#section-8.11.1-12" class="pilcrow">¶</a></p>
-<p id="section-8.11.1-13">This specification of the fffi_stateid restricts both models for
-NFSv4.x storage protocols:<a href="#section-8.11.1-13" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-8.11.1-14">
-            <dt id="section-8.11.1-14.1">loosely couple</dt>
-            <dd style="margin-left: 1.5em" id="section-8.11.1-14.2">
-              <p id="section-8.11.1-14.2.1">the stateid has to be an anonymous stateid<a href="#section-8.11.1-14.2.1" class="pilcrow">¶</a></p>
+<p id="section-8.11.1-13">For an NFSv3 storage device (ffdv_version = 3), the tight-coupling
+model does not apply: <a href="#sec-ff_device_addr4" class="auto internal xref">Section 7.1</a> requires
+ffdv_tightly_coupled to be FALSE whenever ffdv_version equals 3,
+because NFSv3 has no wire encoding for stateids.  The corresponding
+fffi_stateid element in the ffv2ds_file_info array <span class="bcp14">MUST</span> therefore
+be the anonymous stateid and is unused; an NFSv3 data server uses
+the synthetic-uid fencing model (see <a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>)
+rather than a stateid-based trust table.<a href="#section-8.11.1-13" class="pilcrow">¶</a></p>
+<p id="section-8.11.1-14">This specification of the fffi_stateid restricts both models for
+NFSv4.x storage protocols:<a href="#section-8.11.1-14" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-8.11.1-15">
+            <dt id="section-8.11.1-15.1">loosely couple</dt>
+            <dd style="margin-left: 1.5em" id="section-8.11.1-15.2">
+              <p id="section-8.11.1-15.2.1">the stateid has to be an anonymous stateid<a href="#section-8.11.1-15.2.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-8.11.1-14.3">tightly couple</dt>
-            <dd style="margin-left: 1.5em" id="section-8.11.1-14.4">
-              <p id="section-8.11.1-14.4.1">the stateid has to be a global stateid<a href="#section-8.11.1-14.4.1" class="pilcrow">¶</a></p>
+<dt id="section-8.11.1-15.3">tightly couple</dt>
+            <dd style="margin-left: 1.5em" id="section-8.11.1-15.4">
+              <p id="section-8.11.1-15.4.1">the stateid has to be a global stateid<a href="#section-8.11.1-15.4.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
-<p id="section-8.11.1-15">By pairing each fffi_fh_vers with its own fffi_stateid inside
+<p id="section-8.11.1-16">By pairing each fffi_fh_vers with its own fffi_stateid inside
 ffv2_file_info4, the v2 layout addresses the v1 limitation where a
 singleton stateid was shared across all filehandles.  Each open file
 on the storage device can now have its own stateid, eliminating the
-ambiguity present in the v1 structure.<a href="#section-8.11.1-15" class="pilcrow">¶</a></p>
-<p id="section-8.11.1-16">For loosely coupled storage devices, ffv2ds_user and ffv2ds_group
+ambiguity present in the v1 structure.<a href="#section-8.11.1-16" class="pilcrow">¶</a></p>
+<p id="section-8.11.1-17">For loosely coupled storage devices, ffv2ds_user and ffv2ds_group
 provide the synthetic user and group to be used in the RPC credentials
 that the client presents to the storage device to access the data
 files.  For tightly coupled storage devices, the user and group on
 the storage device will be the same as on the metadata server; that
 is, if ffdv_tightly_coupled (see <a href="#sec-ff_device_addr4" class="auto internal xref">Section 7.1</a>) is set,
-then the client <span class="bcp14">MUST</span> ignore both ffv2ds_user and ffv2ds_group.<a href="#section-8.11.1-16" class="pilcrow">¶</a></p>
-<p id="section-8.11.1-17">The allowed values for both ffv2ds_user and ffv2ds_group are specified
+then the client <span class="bcp14">MUST</span> ignore both ffv2ds_user and ffv2ds_group.<a href="#section-8.11.1-17" class="pilcrow">¶</a></p>
+<p id="section-8.11.1-18">The allowed values for both ffv2ds_user and ffv2ds_group are specified
 as owner and owner_group, respectively, in Section 5.9 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.
 For NFSv3 compatibility, user and group strings that consist of
 decimal numeric values with no leading zeros can be given a special
@@ -4253,13 +4302,13 @@ support.  The receiver may treat such a user or group string as
 representing the same user as would be represented by an NFSv3 uid
 or gid having the corresponding numeric value.  Note that if using
 Kerberos for security, the expectation is that these values will
-be a name@domain string.<a href="#section-8.11.1-17" class="pilcrow">¶</a></p>
-<p id="section-8.11.1-18">ffv2ds_efficiency describes the metadata server's evaluation as to
+be a name@domain string.<a href="#section-8.11.1-18" class="pilcrow">¶</a></p>
+<p id="section-8.11.1-19">ffv2ds_efficiency describes the metadata server's evaluation as to
 the effectiveness of each mirror.  Note that this is per layout and
 not per device as the metric may change due to perceived load,
 availability to the metadata server, etc.  Higher values denote
 higher perceived utility.  The way the client can select the best
-mirror to access is discussed in <a href="#sec-select-mirror" class="auto internal xref">Section 11.1.1</a>.<a href="#section-8.11.1-18" class="pilcrow">¶</a></p>
+mirror to access is discussed in <a href="#sec-select-mirror" class="auto internal xref">Section 11.1.1</a>.<a href="#section-8.11.1-19" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="error-codes-from-layoutget">
@@ -4415,9 +4464,9 @@ Section 13.4.4 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span
       <dd class="break"></dd>
 </dl>
 <p id="section-9-3">The mapping math for sparse and dense is given in
-<a href="#fig-striping-math" class="auto internal xref">Figure 21</a>.  Common definitions apply to both.<a href="#section-9-3" class="pilcrow">¶</a></p>
+<a href="#fig-striping-math" class="auto internal xref">Figure 22</a>.  Common definitions apply to both.<a href="#section-9-3" class="pilcrow">¶</a></p>
 <span id="name-sparse-and-dense-stripe-map"></span><div id="fig-striping-math">
-<figure id="figure-21">
+<figure id="figure-22">
         <div class="alignLeft art-text artwork" id="section-9-4.1">
 <pre>
 L: logical offset within the file (bytes)
@@ -4443,7 +4492,7 @@ FFV2_STRIPING_DENSE:
   packed contiguously.
 </pre>
 </div>
-<figcaption><a href="#figure-21" class="selfRef">Figure 21</a>:
+<figcaption><a href="#figure-22" class="selfRef">Figure 22</a>:
 <a href="#name-sparse-and-dense-stripe-map" class="selfRef">Sparse and dense stripe mapping math</a>
         </figcaption></figure>
 </div>
@@ -4497,7 +4546,7 @@ compression or deduplication on the data.  However, the over-the-wire
 transfer of the file contents <span class="bcp14">MUST</span> appear identical.  Note, this
 is a constraint of the selected XDR representation in which each
 mirrored copy of the layout segment has the same striping pattern
-(see <a href="#fig-parallel-fileystem" class="auto internal xref">Figure 18</a>).<a href="#section-11.1-1" class="pilcrow">¶</a></p>
+(see <a href="#fig-parallel-filesystem" class="auto internal xref">Figure 19</a>).<a href="#section-11.1-1" class="pilcrow">¶</a></p>
 <p id="section-11.1-2">The metadata server is responsible for determining the number of
 mirrored copies and the location of each mirror.  While the client
 may provide a hint to how many copies it wants (see <a href="#sec-ffv2-layouthint" class="auto internal xref">Section 8.11</a>),
@@ -4631,8 +4680,8 @@ data stably, before replying to the client.<a href="#section-11.1.2.4-1" class="
 <p id="section-11.1.2.4-2">In the corresponding cases in which unstable writes are done, the
 receiving node does not have any such obligation, although it may
 choose to asynchronously propagate the updates.  However, once a
-COMMIT is replied to, all replicas must reflect the writes that
-have been done, and this data must have been committed to stable
+COMMIT is replied to, all replicas <span class="bcp14">MUST</span> reflect the writes that
+have been done, and this data <span class="bcp14">MUST</span> have been committed to stable
 storage on all replicas.<a href="#section-11.1.2.4-2" class="pilcrow">¶</a></p>
 <p id="section-11.1.2.4-3">In order to avoid situations in which stale data is read from
 replicas to which writes have not been propagated:<a href="#section-11.1.2.4-3" class="pilcrow">¶</a></p>
@@ -4680,7 +4729,7 @@ have to perform the I/O through the metadata server.<a href="#section-11.1.3-1" 
 <a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-erasure-coding" class="section-name selfRef">Erasure Coding</a>
         </h3>
 <p id="section-11.2-1">Erasure Coding takes a data block and transforms it to a payload
-to send to the data servers (see <a href="#fig-encoding-data-block" class="auto internal xref">Figure 22</a>).  It
+to send to the data servers (see <a href="#fig-encoding-data-block" class="auto internal xref">Figure 23</a>).  It
 generates a metadata header and transformed block per data server.
 The header is metadata information for the transformed block.  From
 now on, the metadata is simply referred to as the header and the
@@ -4701,7 +4750,7 @@ compromised by parity chunks.  Another example would be the Mojette
 Transformation, which might have 1kB chunk lengths.<a href="#section-11.2-3" class="pilcrow">¶</a></p>
 <p id="section-11.2-4">The payload contains redundancy which will allow the erasure
 coding type algorithm to repair chunks in the payload as it is
-transformed back to a data block (see <a href="#fig-decoding-db" class="auto internal xref">Figure 27</a>).<a href="#section-11.2-4" class="pilcrow">¶</a></p>
+transformed back to a data block (see <a href="#fig-decoding-db" class="auto internal xref">Figure 28</a>).<a href="#section-11.2-4" class="pilcrow">¶</a></p>
 <p id="section-11.2-5">The protocol provides two levels of payload integrity, consumed at
 different points in the read path:<a href="#section-11.2-5" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-11.2-6">
@@ -4749,7 +4798,7 @@ chunks from the remaining integral chunks in the payload.<a href="#section-11.2-
 <a href="#section-11.2.1" class="section-number selfRef">11.2.1. </a><a href="#name-encoding-a-data-block" class="section-name selfRef">Encoding a Data Block</a>
           </h4>
 <span id="name-encoding-a-data-block-2"></span><div id="fig-encoding-data-block">
-<figure id="figure-22">
+<figure id="figure-23">
             <div class="alignLeft art-text artwork" id="section-11.2.1-1.1">
 <pre>
                  +-------------+
@@ -4778,18 +4827,18 @@ chunks from the remaining integral chunks in the payload.<a href="#section-11.2-
      Data Server 1          Data Server N          Data Server 6
 </pre>
 </div>
-<figcaption><a href="#figure-22" class="selfRef">Figure 22</a>:
+<figcaption><a href="#figure-23" class="selfRef">Figure 23</a>:
 <a href="#name-encoding-a-data-block-2" class="selfRef">Encoding a Data Block</a>
             </figcaption></figure>
 </div>
 <p id="section-11.2.1-2">Each data block of the file resident in the client's cache of the
 file will be encoded into N different payloads to be sent to the
-data servers as shown in <a href="#fig-encoding-data-block" class="auto internal xref">Figure 22</a>.  As CHUNK_WRITE
+data servers as shown in <a href="#fig-encoding-data-block" class="auto internal xref">Figure 23</a>.  As CHUNK_WRITE
 (see <a href="#sec-CHUNK_WRITE" class="auto internal xref">Section 25.10</a>) can encode multiple write_chunk4 into a
 single transaction, a more accurate description of a CHUNK_WRITE
-is in <a href="#fig-example-chunk-write-args" class="auto internal xref">Figure 23</a>.<a href="#section-11.2.1-2" class="pilcrow">¶</a></p>
+is in <a href="#fig-example-chunk-write-args" class="auto internal xref">Figure 24</a>.<a href="#section-11.2.1-2" class="pilcrow">¶</a></p>
 <span id="name-example-of-chunk_write_args"></span><div id="fig-example-chunk-write-args">
-<figure id="figure-23">
+<figure id="figure-24">
             <div class="alignLeft art-text artwork" id="section-11.2.1-3.1">
 <pre>
   +------------------------------------+
@@ -4812,7 +4861,7 @@ is in <a href="#fig-example-chunk-write-args" class="auto internal xref">Figure 
   +------------------------------------+
 </pre>
 </div>
-<figcaption><a href="#figure-23" class="selfRef">Figure 23</a>:
+<figcaption><a href="#figure-24" class="selfRef">Figure 24</a>:
 <a href="#name-example-of-chunk_write_args" class="selfRef">Example of CHUNK_WRITE_args</a>
             </figcaption></figure>
 </div>
@@ -4822,11 +4871,11 @@ once.  I.e., the data server will be able to construct the header
 for the i'th chunk from the cwa_chunks from the cwa_payload_id, the
 cwa_owner, and the i'th crc32 from the cw_crc32s.  The cwa_chunks
 are sent together as a byte stream to increase performance.<a href="#section-11.2.1-4" class="pilcrow">¶</a></p>
-<p id="section-11.2.1-5">Assuming that there were no issues, <a href="#fig-example-chunk-write-res" class="auto internal xref">Figure 24</a>
+<p id="section-11.2.1-5">Assuming that there were no issues, <a href="#fig-example-chunk-write-res" class="auto internal xref">Figure 25</a>
 illustrates the results.  The payload sequence id is implicit in
 the CHUNK_WRITEargs.<a href="#section-11.2.1-5" class="pilcrow">¶</a></p>
 <span id="name-example-of-chunk_write_res"></span><div id="fig-example-chunk-write-res">
-<figure id="figure-24">
+<figure id="figure-25">
             <div class="alignLeft art-text artwork" id="section-11.2.1-6.1">
 <pre>
   +-------------------------------+
@@ -4853,7 +4902,7 @@ the CHUNK_WRITEargs.<a href="#section-11.2.1-5" class="pilcrow">¶</a></p>
   +-------------------------------+
 </pre>
 </div>
-<figcaption><a href="#figure-24" class="selfRef">Figure 24</a>:
+<figcaption><a href="#figure-25" class="selfRef">Figure 25</a>:
 <a href="#name-example-of-chunk_write_res" class="selfRef">Example of CHUNK_WRITE_res</a>
             </figcaption></figure>
 </div>
@@ -4863,7 +4912,7 @@ the CHUNK_WRITEargs.<a href="#section-11.2.1-5" class="pilcrow">¶</a></p>
 <a href="#section-11.2.1.1" class="section-number selfRef">11.2.1.1. </a><a href="#name-calculating-the-crc32" class="section-name selfRef">Calculating the CRC32</a>
             </h5>
 <span id="name-crc32-before-calculation"></span><div id="fig-calc-before">
-<figure id="figure-25">
+<figure id="figure-26">
               <div class="alignLeft art-text artwork" id="section-11.2.1.1-1.1">
 <pre>
   +---+----------------+
@@ -4882,17 +4931,17 @@ the CHUNK_WRITEargs.<a href="#section-11.2.1-5" class="pilcrow">¶</a></p>
         Data Server 1
 </pre>
 </div>
-<figcaption><a href="#figure-25" class="selfRef">Figure 25</a>:
+<figcaption><a href="#figure-26" class="selfRef">Figure 26</a>:
 <a href="#name-crc32-before-calculation" class="selfRef">CRC32 Before Calculation</a>
               </figcaption></figure>
 </div>
-<p id="section-11.2.1.1-2">Assuming the header and payload as in <a href="#fig-calc-before" class="auto internal xref">Figure 25</a>, the crc32
+<p id="section-11.2.1.1-2">Assuming the header and payload as in <a href="#fig-calc-before" class="auto internal xref">Figure 26</a>, the crc32
 needs to be calculated in order to fill in the cw_crc field.  In
 this case, the crc32 is calculated over the 4 fields as shown in
 the header and the cw_chunk.  In this example, it is calculated to
-be 0x21de8.  The resulting CHUNK_WRITE is shown in <a href="#fig-calc-crc-after" class="auto internal xref">Figure 26</a>.<a href="#section-11.2.1.1-2" class="pilcrow">¶</a></p>
+be 0x21de8.  The resulting CHUNK_WRITE is shown in <a href="#fig-calc-crc-after" class="auto internal xref">Figure 27</a>.<a href="#section-11.2.1.1-2" class="pilcrow">¶</a></p>
 <span id="name-crc32-after-calculation"></span><div id="fig-calc-crc-after">
-<figure id="figure-26">
+<figure id="figure-27">
               <div class="alignLeft art-text artwork" id="section-11.2.1.1-3.1">
 <pre>
   +------------------------------------+
@@ -4913,7 +4962,7 @@ be 0x21de8.  The resulting CHUNK_WRITE is shown in <a href="#fig-calc-crc-after"
   +------------------------------------+
 </pre>
 </div>
-<figcaption><a href="#figure-26" class="selfRef">Figure 26</a>:
+<figcaption><a href="#figure-27" class="selfRef">Figure 27</a>:
 <a href="#name-crc32-after-calculation" class="selfRef">CRC32 After Calculation</a>
               </figcaption></figure>
 </div>
@@ -4927,7 +4976,7 @@ be 0x21de8.  The resulting CHUNK_WRITE is shown in <a href="#fig-calc-crc-after"
 <a href="#section-11.2.2" class="section-number selfRef">11.2.2. </a><a href="#name-decoding-a-data-block" class="section-name selfRef">Decoding a Data Block</a>
           </h4>
 <span id="name-decoding-a-data-block-2"></span><div id="fig-decoding-db">
-<figure id="figure-27">
+<figure id="figure-28">
             <div class="alignLeft art-text artwork" id="section-11.2.2-1.1">
 <pre>
     Data Server 1          Data Server N          Data Server 6
@@ -4956,12 +5005,12 @@ be 0x21de8.  The resulting CHUNK_WRITE is shown in <a href="#fig-calc-crc-after"
                 +-------------+
 </pre>
 </div>
-<figcaption><a href="#figure-27" class="selfRef">Figure 27</a>:
+<figcaption><a href="#figure-28" class="selfRef">Figure 28</a>:
 <a href="#name-decoding-a-data-block-2" class="selfRef">Decoding a Data Block</a>
             </figcaption></figure>
 </div>
 <p id="section-11.2.2-2">When reading chunks via a CHUNK_READ operation, the client will
-decode them into data blocks as shown in <a href="#fig-decoding-db" class="auto internal xref">Figure 27</a>.<a href="#section-11.2.2-2" class="pilcrow">¶</a></p>
+decode them into data blocks as shown in <a href="#fig-decoding-db" class="auto internal xref">Figure 28</a>.<a href="#section-11.2.2-2" class="pilcrow">¶</a></p>
 <p id="section-11.2.2-3">At this time, the client could detect issues in the integrity of
 the data.  The handling and repair are out of the scope of this
 document and <span class="bcp14">MUST</span> be addressed in the document describing each
@@ -4972,7 +5021,7 @@ erasure coding type.<a href="#section-11.2.2-3" class="pilcrow">¶</a></p>
 <a href="#section-11.2.2.1" class="section-number selfRef">11.2.2.1. </a><a href="#name-checking-the-crc32" class="section-name selfRef">Checking the CRC32</a>
             </h5>
 <span id="name-crc32-on-the-wire"></span><div id="fig-example-chunk-read-crc">
-<figure id="figure-28">
+<figure id="figure-29">
               <div class="alignLeft art-text artwork" id="section-11.2.2.1-1.1">
 <pre>
   +------------------------------------+
@@ -4989,19 +5038,19 @@ erasure coding type.<a href="#section-11.2.2-3" class="pilcrow">¶</a></p>
   +------------------------------------+
 </pre>
 </div>
-<figcaption><a href="#figure-28" class="selfRef">Figure 28</a>:
+<figcaption><a href="#figure-29" class="selfRef">Figure 29</a>:
 <a href="#name-crc32-on-the-wire" class="selfRef">CRC32 on the Wire</a>
               </figcaption></figure>
 </div>
-<p id="section-11.2.2.1-2">Assuming the CHUNK_READ results as in <a href="#fig-example-chunk-read-crc" class="auto internal xref">Figure 28</a>,
+<p id="section-11.2.2.1-2">Assuming the CHUNK_READ results as in <a href="#fig-example-chunk-read-crc" class="auto internal xref">Figure 29</a>,
 the crc32 needs to be checked in order to ensure data integrity.
 Conceptually, a header and payload can be built as shown in
-<a href="#fig-example-crc-checked" class="auto internal xref">Figure 29</a>.  The crc32 is calculated over the 4
+<a href="#fig-example-crc-checked" class="auto internal xref">Figure 30</a>.  The crc32 is calculated over the 4
 fields as shown in the header and the cr_chunk.  In this example,
 it is calculated to be 0x21de8.  Thus this payload for the data
 server has data integrity.<a href="#section-11.2.2.1-2" class="pilcrow">¶</a></p>
 <span id="name-crc32-being-checked"></span><div id="fig-example-crc-checked">
-<figure id="figure-29">
+<figure id="figure-30">
               <div class="alignLeft art-text artwork" id="section-11.2.2.1-3.1">
 <pre>
   +---+----------------+
@@ -5020,7 +5069,7 @@ server has data integrity.<a href="#section-11.2.2.1-2" class="pilcrow">¶</a></
        Data Server 1
 </pre>
 </div>
-<figcaption><a href="#figure-29" class="selfRef">Figure 29</a>:
+<figcaption><a href="#figure-30" class="selfRef">Figure 30</a>:
 <a href="#name-crc32-being-checked" class="selfRef">CRC32 Being Checked</a>
               </figcaption></figure>
 </div>
@@ -5035,7 +5084,7 @@ server has data integrity.<a href="#section-11.2.2.1-2" class="pilcrow">¶</a></
           </h4>
 <p id="section-11.2.3-1">There are two basic writing modes for erasure coding and they depend
 on the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER in the
-ffl_flags in the ffv2_layout4 (see <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 17</a>) to inform
+ffl_flags in the ffv2_layout4 (see <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 18</a>) to inform
 the client whether it is the only writer to the file or not.  If
 it is the only writer, then CHUNK_WRITE with the cwa_guard not set
 can be used to write chunks.  In this scenario, there is no write
@@ -5077,54 +5126,102 @@ of NFS4ERR_PAYLOAD_NOT_CONSISTENT.<a href="#section-11.2.3-5" class="pilcrow">¶
           <h4 id="name-selecting-the-repair-client">
 <a href="#section-11.2.4" class="section-number selfRef">11.2.4. </a><a href="#name-selecting-the-repair-client" class="section-name selfRef">Selecting the Repair Client</a>
           </h4>
-<p id="section-11.2.4-1">The metadata server is the authority that selects which client
+<p id="section-11.2.4-1">The repair topology involves three actors communicating along
+distinct paths, as shown in <a href="#fig-repair-topology" class="auto internal xref">Figure 31</a>.<a href="#section-11.2.4-1" class="pilcrow">¶</a></p>
+<span id="name-repair-topology"></span><div id="fig-repair-topology">
+<figure id="figure-31">
+            <div class="alignLeft art-text artwork" id="section-11.2.4-2.1">
+<pre>
+     +------------+              +----------------+
+     | Reporting  |              |                |
+     | client     | ----(1)----&gt; |    Metadata    |
+     | (detects   | LAYOUTERROR  |    server      |
+     |  error)    |              |                |
+     +------------+              +----------------+
+                                   |        ^  ^
+                                   | (2a)   |  |
+                                   |        |  |
+                           +-------+--+  (2b) (3)
+                           |          |  |   |
+                 CB_CHUNK_REPAIR      |   |  |
+                 (RACE or SCRUB)      |   |  |
+                                   |   |   |  |
+                                   v   |   |  |
+     +-------------+           +--------+-------------+
+     |  Repair     | ----(4)-&gt; |                      |
+     |  client     |  CHUNK_   |    Data servers      |
+     |  (selected  |  LOCK_    |    (mirror set for   |
+     |   by MDS)   |  ADOPT,   |    affected ranges)  |
+     |             |  CHUNK_   |                      |
+     |             |  WRITE_   +----------------------+
+     |             |  REPAIR,
+     |             |  CHUNK_
+     |             |  FINALIZE,
+     |             |  CHUNK_
+     |             |  COMMIT,
+     |             |  CHUNK_
+     |             |  REPAIRED
+     +-------------+
+
+     (1) Reporter LAYOUTERRORs the MDS.
+     (2a) MDS selects a repair client (may be same as reporter).
+     (2b) MDS escrows the chunk lock and issues CB_CHUNK_REPAIR.
+     (3)  Repair client adopts the lock and drives the repair.
+     (4)  Repair client issues CHUNK_* ops against the mirror set.
+</pre>
+</div>
+<figcaption><a href="#figure-31" class="selfRef">Figure 31</a>:
+<a href="#name-repair-topology" class="selfRef">Repair topology</a>
+            </figcaption></figure>
+</div>
+<p id="section-11.2.4-3">The metadata server is the authority that selects which client
 (or, in a tightly coupled deployment, which data server) repairs
 an inconsistent payload.  This is analogous to the way the
 metadata server assigns per-mirror priority via ffv2ds_efficiency
 (see <a href="#sec-select-mirror" class="auto internal xref">Section 11.1.1</a>): the protocol does not prescribe the
-selection algorithm, and each deployment <span class="bcp14">MAY</span> tune its policy.<a href="#section-11.2.4-1" class="pilcrow">¶</a></p>
-<p id="section-11.2.4-2">Implementations <span class="bcp14">MAY</span> consider factors such as:<a href="#section-11.2.4-2" class="pilcrow">¶</a></p>
+selection algorithm, and each deployment <span class="bcp14">MAY</span> tune its policy.<a href="#section-11.2.4-3" class="pilcrow">¶</a></p>
+<p id="section-11.2.4-4">Implementations <span class="bcp14">MAY</span> consider factors such as:<a href="#section-11.2.4-4" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-11.2.4-3.1">
-              <p id="section-11.2.4-3.1.1">Whether a client holds an active write layout on the affected
+<li class="normal" id="section-11.2.4-5.1">
+              <p id="section-11.2.4-5.1.1">Whether a client holds an active write layout on the affected
 payload (the client most likely to hold surviving shards in
-cache).<a href="#section-11.2.4-3.1.1" class="pilcrow">¶</a></p>
+cache).<a href="#section-11.2.4-5.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-11.2.4-3.2">
-              <p id="section-11.2.4-3.2.1">Whether a client has previously reported consistent shards to
-the metadata server via LAYOUTSTATS or a prior LAYOUTERROR.<a href="#section-11.2.4-3.2.1" class="pilcrow">¶</a></p>
+            <li class="normal" id="section-11.2.4-5.2">
+              <p id="section-11.2.4-5.2.1">Whether a client has previously reported consistent shards to
+the metadata server via LAYOUTSTATS or a prior LAYOUTERROR.<a href="#section-11.2.4-5.2.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-11.2.4-3.3">
-              <p id="section-11.2.4-3.3.1">Whether the layout exposes a data server carrying
-FFV2_DS_FLAGS_REPAIR as a target for reconstructed shards.<a href="#section-11.2.4-3.3.1" class="pilcrow">¶</a></p>
+            <li class="normal" id="section-11.2.4-5.3">
+              <p id="section-11.2.4-5.3.1">Whether the layout exposes a data server carrying
+FFV2_DS_FLAGS_REPAIR as a target for reconstructed shards.<a href="#section-11.2.4-5.3.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-11.2.4-3.4">
-              <p id="section-11.2.4-3.4.1">Network proximity, observed latency, or recent client load --
-the same class of information that informs ffv2ds_efficiency.<a href="#section-11.2.4-3.4.1" class="pilcrow">¶</a></p>
+            <li class="normal" id="section-11.2.4-5.4">
+              <p id="section-11.2.4-5.4.1">Network proximity, observed latency, or recent client load --
+the same class of information that informs ffv2ds_efficiency.<a href="#section-11.2.4-5.4.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
-<p id="section-11.2.4-4">The selection algorithm is not normative.  What is normative is
-that every client <span class="bcp14">MUST</span> be prepared to:<a href="#section-11.2.4-4" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-11.2.4-5">
-<li id="section-11.2.4-5.1">
-              <p id="section-11.2.4-5.1.1">Receive a repair request for a payload that the client does
+<p id="section-11.2.4-6">The selection algorithm is not normative.  What is normative is
+that every client <span class="bcp14">MUST</span> be prepared to:<a href="#section-11.2.4-6" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-11.2.4-7">
+<li id="section-11.2.4-7.1">
+              <p id="section-11.2.4-7.1.1">Receive a repair request for a payload that the client does
 not have an outstanding write layout on, and did not write;
-and<a href="#section-11.2.4-5.1.1" class="pilcrow">¶</a></p>
+and<a href="#section-11.2.4-7.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-11.2.4-5.2">
-              <p id="section-11.2.4-5.2.1">Continue its own workload after reporting
+            <li id="section-11.2.4-7.2">
+              <p id="section-11.2.4-7.2.1">Continue its own workload after reporting
 NFS4ERR_PAYLOAD_NOT_CONSISTENT without itself being selected
-to repair the payload it reported.<a href="#section-11.2.4-5.2.1" class="pilcrow">¶</a></p>
+to repair the payload it reported.<a href="#section-11.2.4-7.2.1" class="pilcrow">¶</a></p>
 </li>
           </ol>
-<p id="section-11.2.4-6">The metadata server signals the selected client via the
+<p id="section-11.2.4-8">The metadata server signals the selected client via the
 CB_CHUNK_REPAIR callback (<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 26.1</a>), which
 identifies the file, the affected ranges (each with its own
 triggering nfsstat4), and a wall-clock deadline.  A client that
 receives CB_CHUNK_REPAIR for a file for which it does not
 already hold a layout <span class="bcp14">MUST</span> acquire a layout via LAYOUTGET before
-attempting the repair.<a href="#section-11.2.4-6" class="pilcrow">¶</a></p>
-<p id="section-11.2.4-7">Operational expectations for CB_CHUNK_REPAIR:
+attempting the repair.<a href="#section-11.2.4-8" class="pilcrow">¶</a></p>
+<p id="section-11.2.4-9">Operational expectations for CB_CHUNK_REPAIR:
 CB_CHUNK_REPAIR is an exceptional path, triggered only by
 concurrent-writer races or data-server failures.  It is not a
 steady-state operation and its frequency is a function of
@@ -5135,7 +5232,7 @@ over-optimising it.  Implementations <span class="bcp14">SHOULD</span>, however,
 enough client-side compute to handle a repair transaction
 without stalling their foreground I/O, because foreground
 throughput during repair is the externally observable cost of
-this callback.<a href="#section-11.2.4-7" class="pilcrow">¶</a></p>
+this callback.<a href="#section-11.2.4-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="repair-protocol-normative-vs-informative">
@@ -5533,13 +5630,13 @@ coded file to a non-erasure coded file.<a href="#section-11.3-1" class="pilcrow"
 <p id="section-11.3-2">Assume there is an additional ffv2_coding_type4 of FFV2_CODING_REED_SOLOMON
 and it needs 8 active chunks.  The user wants to actively assimilate
 a regular file.  As such, a layout might be as represented in
-<a href="#fig-example_mixing" class="auto internal xref">Figure 30</a>.  As this is an assimilation, most of the
+<a href="#fig-example_mixing" class="auto internal xref">Figure 32</a>.  As this is an assimilation, most of the
 data reads will be satisfied by READ (see Section 18.22 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>)
 calls to index 0.  However, as this is also an active file, there
 could also be CHUNK_READ (see <a href="#sec-CHUNK_READ" class="auto internal xref">Section 25.6</a>) calls to the other
 indexes.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
 <span id="name-example-of-mixed-coding-typ"></span><div id="fig-example_mixing">
-<figure id="figure-30">
+<figure id="figure-32">
           <div class="alignLeft art-text artwork" id="section-11.3-3.1">
 <pre>
  +-----------------------------------------------------+
@@ -5573,7 +5670,7 @@ indexes.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
  +-----------------------------------------------------+
 </pre>
 </div>
-<figcaption><a href="#figure-30" class="selfRef">Figure 30</a>:
+<figcaption><a href="#figure-32" class="selfRef">Figure 32</a>:
 <a href="#name-example-of-mixed-coding-typ" class="selfRef">Example of Mixed Coding Types in a Layout</a>
           </figcaption></figure>
 </div>
@@ -5584,7 +5681,7 @@ when reading data from the instance files, the client <span class="bcp14">MUST</
 prepared to have one of the coding types supply data and the other
 type not to supply data.  I.e., the CHUNK_READ call to the data
 servers in mirror 1 might return rlr_eof set to true (see
-<a href="#fig-read_chunk4" class="auto internal xref">Figure 65</a>), which indicates that there is no data, where
+<a href="#fig-read_chunk4" class="auto internal xref">Figure 70</a>), which indicates that there is no data, where
 the READ call to the data server in mirror 0 might return eof to
 be false, which indicates that there is data.  The client <span class="bcp14">MUST</span>
 determine that there is in fact data.  An example use case is the
@@ -5946,7 +6043,8 @@ SUM(i=1..n) |q_i| &gt;= Q    OR    SUM(i=1..n) |p_i| &gt;= P
 <p id="section-11.5.7-1">In the systematic form (FFV2_ENCODING_MOJETTE_SYSTEMATIC), the first
 k shards are the original data rows and the remaining m shards are
 projections.  Healthy reads require no decoding.<a href="#section-11.5.7-1" class="pilcrow">¶</a></p>
-<p id="section-11.5.7-2">Reconstruction of missing data rows:<a href="#section-11.5.7-2" class="pilcrow">¶</a></p>
+<p id="section-11.5.7-2">Reconstruction of missing data rows proceeds via the
+corner-peeling algorithm of <span>[<a href="#NORMAND" class="cite xref">NORMAND</a>]</span>:<a href="#section-11.5.7-2" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-11.5.7-3">
 <li id="section-11.5.7-3.1">
               <p id="section-11.5.7-3.1.1">Load available parity projections.<a href="#section-11.5.7-3.1.1" class="pilcrow">¶</a></p>
@@ -5958,7 +6056,7 @@ projections.  Healthy reads require no decoding.<a href="#section-11.5.7-1" clas
               <p id="section-11.5.7-3.3.1">Corner-peel the residual to recover missing rows.<a href="#section-11.5.7-3.3.1" class="pilcrow">¶</a></p>
 </li>
           </ol>
-<p id="section-11.5.7-4">Reconstruction cost is O(m * k) — a fundamental advantage over RS
+<p id="section-11.5.7-4">Reconstruction cost is O(m * k) -- a fundamental advantage over RS
 at wide geometries (k &gt;= 8).<a href="#section-11.5.7-4" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -6391,7 +6489,7 @@ The transitions below are the complete set; any implementation
 of the data server's chunk state table <span class="bcp14">MUST</span> admit these
 transitions and no others.<a href="#section-12.4-1" class="pilcrow">¶</a></p>
 <span id="name-chunk-lifecycle-on-the-data"></span><div id="fig-chunk-state-machine">
-<figure id="figure-31">
+<figure id="figure-33">
           <div class="alignLeft art-text artwork" id="section-12.4-2.1">
 <pre>
                        CHUNK_WRITE
@@ -6433,7 +6531,7 @@ transitions and no others.<a href="#section-12.4-1" class="pilcrow">¶</a></p>
                                    against same chunk)
 </pre>
 </div>
-<figcaption><a href="#figure-31" class="selfRef">Figure 31</a>:
+<figcaption><a href="#figure-33" class="selfRef">Figure 33</a>:
 <a href="#name-chunk-lifecycle-on-the-data" class="selfRef">Chunk lifecycle on the data server</a>
           </figcaption></figure>
 </div>
@@ -6547,7 +6645,7 @@ ordering guarantees <span class="bcp14">MUST</span> serialize such writes extern
 example via NFSv4 byte-range locks (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>, Section 12).
 The chunk size that bounds the atomicity unit for a given file
 is the product of ffm_striping_unit_size and the stripe width
-W in <a href="#fig-striping-math" class="auto internal xref">Figure 21</a>; applications can query
+W in <a href="#fig-striping-math" class="auto internal xref">Figure 22</a>; applications can query
 fattr4_coding_block_size (see <a href="#sec-fattr4_coding_block_size" class="auto internal xref">Section 23.1</a>)
 to learn the effective chunk size and align their writes
 accordingly.<a href="#section-12.5-6" class="pilcrow">¶</a></p>
@@ -6755,7 +6853,7 @@ performing the demotion.<a href="#section-12.7-2.8.2.2.1" class="pilcrow">¶</a>
 </li>
               <li id="section-12.7-2.8.2.3">
                 <p id="section-12.7-2.8.2.3.1">Any CHUNK_LOCK held in escrow on behalf of the expired
-stateid (see <a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.1</a>) is released after
+stateid (see <a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.3</a>) is released after
 an MDS-defined grace period.  The grace period exists to
 let a recovering client reclaim its lock via the grace /
 reclaim path defined in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>; on expiry of the
@@ -6812,7 +6910,7 @@ NFS4ERR_CHUNK_GUARDED.<a href="#section-12.8-3.2.1" class="pilcrow">¶</a></p>
           <li id="section-12.8-3.3">
             <p id="section-12.8-3.3.1"><strong>Pessimistic locks off the critical path.</strong>  CHUNK_LOCK is
 used only during repair, never on the normal write path.
-Lock escrow (see <a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.1</a>) preserves the
+Lock escrow (see <a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.3</a>) preserves the
 "exactly one owner" invariant across stateid revocation
 without requiring a consensus round to elect the next owner.<a href="#section-12.8-3.3.1" class="pilcrow">¶</a></p>
 </li>
@@ -7457,9 +7555,9 @@ the operation as an implementation-defined control-plane action.<a href="#sectio
       </h2>
 <p id="section-14-1">layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
 layout-type-specific information to the server.  It is defined in
-Section 18.44.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> (also shown in <a href="#fig-LAYOUTRETURN" class="auto internal xref">Figure 32</a>).<a href="#section-14-1" class="pilcrow">¶</a></p>
+Section 18.44.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> (also shown in <a href="#fig-LAYOUTRETURN" class="auto internal xref">Figure 34</a>).<a href="#section-14-1" class="pilcrow">¶</a></p>
 <span id="name-layout-return-xdr"></span><div id="fig-LAYOUTRETURN">
-<figure id="figure-32">
+<figure id="figure-34">
         <div class="lang-xdr sourcecode" id="section-14-2.1">
 <pre>
       /* Constants used for LAYOUTRETURN and CB_LAYOUTRECALL */
@@ -7497,7 +7595,7 @@ Section 18.44.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</spa
    };
 </pre>
 </div>
-<figcaption><a href="#figure-32" class="selfRef">Figure 32</a>:
+<figcaption><a href="#figure-34" class="selfRef">Figure 34</a>:
 <a href="#name-layout-return-xdr" class="selfRef">Layout Return XDR</a>
         </figcaption></figure>
 </div>
@@ -7521,7 +7619,7 @@ utilize the data.<a href="#section-14-3" class="pilcrow">¶</a></p>
 <a href="#section-14.1.1" class="section-number selfRef">14.1.1. </a><a href="#name-ff_ioerr4" class="section-name selfRef">ff_ioerr4</a>
           </h4>
 <span id="name-ff_ioerr4-2"></span><div id="fig-ff_ioerr4">
-<figure id="figure-33">
+<figure id="figure-35">
             <div class="lang-xdr sourcecode" id="section-14.1.1-1.1">
 <pre>
    /// struct ffv2_ioerr4 {
@@ -7533,13 +7631,13 @@ utilize the data.<a href="#section-14-3" class="pilcrow">¶</a></p>
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-33" class="selfRef">Figure 33</a>:
+<figcaption><a href="#figure-35" class="selfRef">Figure 35</a>:
 <a href="#name-ff_ioerr4-2" class="selfRef">ff_ioerr4</a>
             </figcaption></figure>
 </div>
-<p id="section-14.1.1-2">Recall that <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> defines device_error4 as in <a href="#fig-device_error4" class="auto internal xref">Figure 34</a>:<a href="#section-14.1.1-2" class="pilcrow">¶</a></p>
+<p id="section-14.1.1-2">Recall that <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> defines device_error4 as in <a href="#fig-device_error4" class="auto internal xref">Figure 36</a>:<a href="#section-14.1.1-2" class="pilcrow">¶</a></p>
 <span id="name-device_error4"></span><div id="fig-device_error4">
-<figure id="figure-34">
+<figure id="figure-36">
             <div class="lang-xdr sourcecode" id="section-14.1.1-3.1">
 <pre>
    struct device_error4 {
@@ -7549,7 +7647,7 @@ utilize the data.<a href="#section-14-3" class="pilcrow">¶</a></p>
    };
 </pre>
 </div>
-<figcaption><a href="#figure-34" class="selfRef">Figure 34</a>:
+<figcaption><a href="#figure-36" class="selfRef">Figure 36</a>:
 <a href="#name-device_error4" class="selfRef">device_error4</a>
             </figcaption></figure>
 </div>
@@ -7581,7 +7679,7 @@ operations.<a href="#section-14.1.1-5" class="pilcrow">¶</a></p>
 <a href="#section-14.2.1" class="section-number selfRef">14.2.1. </a><a href="#name-ff_io_latency4" class="section-name selfRef">ff_io_latency4</a>
           </h4>
 <span id="name-ff_io_latency4-2"></span><div id="fig-ff_io_latency4">
-<figure id="figure-35">
+<figure id="figure-37">
             <div class="lang-xdr sourcecode" id="section-14.2.1-1.1">
 <pre>
    /// struct ffv2_io_latency4 {
@@ -7596,12 +7694,12 @@ operations.<a href="#section-14.1.1-5" class="pilcrow">¶</a></p>
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-35" class="selfRef">Figure 35</a>:
+<figcaption><a href="#figure-37" class="selfRef">Figure 37</a>:
 <a href="#name-ff_io_latency4-2" class="selfRef">ff_io_latency4</a>
             </figcaption></figure>
 </div>
 <p id="section-14.2.1-2">Both operation counts and bytes transferred are kept in the
-ff_io_latency4 (see <a href="#fig-ff_io_latency4" class="auto internal xref">Figure 35</a>.  As seen in ff_layoutupdate4
+ff_io_latency4 (see <a href="#fig-ff_io_latency4" class="auto internal xref">Figure 37</a>.  As seen in ff_layoutupdate4
 (see <a href="#sec-ff_layoutupdate4" class="auto internal xref">Section 14.2.2</a>), READ and WRITE operations are
 aggregated separately.  READ operations are used for the ff_io_latency4
 ffl_read.  Both WRITE and COMMIT operations are used for the
@@ -7635,7 +7733,7 @@ data.<a href="#section-14.2.1-5" class="pilcrow">¶</a></p>
 <a href="#section-14.2.2" class="section-number selfRef">14.2.2. </a><a href="#name-ff_layoutupdate4" class="section-name selfRef">ff_layoutupdate4</a>
           </h4>
 <span id="name-ff_layoutupdate4-2"></span><div id="fig-ff_layoutupdate4">
-<figure id="figure-36">
+<figure id="figure-38">
             <div class="lang-xdr sourcecode" id="section-14.2.2-1.1">
 <pre>
    /// struct ffv2_layoutupdate4 {
@@ -7649,7 +7747,7 @@ data.<a href="#section-14.2.1-5" class="pilcrow">¶</a></p>
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-36" class="selfRef">Figure 36</a>:
+<figcaption><a href="#figure-38" class="selfRef">Figure 38</a>:
 <a href="#name-ff_layoutupdate4-2" class="selfRef">ff_layoutupdate4</a>
             </figcaption></figure>
 </div>
@@ -7670,7 +7768,7 @@ not normally be allowed to report on.<a href="#section-14.2.2-2" class="pilcrow"
 <a href="#section-14.2.3" class="section-number selfRef">14.2.3. </a><a href="#name-ff_iostats4" class="section-name selfRef">ff_iostats4</a>
           </h4>
 <span id="name-ff_iostats4-2"></span><div id="fig-ff_iostats4">
-<figure id="figure-37">
+<figure id="figure-39">
             <div class="lang-xdr sourcecode" id="section-14.2.3-1.1">
 <pre>
    /// struct ffv2_iostats4 {
@@ -7685,13 +7783,13 @@ not normally be allowed to report on.<a href="#section-14.2.2-2" class="pilcrow"
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-37" class="selfRef">Figure 37</a>:
+<figcaption><a href="#figure-39" class="selfRef">Figure 39</a>:
 <a href="#name-ff_iostats4-2" class="selfRef">ff_iostats4</a>
             </figcaption></figure>
 </div>
-<p id="section-14.2.3-2"><span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> defines io_info4 as in <a href="#fig-ff_iostats4" class="auto internal xref">Figure 37</a>.<a href="#section-14.2.3-2" class="pilcrow">¶</a></p>
+<p id="section-14.2.3-2"><span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> defines io_info4 as in <a href="#fig-ff_iostats4" class="auto internal xref">Figure 39</a>.<a href="#section-14.2.3-2" class="pilcrow">¶</a></p>
 <span id="name-io_info4"></span><div id="fig-io_info4">
-<figure id="figure-38">
+<figure id="figure-40">
             <div class="lang-xdr sourcecode" id="section-14.2.3-3.1">
 <pre>
    struct io_info4 {
@@ -7700,7 +7798,7 @@ not normally be allowed to report on.<a href="#section-14.2.2-2" class="pilcrow"
    };
 </pre>
 </div>
-<figcaption><a href="#figure-38" class="selfRef">Figure 38</a>:
+<figcaption><a href="#figure-40" class="selfRef">Figure 40</a>:
 <a href="#name-io_info4" class="selfRef">io_info4</a>
             </figcaption></figure>
 </div>
@@ -7741,7 +7839,7 @@ multiple read-only copies of the file on the same storage device.<a href="#secti
 <a href="#section-14.3" class="section-number selfRef">14.3. </a><a href="#name-ff_layoutreturn4" class="section-name selfRef">ff_layoutreturn4</a>
         </h3>
 <span id="name-ff_layoutreturn4-2"></span><div id="fig-ff_layoutreturn4">
-<figure id="figure-39">
+<figure id="figure-41">
           <div class="lang-xdr sourcecode" id="section-14.3-1.1">
 <pre>
    /// struct ffv2_layoutreturn4 {
@@ -7751,7 +7849,7 @@ multiple read-only copies of the file on the same storage device.<a href="#secti
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-39" class="selfRef">Figure 39</a>:
+<figcaption><a href="#figure-41" class="selfRef">Figure 41</a>:
 <a href="#name-ff_layoutreturn4-2" class="selfRef">ff_layoutreturn4</a>
           </figcaption></figure>
 </div>
@@ -7802,9 +7900,9 @@ contents as in ffis_layoutupdate.<a href="#section-16-1" class="pilcrow">¶</a><
 <a href="#section-17" class="section-number selfRef">17. </a><a href="#name-flexible-file-layout-type-c" class="section-name selfRef">Flexible File Layout Type Creation Hint</a>
       </h2>
 <p id="section-17-1">The layouthint4 type is defined in the <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> as in
-<a href="#fig-layouthint4-v1" class="auto internal xref">Figure 40</a>.<a href="#section-17-1" class="pilcrow">¶</a></p>
+<a href="#fig-layouthint4-v1" class="auto internal xref">Figure 42</a>.<a href="#section-17-1" class="pilcrow">¶</a></p>
 <span id="name-layouthint4-v1"></span><div id="fig-layouthint4-v1">
-<figure id="figure-40">
+<figure id="figure-42">
         <div class="lang-xdr sourcecode" id="section-17-2.1">
 <pre>
    struct layouthint4 {
@@ -7813,7 +7911,7 @@ contents as in ffis_layoutupdate.<a href="#section-16-1" class="pilcrow">¶</a><
    };
 </pre>
 </div>
-<figcaption><a href="#figure-40" class="selfRef">Figure 40</a>:
+<figcaption><a href="#figure-42" class="selfRef">Figure 42</a>:
 <a href="#name-layouthint4-v1" class="selfRef">layouthint4 v1</a>
         </figcaption></figure>
 </div>
@@ -7834,7 +7932,7 @@ opaque value is defined by the ff_layouthint4 type.<a href="#section-17-4" class
 <a href="#section-18" class="section-number selfRef">18. </a><a href="#name-ff_layouthint4" class="section-name selfRef">ff_layouthint4</a>
       </h2>
 <span id="name-ff_layouthint4-v1-compatibi"></span><div id="fig-ff_layouthint4-v2">
-<figure id="figure-41">
+<figure id="figure-43">
         <div class="lang-xdr sourcecode" id="section-18-1.1">
 <pre>
    union ff_mirrors_hint switch (bool ffmc_valid) {
@@ -7849,15 +7947,15 @@ opaque value is defined by the ff_layouthint4 type.<a href="#section-17-4" class
    };
 </pre>
 </div>
-<figcaption><a href="#figure-41" class="selfRef">Figure 41</a>:
+<figcaption><a href="#figure-43" class="selfRef">Figure 43</a>:
 <a href="#name-ff_layouthint4-v1-compatibi" class="selfRef">ff_layouthint4 (v1 compatibility)</a>
         </figcaption></figure>
 </div>
 <p id="section-18-2">The ff_layouthint4 is retained for backwards compatibility with
 Flex Files v1 layouts.  For Flex Files v2 layouts, clients
-<span class="bcp14">SHOULD</span> use ffv2_layouthint4 (<a href="#fig-ffv2_layouthint4" class="auto internal xref">Figure 20</a>) instead,
+<span class="bcp14">SHOULD</span> use ffv2_layouthint4 (<a href="#fig-ffv2_layouthint4" class="auto internal xref">Figure 21</a>) instead,
 which provides coding type selection and data protection geometry
-hints via ffv2_data_protection4 (<a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 19</a>).<a href="#section-18-2" class="pilcrow">¶</a></p>
+hints via ffv2_data_protection4 (<a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 20</a>).<a href="#section-18-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="recalling-a-layout">
@@ -7897,7 +7995,7 @@ to notify the client to return some or all of its layouts.  Section
 22.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> defines the allowed types of the "NFSv4 Recallable
 Object Types Registry".<a href="#section-19.1-1" class="pilcrow">¶</a></p>
 <span id="name-rca4-masks-for-v2"></span><div id="fig-new-rca4">
-<figure id="figure-42">
+<figure id="figure-44">
           <div class="lang-xdr sourcecode" id="section-19.1-2.1">
 <pre>
    /// const RCA4_TYPE_MASK_FF2_LAYOUT_MIN     = 20;
@@ -7905,12 +8003,12 @@ Object Types Registry".<a href="#section-19.1-1" class="pilcrow">¶</a></p>
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-42" class="selfRef">Figure 42</a>:
+<figcaption><a href="#figure-44" class="selfRef">Figure 44</a>:
 <a href="#name-rca4-masks-for-v2" class="selfRef">RCA4 masks for v2</a>
           </figcaption></figure>
 </div>
 <span id="name-cb_recall_any4args-xdr"></span><div id="fig-CB_RECALL_ANY4args">
-<figure id="figure-43">
+<figure id="figure-45">
           <div class="lang-xdr sourcecode" id="section-19.1-3.1">
 <pre>
    struct  CB_RECALL_ANY4args      {
@@ -7919,7 +8017,7 @@ Object Types Registry".<a href="#section-19.1-1" class="pilcrow">¶</a></p>
    };
 </pre>
 </div>
-<figcaption><a href="#figure-43" class="selfRef">Figure 43</a>:
+<figcaption><a href="#figure-45" class="selfRef">Figure 45</a>:
 <a href="#name-cb_recall_any4args-xdr" class="selfRef">CB_RECALL_ANY4args XDR</a>
           </figcaption></figure>
 </div>
@@ -7928,9 +8026,9 @@ the server needs to reclaim resources.  The craa_type_mask bitmap
 specifies the type of resources that are recalled, and the
 craa_layouts_to_keep value specifies how many of the recalled
 flexible file layouts the client is allowed to keep.  The mask flags
-for the flexible file layout type are defined as in <a href="#fig-mask-flags" class="auto internal xref">Figure 44</a>.<a href="#section-19.1-4" class="pilcrow">¶</a></p>
+for the flexible file layout type are defined as in <a href="#fig-mask-flags" class="auto internal xref">Figure 46</a>.<a href="#section-19.1-4" class="pilcrow">¶</a></p>
 <span id="name-recall-mask-flags-for-v2"></span><div id="fig-mask-flags">
-<figure id="figure-44">
+<figure id="figure-46">
           <div class="lang-xdr sourcecode" id="section-19.1-5.1">
 <pre>
    /// enum ffv2_cb_recall_any_mask {
@@ -7940,7 +8038,7 @@ for the flexible file layout type are defined as in <a href="#fig-mask-flags" cl
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-44" class="selfRef">Figure 44</a>:
+<figcaption><a href="#figure-46" class="selfRef">Figure 46</a>:
 <a href="#name-recall-mask-flags-for-v2" class="selfRef">Recall Mask Flags for v2</a>
           </figcaption></figure>
 </div>
@@ -7977,7 +8075,7 @@ revoked clients from the respective data files as described in
 <a href="#section-21" class="section-number selfRef">21. </a><a href="#name-new-nfsv42-error-values" class="section-name selfRef">New NFSv4.2 Error Values</a>
       </h2>
 <span id="name-errors-xdr"></span><div id="fig-errors-xdr">
-<figure id="figure-45">
+<figure id="figure-47">
         <div class="lang-xdr sourcecode" id="section-21-1.1">
 <pre>
    ///
@@ -7991,11 +8089,11 @@ revoked clients from the respective data files as described in
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-45" class="selfRef">Figure 45</a>:
+<figcaption><a href="#figure-47" class="selfRef">Figure 47</a>:
 <a href="#name-errors-xdr" class="selfRef">Errors XDR</a>
         </figcaption></figure>
 </div>
-<p id="section-21-2">The new error codes are shown in <a href="#fig-errors-xdr" class="auto internal xref">Figure 45</a>.<a href="#section-21-2" class="pilcrow">¶</a></p>
+<p id="section-21-2">The new error codes are shown in <a href="#fig-errors-xdr" class="auto internal xref">Figure 47</a>.<a href="#section-21-2" class="pilcrow">¶</a></p>
 <div id="error-definitions">
 <section id="section-21.1">
         <h3 id="name-error-definitions">
@@ -8285,20 +8383,20 @@ are defined in Section 18 of <span>[<a href="#RFC8881" class="cite xref">RFC8881
 <a href="#section-22" class="section-number selfRef">22. </a><a href="#name-exchgid4_flag_use_pnfs_ds" class="section-name selfRef">EXCHGID4_FLAG_USE_PNFS_DS</a>
       </h2>
 <span id="name-the-exchgid4_flag_use_pnfs_"></span><div id="fig-EXCHGID4_FLAG_USE_PNFS_DS">
-<figure id="figure-46">
+<figure id="figure-48">
         <div class="lang-xdr sourcecode" id="section-22-1.1">
 <pre>
    /// const EXCHGID4_FLAG_USE_ERASURE_DS      = 0x00100000;
 </pre>
 </div>
-<figcaption><a href="#figure-46" class="selfRef">Figure 46</a>:
+<figcaption><a href="#figure-48" class="selfRef">Figure 48</a>:
 <a href="#name-the-exchgid4_flag_use_pnfs_" class="selfRef">The EXCHGID4_FLAG_USE_PNFS_DS</a>
         </figcaption></figure>
 </div>
 <p id="section-22-2">When a data server connects to a metadata server it can via
 EXCHANGE_ID (see Section 18.35 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) state its pNFS role.
 The data server can use EXCHGID4_FLAG_USE_ERASURE_DS (see
-<a href="#fig-EXCHGID4_FLAG_USE_PNFS_DS" class="auto internal xref">Figure 46</a>) to indicate that it supports the
+<a href="#fig-EXCHGID4_FLAG_USE_PNFS_DS" class="auto internal xref">Figure 48</a>) to indicate that it supports the
 new NFSv4.2 operations introduced in this document.  Section 13.1
 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> describes the interaction of the various pNFS roles
 masked by EXCHGID4_FLAG_MASK_PNFS.  However, that does not mask out
@@ -8322,7 +8420,7 @@ is driving the I/O.<a href="#section-22-3" class="pilcrow">¶</a></p>
 <a href="#section-23.1" class="section-number selfRef">23.1. </a><a href="#name-attribute-89-fattr4_coding_" class="section-name selfRef">Attribute 89: fattr4_coding_block_size</a>
         </h3>
 <span id="name-xdr-for-fattr4_coding_block"></span><div id="fig-fattr4_coding_block_size">
-<figure id="figure-47">
+<figure id="figure-49">
           <div class="lang-xdr sourcecode" id="section-23.1-1.1">
 <pre>
    /// typedef uint64_t                  fattr4_coding_block_size;
@@ -8331,12 +8429,12 @@ is driving the I/O.<a href="#section-22-3" class="pilcrow">¶</a></p>
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-47" class="selfRef">Figure 47</a>:
+<figcaption><a href="#figure-49" class="selfRef">Figure 49</a>:
 <a href="#name-xdr-for-fattr4_coding_block" class="selfRef">XDR for fattr4_coding_block_size</a>
           </figcaption></figure>
 </div>
 <p id="section-23.1-2">The new attribute fattr4_coding_block_size (see
-<a href="#fig-fattr4_coding_block_size" class="auto internal xref">Figure 47</a>) is an <span class="bcp14">OPTIONAL</span> to NFSv4.2 attribute
+<a href="#fig-fattr4_coding_block_size" class="auto internal xref">Figure 49</a>) is an <span class="bcp14">OPTIONAL</span> to NFSv4.2 attribute
 which <span class="bcp14">MUST</span> be supported if the metadata server supports the Flexible
 File Version 2 Layout Type.  By querying it, the client can determine
 the data block size it is to use when coding the data blocks to
@@ -8356,7 +8454,7 @@ chunks.<a href="#section-23.1-2" class="pilcrow">¶</a></p>
 <a href="#section-24.1" class="section-number selfRef">24.1. </a><a href="#name-chunk_guard4" class="section-name selfRef">chunk_guard4</a>
         </h3>
 <span id="name-xdr-for-chunk_guard4"></span><div id="fig-chunk_guard4">
-<figure id="figure-48">
+<figure id="figure-50">
           <div class="lang-xdr sourcecode" id="section-24.1-1.1">
 <pre>
    /// const CHUNK_GUARD_CLIENT_ID_MDS  = 0xFFFFFFFF;
@@ -8367,29 +8465,60 @@ chunks.<a href="#section-23.1-2" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-48" class="selfRef">Figure 48</a>:
+<figcaption><a href="#figure-50" class="selfRef">Figure 50</a>:
 <a href="#name-xdr-for-chunk_guard4" class="selfRef">XDR for chunk_guard4</a>
           </figcaption></figure>
 </div>
-<p id="section-24.1-2">The chunk_guard4 (see <a href="#fig-chunk_guard4" class="auto internal xref">Figure 48</a>) is effectively a 64-bit
+<p id="section-24.1-2">On the wire, a single CHUNK_WRITE carries the 8-byte header
+followed by the opaque payload, as shown in
+<a href="#fig-chunk-wire-layout" class="auto internal xref">Figure 51</a>.  The payload length is carried
+separately in the CHUNK_WRITE4args cwa_chunks&lt;&gt; slot; the
+diagram shows the per-chunk framing only.<a href="#section-24.1-2" class="pilcrow">¶</a></p>
+<span id="name-per-chunk-wire-layout"></span><div id="fig-chunk-wire-layout">
+<figure id="figure-51">
+          <div class="alignLeft art-text artwork" id="section-24.1-3.1">
+<pre>
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          cg_gen_id                            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                         cg_client_id                          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                           cr_crc                              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    opaque payload ...                         |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   Bytes 0-3:   cg_gen_id      (per-chunk generation counter)
+   Bytes 4-7:   cg_client_id   (owning-client short id)
+   Bytes 8-11:  cr_crc         (CRC32 over the opaque payload)
+   Bytes 12-N:  opaque payload (encoded shard; variable length)
+</pre>
+</div>
+<figcaption><a href="#figure-51" class="selfRef">Figure 51</a>:
+<a href="#name-per-chunk-wire-layout" class="selfRef">Per-chunk wire layout</a>
+          </figcaption></figure>
+</div>
+<p id="section-24.1-4">The chunk_guard4 (see <a href="#fig-chunk_guard4" class="auto internal xref">Figure 50</a>) is effectively a 64-bit
 value identifying a specific write transaction on a specific chunk.
-It has two fields:<a href="#section-24.1-2" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-24.1-3">
-          <dt id="section-24.1-3.1">cg_gen_id:</dt>
-          <dd style="margin-left: 1.5em" id="section-24.1-3.2">
-            <p id="section-24.1-3.2.1">A per-chunk monotonic generation counter.  Each chunk's gen_id
+It has two fields:<a href="#section-24.1-4" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-24.1-5">
+          <dt id="section-24.1-5.1">cg_gen_id:</dt>
+          <dd style="margin-left: 1.5em" id="section-24.1-5.2">
+            <p id="section-24.1-5.2.1">A per-chunk monotonic generation counter.  Each chunk's gen_id
 starts at 0 when the chunk is first written and is incremented
 on each successful write by any client.  cg_gen_id is NOT a
 timestamp -- the protocol does not rely on a global clock,
 and no interpretation of cg_gen_id as a wall-clock value is
 supported.  cg_gen_id values are NOT comparable across distinct
 chunks; a given cg_gen_id is only meaningful within the scope
-of a single chunk on a single file.<a href="#section-24.1-3.2.1" class="pilcrow">¶</a></p>
+of a single chunk on a single file.<a href="#section-24.1-5.2.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-24.1-3.3">cg_client_id:</dt>
-          <dd style="margin-left: 1.5em" id="section-24.1-3.4">
-            <p id="section-24.1-3.4.1">A 32-bit value established by the metadata server at the time
+<dt id="section-24.1-5.3">cg_client_id:</dt>
+          <dd style="margin-left: 1.5em" id="section-24.1-5.4">
+            <p id="section-24.1-5.4.1">A 32-bit value established by the metadata server at the time
 the client's layout is granted (see <a href="#sec-ffv2-mirror4" class="auto internal xref">Section 8.8</a> and
 ffm_client_id).  The metadata server <span class="bcp14">MUST</span> assign distinct
 cg_client_id values to distinct clients that hold concurrent
@@ -8399,23 +8528,23 @@ interpret its bits as naming or ordering clients in any
 external sense.  The value supports two operations only:
 equality comparison (to detect whether two chunks were written
 by the same transaction) and numeric comparison (to implement
-the tiebreaker rule below).<a href="#section-24.1-3.4.1" class="pilcrow">¶</a></p>
+the tiebreaker rule below).<a href="#section-24.1-5.4.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-24.1-3.5">Uniqueness contract:</dt>
-          <dd style="margin-left: 1.5em" id="section-24.1-3.6">
-            <p id="section-24.1-3.6.1">The pair (cg_gen_id, cg_client_id) uniquely identifies a write
+<dt id="section-24.1-5.5">Uniqueness contract:</dt>
+          <dd style="margin-left: 1.5em" id="section-24.1-5.6">
+            <p id="section-24.1-5.6.1">The pair (cg_gen_id, cg_client_id) uniquely identifies a write
 transaction on a chunk.  Neither field alone is globally
 unique; two clients <span class="bcp14">MAY</span> independently write with the same
 cg_gen_id on the same chunk (in particular, both may write
 with cg_gen_id equal to some prior value + 1), and the
 cg_client_id is what makes the resulting transactions
-distinguishable.<a href="#section-24.1-3.6.1" class="pilcrow">¶</a></p>
+distinguishable.<a href="#section-24.1-5.6.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-24.1-3.7">Deterministic tiebreaker for concurrent writers:</dt>
-          <dd style="margin-left: 1.5em" id="section-24.1-3.8">
-            <p id="section-24.1-3.8.1">When two or more clients race on the same chunk in the
+<dt id="section-24.1-5.7">Deterministic tiebreaker for concurrent writers:</dt>
+          <dd style="margin-left: 1.5em" id="section-24.1-5.8">
+            <p id="section-24.1-5.8.1">When two or more clients race on the same chunk in the
 multi-writer mode, the client whose cg_client_id compares
 numerically lowest wins the race.  A data server enforces this
 by accepting the first CHUNK_WRITE whose guard check succeeds
@@ -8428,39 +8557,115 @@ one data server <span class="bcp14">MUST</span> re-read the chunk and <span clas
 with a refreshed cg_gen_id.  A client that detects no forward
 progress after a bounded number of retries <span class="bcp14">MUST</span> escalate via
 LAYOUTERROR and the repair coordination flow in
-<a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a>.<a href="#section-24.1-3.8.1" class="pilcrow">¶</a></p>
+<a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a>.<a href="#section-24.1-5.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 </dl>
-<p id="section-24.1-4">The numeric ordering of cg_client_id values is arbitrary with
+<p id="section-24.1-6">The numeric ordering of cg_client_id values is arbitrary with
 respect to the clients' external identities -- it is a
 deterministic total order over the opaque 32-bit values, not a
 preference ordering over the clients themselves.  A deployment
 that requires a specific client to win a race <span class="bcp14">MUST</span> arrange
 cg_client_id assignment at the metadata server; the protocol does
-not provide a preference mechanism at layout-grant time.<a href="#section-24.1-4" class="pilcrow">¶</a></p>
-<div id="sec-chunk_guard_mds">
+not provide a preference mechanism at layout-grant time.<a href="#section-24.1-6" class="pilcrow">¶</a></p>
+<div id="metadata-server-assignment-rules-for-cgclientid">
 <section id="section-24.1.1">
-          <h4 id="name-reserved-cg_client_id-value">
-<a href="#section-24.1.1" class="section-number selfRef">24.1.1. </a><a href="#name-reserved-cg_client_id-value" class="section-name selfRef">Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS</a>
+          <h4 id="name-metadata-server-assignment-">
+<a href="#section-24.1.1" class="section-number selfRef">24.1.1. </a><a href="#name-metadata-server-assignment-" class="section-name selfRef">Metadata-Server Assignment Rules for cg_client_id</a>
           </h4>
-<p id="section-24.1.1-1">The value <code>CHUNK_GUARD_CLIENT_ID_MDS</code> (0xFFFFFFFF) is reserved.
+<p id="section-24.1.1-1">To uphold the uniqueness contract, the metadata server <span class="bcp14">MUST</span>
+follow these rules when assigning cg_client_id (that is, when
+populating ffm_client_id at layout-grant time):<a href="#section-24.1.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-24.1.1-2.1">
+              <p id="section-24.1.1-2.1.1">Two clients holding concurrent write layouts on the same
+file <span class="bcp14">MUST</span> receive distinct cg_client_id values.  A client
+that holds only a read layout need not be assigned a
+distinct value.<a href="#section-24.1.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-24.1.1-2.2">
+              <p id="section-24.1.1-2.2.1">The reserved sentinel CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF)
+<span class="bcp14">MUST NOT</span> be assigned to any client.<a href="#section-24.1.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-24.1.1-2.3">
+              <p id="section-24.1.1-2.3.1">A cg_client_id <span class="bcp14">MAY</span> be reused by the metadata server after
+the prior holder's layout has been fully returned (via
+LAYOUTRETURN or revocation).  The metadata server <span class="bcp14">SHOULD</span>
+avoid reusing a cg_client_id within a single lease period
+to simplify diagnosis of stale writes.<a href="#section-24.1.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-24.1.1-2.4">
+              <p id="section-24.1.1-2.4.1">cg_client_id values do not persist across metadata-server
+restart.  Clients reclaiming layouts during the grace period
+receive freshly assigned values; the protocol does not rely
+on any pre-restart assignment surviving.<a href="#section-24.1.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="data-server-collision-handling">
+<section id="section-24.1.2">
+          <h4 id="name-data-server-collision-handl">
+<a href="#section-24.1.2" class="section-number selfRef">24.1.2. </a><a href="#name-data-server-collision-handl" class="section-name selfRef">Data-Server Collision Handling</a>
+          </h4>
+<p id="section-24.1.2-1">A (cg_gen_id, cg_client_id) pair that the uniqueness contract
+would otherwise render unique can nonetheless collide if a
+client and the metadata server disagree about which
+cg_client_id the client currently holds, or if a client
+presents a spoofed cg_client_id.  The data server enforces the
+contract locally:<a href="#section-24.1.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-24.1.2-2.1">
+              <p id="section-24.1.2-2.1.1">If the data server receives a CHUNK_WRITE whose
+chunk_guard4 has the same (cg_gen_id, cg_client_id) as a
+chunk already in PENDING, FINALIZED, or COMMITTED state
+AND the presented payload differs from the retained
+payload, the data server <span class="bcp14">MUST</span> reject the write with
+NFS4ERR_CHUNK_GUARDED and <span class="bcp14">SHOULD</span> report the collision to
+the metadata server via LAYOUTERROR.  This situation is a
+protocol violation on one side of the conversation; the
+metadata server resolves it by revoking the offending
+client's layout and selecting a repair client under
+<a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a>.<a href="#section-24.1.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-24.1.2-2.2">
+              <p id="section-24.1.2-2.2.1">If a client presents CHUNK_GUARD_CLIENT_ID_MDS as
+cg_client_id in any client-originated operation, the data
+server <span class="bcp14">MUST</span> reject the operation with NFS4ERR_INVAL (see
+<a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.3</a>).<a href="#section-24.1.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-24.1.2-2.3">
+              <p id="section-24.1.2-2.3.1">A cg_client_id that does not match any layout the data
+server has been told about (via TRUST_STATEID) <span class="bcp14">MUST</span> be
+rejected.  Unknown cg_client_id values are treated as stale
+layouts; the data server returns the error specified in
+<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a> for unknown stateids.<a href="#section-24.1.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="sec-chunk_guard_mds">
+<section id="section-24.1.3">
+          <h4 id="name-reserved-cg_client_id-value">
+<a href="#section-24.1.3" class="section-number selfRef">24.1.3. </a><a href="#name-reserved-cg_client_id-value" class="section-name selfRef">Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS</a>
+          </h4>
+<p id="section-24.1.3-1">The value <code>CHUNK_GUARD_CLIENT_ID_MDS</code> (0xFFFFFFFF) is reserved.
 It denotes that the chunk lock is held by the metadata server
 itself, in escrow during a repair coordination sequence (see
 <a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a>).  The data server produces a
 chunk_guard4 with this cg_client_id when the metadata server
 revokes the prior holder's stateid while that holder still holds
 chunk locks; the locks <span class="bcp14">MUST NOT</span> be dropped and are transferred to
-the MDS-escrow owner instead.<a href="#section-24.1.1-1" class="pilcrow">¶</a></p>
-<p id="section-24.1.1-2">The metadata server does not originate CHUNK_LOCK or CHUNK_WRITE
+the MDS-escrow owner instead.<a href="#section-24.1.3-1" class="pilcrow">¶</a></p>
+<p id="section-24.1.3-2">The metadata server does not originate CHUNK_LOCK or CHUNK_WRITE
 traffic on its own session.  Clients <span class="bcp14">MUST NOT</span> present
 CHUNK_GUARD_CLIENT_ID_MDS as the cg_client_id of any
 client-originated chunk_guard4 or chunk_owner4.  A data server
 that receives such a value from a client <span class="bcp14">MUST</span> reject the
-operation with NFS4ERR_INVAL.<a href="#section-24.1.1-2" class="pilcrow">¶</a></p>
-<p id="section-24.1.1-3">The MDS-escrow owner is released only by a CHUNK_LOCK from the
+operation with NFS4ERR_INVAL.<a href="#section-24.1.3-2" class="pilcrow">¶</a></p>
+<p id="section-24.1.3-3">The MDS-escrow owner is released only by a CHUNK_LOCK from the
 client selected via CB_CHUNK_REPAIR, carrying
-CHUNK_LOCK_FLAGS_ADOPT.  See <a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.5</a>.<a href="#section-24.1.1-3" class="pilcrow">¶</a></p>
+CHUNK_LOCK_FLAGS_ADOPT.  See <a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.5</a>.<a href="#section-24.1.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -8471,25 +8676,26 @@ CHUNK_LOCK_FLAGS_ADOPT.  See <a href="#sec-CHUNK_LOCK" class="auto internal xref
 <a href="#section-24.2" class="section-number selfRef">24.2. </a><a href="#name-chunk_owner4" class="section-name selfRef">chunk_owner4</a>
         </h3>
 <span id="name-xdr-for-chunk_owner4"></span><div id="fig-chunk_owner4">
-<figure id="figure-49">
+<figure id="figure-52">
           <div class="lang-xdr sourcecode" id="section-24.2-1.1">
 <pre>
    /// struct chunk_owner4 {
    ///     chunk_guard4   co_guard;
-   ///     uint32_t       co_id;
+   ///     uint32_t       co_chunk_id;
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-49" class="selfRef">Figure 49</a>:
+<figcaption><a href="#figure-52" class="selfRef">Figure 52</a>:
 <a href="#name-xdr-for-chunk_owner4" class="selfRef">XDR for chunk_owner4</a>
           </figcaption></figure>
 </div>
-<p id="section-24.2-2">The chunk_owner4 (see <a href="#fig-chunk_owner4" class="auto internal xref">Figure 49</a>) is used to determine
-when and by whom a block was written.  The co_id is used to identify
-the block and <span class="bcp14">MUST</span> be the index of the chunk within the file.  I.e.,
-it is the offset of the start of the chunk divided by the chunk
-length.  The co_guard is a chunk_guard4 (see <a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>),
-used to identify a given transaction.<a href="#section-24.2-2" class="pilcrow">¶</a></p>
+<p id="section-24.2-2">The chunk_owner4 (see <a href="#fig-chunk_owner4" class="auto internal xref">Figure 52</a>) is used to determine
+when and by whom a block was written.  The co_chunk_id is used
+to identify the chunk and <span class="bcp14">MUST</span> be the index of the chunk within
+the file.  I.e., it is the offset of the start of the chunk
+divided by the chunk length.  The co_guard is a chunk_guard4
+(see <a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>), used to identify a given
+transaction.<a href="#section-24.2-2" class="pilcrow">¶</a></p>
 <p id="section-24.2-3">The co_guard is like the change attribute (see Section 5.8.1.4 of
 <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) in that each chunk write by a given client has to have
 an unique co_guard.  I.e., it can be determined which transaction
@@ -8504,7 +8710,7 @@ across all data files that a chunk corresponds.<a href="#section-24.2-3" class="
 <a href="#section-25" class="section-number selfRef">25. </a><a href="#name-new-nfsv42-operations" class="section-name selfRef">New NFSv4.2 Operations</a>
       </h2>
 <span id="name-operations-xdr"></span><div id="fig-ops-xdr">
-<figure id="figure-50">
+<figure id="figure-53">
         <div class="lang-xdr sourcecode" id="section-25-1.1">
 <pre>
    ///
@@ -8530,17 +8736,74 @@ across all data files that a chunk corresponds.<a href="#section-24.2-3" class="
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-50" class="selfRef">Figure 50</a>:
+<figcaption><a href="#figure-53" class="selfRef">Figure 53</a>:
 <a href="#name-operations-xdr" class="selfRef">Operations XDR</a>
         </figcaption></figure>
 </div>
-<p id="section-25-2">Operations 77 through 87 (the CHUNK_* operations) are sent by
+<p id="section-25-2">The following amendment blocks extend the nfs_argop4 and
+nfs_resop4 dispatch unions defined in <span>[<a href="#RFC7863" class="cite xref">RFC7863</a>]</span> with arms for
+each of the new operations defined in this document.  A consumer
+that combines this document's extracted XDR with the RFC 7863
+XDR applies these amendments at the union's extension point.<a href="#section-25-2" class="pilcrow">¶</a></p>
+<span id="name-nfs_argop4-amendment-block"></span><div id="fig-nfs_argop4-amend">
+<figure id="figure-54">
+        <div class="lang-xdr sourcecode" id="section-25-3.1">
+<pre>
+   /// /* nfs_argop4 amendment block */
+   ///
+   /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4args        opchunkcommit;
+   /// case OP_CHUNK_ERROR:          CHUNK_ERROR4args         opchunkerror;
+   /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4args      opchunkfinalize;
+   /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4args   opchunkheaderread;
+   /// case OP_CHUNK_LOCK:           CHUNK_LOCK4args          opchunklock;
+   /// case OP_CHUNK_READ:           CHUNK_READ4args          opchunkread;
+   /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4args      opchunkrepaired;
+   /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4args      opchunkrollback;
+   /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4args        opchunkunlock;
+   /// case OP_CHUNK_WRITE:          CHUNK_WRITE4args         opchunkwrite;
+   /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4args  opchunkwriterepair;
+   /// case OP_TRUST_STATEID:        TRUST_STATEID4args       optruststateid;
+   /// case OP_REVOKE_STATEID:       REVOKE_STATEID4args      oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4args opbulkrevokestateid;
+</pre>
+</div>
+<figcaption><a href="#figure-54" class="selfRef">Figure 54</a>:
+<a href="#name-nfs_argop4-amendment-block" class="selfRef">nfs_argop4 amendment block</a>
+        </figcaption></figure>
+</div>
+<span id="name-nfs_resop4-amendment-block"></span><div id="fig-nfs_resop4-amend">
+<figure id="figure-55">
+        <div class="lang-xdr sourcecode" id="section-25-4.1">
+<pre>
+   /// /* nfs_resop4 amendment block */
+   ///
+   /// case OP_CHUNK_COMMIT:         CHUNK_COMMIT4res         opchunkcommit;
+   /// case OP_CHUNK_ERROR:          CHUNK_ERROR4res          opchunkerror;
+   /// case OP_CHUNK_FINALIZE:       CHUNK_FINALIZE4res       opchunkfinalize;
+   /// case OP_CHUNK_HEADER_READ:    CHUNK_HEADER_READ4res    opchunkheaderread;
+   /// case OP_CHUNK_LOCK:           CHUNK_LOCK4res           opchunklock;
+   /// case OP_CHUNK_READ:           CHUNK_READ4res           opchunkread;
+   /// case OP_CHUNK_REPAIRED:       CHUNK_REPAIRED4res       opchunkrepaired;
+   /// case OP_CHUNK_ROLLBACK:       CHUNK_ROLLBACK4res       opchunkrollback;
+   /// case OP_CHUNK_UNLOCK:         CHUNK_UNLOCK4res         opchunkunlock;
+   /// case OP_CHUNK_WRITE:          CHUNK_WRITE4res          opchunkwrite;
+   /// case OP_CHUNK_WRITE_REPAIR:   CHUNK_WRITE_REPAIR4res   opchunkwriterepair;
+   /// case OP_TRUST_STATEID:        TRUST_STATEID4res        optruststateid;
+   /// case OP_REVOKE_STATEID:       REVOKE_STATEID4res       oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:  BULK_REVOKE_STATEID4res  opbulkrevokestateid;
+</pre>
+</div>
+<figcaption><a href="#figure-55" class="selfRef">Figure 55</a>:
+<a href="#name-nfs_resop4-amendment-block" class="selfRef">nfs_resop4 amendment block</a>
+        </figcaption></figure>
+</div>
+<p id="section-25-5">Operations 77 through 87 (the CHUNK_* operations) are sent by
 clients to storage devices on the data path.  Operations 88
 through 90 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
 are sent by the metadata server to storage devices on the
 MDS-to-DS control session (see
 <a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a>); they <span class="bcp14">MUST NOT</span> be sent by
-pNFS clients.<a href="#section-25-2" class="pilcrow">¶</a></p>
+pNFS clients.<a href="#section-25-5" class="pilcrow">¶</a></p>
 <span id="name-protocol-ops"></span><div id="tbl-protocol-ops">
 <table class="center" id="table-10">
         <caption>
@@ -8682,7 +8945,7 @@ pNFS clients.<a href="#section-25-2" class="pilcrow">¶</a></p>
 <a href="#section-25.1.1" class="section-number selfRef">25.1.1. </a><a href="#name-arguments" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_commit4args"></span><div id="fig-CHUNK_COMMIT4args">
-<figure id="figure-51">
+<figure id="figure-56">
             <div class="lang-xdr sourcecode" id="section-25.1.1-1.1">
 <pre>
    /// struct CHUNK_COMMIT4args {
@@ -8693,7 +8956,7 @@ pNFS clients.<a href="#section-25-2" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-51" class="selfRef">Figure 51</a>:
+<figcaption><a href="#figure-56" class="selfRef">Figure 56</a>:
 <a href="#name-xdr-for-chunk_commit4args" class="selfRef">XDR for CHUNK_COMMIT4args</a>
             </figcaption></figure>
 </div>
@@ -8705,7 +8968,7 @@ pNFS clients.<a href="#section-25-2" class="pilcrow">¶</a></p>
 <a href="#section-25.1.2" class="section-number selfRef">25.1.2. </a><a href="#name-results" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_commit4resok"></span><div id="fig-CHUNK_COMMIT4resok">
-<figure id="figure-52">
+<figure id="figure-57">
             <div class="lang-xdr sourcecode" id="section-25.1.2-1.1">
 <pre>
    /// struct CHUNK_COMMIT4resok {
@@ -8714,12 +8977,12 @@ pNFS clients.<a href="#section-25-2" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-52" class="selfRef">Figure 52</a>:
+<figcaption><a href="#figure-57" class="selfRef">Figure 57</a>:
 <a href="#name-xdr-for-chunk_commit4resok" class="selfRef">XDR for CHUNK_COMMIT4resok</a>
             </figcaption></figure>
 </div>
 <span id="name-xdr-for-chunk_commit4res"></span><div id="fig-CHUNK_COMMIT4res">
-<figure id="figure-53">
+<figure id="figure-58">
             <div class="lang-xdr sourcecode" id="section-25.1.2-2.1">
 <pre>
    /// union CHUNK_COMMIT4res switch (nfsstat4 ccr_status) {
@@ -8730,7 +8993,7 @@ pNFS clients.<a href="#section-25-2" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-53" class="selfRef">Figure 53</a>:
+<figcaption><a href="#figure-58" class="selfRef">Figure 58</a>:
 <a href="#name-xdr-for-chunk_commit4res" class="selfRef">XDR for CHUNK_COMMIT4res</a>
             </figcaption></figure>
 </div>
@@ -8754,8 +9017,85 @@ blocks to activate and not bytes to activate.<a href="#section-25.1.3-2" class="
 cca_count are redundant to cca_chunks, the purpose of cca_chunks
 is to allow the data server to differentiate between potentially
 multiple pending blocks.<a href="#section-25.1.3-3" class="pilcrow">¶</a></p>
-<p id="section-25.1.3-4"><span class="cref">Describe how CHUNK_COMMIT and CHUNK_FINALIZE interact.
-How does CHUNK_COMMIT interact with a locked chunk?<span class="crefSource">Tom</span></span><a href="#section-25.1.3-4" class="pilcrow">¶</a></p>
+<div id="interaction-with-chunkfinalize">
+<section id="section-25.1.3.1">
+            <h5 id="name-interaction-with-chunk_fina">
+<a href="#section-25.1.3.1" class="section-number selfRef">25.1.3.1. </a><a href="#name-interaction-with-chunk_fina" class="section-name selfRef">Interaction with CHUNK_FINALIZE</a>
+            </h5>
+<p id="section-25.1.3.1-1">CHUNK_COMMIT transitions a chunk from FINALIZED to COMMITTED
+(see <a href="#sec-system-model-chunk-state" class="auto internal xref">Section 12.4</a>).  A chunk <span class="bcp14">MUST</span> have
+previously been transitioned from PENDING to FINALIZED via
+CHUNK_FINALIZE before CHUNK_COMMIT is accepted:<a href="#section-25.1.3.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-25.1.3.1-2.1">
+                <p id="section-25.1.3.1-2.1.1">If the target chunk is PENDING (i.e., the writer never
+issued CHUNK_FINALIZE), the data server <span class="bcp14">MUST</span> reject the
+CHUNK_COMMIT entry for that chunk with
+NFS4ERR_PAYLOAD_NOT_CONSISTENT in the corresponding
+ccr_status slot.  The writer is expected to either issue
+CHUNK_FINALIZE to advance the state or CHUNK_ROLLBACK to
+abandon the PENDING generation.<a href="#section-25.1.3.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-25.1.3.1-2.2">
+                <p id="section-25.1.3.1-2.2.1">If the target chunk is EMPTY (no generation to commit), the
+data server <span class="bcp14">MUST</span> reject with NFS4ERR_PAYLOAD_NOT_CONSISTENT
+for that chunk.<a href="#section-25.1.3.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-25.1.3.1-2.3">
+                <p id="section-25.1.3.1-2.3.1">If the target chunk is already COMMITTED at the generation
+identified by the cca_chunks entry's cg_gen_id, the
+CHUNK_COMMIT is idempotent and <span class="bcp14">MUST</span> succeed.  Idempotence
+preserves the NFSv4 COMMIT contract for duplicate-request
+retransmission.<a href="#section-25.1.3.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-25.1.3.1-2.4">
+                <p id="section-25.1.3.1-2.4.1">If the target chunk is FINALIZED at a different generation
+than the one named in the cca_chunks entry, the data server
+<span class="bcp14">MUST</span> reject with NFS4ERR_CHUNK_GUARDED.  A client that sees
+this has lost a race and <span class="bcp14">SHOULD</span> re-read the chunk (see
+sec-chunk_guard4).<a href="#section-25.1.3.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
+<p id="section-25.1.3.1-3">The three-step CHUNK_WRITE → CHUNK_FINALIZE → CHUNK_COMMIT
+sequence <span class="bcp14">MAY</span> be pipelined within a single NFSv4.2 compound
+(see sec-system-model-progress); each operation evaluates the
+current state of the target chunks independently.<a href="#section-25.1.3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="interaction-with-a-locked-chunk">
+<section id="section-25.1.3.2">
+            <h5 id="name-interaction-with-a-locked-c">
+<a href="#section-25.1.3.2" class="section-number selfRef">25.1.3.2. </a><a href="#name-interaction-with-a-locked-c" class="section-name selfRef">Interaction with a Locked Chunk</a>
+            </h5>
+<p id="section-25.1.3.2-1">When a chunk is locked via CHUNK_LOCK (see <a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.5</a>),
+CHUNK_COMMIT is permitted only when the submitter owns the
+lock -- that is, when the stateid carried on the compound
+matches the lock holder's stateid (or is an
+CHUNK_LOCK_FLAGS_ADOPT-transferred continuation):<a href="#section-25.1.3.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-25.1.3.2-2.1">
+                <p id="section-25.1.3.2-2.1.1">The owning writer <span class="bcp14">MAY</span> issue CHUNK_COMMIT; the chunk
+transitions from FINALIZED to COMMITTED normally.<a href="#section-25.1.3.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-25.1.3.2-2.2">
+                <p id="section-25.1.3.2-2.2.1">A non-owning client <span class="bcp14">MUST</span> receive NFS4ERR_CHUNK_LOCKED in
+the corresponding ccr_status slot.  The chunk's state is
+not changed.<a href="#section-25.1.3.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-25.1.3.2-2.3">
+                <p id="section-25.1.3.2-2.3.1">During repair, the MDS-escrow owner
+(CHUNK_GUARD_CLIENT_ID_MDS, see <a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.3</a>)
+holds the lock while the repair client adopts it via
+CHUNK_LOCK_FLAGS_ADOPT.  CHUNK_COMMIT during the escrow
+window is permitted only to the holder of the adopted
+lock.<a href="#section-25.1.3.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
+<p id="section-25.1.3.2-3">This rule is what <a href="#sec-system-model-consistency" class="auto internal xref">Section 12.5</a> calls
+"lock continuity across revocation": the COMMIT privilege
+follows the lock without gaps in which a non-owner could race.<a href="#section-25.1.3.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 </section>
@@ -8771,7 +9111,7 @@ How does CHUNK_COMMIT interact with a locked chunk?<span class="crefSource">Tom<
 <a href="#section-25.2.1" class="section-number selfRef">25.2.1. </a><a href="#name-arguments-2" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_error4args"></span><div id="fig-CHUNK_ERROR4args">
-<figure id="figure-54">
+<figure id="figure-59">
             <div class="lang-xdr sourcecode" id="section-25.2.1-1.1">
 <pre>
    /// struct CHUNK_ERROR4args {
@@ -8784,7 +9124,7 @@ How does CHUNK_COMMIT interact with a locked chunk?<span class="crefSource">Tom<
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-54" class="selfRef">Figure 54</a>:
+<figcaption><a href="#figure-59" class="selfRef">Figure 59</a>:
 <a href="#name-xdr-for-chunk_error4args" class="selfRef">XDR for CHUNK_ERROR4args</a>
             </figcaption></figure>
 </div>
@@ -8796,7 +9136,7 @@ How does CHUNK_COMMIT interact with a locked chunk?<span class="crefSource">Tom<
 <a href="#section-25.2.2" class="section-number selfRef">25.2.2. </a><a href="#name-results-2" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_error4res"></span><div id="fig-CHUNK_ERROR4res">
-<figure id="figure-55">
+<figure id="figure-60">
             <div class="lang-xdr sourcecode" id="section-25.2.2-1.1">
 <pre>
    /// struct CHUNK_ERROR4res {
@@ -8804,7 +9144,7 @@ How does CHUNK_COMMIT interact with a locked chunk?<span class="crefSource">Tom<
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-55" class="selfRef">Figure 55</a>:
+<figcaption><a href="#figure-60" class="selfRef">Figure 60</a>:
 <a href="#name-xdr-for-chunk_error4res" class="selfRef">XDR for CHUNK_ERROR4res</a>
             </figcaption></figure>
 </div>
@@ -8843,7 +9183,7 @@ the metadata server coordinates repair.<a href="#section-25.2.3-3" class="pilcro
 <a href="#section-25.3.1" class="section-number selfRef">25.3.1. </a><a href="#name-arguments-3" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_finalize4args"></span><div id="fig-CHUNK_FINALIZE4args">
-<figure id="figure-56">
+<figure id="figure-61">
             <div class="lang-xdr sourcecode" id="section-25.3.1-1.1">
 <pre>
    /// struct CHUNK_FINALIZE4args {
@@ -8854,7 +9194,7 @@ the metadata server coordinates repair.<a href="#section-25.2.3-3" class="pilcro
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-56" class="selfRef">Figure 56</a>:
+<figcaption><a href="#figure-61" class="selfRef">Figure 61</a>:
 <a href="#name-xdr-for-chunk_finalize4args" class="selfRef">XDR for CHUNK_FINALIZE4args</a>
             </figcaption></figure>
 </div>
@@ -8866,7 +9206,7 @@ the metadata server coordinates repair.<a href="#section-25.2.3-3" class="pilcro
 <a href="#section-25.3.2" class="section-number selfRef">25.3.2. </a><a href="#name-results-3" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_finalize4reso"></span><div id="fig-CHUNK_FINALIZE4resok">
-<figure id="figure-57">
+<figure id="figure-62">
             <div class="lang-xdr sourcecode" id="section-25.3.2-1.1">
 <pre>
    /// struct CHUNK_FINALIZE4resok {
@@ -8875,12 +9215,12 @@ the metadata server coordinates repair.<a href="#section-25.2.3-3" class="pilcro
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-57" class="selfRef">Figure 57</a>:
+<figcaption><a href="#figure-62" class="selfRef">Figure 62</a>:
 <a href="#name-xdr-for-chunk_finalize4reso" class="selfRef">XDR for CHUNK_FINALIZE4resok</a>
             </figcaption></figure>
 </div>
 <span id="name-xdr-for-chunk_finalize4res"></span><div id="fig-CHUNK_FINALIZE4res">
-<figure id="figure-58">
+<figure id="figure-63">
             <div class="lang-xdr sourcecode" id="section-25.3.2-2.1">
 <pre>
    /// union CHUNK_FINALIZE4res switch (nfsstat4 cfr_status) {
@@ -8891,7 +9231,7 @@ the metadata server coordinates repair.<a href="#section-25.2.3-3" class="pilcro
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-58" class="selfRef">Figure 58</a>:
+<figcaption><a href="#figure-63" class="selfRef">Figure 63</a>:
 <a href="#name-xdr-for-chunk_finalize4res" class="selfRef">XDR for CHUNK_FINALIZE4res</a>
             </figcaption></figure>
 </div>
@@ -8933,7 +9273,7 @@ back via CHUNK_ROLLBACK (<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref
 <a href="#section-25.4.1" class="section-number selfRef">25.4.1. </a><a href="#name-arguments-4" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_header_read4a"></span><div id="fig-CHUNK_HEADER_READ4args">
-<figure id="figure-59">
+<figure id="figure-64">
             <div class="lang-xdr sourcecode" id="section-25.4.1-1.1">
 <pre>
    /// struct CHUNK_HEADER_READ4args {
@@ -8944,7 +9284,7 @@ back via CHUNK_ROLLBACK (<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-59" class="selfRef">Figure 59</a>:
+<figcaption><a href="#figure-64" class="selfRef">Figure 64</a>:
 <a href="#name-xdr-for-chunk_header_read4a" class="selfRef">XDR for CHUNK_HEADER_READ4args</a>
             </figcaption></figure>
 </div>
@@ -8956,7 +9296,7 @@ back via CHUNK_ROLLBACK (<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref
 <a href="#section-25.4.2" class="section-number selfRef">25.4.2. </a><a href="#name-results-4" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_header_read4r"></span><div id="fig-CHUNK_HEADER_READ4resok">
-<figure id="figure-60">
+<figure id="figure-65">
             <div class="lang-xdr sourcecode" id="section-25.4.2-1.1">
 <pre>
    /// struct CHUNK_HEADER_READ4resok {
@@ -8967,14 +9307,14 @@ back via CHUNK_ROLLBACK (<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-60" class="selfRef">Figure 60</a>:
+<figcaption><a href="#figure-65" class="selfRef">Figure 65</a>:
 <a href="#name-xdr-for-chunk_header_read4r" class="selfRef">XDR for CHUNK_HEADER_READ4resok</a>
             </figcaption></figure>
 </div>
 <p id="section-25.4.2-2"><span class="cref">Do we want to have a chunk_owner for reads versus writes?
 Instead of co-arrays, have one single in the responses?<span class="crefSource">Tom</span></span><a href="#section-25.4.2-2" class="pilcrow">¶</a></p>
 <span id="name-xdr-for-chunk_header_read4re"></span><div id="fig-CHUNK_HEADER_READ4res">
-<figure id="figure-61">
+<figure id="figure-66">
             <div class="lang-xdr sourcecode" id="section-25.4.2-3.1">
 <pre>
    /// union CHUNK_HEADER_READ4res switch (nfsstat4 chrr_status) {
@@ -8985,7 +9325,7 @@ Instead of co-arrays, have one single in the responses?<span class="crefSource">
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-61" class="selfRef">Figure 61</a>:
+<figcaption><a href="#figure-66" class="selfRef">Figure 66</a>:
 <a href="#name-xdr-for-chunk_header_read4re" class="selfRef">XDR for CHUNK_HEADER_READ4resok</a>
             </figcaption></figure>
 </div>
@@ -9013,7 +9353,7 @@ headers in the desired data range.<a href="#section-25.4.3-1" class="pilcrow">¶
 <a href="#section-25.5.1" class="section-number selfRef">25.5.1. </a><a href="#name-arguments-5" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_lock4args"></span><div id="fig-CHUNK_LOCK4args">
-<figure id="figure-62">
+<figure id="figure-67">
             <div class="lang-xdr sourcecode" id="section-25.5.1-1.1">
 <pre>
    /// const CHUNK_LOCK_FLAGS_ADOPT  = 0x00000001;
@@ -9028,7 +9368,7 @@ headers in the desired data range.<a href="#section-25.4.3-1" class="pilcrow">¶
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-62" class="selfRef">Figure 62</a>:
+<figcaption><a href="#figure-67" class="selfRef">Figure 67</a>:
 <a href="#name-xdr-for-chunk_lock4args" class="selfRef">XDR for CHUNK_LOCK4args</a>
             </figcaption></figure>
 </div>
@@ -9040,7 +9380,7 @@ headers in the desired data range.<a href="#section-25.4.3-1" class="pilcrow">¶
 <a href="#section-25.5.2" class="section-number selfRef">25.5.2. </a><a href="#name-results-5" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_lock4res"></span><div id="fig-CHUNK_LOCK4res">
-<figure id="figure-63">
+<figure id="figure-68">
             <div class="lang-xdr sourcecode" id="section-25.5.2-1.1">
 <pre>
    /// union CHUNK_LOCK4res switch (nfsstat4 clr_status) {
@@ -9053,7 +9393,7 @@ headers in the desired data range.<a href="#section-25.4.3-1" class="pilcrow">¶
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-63" class="selfRef">Figure 63</a>:
+<figcaption><a href="#figure-68" class="selfRef">Figure 68</a>:
 <a href="#name-xdr-for-chunk_lock4res" class="selfRef">XDR for CHUNK_LOCK4res</a>
             </figcaption></figure>
 </div>
@@ -9130,7 +9470,7 @@ CHUNK_ROLLBACK, or CHUNK_COMMIT.<a href="#section-25.5.3.1-6.1.1" class="pilcrow
               <li id="section-25.5.3.1-6.2">
                 <p id="section-25.5.3.1-6.2.1">The metadata server itself, acting through the
 CHUNK_GUARD_CLIENT_ID_MDS escrow owner
-(<a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.1</a>).  This occurs when the metadata
+(<a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.3</a>).  This occurs when the metadata
 server has revoked the prior holder's stateid in a tightly
 coupled deployment.<a href="#section-25.5.3.1-6.2.1" class="pilcrow">¶</a></p>
 </li>
@@ -9160,7 +9500,7 @@ returns NFS4ERR_INVAL in that case.<a href="#section-25.5.3.1-8" class="pilcrow"
 <a href="#section-25.6.1" class="section-number selfRef">25.6.1. </a><a href="#name-arguments-6" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_read4args"></span><div id="fig-CHUNK_READ4args">
-<figure id="figure-64">
+<figure id="figure-69">
             <div class="lang-xdr sourcecode" id="section-25.6.1-1.1">
 <pre>
    /// struct CHUNK_READ4args {
@@ -9171,7 +9511,7 @@ returns NFS4ERR_INVAL in that case.<a href="#section-25.5.3.1-8" class="pilcrow"
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-64" class="selfRef">Figure 64</a>:
+<figcaption><a href="#figure-69" class="selfRef">Figure 69</a>:
 <a href="#name-xdr-for-chunk_read4args" class="selfRef">XDR for CHUNK_READ4args</a>
             </figcaption></figure>
 </div>
@@ -9183,7 +9523,7 @@ returns NFS4ERR_INVAL in that case.<a href="#section-25.5.3.1-8" class="pilcrow"
 <a href="#section-25.6.2" class="section-number selfRef">25.6.2. </a><a href="#name-results-6" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-read_chunk4"></span><div id="fig-read_chunk4">
-<figure id="figure-65">
+<figure id="figure-70">
             <div class="lang-xdr sourcecode" id="section-25.6.2-1.1">
 <pre>
    /// struct read_chunk4 {
@@ -9191,18 +9531,18 @@ returns NFS4ERR_INVAL in that case.<a href="#section-25.5.3.1-8" class="pilcrow"
    ///     uint32_t        cr_effective_len;
    ///     chunk_owner4    cr_owner;
    ///     uint32_t        cr_payload_id;
-   ///     bool            cr_locked&lt;&gt;;  // TDH - make a flag
-   ///     nfsstat4        cr_status&lt;&gt;;
+   ///     bool            cr_locked;
+   ///     nfsstat4        cr_status;
    ///     opaque          cr_chunk&lt;&gt;;
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-65" class="selfRef">Figure 65</a>:
+<figcaption><a href="#figure-70" class="selfRef">Figure 70</a>:
 <a href="#name-xdr-for-read_chunk4" class="selfRef">XDR for read_chunk4</a>
             </figcaption></figure>
 </div>
 <span id="name-xdr-for-chunk_read4resok"></span><div id="fig-CHUNK_READ4resok">
-<figure id="figure-66">
+<figure id="figure-71">
             <div class="lang-xdr sourcecode" id="section-25.6.2-2.1">
 <pre>
    /// struct CHUNK_READ4resok {
@@ -9211,12 +9551,12 @@ returns NFS4ERR_INVAL in that case.<a href="#section-25.5.3.1-8" class="pilcrow"
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-66" class="selfRef">Figure 66</a>:
+<figcaption><a href="#figure-71" class="selfRef">Figure 71</a>:
 <a href="#name-xdr-for-chunk_read4resok" class="selfRef">XDR for CHUNK_READ4resok</a>
             </figcaption></figure>
 </div>
 <span id="name-xdr-for-chunk_read4res"></span><div id="fig-CHUNK_READ4res">
-<figure id="figure-67">
+<figure id="figure-72">
             <div class="lang-xdr sourcecode" id="section-25.6.2-3.1">
 <pre>
    /// union CHUNK_READ4res switch (nfsstat4 crr_status) {
@@ -9227,7 +9567,7 @@ returns NFS4ERR_INVAL in that case.<a href="#section-25.5.3.1-8" class="pilcrow"
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-67" class="selfRef">Figure 67</a>:
+<figcaption><a href="#figure-72" class="selfRef">Figure 72</a>:
 <a href="#name-xdr-for-chunk_read4res" class="selfRef">XDR for CHUNK_READ4res</a>
             </figcaption></figure>
 </div>
@@ -9252,15 +9592,15 @@ case that some data servers do not have any data at that location.
 In that case, the server either returns crr_eof if the cra_offset
 exceeds the number of blocks that the data server is aware or it
 returns an empty block for that block.<a href="#section-25.6.3-3" class="pilcrow">¶</a></p>
-<p id="section-25.6.3-4">For example, in <a href="#fig-example-CHUNK_READ4args" class="auto internal xref">Figure 68</a>, the client asks
+<p id="section-25.6.3-4">For example, in <a href="#fig-example-CHUNK_READ4args" class="auto internal xref">Figure 73</a>, the client asks
 for 4 blocks starting with the 3rd block in the file.  The second
-data server responds as in <a href="#fig-example-CHUNK_READ4resok" class="auto internal xref">Figure 69</a>.  The
+data server responds as in <a href="#fig-example-CHUNK_READ4resok" class="auto internal xref">Figure 74</a>.  The
 client would read this as there is valid data for blocks 2 and 4,
 there is a hole at block 3, and there is no data for block 5.  The
 data server <span class="bcp14">MUST</span> calculate a valid cr_crc for block 3 based on the
 generated fields.<a href="#section-25.6.3-4" class="pilcrow">¶</a></p>
 <span id="name-example-chunk_read4args-par"></span><div id="fig-example-CHUNK_READ4args">
-<figure id="figure-68">
+<figure id="figure-73">
             <div class="alignLeft art-text artwork" id="section-25.6.3-5.1">
 <pre>
         Data Server 2
@@ -9273,12 +9613,12 @@ generated fields.<a href="#section-25.6.3-4" class="pilcrow">¶</a></p>
   +----------+---------------------+
 </pre>
 </div>
-<figcaption><a href="#figure-68" class="selfRef">Figure 68</a>:
+<figcaption><a href="#figure-73" class="selfRef">Figure 73</a>:
 <a href="#name-example-chunk_read4args-par" class="selfRef">Example: CHUNK_READ4args parameters</a>
             </figcaption></figure>
 </div>
 <span id="name-example-resulting-chunk_rea"></span><div id="fig-example-CHUNK_READ4resok">
-<figure id="figure-69">
+<figure id="figure-74">
             <div class="alignLeft art-text artwork" id="section-25.6.3-6.1">
 <pre>
         Data Server 2
@@ -9316,7 +9656,7 @@ generated fields.<a href="#section-25.6.3-4" class="pilcrow">¶</a></p>
   +--------------------------------+
 </pre>
 </div>
-<figcaption><a href="#figure-69" class="selfRef">Figure 69</a>:
+<figcaption><a href="#figure-74" class="selfRef">Figure 74</a>:
 <a href="#name-example-resulting-chunk_rea" class="selfRef">Example: Resulting CHUNK_READ4resok reply</a>
             </figcaption></figure>
 </div>
@@ -9335,7 +9675,7 @@ generated fields.<a href="#section-25.6.3-4" class="pilcrow">¶</a></p>
 <a href="#section-25.7.1" class="section-number selfRef">25.7.1. </a><a href="#name-arguments-7" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_repaired4args"></span><div id="fig-CHUNK_REPAIRED4args">
-<figure id="figure-70">
+<figure id="figure-75">
             <div class="lang-xdr sourcecode" id="section-25.7.1-1.1">
 <pre>
    /// struct CHUNK_REPAIRED4args {
@@ -9347,7 +9687,7 @@ generated fields.<a href="#section-25.6.3-4" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-70" class="selfRef">Figure 70</a>:
+<figcaption><a href="#figure-75" class="selfRef">Figure 75</a>:
 <a href="#name-xdr-for-chunk_repaired4args" class="selfRef">XDR for CHUNK_REPAIRED4args</a>
             </figcaption></figure>
 </div>
@@ -9359,7 +9699,7 @@ generated fields.<a href="#section-25.6.3-4" class="pilcrow">¶</a></p>
 <a href="#section-25.7.2" class="section-number selfRef">25.7.2. </a><a href="#name-results-7" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_repaired4res"></span><div id="fig-CHUNK_REPAIRED4res">
-<figure id="figure-71">
+<figure id="figure-76">
             <div class="lang-xdr sourcecode" id="section-25.7.2-1.1">
 <pre>
    /// union CHUNK_REPAIRED4res switch (nfsstat4 crr_status) {
@@ -9370,7 +9710,7 @@ generated fields.<a href="#section-25.6.3-4" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-71" class="selfRef">Figure 71</a>:
+<figcaption><a href="#figure-76" class="selfRef">Figure 76</a>:
 <a href="#name-xdr-for-chunk_repaired4res" class="selfRef">XDR for CHUNK_REPAIRED4res</a>
             </figcaption></figure>
 </div>
@@ -9407,7 +9747,7 @@ NFS4ERR_INVAL.<a href="#section-25.7.3-3" class="pilcrow">¶</a></p>
 <a href="#section-25.8.1" class="section-number selfRef">25.8.1. </a><a href="#name-arguments-8" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_rollback4args"></span><div id="fig-CHUNK_ROLLBACK4args">
-<figure id="figure-72">
+<figure id="figure-77">
             <div class="lang-xdr sourcecode" id="section-25.8.1-1.1">
 <pre>
    /// struct CHUNK_ROLLBACK4args {
@@ -9418,7 +9758,7 @@ NFS4ERR_INVAL.<a href="#section-25.7.3-3" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-72" class="selfRef">Figure 72</a>:
+<figcaption><a href="#figure-77" class="selfRef">Figure 77</a>:
 <a href="#name-xdr-for-chunk_rollback4args" class="selfRef">XDR for CHUNK_ROLLBACK4args</a>
             </figcaption></figure>
 </div>
@@ -9430,7 +9770,7 @@ NFS4ERR_INVAL.<a href="#section-25.7.3-3" class="pilcrow">¶</a></p>
 <a href="#section-25.8.2" class="section-number selfRef">25.8.2. </a><a href="#name-results-8" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_rollback4reso"></span><div id="fig-CHUNK_ROLLBACK4resok">
-<figure id="figure-73">
+<figure id="figure-78">
             <div class="lang-xdr sourcecode" id="section-25.8.2-1.1">
 <pre>
    /// struct CHUNK_ROLLBACK4resok {
@@ -9438,12 +9778,12 @@ NFS4ERR_INVAL.<a href="#section-25.7.3-3" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-73" class="selfRef">Figure 73</a>:
+<figcaption><a href="#figure-78" class="selfRef">Figure 78</a>:
 <a href="#name-xdr-for-chunk_rollback4reso" class="selfRef">XDR for CHUNK_ROLLBACK4resok</a>
             </figcaption></figure>
 </div>
 <span id="name-xdr-for-chunk_rollback4res"></span><div id="fig-CHUNK_ROLLBACK4res">
-<figure id="figure-74">
+<figure id="figure-79">
             <div class="lang-xdr sourcecode" id="section-25.8.2-2.1">
 <pre>
    /// union CHUNK_ROLLBACK4res switch (nfsstat4 crr_status) {
@@ -9454,7 +9794,7 @@ NFS4ERR_INVAL.<a href="#section-25.7.3-3" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-74" class="selfRef">Figure 74</a>:
+<figcaption><a href="#figure-79" class="selfRef">Figure 79</a>:
 <a href="#name-xdr-for-chunk_rollback4res" class="selfRef">XDR for CHUNK_ROLLBACK4res</a>
             </figcaption></figure>
 </div>
@@ -9503,7 +9843,7 @@ the persisted metadata is also removed.<a href="#section-25.8.3-5" class="pilcro
 <a href="#section-25.9.1" class="section-number selfRef">25.9.1. </a><a href="#name-arguments-9" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_unlock4args"></span><div id="fig-CHUNK_UNLOCK4args">
-<figure id="figure-75">
+<figure id="figure-80">
             <div class="lang-xdr sourcecode" id="section-25.9.1-1.1">
 <pre>
    /// struct CHUNK_UNLOCK4args {
@@ -9515,7 +9855,7 @@ the persisted metadata is also removed.<a href="#section-25.8.3-5" class="pilcro
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-75" class="selfRef">Figure 75</a>:
+<figcaption><a href="#figure-80" class="selfRef">Figure 80</a>:
 <a href="#name-xdr-for-chunk_unlock4args" class="selfRef">XDR for CHUNK_UNLOCK4args</a>
             </figcaption></figure>
 </div>
@@ -9527,7 +9867,7 @@ the persisted metadata is also removed.<a href="#section-25.8.3-5" class="pilcro
 <a href="#section-25.9.2" class="section-number selfRef">25.9.2. </a><a href="#name-results-9" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_unlock4res"></span><div id="fig-CHUNK_UNLOCK4res">
-<figure id="figure-76">
+<figure id="figure-81">
             <div class="lang-xdr sourcecode" id="section-25.9.2-1.1">
 <pre>
    /// union CHUNK_UNLOCK4res switch (nfsstat4 cur_status) {
@@ -9538,7 +9878,7 @@ the persisted metadata is also removed.<a href="#section-25.8.3-5" class="pilcro
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-76" class="selfRef">Figure 76</a>:
+<figcaption><a href="#figure-81" class="selfRef">Figure 81</a>:
 <a href="#name-xdr-for-chunk_unlock4res" class="selfRef">XDR for CHUNK_UNLOCK4res</a>
             </figcaption></figure>
 </div>
@@ -9573,7 +9913,7 @@ implicitly when the client's lease expires.<a href="#section-25.9.3-3" class="pi
 <a href="#section-25.10.1" class="section-number selfRef">25.10.1. </a><a href="#name-arguments-10" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-write_chunk_guard4"></span><div id="fig-write_chunk_guard4">
-<figure id="figure-77">
+<figure id="figure-82">
             <div class="lang-xdr sourcecode" id="section-25.10.1-1.1">
 <pre>
    /// union write_chunk_guard4 switch (bool cwg_check) {
@@ -9584,12 +9924,12 @@ implicitly when the client's lease expires.<a href="#section-25.9.3-3" class="pi
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-77" class="selfRef">Figure 77</a>:
+<figcaption><a href="#figure-82" class="selfRef">Figure 82</a>:
 <a href="#name-xdr-for-write_chunk_guard4" class="selfRef">XDR for write_chunk_guard4</a>
             </figcaption></figure>
 </div>
 <span id="name-xdr-for-chunk_write4args"></span><div id="fig-CHUNK_WRITE4args">
-<figure id="figure-78">
+<figure id="figure-83">
             <div class="lang-xdr sourcecode" id="section-25.10.1-2.1">
 <pre>
    /// const CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY = 0x00000001;
@@ -9609,7 +9949,7 @@ implicitly when the client's lease expires.<a href="#section-25.9.3-3" class="pi
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-78" class="selfRef">Figure 78</a>:
+<figcaption><a href="#figure-83" class="selfRef">Figure 83</a>:
 <a href="#name-xdr-for-chunk_write4args" class="selfRef">XDR for CHUNK_WRITE4args</a>
             </figcaption></figure>
 </div>
@@ -9621,7 +9961,7 @@ implicitly when the client's lease expires.<a href="#section-25.9.3-3" class="pi
 <a href="#section-25.10.2" class="section-number selfRef">25.10.2. </a><a href="#name-results-10" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_write4resok"></span><div id="fig-CHUNK_WRITE4resok">
-<figure id="figure-79">
+<figure id="figure-84">
             <div class="lang-xdr sourcecode" id="section-25.10.2-1.1">
 <pre>
    /// struct CHUNK_WRITE4resok {
@@ -9634,12 +9974,12 @@ implicitly when the client's lease expires.<a href="#section-25.9.3-3" class="pi
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-79" class="selfRef">Figure 79</a>:
+<figcaption><a href="#figure-84" class="selfRef">Figure 84</a>:
 <a href="#name-xdr-for-chunk_write4resok" class="selfRef">XDR for CHUNK_WRITE4resok</a>
             </figcaption></figure>
 </div>
 <span id="name-xdr-for-chunk_write4res"></span><div id="fig-CHUNK_WRITE4res">
-<figure id="figure-80">
+<figure id="figure-85">
             <div class="lang-xdr sourcecode" id="section-25.10.2-2.1">
 <pre>
    /// union CHUNK_WRITE4res switch (nfsstat4 cwr_status) {
@@ -9650,7 +9990,7 @@ implicitly when the client's lease expires.<a href="#section-25.9.3-3" class="pi
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-80" class="selfRef">Figure 80</a>:
+<figcaption><a href="#figure-85" class="selfRef">Figure 85</a>:
 <a href="#name-xdr-for-chunk_write4res" class="selfRef">XDR for CHUNK_WRITE4res</a>
             </figcaption></figure>
 </div>
@@ -9724,18 +10064,68 @@ useful in read-update-write scenarios.  The client reads a block,
 updates it, and is prepared to write it back.  It guards the write
 such that if another writer has modified the block, the data server
 will reject the modification.<a href="#section-25.10.3.1-1" class="pilcrow">¶</a></p>
-<p id="section-25.10.3.1-2">As the chunk_guard4 (see <a href="#fig-chunk_guard4" class="auto internal xref">Figure 48</a> does not have a
+<p id="section-25.10.3.1-2">As the chunk_guard4 (see <a href="#fig-chunk_guard4" class="auto internal xref">Figure 50</a> does not have a
 chunk_id and the CHUNK_WRITE applies to all blocks in the range of
 cwa_offset to the length of cwa_data, then each of the target blocks
 <span class="bcp14">MUST</span> have the same cg_gen_id and cg_client_id.  The client <span class="bcp14">SHOULD</span>
 present the smallest set of blocks as possible to meet this
 requirement.<a href="#section-25.10.3.1-2" class="pilcrow">¶</a></p>
-<p id="section-25.10.3.1-3"><span class="cref"> Is the DS supposed to vet all blocks first or
-proceed to the first error?  Or do all blocks and return an array
-of errors?  (This last one is a no-go.)  Also, if we do the vet
-first, what happens if a CHUNK_WRITE comes in after the vetting?
-Are we to lock the file during this process.  Even if we do that,
-we still have the issue of multiple DSes.  <span class="crefSource">Tom</span></span><a href="#section-25.10.3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="per-block-acceptance-semantics">
+<section id="section-25.10.3.2">
+            <h5 id="name-per-block-acceptance-semant">
+<a href="#section-25.10.3.2" class="section-number selfRef">25.10.3.2. </a><a href="#name-per-block-acceptance-semant" class="section-name selfRef">Per-Block Acceptance Semantics</a>
+            </h5>
+<p id="section-25.10.3.2-1">A CHUNK_WRITE targets a contiguous range of blocks on a single
+data server.  The data server evaluates each block independently
+and reports the outcome per block in cwr_block_status (see
+<a href="#fig-CHUNK_WRITE4resok" class="auto internal xref">Figure 84</a>):<a href="#section-25.10.3.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-25.10.3.2-2.1">
+                <p id="section-25.10.3.2-2.1.1">Each block is subjected to the guard check (when
+cwa_guard.cwg_check is TRUE), the cg_client_id validation
+(see <a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>), and any other local preconditions
+(storage-space limits, tight-coupling trust-table state,
+etc.).<a href="#section-25.10.3.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-25.10.3.2-2.2">
+                <p id="section-25.10.3.2-2.2.1">Blocks that pass their preconditions are written and their
+cwr_block_status entry is NFS4_OK.  Blocks that fail produce
+the appropriate error code
+(NFS4ERR_CHUNK_GUARDED, NFS4ERR_NOSPC, etc.) in the
+corresponding cwr_block_status slot, and their data is
+NOT persisted.<a href="#section-25.10.3.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-25.10.3.2-2.3">
+                <p id="section-25.10.3.2-2.3.1">cwr_count reflects only the blocks that were written
+successfully; failed blocks do not contribute.<a href="#section-25.10.3.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-25.10.3.2-2.4">
+                <p id="section-25.10.3.2-2.4.1">The top-level cwr_status is NFS4_OK when the call itself was
+structurally valid and the data server could evaluate each
+block.  Per-block failures are reported in cwr_block_status,
+not by failing the whole operation.  The data server returns
+a top-level error only if it could not evaluate the request
+at all (for example, NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).<a href="#section-25.10.3.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
+<p id="section-25.10.3.2-3">This is the "continue and report" discipline.  It is
+intentionally not all-or-none: atomicity is already per-chunk
+(see <a href="#sec-system-model-consistency" class="auto internal xref">Section 12.5</a>), so there is no
+file-level correctness reason to reject the entire compound
+because of a single chunk guard failure.  Per-block reporting
+gives the client the information it needs to construct a
+targeted CHUNK_ROLLBACK or CHUNK_WRITE retry that covers only
+the blocks that failed.<a href="#section-25.10.3.2-3" class="pilcrow">¶</a></p>
+<p id="section-25.10.3.2-4">The data server does not hold a file-wide lock across the
+per-block evaluation.  The chunk_guard4 CAS is evaluated
+atomically per chunk at the point the data server updates that
+chunk's state, so an interleaving CHUNK_WRITE from a different
+client that arrives mid-compound will either win its own CAS
+race (and the losing client sees NFS4ERR_CHUNK_GUARDED for the
+contested block) or be rejected itself, without introducing
+data-server-level locking beyond the per-chunk scope.<a href="#section-25.10.3.2-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -9753,7 +10143,7 @@ we still have the issue of multiple DSes.  <span class="crefSource">Tom</span></
 <a href="#section-25.11.1" class="section-number selfRef">25.11.1. </a><a href="#name-arguments-11" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-chunk_write_repair4"></span><div id="fig-CHUNK_WRITE_REPAIR4args">
-<figure id="figure-81">
+<figure id="figure-86">
             <div class="lang-xdr sourcecode" id="section-25.11.1-1.1">
 <pre>
    /// struct CHUNK_WRITE_REPAIR4args {
@@ -9769,7 +10159,7 @@ we still have the issue of multiple DSes.  <span class="crefSource">Tom</span></
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-81" class="selfRef">Figure 81</a>:
+<figcaption><a href="#figure-86" class="selfRef">Figure 86</a>:
 <a href="#name-xdr-for-chunk_write_repair4" class="selfRef">XDR for CHUNK_WRITE_REPAIR4args</a>
             </figcaption></figure>
 </div>
@@ -9781,7 +10171,7 @@ we still have the issue of multiple DSes.  <span class="crefSource">Tom</span></
 <a href="#section-25.11.2" class="section-number selfRef">25.11.2. </a><a href="#name-results-11" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-chunk_write_repair4r"></span><div id="fig-CHUNK_WRITE_REPAIR4resok">
-<figure id="figure-82">
+<figure id="figure-87">
             <div class="lang-xdr sourcecode" id="section-25.11.2-1.1">
 <pre>
    /// struct CHUNK_WRITE_REPAIR4resok {
@@ -9792,12 +10182,12 @@ we still have the issue of multiple DSes.  <span class="crefSource">Tom</span></
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-82" class="selfRef">Figure 82</a>:
+<figcaption><a href="#figure-87" class="selfRef">Figure 87</a>:
 <a href="#name-xdr-for-chunk_write_repair4r" class="selfRef">XDR for CHUNK_WRITE_REPAIR4resok</a>
             </figcaption></figure>
 </div>
 <span id="name-xdr-for-chunk_write_repair4re"></span><div id="fig-CHUNK_WRITE_REPAIR4res">
-<figure id="figure-83">
+<figure id="figure-88">
             <div class="lang-xdr sourcecode" id="section-25.11.2-2.1">
 <pre>
    /// union CHUNK_WRITE_REPAIR4res switch (nfsstat4 cwrr_status) {
@@ -9808,7 +10198,7 @@ we still have the issue of multiple DSes.  <span class="crefSource">Tom</span></
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-83" class="selfRef">Figure 83</a>:
+<figcaption><a href="#figure-88" class="selfRef">Figure 88</a>:
 <a href="#name-xdr-for-chunk_write_repair4re" class="selfRef">XDR for CHUNK_WRITE_REPAIR4res</a>
             </figcaption></figure>
 </div>
@@ -9876,7 +10266,7 @@ overwriting good data.<a href="#section-25.11.3-5" class="pilcrow">¶</a></p>
 <a href="#section-25.12.1" class="section-number selfRef">25.12.1. </a><a href="#name-arguments-12" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-trust_stateid4args"></span><div id="fig-TRUST_STATEID4args">
-<figure id="figure-84">
+<figure id="figure-89">
             <div class="lang-xdr sourcecode" id="section-25.12.1-1.1">
 <pre>
    /// struct TRUST_STATEID4args {
@@ -9888,7 +10278,7 @@ overwriting good data.<a href="#section-25.11.3-5" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-84" class="selfRef">Figure 84</a>:
+<figcaption><a href="#figure-89" class="selfRef">Figure 89</a>:
 <a href="#name-xdr-for-trust_stateid4args" class="selfRef">XDR for TRUST_STATEID4args</a>
             </figcaption></figure>
 </div>
@@ -9900,7 +10290,7 @@ overwriting good data.<a href="#section-25.11.3-5" class="pilcrow">¶</a></p>
 <a href="#section-25.12.2" class="section-number selfRef">25.12.2. </a><a href="#name-results-12" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-trust_stateid4res"></span><div id="fig-TRUST_STATEID4res">
-<figure id="figure-85">
+<figure id="figure-90">
             <div class="lang-xdr sourcecode" id="section-25.12.2-1.1">
 <pre>
    /// union TRUST_STATEID4res switch (nfsstat4 tsr_status) {
@@ -9911,7 +10301,7 @@ overwriting good data.<a href="#section-25.11.3-5" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-85" class="selfRef">Figure 85</a>:
+<figcaption><a href="#figure-90" class="selfRef">Figure 90</a>:
 <a href="#name-xdr-for-trust_stateid4res" class="selfRef">XDR for TRUST_STATEID4res</a>
             </figcaption></figure>
 </div>
@@ -10033,7 +10423,7 @@ the request.<a href="#section-25.12.4-1.9.1" class="pilcrow">¶</a></p>
 <a href="#section-25.13.1" class="section-number selfRef">25.13.1. </a><a href="#name-arguments-13" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-revoke_stateid4args"></span><div id="fig-REVOKE_STATEID4args">
-<figure id="figure-86">
+<figure id="figure-91">
             <div class="lang-xdr sourcecode" id="section-25.13.1-1.1">
 <pre>
    /// struct REVOKE_STATEID4args {
@@ -10042,7 +10432,7 @@ the request.<a href="#section-25.12.4-1.9.1" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-86" class="selfRef">Figure 86</a>:
+<figcaption><a href="#figure-91" class="selfRef">Figure 91</a>:
 <a href="#name-xdr-for-revoke_stateid4args" class="selfRef">XDR for REVOKE_STATEID4args</a>
             </figcaption></figure>
 </div>
@@ -10054,7 +10444,7 @@ the request.<a href="#section-25.12.4-1.9.1" class="pilcrow">¶</a></p>
 <a href="#section-25.13.2" class="section-number selfRef">25.13.2. </a><a href="#name-results-13" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-revoke_stateid4res"></span><div id="fig-REVOKE_STATEID4res">
-<figure id="figure-87">
+<figure id="figure-92">
             <div class="lang-xdr sourcecode" id="section-25.13.2-1.1">
 <pre>
    /// union REVOKE_STATEID4res switch (nfsstat4 rsr_status) {
@@ -10065,7 +10455,7 @@ the request.<a href="#section-25.12.4-1.9.1" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-87" class="selfRef">Figure 87</a>:
+<figcaption><a href="#figure-92" class="selfRef">Figure 92</a>:
 <a href="#name-xdr-for-revoke_stateid4res" class="selfRef">XDR for REVOKE_STATEID4res</a>
             </figcaption></figure>
 </div>
@@ -10111,7 +10501,7 @@ REVOKE_STATEID returns.<a href="#section-25.13.3-5" class="pilcrow">¶</a></p>
 <p id="section-25.13.3-6">Lock state (see <a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.5</a>) held by the revoked stateid
 is NOT released as part of REVOKE_STATEID; the data server <span class="bcp14">MUST</span>
 transfer each held lock to the MDS-escrow owner (see
-<a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.1</a>).  Dropping a chunk lock during
+<a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.3</a>).  Dropping a chunk lock during
 revocation would permit a write hole and is prohibited; the
 repair coordination sequence in <a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a> assumes
 that locks held by a revoked writer remain held until a repair
@@ -10188,7 +10578,7 @@ the request.<a href="#section-25.13.4-1.9.1" class="pilcrow">¶</a></p>
 <a href="#section-25.14.1" class="section-number selfRef">25.14.1. </a><a href="#name-arguments-14" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-bulk_revoke_stateid"></span><div id="fig-BULK_REVOKE_STATEID4args">
-<figure id="figure-88">
+<figure id="figure-93">
             <div class="lang-xdr sourcecode" id="section-25.14.1-1.1">
 <pre>
    /// struct BULK_REVOKE_STATEID4args {
@@ -10196,7 +10586,7 @@ the request.<a href="#section-25.13.4-1.9.1" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-88" class="selfRef">Figure 88</a>:
+<figcaption><a href="#figure-93" class="selfRef">Figure 93</a>:
 <a href="#name-xdr-for-bulk_revoke_stateid" class="selfRef">XDR for BULK_REVOKE_STATEID4args</a>
             </figcaption></figure>
 </div>
@@ -10208,7 +10598,7 @@ the request.<a href="#section-25.13.4-1.9.1" class="pilcrow">¶</a></p>
 <a href="#section-25.14.2" class="section-number selfRef">25.14.2. </a><a href="#name-results-14" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-bulk_revoke_stateid4"></span><div id="fig-BULK_REVOKE_STATEID4res">
-<figure id="figure-89">
+<figure id="figure-94">
             <div class="lang-xdr sourcecode" id="section-25.14.2-1.1">
 <pre>
    /// union BULK_REVOKE_STATEID4res switch (nfsstat4 brsr_status) {
@@ -10219,7 +10609,7 @@ the request.<a href="#section-25.13.4-1.9.1" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-89" class="selfRef">Figure 89</a>:
+<figcaption><a href="#figure-94" class="selfRef">Figure 94</a>:
 <a href="#name-xdr-for-bulk_revoke_stateid4" class="selfRef">XDR for BULK_REVOKE_STATEID4res</a>
             </figcaption></figure>
 </div>
@@ -10278,7 +10668,7 @@ EXCHANGE_ID, the data server <span class="bcp14">MUST</span> return NFS4ERR_PERM
 <p id="section-25.14.3-8">Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent (no error
 is returned if there are no matching entries) and preserves chunk
 locks held under any revoked stateid by transferring them to the
-MDS-escrow owner (see <a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.1</a>), rather than
+MDS-escrow owner (see <a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.3</a>), rather than
 dropping them.<a href="#section-25.14.3-8" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -10324,7 +10714,7 @@ the request.<a href="#section-25.14.4-1.6.1" class="pilcrow">¶</a></p>
 <a href="#section-26" class="section-number selfRef">26. </a><a href="#name-new-nfsv42-callback-operati" class="section-name selfRef">New NFSv4.2 Callback Operations</a>
       </h2>
 <span id="name-callback-operations-xdr"></span><div id="fig-cb-ops-xdr">
-<figure id="figure-90">
+<figure id="figure-95">
         <div class="lang-xdr sourcecode" id="section-26-1.1">
 <pre>
    ///
@@ -10334,8 +10724,37 @@ the request.<a href="#section-25.14.4-1.6.1" class="pilcrow">¶</a></p>
    ///
 </pre>
 </div>
-<figcaption><a href="#figure-90" class="selfRef">Figure 90</a>:
+<figcaption><a href="#figure-95" class="selfRef">Figure 95</a>:
 <a href="#name-callback-operations-xdr" class="selfRef">Callback Operations XDR</a>
+        </figcaption></figure>
+</div>
+<p id="section-26-2">The following amendment blocks extend the nfs_cb_argop4 and
+nfs_cb_resop4 dispatch unions defined in <span>[<a href="#RFC7863" class="cite xref">RFC7863</a>]</span> with arms
+for the new callback operation defined in this document.<a href="#section-26-2" class="pilcrow">¶</a></p>
+<span id="name-nfs_cb_argop4-amendment-blo"></span><div id="fig-nfs_cb_argop4-amend">
+<figure id="figure-96">
+        <div class="lang-xdr sourcecode" id="section-26-3.1">
+<pre>
+   /// /* nfs_cb_argop4 amendment block */
+   ///
+   /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4args  opcbchunkrepair;
+</pre>
+</div>
+<figcaption><a href="#figure-96" class="selfRef">Figure 96</a>:
+<a href="#name-nfs_cb_argop4-amendment-blo" class="selfRef">nfs_cb_argop4 amendment block</a>
+        </figcaption></figure>
+</div>
+<span id="name-nfs_cb_resop4-amendment-blo"></span><div id="fig-nfs_cb_resop4-amend">
+<figure id="figure-97">
+        <div class="lang-xdr sourcecode" id="section-26-4.1">
+<pre>
+   /// /* nfs_cb_resop4 amendment block */
+   ///
+   /// case OP_CB_CHUNK_REPAIR:  CB_CHUNK_REPAIR4res   opcbchunkrepair;
+</pre>
+</div>
+<figcaption><a href="#figure-97" class="selfRef">Figure 97</a>:
+<a href="#name-nfs_cb_resop4-amendment-blo" class="selfRef">nfs_cb_resop4 amendment block</a>
         </figcaption></figure>
 </div>
 <div id="sec-CB_CHUNK_REPAIR">
@@ -10349,7 +10768,7 @@ the request.<a href="#section-25.14.4-1.6.1" class="pilcrow">¶</a></p>
 <a href="#section-26.1.1" class="section-number selfRef">26.1.1. </a><a href="#name-arguments-15" class="section-name selfRef">ARGUMENTS</a>
           </h4>
 <span id="name-xdr-for-cb_chunk_repair4arg"></span><div id="fig-CB_CHUNK_REPAIR4args">
-<figure id="figure-91">
+<figure id="figure-98">
             <div class="lang-xdr sourcecode" id="section-26.1.1-1.1">
 <pre>
    /// enum cb_chunk_repair_reason4 {
@@ -10372,7 +10791,7 @@ the request.<a href="#section-25.14.4-1.6.1" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-91" class="selfRef">Figure 91</a>:
+<figcaption><a href="#figure-98" class="selfRef">Figure 98</a>:
 <a href="#name-xdr-for-cb_chunk_repair4arg" class="selfRef">XDR for CB_CHUNK_REPAIR4args</a>
             </figcaption></figure>
 </div>
@@ -10384,7 +10803,7 @@ the request.<a href="#section-25.14.4-1.6.1" class="pilcrow">¶</a></p>
 <a href="#section-26.1.2" class="section-number selfRef">26.1.2. </a><a href="#name-results-15" class="section-name selfRef">RESULTS</a>
           </h4>
 <span id="name-xdr-for-cb_chunk_repair4res"></span><div id="fig-CB_CHUNK_REPAIR4res">
-<figure id="figure-92">
+<figure id="figure-99">
             <div class="lang-xdr sourcecode" id="section-26.1.2-1.1">
 <pre>
    /// struct CB_CHUNK_REPAIR4res {
@@ -10392,7 +10811,7 @@ the request.<a href="#section-25.14.4-1.6.1" class="pilcrow">¶</a></p>
    /// };
 </pre>
 </div>
-<figcaption><a href="#figure-92" class="selfRef">Figure 92</a>:
+<figcaption><a href="#figure-99" class="selfRef">Figure 99</a>:
 <a href="#name-xdr-for-cb_chunk_repair4res" class="selfRef">XDR for CB_CHUNK_REPAIR4res</a>
             </figcaption></figure>
 </div>
@@ -10600,7 +11019,7 @@ the client was fenced off.<a href="#section-27-5" class="pilcrow">¶</a></p>
         </h3>
 <p id="section-27.1-1">The CRC32 values carried in CHUNK_WRITE and returned from CHUNK_READ
 are intended to detect accidental data corruption during storage or
-transmission — for example, bit flips in storage media or network
+transmission -- for example, bit flips in storage media or network
 errors.  CRC32 is not a cryptographic hash and does not protect
 against intentional modification: an adversary with access to the
 network path could replace a chunk and recompute a valid CRC32 to
@@ -10608,6 +11027,38 @@ match.  The "data integrity" provided by the CRC32 mechanism in this
 document refers to error detection, not protection against an active
 attacker.  Deployments requiring protection against active attackers
 <span class="bcp14">SHOULD</span> use RPC-over-TLS (see <a href="#sec-tls" class="auto internal xref">Section 27.4</a>) or RPCSEC_GSS.<a href="#section-27.1-1" class="pilcrow">¶</a></p>
+<p id="section-27.1-2">An authenticated client is in the "active attacker" role with
+respect to its own chunks, in a restricted sense.  The data
+server validates the CRC32 against the bytes the client
+provided, so an authenticated client that chooses to send
+semantically-invalid bytes with a correctly computed CRC32 will
+have those bytes accepted.  The residual surface differs per
+authentication model:<a href="#section-27.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-27.1-3.1">
+            <p id="section-27.1-3.1.1">Under AUTH_SYS with loose coupling, the residual surface is
+essentially the pre-existing attack surface of NFSv3 writes:
+any host that can reach the data server with a valid uid can
+write nonsense to chunks that uid owns.  This is the
+authorization model the rest of Flex Files v1 inherits
+without modification.<a href="#section-27.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-27.1-3.2">
+            <p id="section-27.1-3.2.1">Under RPCSEC_GSS or TLS with mutual authentication, the
+residual surface reduces to: only the authenticated client
+can write nonsense into chunks it owns.  Cross-client
+corruption is prevented because the data server verifies the
+principal before accepting the write.  The remaining attack
+surface is the client's own integrity: any deployment that
+relies on data integrity above the wire <span class="bcp14">MUST</span> apply
+application-level content validation.<a href="#section-27.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-27.1-4">Flex Files v2 does not attempt to defend against this
+authenticated-but-malicious case.  The CRC32 mechanism is a
+transport-integrity check, not a content-integrity check; the
+system trust model assumes that an authenticated principal is
+entitled to destroy the content of chunks it owns.<a href="#section-27.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="chunk-lock-and-lease-expiry">
@@ -10636,8 +11087,8 @@ NFS4ERR_PAYLOAD_NOT_CONSISTENT (10098) convey information about
 chunk state to the caller.  Both of these errors <span class="bcp14">MAY</span> be returned
 to callers whose credentials have not been verified by the data
 server (e.g., when the AUTH_SYS uid presented does not match the
-synthetic uid on the data file).  The information they reveal —
-that a chunk is locked, or that a CRC mismatch occurred — does
+synthetic uid on the data file).  The information they reveal --
+that a chunk is locked, or that a CRC mismatch occurred -- does
 not directly disclose file contents but may indicate concurrent
 write activity.  Implementations that are concerned about this
 level of disclosure <span class="bcp14">SHOULD</span> require that operations on CHUNK ops
@@ -10803,35 +11254,35 @@ encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table
         </thead>
         <tbody>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">0x0000–0x00FF</td>
+            <td class="text-left" rowspan="1" colspan="1">0x0000-0x00FF</td>
             <td class="text-left" rowspan="1" colspan="1">Standards Track</td>
             <td class="text-left" rowspan="1" colspan="1">IETF Review (RFC required)</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">0x0100–0x0FFF</td>
+            <td class="text-left" rowspan="1" colspan="1">0x0100-0x0FFF</td>
             <td class="text-left" rowspan="1" colspan="1">Experimental</td>
             <td class="text-left" rowspan="1" colspan="1">Expert Review</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">0x1000–0x7FFF</td>
+            <td class="text-left" rowspan="1" colspan="1">0x1000-0x7FFF</td>
             <td class="text-left" rowspan="1" colspan="1">Vendor (open)</td>
             <td class="text-left" rowspan="1" colspan="1">First Come First Served</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">0x8000–0xFFFE</td>
+            <td class="text-left" rowspan="1" colspan="1">0x8000-0xFFFE</td>
             <td class="text-left" rowspan="1" colspan="1">Private/proprietary</td>
             <td class="text-left" rowspan="1" colspan="1">No registration required</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">0xFFFF</td>
             <td class="text-left" rowspan="1" colspan="1">Reserved</td>
-            <td class="text-left" rowspan="1" colspan="1">—</td>
+            <td class="text-left" rowspan="1" colspan="1">--</td>
           </tr>
         </tbody>
       </table>
 </div>
 <span class="break"></span><dl class="dlParallel" id="section-28-7">
-        <dt id="section-28-7.1">Standards Track (0x0000–0x00FF)</dt>
+        <dt id="section-28-7.1">Standards Track (0x0000-0x00FF)</dt>
         <dd style="margin-left: 1.5em" id="section-28-7.2">
           <p id="section-28-7.2.1">Encoding types intended for broad interoperability.  The
 specification <span class="bcp14">MUST</span> include a complete mathematical description
@@ -10839,7 +11290,7 @@ sufficient for independent interoperable implementations (see
 <a href="#encoding-type-interoperability" class="auto internal xref">Section 8.1.1</a>).  Allocated by IETF Review.<a href="#section-28-7.2.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-28-7.3">Experimental (0x0100–0x0FFF)</dt>
+<dt id="section-28-7.3">Experimental (0x0100-0x0FFF)</dt>
         <dd style="margin-left: 1.5em" id="section-28-7.4">
           <p id="section-28-7.4.1">Encoding types under development or evaluation.  An Internet-Draft
 is sufficient for allocation.  The specification <span class="bcp14">SHOULD</span> include
@@ -10847,7 +11298,7 @@ enough detail for interoperability testing.  Allocated by Expert
 Review.<a href="#section-28-7.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-28-7.5">Vendor (open) (0x1000–0x7FFF)</dt>
+<dt id="section-28-7.5">Vendor (open) (0x1000-0x7FFF)</dt>
         <dd style="margin-left: 1.5em" id="section-28-7.6">
           <p id="section-28-7.6.1">Encoding types with a published specification or patent reference.
 Interoperability is expected among implementations that license or
@@ -10856,7 +11307,7 @@ math specification or a patent reference.  Allocated First Come
 First Served.<a href="#section-28-7.6.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-28-7.7">Private/proprietary (0x8000–0xFFFE)</dt>
+<dt id="section-28-7.7">Private/proprietary (0x8000-0xFFFE)</dt>
         <dd style="margin-left: 1.5em" id="section-28-7.8">
           <p id="section-28-7.8.1">Encoding types for use within a single vendor's ecosystem.
 No IANA registration is required.  Interoperability with other
@@ -10925,6 +11376,23 @@ Mirroring (see <a href="#tbl-coding-types" class="auto internal xref">Table 14</
         </tbody>
       </table>
 </div>
+<div id="iana-flag-words">
+<section id="section-28.1">
+        <h3 id="name-flag-word-allocation">
+<a href="#section-28.1" class="section-number selfRef">28.1. </a><a href="#name-flag-word-allocation" class="section-name selfRef">Flag-Word Allocation</a>
+        </h3>
+<p id="section-28.1-1">This document defines three bitmap spaces -- ffv2_flags4
+(see <a href="#sec-ffv2_flags4" class="auto internal xref">Section 8.2.1</a>), ffv2_ds_flags4 (see
+<a href="#sec-ffv2_ds_flags4" class="auto internal xref">Section 8.4</a>), and cwa_flags (see
+<a href="#sec-CHUNK_WRITE" class="auto internal xref">Section 25.10</a>) -- whose allocated bits are enumerated in
+this document.  Following the precedent of ff_flags4 in
+<span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>, IANA does not maintain a registry for any of these
+bitmap spaces.  Future bit allocations are made by a document
+that updates or obsoletes this one.  Implementations <span class="bcp14">MUST</span>
+treat unknown bits as reserved and <span class="bcp14">MUST NOT</span> assign meaning to
+them locally.<a href="#section-28.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="xdr-description-of-the-flexible-file-layout-type">
@@ -10936,31 +11404,31 @@ Mirroring (see <a href="#tbl-coding-types" class="auto internal xref">Table 14</
 <span>[<a href="#RFC4506" class="cite xref">RFC4506</a>]</span> description of the flexible file layout type.  The XDR
 description is embedded in this document in a way that makes it simple
 for the reader to extract into a ready-to-compile form.  The reader can
-feed this document into the shell script in <a href="#fig-extract" class="auto internal xref">Figure 93</a> to produce
+feed this document into the shell script in <a href="#fig-extract" class="auto internal xref">Figure 100</a> to produce
 the machine-readable XDR description of the flexible file layout type.<a href="#section-29-1" class="pilcrow">¶</a></p>
 <span id="name-extractsh"></span><div id="fig-extract">
-<figure id="figure-93">
+<figure id="figure-100">
         <div class="lang-shell sourcecode" id="section-29-2.1">
 <pre>
 #!/bin/sh
 grep '^ *///' $* | sed 's?^ */// ??' | sed 's?^ *///$??'
 </pre>
 </div>
-<figcaption><a href="#figure-93" class="selfRef">Figure 93</a>:
+<figcaption><a href="#figure-100" class="selfRef">Figure 100</a>:
 <a href="#name-extractsh" class="selfRef">extract.sh</a>
         </figcaption></figure>
 </div>
 <p id="section-29-3">That is, if the above script is stored in a file called "extract.sh"
 and this document is in a file called "spec.txt", then the reader can
-run the script as in <a href="#fig-extract-example" class="auto internal xref">Figure 94</a>.<a href="#section-29-3" class="pilcrow">¶</a></p>
+run the script as in <a href="#fig-extract-example" class="auto internal xref">Figure 101</a>.<a href="#section-29-3" class="pilcrow">¶</a></p>
 <span id="name-example-use-of-extractsh"></span><div id="fig-extract-example">
-<figure id="figure-94">
+<figure id="figure-101">
         <div class="lang-shell sourcecode" id="section-29-4.1">
 <pre>
 sh extract.sh &lt; spec.txt &gt; flex_files2_prot.x
 </pre>
 </div>
-<figcaption><a href="#figure-94" class="selfRef">Figure 94</a>:
+<figcaption><a href="#figure-101" class="selfRef">Figure 101</a>:
 <a href="#name-example-use-of-extractsh" class="selfRef">Example use of extract.sh</a>
         </figcaption></figure>
 </div>
@@ -11492,6 +11960,10 @@ process.<a href="#section-32-5" class="pilcrow">¶</a></p>
 <a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
 <dl class="references">
+<dt id="RFC1813">[RFC1813]</dt>
+        <dd>
+<span class="refAuthor">Callaghan, B.</span>, <span class="refAuthor">Pawlowski, B.</span>, and <span class="refAuthor">P. Staubach</span>, <span class="refTitle">"NFS Version 3 Protocol Specification"</span>, <span class="seriesInfo">RFC 1813</span>, <span class="seriesInfo">DOI 10.17487/RFC1813</span>, <time datetime="1995-06" class="refDate">June 1995</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc1813">https://www.rfc-editor.org/rfc/rfc1813</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC2119">[RFC2119]</dt>
         <dd>
 <span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
@@ -11580,10 +12052,6 @@ process.<a href="#section-32-5" class="pilcrow">¶</a></p>
 <dt id="Plank97">[Plank97]</dt>
         <dd>
 <span class="refAuthor">Plank, J.</span>, <span class="refTitle">"A Tutorial on Reed-Solomon Coding for Fault-Tolerance in RAID-like System"</span>, <time datetime="1997-09" class="refDate">September 1997</time>. </dd>
-<dd class="break"></dd>
-<dt id="RFC1813">[RFC1813]</dt>
-        <dd>
-<span class="refAuthor">Callaghan, B.</span>, <span class="refAuthor">Pawlowski, B.</span>, and <span class="refAuthor">P. Staubach</span>, <span class="refTitle">"NFS Version 3 Protocol Specification"</span>, <span class="seriesInfo">RFC 1813</span>, <span class="seriesInfo">DOI 10.17487/RFC1813</span>, <time datetime="1995-06" class="refDate">June 1995</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc1813">https://www.rfc-editor.org/rfc/rfc1813</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC4519">[RFC4519]</dt>
         <dd>
