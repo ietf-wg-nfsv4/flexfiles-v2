@@ -3470,6 +3470,86 @@ Lease bound:
    {{sec-tight-coupling-lease}}).  An orphaned entry will
    eventually expire even if the metadata server never returns.
 
+##  Chunk State Machine {#sec-system-model-chunk-state}
+
+Each chunk on a data server occupies exactly one of four states.
+The transitions below are the complete set; any implementation
+of the data server's chunk state table MUST admit these
+transitions and no others.
+
+~~~
+                       CHUNK_WRITE
+                    (fresh cg_gen_id)
+      +---------+ ------------------> +-----------+
+      |  EMPTY  |                     |  PENDING  |
+      +---------+ <------------------ +-----------+
+           ^        CHUNK_ROLLBACK        |  ^
+           |       (discard PENDING)      |  | CHUNK_WRITE
+           |                              |  | (replace PENDING,
+           |                              |  |  same writer, same
+           |                              |  |  cg_gen_id)
+           |                              |  |
+           |             CHUNK_FINALIZE   v  |
+           |          (writer stops       |
+           |           further writes)    |
+           |                              v
+           |                       +-------------+
+           |        CHUNK_ROLLBACK |  FINALIZED  |
+           |       (discard        +-------------+
+           |        FINALIZED)           |
+           |                             | CHUNK_COMMIT
+           |                             |  (make durable and
+           |                             |   globally visible)
+           |                             v
+           |                       +-------------+
+           +-------------------- > |  COMMITTED  |
+                CHUNK_ROLLBACK     +-------------+
+             (only via repair;          |
+              replaces with a newer     | CHUNK_WRITE with a higher
+              COMMITTED generation      | cg_gen_id begins a new
+              or discards per the       | PENDING successor;
+              rollback invariant)       | the prior COMMITTED is
+                                        | retained until its
+                                        | successor is COMMITTED
+                                        | (rollback invariant,
+                                        v  sec-system-model-consistency)
+                                  (next PENDING
+                                   against same chunk)
+~~~
+{: #fig-chunk-state-machine title="Chunk lifecycle on the data server"}
+
+States:
+
+EMPTY:
+:  The chunk has no payload.  CHUNK_READ returns a zero-filled
+   result; CHUNK_WRITE against an EMPTY chunk is the first write.
+
+PENDING:
+:  The chunk has payload accepted by CHUNK_WRITE but not yet
+   finalized.  Not visible to CHUNK_READ (see
+   {{sec-system-model-consistency}}).  Further CHUNK_WRITEs from
+   the same writer MAY replace the payload in place (same
+   cg_gen_id).
+
+FINALIZED:
+:  The writer has signalled via CHUNK_FINALIZE that it will send
+   no more CHUNK_WRITEs for this generation.  Still not visible
+   to CHUNK_READ, but a candidate for CHUNK_COMMIT.
+
+COMMITTED:
+:  The chunk is durable and globally visible.  Subsequent
+   CHUNK_READs return this content until a newer COMMITTED
+   generation replaces it.  A higher-generation PENDING successor
+   MAY exist concurrently; the rollback invariant in
+   {{sec-system-model-consistency}} requires the data server to
+   retain the COMMITTED content while that successor exists.
+
+Transitions are driven by the operations named on the arrows.
+CHUNK_ROLLBACK against a COMMITTED chunk is used only on the
+repair path (see {{sec-CHUNK_ROLLBACK}}) and replaces the chunk
+with a newer COMMITTED generation chosen by the repair client,
+rather than returning the chunk to EMPTY.
+
 ##  Consistency Guarantees {#sec-system-model-consistency}
 
 The protocol provides **per-chunk linearizability on COMMITTED
