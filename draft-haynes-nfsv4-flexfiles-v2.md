@@ -3721,6 +3721,59 @@ Visibility of non-committed state:
    its own PENDING or FINALIZED chunk MAY receive the in-progress
    content on the same stateid that produced it, but no other
    stateid -- on the same or a different client -- sees it.
+   The retention window that makes the prior COMMITTED content
+   available to CHUNK_READ and to CHUNK_ROLLBACK is itself
+   bounded; see {{sec-system-model-retention-scope}} for the
+   normative scoping rule.
+
+##  Ownership and Scope of Retained Prior Content {#sec-system-model-retention-scope}
+
+The rollback invariant in {{sec-system-model-consistency}}
+requires a data server to retain the prior FINALIZED or
+COMMITTED content of a chunk while any successor PENDING chunk
+exists.  That retained content -- sometimes informally called
+the "safe buffer" -- is not global state.  It is scoped to the
+stateid that wrote the PENDING successor, and its retention and
+visibility are governed by that owning stateid's lease.
+
+Owner:
+:  The data server MUST record, alongside each PENDING chunk,
+   the owning stateid (the stateid presented on the CHUNK_WRITE
+   that produced the PENDING).  This is the owning writer's
+   stateid; it identifies the client and openowner/lockowner
+   that the data server will release the PENDING to on
+   CHUNK_FINALIZE or CHUNK_COMMIT, and that the MDS will treat
+   as the authoritative owner for purposes of
+   {{sec-system-model-progress}}.
+
+Visibility:
+:  Before transition to COMMITTED, the PENDING content is
+   visible only on the owning stateid.  A CHUNK_READ presenting
+   any other stateid (from the same client or a different
+   client) MUST observe the predecessor COMMITTED or EMPTY
+   state, not the PENDING successor.  This is the normative
+   form of the "non-committed data MUST NOT be globally visible"
+   rule in the Visibility bullet above.
+
+Retention window:
+:  The data server MUST retain the predecessor COMMITTED (or
+   FINALIZED) content that the PENDING is superseding for as
+   long as the owning stateid's lease is valid.  If the owning
+   stateid's lease expires without the PENDING reaching
+   COMMITTED, the retention obligation for that PENDING ends
+   (see {{sec-system-model-progress}} for the scavenger rule
+   that drives demotion).  If the PENDING does reach COMMITTED,
+   the new COMMITTED generation supersedes the prior one under
+   the standard rollback invariant and its own retention is
+   governed by any newer PENDING successor.
+
+The practical effect is that the "safe buffer" for a chunk is
+not an unbounded chunk-global state but a per-writer window
+bounded by that writer's lease.  The data server always has a
+rule for discarding retained prior content -- it is the
+owning stateid's lease expiry -- so a chunk cannot accumulate
+indefinitely many retained generations even in the presence of
+dropped or partitioned writers.
 
 ##  Progress and Termination {#sec-system-model-progress}
 
