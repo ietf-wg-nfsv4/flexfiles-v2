@@ -164,6 +164,10 @@ backward compatible: an FFv2 layout cannot be parsed as an FFv1 layout
 and vice versa.  A server MAY support both layout types simultaneously;
 a client selects the desired layout type in its LAYOUTGET request.
 
+# Requirements Language
+
+{::boilerplate bcp14-tagged}
+
 #  Motivation {#sec-motivation}
 
 Server-sided erasure coding places the erasure-coding compute at
@@ -502,10 +506,6 @@ existing chunk of data.
 wsize:
 
 :  the data transfer buffer size used for WRITEs.
-
-# Requirements Language
-
-{::boilerplate bcp14-tagged}
 
 #  Coupling of Storage Devices
 
