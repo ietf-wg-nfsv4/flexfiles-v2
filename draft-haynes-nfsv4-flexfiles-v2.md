@@ -3780,8 +3780,8 @@ transitions and no others.
               rollback invariant)       | the prior COMMITTED is
                                         | retained until its
                                         | successor is COMMITTED
-                                        | (rollback invariant,
-                                        v  sec-system-model-consistency)
+                                        | (see the rollback
+                                        v  invariant below)
                                   (next PENDING
                                    against same chunk)
 ~~~
