@@ -899,6 +899,17 @@ metadata server to each storage device over a dedicated control
 session (see {{sec-tight-coupling-control-session}}) and MUST NOT
 be sent by pNFS clients.
 
+The receiver of these operations is any server the metadata
+server delegates client-I/O admission to.  In this document that
+is the storage device (DS).  The same mechanism applies to a
+proxy server (PS) as defined in the companion Data Mover
+draft -- a PS may or may not additionally act as a DS, but in
+either role it needs the metadata server to register a layout
+stateid before it can admit client I/O.  Where this section
+says "storage device," read it as "storage device, or proxy
+server as defined in the companion Data Mover draft"; the flag
+check and the three operations are identical for both roles.
+
 ###  Capability Discovery {#sec-tight-coupling-probe}
 
 A storage device indicates support for tight coupling implicitly,
@@ -946,7 +957,7 @@ own ffdv_tightly_coupled flag, set independently.
 The metadata server establishes an NFSv4.2 session to each
 tight-coupling-capable storage device at startup.  On this session
 the metadata server acts as the storage device's client and
-presents EXCHGID4_FLAG_USE_NON_PNFS in its EXCHANGE_ID args.
+presents EXCHGID4_FLAG_USE_PNFS_MDS in its EXCHANGE_ID args.
 
 The storage device MUST verify that any incoming TRUST_STATEID,
 REVOKE_STATEID, or BULK_REVOKE_STATEID compound arrives on a
@@ -2356,7 +2367,7 @@ segments are presented below.
 ####  Single Storage Device Updates Mirrors
 
 If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is set, the
-client only needs to update one of the copies of the layout segment.
+client MAY update just one of the copies of the layout segment.
 For this case, the storage device MUST ensure that all copies of
 the mirror are updated when any one of the mirrors is updated.  If
 the storage device gets an error when updating one of the mirrors,
@@ -2374,7 +2385,7 @@ client is responsible for updating all mirrored copies of the layout
 segments that it is given in the layout.  A single failed update
 is sufficient to fail the entire operation.  If all but one copy
 is updated successfully and the last one provides an error, then
-the client needs to inform the metadata server about the error.
+the client MUST inform the metadata server about the error.
 The client can use either LAYOUTRETURN or LAYOUTERROR to inform the
 metadata server that the update failed to that storage device.  If
 the client is updating the mirrors serially, then it SHOULD stop
@@ -4250,7 +4261,7 @@ when issued by the metadata server:
    BIND_CONN_TO_SESSION, DESTROY_CLIENTID ({{RFC8881}} Sections
    18.35, 18.36, 18.37, 18.34, 18.50): control-session
    management.  The metadata server sets
-   EXCHGID4_FLAG_USE_NON_PNFS in its EXCHANGE_ID.  A data
+   EXCHGID4_FLAG_USE_PNFS_MDS in its EXCHANGE_ID.  A data
    server that supports the tight-coupling control protocol
    (see {{sec-tight-coupling-control-session}}) identifies the
    metadata server's session by EXCHGID4_FLAG_USE_PNFS_MDS and
@@ -5000,17 +5011,17 @@ are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
  | NFS4ERR_PAYLOAD_LOST             | CB_CHUNK_REPAIR             |
 {: #tbl-errors-and-ops title="Errors and the Operations That Use Them"}
 
-# EXCHGID4_FLAG_USE_PNFS_DS
+# EXCHGID4_FLAG_USE_ERASURE_DS
 
 ~~~ xdr
    /// const EXCHGID4_FLAG_USE_ERASURE_DS      = 0x00100000;
 ~~~
-{: #fig-EXCHGID4_FLAG_USE_PNFS_DS title="The EXCHGID4_FLAG_USE_PNFS_DS" }
+{: #fig-EXCHGID4_FLAG_USE_ERASURE_DS title="The EXCHGID4_FLAG_USE_ERASURE_DS" }
 
 When a data server connects to a metadata server it can via
 EXCHANGE_ID (see Section 18.35 of {{RFC8881}}) state its pNFS role.
 The data server can use EXCHGID4_FLAG_USE_ERASURE_DS (see
-{{fig-EXCHGID4_FLAG_USE_PNFS_DS}}) to indicate that it supports the
+{{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}) to indicate that it supports the
 new NFSv4.2 operations introduced in this document.  Section 13.1
 of {{RFC8881}} describes the interaction of the various pNFS roles
 masked by EXCHGID4_FLAG_MASK_PNFS.  However, that does not mask out
@@ -5250,23 +5261,23 @@ across all data files that a chunk corresponds.
    ///
    /// /* New operations for Erasure Coding start here */
    ///
-   ///  OP_CHUNK_COMMIT        = 77,
-   ///  OP_CHUNK_ERROR         = 78,
-   ///  OP_CHUNK_FINALIZE      = 79,
-   ///  OP_CHUNK_HEADER_READ   = 80,
-   ///  OP_CHUNK_LOCK          = 81,
-   ///  OP_CHUNK_READ          = 82,
-   ///  OP_CHUNK_REPAIRED      = 83,
-   ///  OP_CHUNK_ROLLBACK      = 84,
-   ///  OP_CHUNK_UNLOCK        = 85,
-   ///  OP_CHUNK_WRITE         = 86,
-   ///  OP_CHUNK_WRITE_REPAIR  = 87,
+   ///  OP_CHUNK_COMMIT        = 78,
+   ///  OP_CHUNK_ERROR         = 79,
+   ///  OP_CHUNK_FINALIZE      = 80,
+   ///  OP_CHUNK_HEADER_READ   = 81,
+   ///  OP_CHUNK_LOCK          = 82,
+   ///  OP_CHUNK_READ          = 83,
+   ///  OP_CHUNK_REPAIRED      = 84,
+   ///  OP_CHUNK_ROLLBACK      = 85,
+   ///  OP_CHUNK_UNLOCK        = 86,
+   ///  OP_CHUNK_WRITE         = 87,
+   ///  OP_CHUNK_WRITE_REPAIR  = 88,
    ///
    /// /* MDS-to-DS control-plane operations for tight coupling */
    ///
-   ///  OP_TRUST_STATEID       = 88,
-   ///  OP_REVOKE_STATEID      = 89,
-   ///  OP_BULK_REVOKE_STATEID = 90,
+   ///  OP_TRUST_STATEID       = 90,
+   ///  OP_REVOKE_STATEID      = 91,
+   ///  OP_BULK_REVOKE_STATEID = 92,
    ///
 ~~~
 {: #fig-ops-xdr title="Operations XDR" }
@@ -5323,9 +5334,9 @@ XDR applies these amendments at the union's extension point.
 ~~~
 {: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
 
-Operations 77 through 87 (the CHUNK_* operations) are sent by
-clients to storage devices on the data path.  Operations 88
-through 90 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
+Operations 78 through 88 (the CHUNK_* operations) are sent by
+clients to storage devices on the data path.  Operations 90
+through 92 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
 are sent by the metadata server to storage devices on the
 MDS-to-DS control session (see
 {{sec-tight-coupling-control-session}}); they MUST NOT be sent by
@@ -5333,23 +5344,23 @@ pNFS clients.
 
    | Operation              | Number | Target Server     | Description |
    | ---
-   | CHUNK_COMMIT           | 77     | DS (client)       | {{sec-CHUNK_COMMIT}} |
-   | CHUNK_ERROR            | 78     | DS (client)       | {{sec-CHUNK_ERROR}} |
-   | CHUNK_FINALIZE         | 79     | DS (client)       | {{sec-CHUNK_FINALIZE}} |
-   | CHUNK_HEADER_READ      | 80     | DS (client)       | {{sec-CHUNK_HEADER_READ}} |
-   | CHUNK_LOCK             | 81     | DS (client)       | {{sec-CHUNK_LOCK}} |
-   | CHUNK_READ             | 82     | DS (client)       | {{sec-CHUNK_READ}} |
-   | CHUNK_REPAIRED         | 83     | DS (client)       | {{sec-CHUNK_REPAIRED}} |
-   | CHUNK_ROLLBACK         | 84     | DS (client)       | {{sec-CHUNK_ROLLBACK}} |
-   | CHUNK_UNLOCK           | 85     | DS (client)       | {{sec-CHUNK_UNLOCK}} |
-   | CHUNK_WRITE            | 86     | DS (client)       | {{sec-CHUNK_WRITE}} |
-   | CHUNK_WRITE_REPAIR     | 87     | DS (client)       | {{sec-CHUNK_WRITE_REPAIR}} |
-   | TRUST_STATEID          | 88     | DS (MDS control)  | {{sec-TRUST_STATEID}} |
-   | REVOKE_STATEID         | 89     | DS (MDS control)  | {{sec-REVOKE_STATEID}} |
-   | BULK_REVOKE_STATEID    | 90     | DS (MDS control)  | {{sec-BULK_REVOKE_STATEID}} |
+   | CHUNK_COMMIT           | 78     | DS (client)       | {{sec-CHUNK_COMMIT}} |
+   | CHUNK_ERROR            | 79     | DS (client)       | {{sec-CHUNK_ERROR}} |
+   | CHUNK_FINALIZE         | 80     | DS (client)       | {{sec-CHUNK_FINALIZE}} |
+   | CHUNK_HEADER_READ      | 81     | DS (client)       | {{sec-CHUNK_HEADER_READ}} |
+   | CHUNK_LOCK             | 82     | DS (client)       | {{sec-CHUNK_LOCK}} |
+   | CHUNK_READ             | 83     | DS (client)       | {{sec-CHUNK_READ}} |
+   | CHUNK_REPAIRED         | 84     | DS (client)       | {{sec-CHUNK_REPAIRED}} |
+   | CHUNK_ROLLBACK         | 85     | DS (client)       | {{sec-CHUNK_ROLLBACK}} |
+   | CHUNK_UNLOCK           | 86     | DS (client)       | {{sec-CHUNK_UNLOCK}} |
+   | CHUNK_WRITE            | 87     | DS (client)       | {{sec-CHUNK_WRITE}} |
+   | CHUNK_WRITE_REPAIR     | 88     | DS (client)       | {{sec-CHUNK_WRITE_REPAIR}} |
+   | TRUST_STATEID          | 90     | DS (MDS control)  | {{sec-TRUST_STATEID}} |
+   | REVOKE_STATEID         | 91     | DS (MDS control)  | {{sec-REVOKE_STATEID}} |
+   | BULK_REVOKE_STATEID    | 92     | DS (MDS control)  | {{sec-BULK_REVOKE_STATEID}} |
 {: #tbl-protocol-ops title="Protocol OPs"}
 
-## Operation 77: CHUNK_COMMIT - Activate Cached Chunk Data {#sec-CHUNK_COMMIT}
+## Operation 78: CHUNK_COMMIT - Activate Cached Chunk Data {#sec-CHUNK_COMMIT}
 
 ### ARGUMENTS
 
@@ -5430,11 +5441,11 @@ CHUNK_FINALIZE before CHUNK_COMMIT is accepted:
    than the one named in the cca_chunks entry, the data server
    MUST reject with NFS4ERR_CHUNK_GUARDED.  A client that sees
    this has lost a race and SHOULD re-read the chunk (see
-   sec-chunk_guard4).
+   {{sec-chunk_guard4}}).
 
 The three-step CHUNK_WRITE -> CHUNK_FINALIZE -> CHUNK_COMMIT
 sequence MAY be pipelined within a single NFSv4.2 compound
-(see sec-system-model-progress); each operation evaluates the
+(see {{sec-system-model-progress}}); each operation evaluates the
 current state of the target chunks independently.
 
 #### Interaction with a Locked Chunk
@@ -5463,7 +5474,7 @@ This rule is what {{sec-system-model-consistency}} calls
 "lock continuity across revocation": the COMMIT privilege
 follows the lock without gaps in which a non-owner could race.
 
-## Operation 78: CHUNK_ERROR - Report Error on Cached Chunk Data {#sec-CHUNK_ERROR}
+## Operation 79: CHUNK_ERROR - Report Error on Cached Chunk Data {#sec-CHUNK_ERROR}
 
 ### ARGUMENTS
 
@@ -5506,7 +5517,7 @@ them to the metadata server via LAYOUTERROR.  This allows the data
 server to prevent other clients from reading corrupt data while
 the metadata server coordinates repair.
 
-## Operation 79: CHUNK_FINALIZE - Transition Chunks from Pending to Finalized {#sec-CHUNK_FINALIZE}
+## Operation 80: CHUNK_FINALIZE - Transition Chunks from Pending to Finalized {#sec-CHUNK_FINALIZE}
 
 ### ARGUMENTS
 
@@ -5562,7 +5573,7 @@ restarts.
 Blocks that have been finalized but not yet committed MAY be rolled
 back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
 
-## Operation 80: CHUNK_HEADER_READ - Read Chunk Header from File {#sec-CHUNK_HEADER_READ}
+## Operation 81: CHUNK_HEADER_READ - Read Chunk Header from File {#sec-CHUNK_HEADER_READ}
 
 ### ARGUMENTS
 
@@ -5603,7 +5614,7 @@ back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
 CHUNK_HEADER_READ differs from CHUNK_READ in that it only reads chunk
 headers in the desired data range.
 
-## Operation 81: CHUNK_LOCK - Lock Cached Chunk Data {#sec-CHUNK_LOCK}
+## Operation 82: CHUNK_LOCK - Lock Cached Chunk Data {#sec-CHUNK_LOCK}
 
 ### ARGUMENTS
 
@@ -5715,7 +5726,7 @@ CHUNK_GUARD_CLIENT_ID_MDS -- that value is reserved for server
 production and MUST NOT be presented by a client.  The operation
 returns NFS4ERR_INVAL in that case.
 
-## Operation 82: CHUNK_READ - Read Chunks from File {#sec-CHUNK_READ}
+## Operation 83: CHUNK_READ - Read Chunks from File {#sec-CHUNK_READ}
 
 ### ARGUMENTS
 
@@ -5838,7 +5849,7 @@ generated fields.
 ~~~
 {: #fig-example-CHUNK_READ4resok title="Example: Resulting CHUNK_READ4resok reply" }
 
-## Operation 83: CHUNK_REPAIRED - Confirm Repair of Errored Chunk Data {#sec-CHUNK_REPAIRED}
+## Operation 84: CHUNK_REPAIRED - Confirm Repair of Errored Chunk Data {#sec-CHUNK_REPAIRED}
 
 ### ARGUMENTS
 
@@ -5881,7 +5892,7 @@ in error and that the repair data has been written and finalized.
 If the blocks are not in the errored state, the operation returns
 NFS4ERR_INVAL.
 
-## Operation 84: CHUNK_ROLLBACK - Rollback Changes on Cached Chunk Data {#sec-CHUNK_ROLLBACK}
+## Operation 85: CHUNK_ROLLBACK - Rollback Changes on Cached Chunk Data {#sec-CHUNK_ROLLBACK}
 
 ### ARGUMENTS
 
@@ -5939,7 +5950,7 @@ The data server deletes the pending chunk data and restores the
 block metadata to EMPTY.  If the block was in the FINALIZED state,
 the persisted metadata is also removed.
 
-## Operation 85: CHUNK_UNLOCK - Unlock Cached Chunk Data {#sec-CHUNK_UNLOCK}
+## Operation 86: CHUNK_UNLOCK - Unlock Cached Chunk Data {#sec-CHUNK_UNLOCK}
 
 ### ARGUMENTS
 
@@ -5980,7 +5991,7 @@ A client SHOULD release chunk locks promptly after completing
 its write or repair operation.  Chunk locks are also released
 implicitly when the client's lease expires.
 
-## Operation 86: CHUNK_WRITE - Write Chunks to File {#sec-CHUNK_WRITE}
+## Operation 87: CHUNK_WRITE - Write Chunks to File {#sec-CHUNK_WRITE}
 
 ### ARGUMENTS
 
@@ -6157,7 +6168,7 @@ race (and the losing client sees NFS4ERR_CHUNK_GUARDED for the
 contested block) or be rejected itself, without introducing
 data-server-level locking beyond the per-chunk scope.
 
-## Operation 87: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk Data {#sec-CHUNK_WRITE_REPAIR}
+## Operation 88: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk Data {#sec-CHUNK_WRITE_REPAIR}
 
 ### ARGUMENTS
 
@@ -6237,7 +6248,7 @@ CHUNK_ERROR) or EMPTY.  If the blocks are in the COMMITTED state
 with valid data, the data server MAY reject the repair to prevent
 overwriting good data.
 
-## Operation 88: TRUST_STATEID - Register Layout Stateid on Data Server {#sec-TRUST_STATEID}
+## Operation 90: TRUST_STATEID - Register Layout Stateid on Data Server {#sec-TRUST_STATEID}
 
 ### ARGUMENTS
 
@@ -6347,7 +6358,7 @@ pNFS clients and is not carried on the wire.
 -  NFS4ERR_SERVERFAULT: the data server failed while processing
    the request.
 
-## Operation 89: REVOKE_STATEID - Revoke Registered Stateid on Data Server {#sec-REVOKE_STATEID}
+## Operation 91: REVOKE_STATEID - Revoke Registered Stateid on Data Server {#sec-REVOKE_STATEID}
 
 ### ARGUMENTS
 
@@ -6449,7 +6460,7 @@ safely.
 -  NFS4ERR_SERVERFAULT: the data server failed while processing
    the request.
 
-## Operation 90: BULK_REVOKE_STATEID - Revoke All Stateids for a Client {#sec-BULK_REVOKE_STATEID}
+## Operation 92: BULK_REVOKE_STATEID - Revoke All Stateids for a Client {#sec-BULK_REVOKE_STATEID}
 
 ### ARGUMENTS
 
@@ -6852,7 +6863,7 @@ synthetic uid on the data file).  The information they reveal --
 that a chunk is locked, or that a CRC mismatch occurred -- does
 not directly disclose file contents but may indicate concurrent
 write activity.  Implementations that are concerned about this
-level of disclosure SHOULD require that operations on CHUNK ops
+level of disclosure SHOULD require that CHUNK operations
 only succeed after credential verification and return
 NFS4ERR_ACCESS for unverified callers rather than the more
 specific error codes.
@@ -6946,7 +6957,7 @@ encoding type (see {{tbl-coding-ranges}}).
 
  | Range | Purpose | Allocation Policy |
  | ---
- | 0x0000-0x00FF | Standards Track | IETF Review (RFC required) |
+ | 0x0000-0x00FF | Standards Track | IETF Review                |
  | 0x0100-0x0FFF | Experimental | Expert Review |
  | 0x1000-0x7FFF | Vendor (open) | First Come First Served |
  | 0x8000-0xFFFE | Private/proprietary | No registration required |
