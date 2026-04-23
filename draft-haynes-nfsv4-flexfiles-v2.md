@@ -1090,6 +1090,40 @@ This is the expected setting for AUTH_SYS and TLS clients:
    therefore has the same authorization properties as plain
    AUTH_SYS.
 
+When a client's I/O is routed through a proxy server (PS) -- that
+is, the layout the metadata server returns to the client has
+FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry,
+per the companion Data Mover draft -- the storage device observes
+CHUNK operations arriving from the PS's address rather than from
+the client directly.  The tsa_principal the metadata server
+populates in TRUST_STATEID is the principal the *storage device*
+will observe on those CHUNK operations, and the Data Mover
+draft's credential-forwarding rules (in particular rule 1,
+"Credential pass-through") require the PS to forward the
+client's credentials verbatim on every CHUNK operation it issues
+on the client's behalf.  Therefore:
+
+-  For an RPCSEC_GSS client whose I/O is proxied through a PS,
+   the metadata server MUST set tsa_principal to the client's
+   RPCSEC_GSS display name (identical to the non-proxied case).
+   The storage device's principal check on CHUNK operations will
+   match against the client's principal on the forwarded
+   compound, not the PS's service identity.
+
+-  For an AUTH_SYS client whose I/O is proxied through a PS,
+   the metadata server MUST set tsa_principal to the empty
+   string (identical to the non-proxied case).  The PS forwards
+   the client's AUTH_SYS uid/gid; the storage device's stateid
+   check plus the forwarded AUTH_SYS uid/gid constitute the
+   authorization.
+
+The metadata server MUST NOT set tsa_principal to the PS's own
+service principal.  Doing so would require the PS to
+authenticate to the storage device as itself (bypassing
+credential forwarding) which is explicitly prohibited by the
+Data Mover draft's rule 4 ("PS service identity is for the
+control plane only").
+
 ###  Client-Detected Trust Gap {#sec-tight-coupling-trust-gap}
 
 A window exists between a successful TRUST_STATEID fan-out and
@@ -1387,7 +1421,8 @@ of the XDR extracted from this document (see
            LAYOUT4_OSD2_OBJECTS    = 2,
            LAYOUT4_BLOCK_VOLUME    = 3,
            LAYOUT4_FLEX_FILES      = 4,
-           LAYOUT4_FLEX_FILES_V2   = 5
+           LAYOUT4_SCSI            = 5,
+           LAYOUT4_FLEX_FILES_V2   = 6
        };
 
        struct layout_content4 {
@@ -1408,7 +1443,7 @@ The extracted XDR contribution for this extension is the new
 layouttype4 constant alone:
 
 ~~~ xdr
-   /// const LAYOUT4_FLEX_FILES_V2 = 5;
+   /// const LAYOUT4_FLEX_FILES_V2 = 6;
 ~~~
 {: #fig-orig-layout-extract title="New layouttype4 value (extracted)"}
 
@@ -6936,7 +6971,7 @@ document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
 
  | Layout Type Name      | Value | RFC      | How | Minor Versions |
  |---
- | LAYOUT4_FLEX_FILES_V2 | 0x5   | RFCTBD10 | L   | 1              |
+ | LAYOUT4_FLEX_FILES_V2 | 0x6   | RFCTBD10 | L   | 1              |
 {: #tbl_layout_types title="Layout Type Assignments"}
 
 {{RFC8881}} also introduced the "NFSv4 Recallable Object Types
