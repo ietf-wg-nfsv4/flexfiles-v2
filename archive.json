@@ -1,0 +1,1039 @@
+{
+  "magic": "E!vIA5L86J2I",
+  "timestamp": "2026-04-23T02:34:04.122846+00:00",
+  "repo": "ietf-wg-nfsv4/flexfiles-v2",
+  "labels": [
+    {
+      "name": "bug",
+      "description": "Something isn't working",
+      "color": "d73a4a"
+    },
+    {
+      "name": "documentation",
+      "description": "Improvements or additions to documentation",
+      "color": "0075ca"
+    },
+    {
+      "name": "duplicate",
+      "description": "This issue or pull request already exists",
+      "color": "cfd3d7"
+    },
+    {
+      "name": "enhancement",
+      "description": "New feature or request",
+      "color": "a2eeef"
+    },
+    {
+      "name": "good first issue",
+      "description": "Good for newcomers",
+      "color": "7057ff"
+    },
+    {
+      "name": "help wanted",
+      "description": "Extra attention is needed",
+      "color": "008672"
+    },
+    {
+      "name": "invalid",
+      "description": "This doesn't seem right",
+      "color": "e4e669"
+    },
+    {
+      "name": "question",
+      "description": "Further information is requested",
+      "color": "d876e3"
+    },
+    {
+      "name": "wontfix",
+      "description": "This will not be worked on",
+      "color": "ffffff"
+    },
+    {
+      "name": "iana",
+      "description": "IANA Considerations",
+      "color": "fbca04"
+    },
+    {
+      "name": "xdr",
+      "description": "XDR definitions and conventions",
+      "color": "0e8a16"
+    },
+    {
+      "name": "security",
+      "description": "Security Considerations",
+      "color": "d93f0b"
+    },
+    {
+      "name": "cref",
+      "description": "Open design question carried as cref in draft",
+      "color": "5319e7"
+    },
+    {
+      "name": "editorial",
+      "description": "Editorial / typos / cross-references",
+      "color": "c5def5"
+    },
+    {
+      "name": "idnits",
+      "description": "idnits / tooling finding",
+      "color": "e99695"
+    },
+    {
+      "name": "bcp14",
+      "description": "RFC 2119 / BCP 14 normative language",
+      "color": "006b75"
+    },
+    {
+      "name": "review-comment",
+      "description": "Filed from a draft review",
+      "color": "bfe5bf"
+    },
+    {
+      "name": "wg-feedback",
+      "description": "Raised at IETF NFSv4 WG meeting; tracked for follow-up",
+      "color": "1d76db"
+    },
+    {
+      "name": "nice-to-have",
+      "description": "Optional / non-blocking improvement",
+      "color": "ededed"
+    }
+  ],
+  "issues": [
+    {
+      "number": 1,
+      "id": "I_kwDOOloKJ88AAAABAI88wg",
+      "title": "Define repair-client selection rule in Section 10",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/1",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "cref",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 1\n\n**Location**: Section 10 (Erasure Coding), lines ~2048-2053\n\n**Finding**:\nThe repair-client selection algorithm (\"chose the winner or pick a random\nclient/data server\") is carried as a `<cref source=\"Tom\">` note.  Without\na defined selection rule, two implementations can diverge on which client\nrepairs, which is a correctness concern under concurrent writers.\n\n**Suggested resolution**:\nSpecify the selection authority (e.g., server picks via\n`ffv2ds_efficiency`, each client must be prepared for another client to\nrepair, and clients must be prepared to receive repair requests for files\nthey were not actively working on).  Text drafted in the working tree\n(sec-repair-selection, spare substitution, CB_CHUNK_REPAIR) pending commit.",
+      "createdAt": "2026-04-21T17:45:29Z",
+      "updatedAt": "2026-04-21T18:44:16Z",
+      "closedAt": "2026-04-21T18:44:16Z",
+      "comments": []
+    },
+    {
+      "number": 2,
+      "id": "I_kwDOOloKJ88AAAABAI89xQ",
+      "title": "Section 10.6 (Whole File Repair) is a cref \u2014 needs prose or deferral",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/2",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "cref",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 2\n\n**Location**: Section 10.6, lines ~2205-2219\n\n**Finding**:\nSection 10.6 is entirely a cref sketch.  If whole-file repair is in scope\nfor FFv2, it needs prose.  If it is out of scope for this revision, a\nsentence pointing at a follow-up draft would close the gap.\n\n**Suggested resolution**:\nDecide scope for -05; either write the prose or defer explicitly.",
+      "createdAt": "2026-04-21T17:45:30Z",
+      "updatedAt": "2026-04-21T23:29:26Z",
+      "closedAt": "2026-04-21T23:26:19Z",
+      "comments": [
+        {
+          "author": "loghyr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "For the record: \u00a710.6 now points at the Data Mover mechanism, which is being developed at https://github.com/ietf-wg-nfsv4/flexfiles-v2-data-mover as a companion draft.  All review findings from the initial technical review (3 BLOCKERs, 5 WARNINGs, 3 use-case gaps, 8 open questions) are filed as issues #1-19 on that companion repository.  The \u00a710.6 prose in the main draft is a WIP reference until the companion draft reaches -00.",
+          "createdAt": "2026-04-21T23:29:26Z",
+          "updatedAt": "2026-04-21T23:29:26Z"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "id": "I_kwDOOloKJ88AAAABAI8-Qw",
+      "title": "Add allowed-ops list for data files in Section 11",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/3",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "cref",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 3\n\n**Location**: Section 11 (NFSv4.2 Operations Allowed to Data Files), lines ~2578-2592\n\n**Finding**:\nThis is the allowed-ops list for the data server and the MDS.  RFC 8435 was\nexplicit about this for NFSv3 DSes; this draft currently carries it as a\ncref.  Without the list, implementers cannot validate whether an arbitrary\nNFSv4.2 op against a data file is a protocol violation.\n\n**Suggested resolution**:\nPopulate the table \u2014 separate lists for DS and MDS \u2014 modelled on the\nNFSv3 coverage in RFC 8435.",
+      "createdAt": "2026-04-21T17:45:32Z",
+      "updatedAt": "2026-04-22T04:00:02Z",
+      "closedAt": "2026-04-22T04:00:02Z",
+      "comments": []
+    },
+    {
+      "number": 4,
+      "id": "I_kwDOOloKJ88AAAABAI8-sQ",
+      "title": "Clarify CHUNK_WRITE vet-all vs first-error semantics (Section 22.11)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/4",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "cref",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 4\n\n**Location**: Section 22.11 CHUNK_WRITE DESCRIPTION, lines ~3848-3853\n\n**Finding**:\n\"Is the DS supposed to vet all blocks first or proceed to the first\nerror?\"  This is a fundamental atomicity question for the operation.  If\nthe DS returns per-block status (current XDR has `cwr_block_status<>`),\nall-or-none vs. first-error affects what the client can infer about the\npartial state and how it constructs a CHUNK_ROLLBACK set.\n\n**Suggested resolution**:\nPick one and write the corresponding prose.  The per-block status array\nsuggests first-error with partial commit; make that normative or choose\nall-or-none.",
+      "createdAt": "2026-04-21T17:45:34Z",
+      "updatedAt": "2026-04-22T07:01:29Z",
+      "closedAt": "2026-04-22T07:01:29Z",
+      "comments": []
+    },
+    {
+      "number": 5,
+      "id": "I_kwDOOloKJ88AAAABAI8_Kg",
+      "title": "Define CHUNK_COMMIT / CHUNK_FINALIZE interaction and locked-chunk behavior (Section 22.1)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/5",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "cref",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 5\n\n**Location**: Section 22.1 CHUNK_COMMIT DESCRIPTION, lines ~3260-3261\n\n**Finding**:\n\"Describe how CHUNK_COMMIT and CHUNK_FINALIZE interact.  How does\nCHUNK_COMMIT interact with a locked chunk?\"  These semantics are\nload-bearing for the repair sequences in Section 10.3 and Section 10.5 \u2014\nthe repair flows explicitly call FINALIZE after WRITE_REPAIR and COMMIT\nafter that.  Without the interaction rules, two implementations may diverge\non when blocks become visible to readers.\n\n**Suggested resolution**:\nDocument the PENDING \u2192 FINALIZED \u2192 COMMITTED sequence normatively and\nspecify CHUNK_COMMIT behavior on a locked chunk (likely: allowed if the\ncommitter owns the lock, else NFS4ERR_CHUNK_LOCKED).",
+      "createdAt": "2026-04-21T17:45:35Z",
+      "updatedAt": "2026-04-22T07:01:30Z",
+      "closedAt": "2026-04-22T07:01:30Z",
+      "comments": []
+    },
+    {
+      "number": 6,
+      "id": "I_kwDOOloKJ88AAAABAI8_jw",
+      "title": "Decide fate of ffm_client_id (Section 7, ffv2_mirror4)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/6",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "cref",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 6\n\n**Location**: Section 7 (ffv2_mirror4), line ~1194\n\n**Finding**:\nCref says \"Nuke ffm_client_id?\"  The field is referenced in the\nchunk_guard4 construction prose (Section 23.1 at line ~3142 describes\n`cg_client_id` as set from `ffm_client_id` at LAYOUTGET time).  Removing\nit without redesigning guard construction would break the guard\nuniqueness argument.\n\n**Suggested resolution**:\nEither keep the field (and remove the cref) or redesign the\n`cg_client_id` derivation so LAYOUTGET doesn't depend on `ffm_client_id`.",
+      "createdAt": "2026-04-21T17:45:37Z",
+      "updatedAt": "2026-04-21T21:25:25Z",
+      "closedAt": "2026-04-21T21:25:25Z",
+      "comments": []
+    },
+    {
+      "number": 7,
+      "id": "I_kwDOOloKJ88AAAABAI8_8w",
+      "title": "New nfsstat4 error codes \u2014 IANA registration check",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/7",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "iana",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 7\n\n**Location**: lines 2987-2990\n\n**Finding**:\nNew error codes: `NFS4ERR_CODING_NOT_SUPPORTED=10097`,\n`NFS4ERR_PAYLOAD_NOT_CONSISTENT=10098`, `NFS4ERR_CHUNK_LOCKED=10099`,\n`NFS4ERR_CHUNK_GUARDED=10100`.  Per RFC 8881 and current IETF practice, the\nreviewer expected new `nfsstat4` values to need an IANA registry entry;\nthere is no corresponding entry in Section 24.\n\n**Note on IANA action**:\nPer the updated review rule (ietf-review-prompts\n`ietf/patterns/iana.md`: \"default is no IANA action\"), `nfsstat4` values\nare governed by the publishing document, not by an IANA registry.  If the\nreviewer can cite a specific IANA registry in a prior published RFC that\nthese extend, the registrations must be added; otherwise this is closed\nwith no action.\n\n**Suggested resolution**:\nConfirm no IANA registry exists for `nfsstat4`; if confirmed, close.\nAlso note: `NFS4ERR_PAYLOAD_LOST=10101` has been added in the working\ntree and is subject to the same rule.",
+      "createdAt": "2026-04-21T17:45:38Z",
+      "updatedAt": "2026-04-22T06:44:17Z",
+      "closedAt": "2026-04-22T06:44:17Z",
+      "comments": [
+        {
+          "author": "loghyr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Per the default-no-action IANA rule: nfsstat4 error codes are governed by the publishing document, not by an IANA registry. RFC 8881 defines its nfsstat4 values inline without a corresponding IANA registry. The new codes (10097\u201310101) are defined in \u00a722 of the draft, which is the same pattern. No IANA action required. Closing.",
+          "createdAt": "2026-04-22T06:44:17Z",
+          "updatedAt": "2026-04-22T06:44:17Z"
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "id": "I_kwDOOloKJ88AAAABAI9AVA",
+      "title": "New FATTR4_CODING_BLOCK_SIZE=89 \u2014 IANA registration check",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/8",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "iana",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 8\n\n**Location**: line 3117\n\n**Finding**:\nNew attribute `FATTR4_CODING_BLOCK_SIZE = 89`.  The reviewer expected new\nNFSv4 attribute numbers to require registration in the corresponding\nNFSv4 registry.  Section 24 does not contain one.\n\n**Note on IANA action**:\nPer the updated review rule, `FATTR4_*` attribute numbers are governed\nby the publishing document unless a specific IANA registry exists in a\npublished RFC.  If none is cited, no IANA entry is needed.",
+      "createdAt": "2026-04-21T17:45:40Z",
+      "updatedAt": "2026-04-22T06:44:36Z",
+      "closedAt": "2026-04-22T06:44:36Z",
+      "comments": [
+        {
+          "author": "loghyr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Per the default-no-action IANA rule: FATTR4_* attribute numbers are governed by the publishing document, not by an IANA registry. RFC 8881 defines its FATTR4_* values inline without a corresponding IANA registry. FATTR4_CODING_BLOCK_SIZE=89 is defined in \u00a724 of the draft, which is the same pattern. No IANA action required. Closing.",
+          "createdAt": "2026-04-22T06:44:36Z",
+          "updatedAt": "2026-04-22T06:44:36Z"
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "id": "I_kwDOOloKJ88AAAABAI9AzA",
+      "title": "New EXCHGID4_FLAG_USE_ERASURE_DS \u2014 IANA registration check",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/9",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "iana",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 9\n\n**Location**: line 3090\n\n**Finding**:\nNew `EXCHGID4` flag bit `EXCHGID4_FLAG_USE_ERASURE_DS = 0x00100000`.\nIf EXCHGID4 flags are tracked by IANA, this bit should be called out.\n\n**Note on IANA action**:\nPer the updated review rule, EXCHGID4 flag bits are governed by the\npublishing document unless a specific IANA registry exists in a published\nRFC.  If none is cited, no IANA entry is needed.",
+      "createdAt": "2026-04-21T17:45:41Z",
+      "updatedAt": "2026-04-22T06:44:54Z",
+      "closedAt": "2026-04-22T06:44:54Z",
+      "comments": [
+        {
+          "author": "loghyr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Per the default-no-action IANA rule: EXCHGID4 flag bits are governed by the publishing document, not by an IANA registry. RFC 8881 defines the EXCHGID4 flags inline; no separate IANA registry was established. EXCHGID4_FLAG_USE_ERASURE_DS is defined inline in \u00a723 of the draft, which is the same pattern. No IANA action required. Closing.",
+          "createdAt": "2026-04-22T06:44:54Z",
+          "updatedAt": "2026-04-22T06:44:54Z"
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "id": "I_kwDOOloKJ88AAAABAI9B4g",
+      "title": "ffv2_flags4 / ffv2_ds_flags4 / cwa_flags \u2014 registries or stated self-allocation?",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/10",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "iana",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 10\n\n**Location**: multiple\n\n**Finding**:\nThe draft defines several new bitmap spaces \u2014 `ffv2_flags4` (with\n`FFV2_FLAGS_ONLY_ONE_WRITER=0x10` new in this draft), `ffv2_ds_flags4`\n(four new values), and `cwa_flags` (with\n`CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY`).  No registry exists for any of\nthese.  Either create registries for future extensibility, or add a\nsentence stating that the bit space is allocated entirely by this\ndocument and future extensions must consume a bit rarely.  (RFC 8435 set\na precedent here for FFv1's `ff_flags4`.)\n\n**Suggested resolution**:\nPick a stance.  The working tree has added `FFV2_DS_FLAGS_REPAIR` and\n`FFV2_DS_FLAGS_SPARE` since the review \u2014 the decision affects those too.",
+      "createdAt": "2026-04-21T17:45:43Z",
+      "updatedAt": "2026-04-22T07:01:27Z",
+      "closedAt": "2026-04-22T07:01:27Z",
+      "comments": []
+    },
+    {
+      "number": 11,
+      "id": "I_kwDOOloKJ88AAAABAI9CZQ",
+      "title": "Missing /// extraction sentinel on reused RFC 8435/8881 XDR blocks",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/11",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "xdr",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 11\n\n**Location**: lines 774-791 (ff_device_versions4, ff_device_addr4);\nlines 887-907 (layouttype4, layout_content4, layout4)\n\n**Finding**:\nThese XDR blocks appear inside `~~~ xdr ~~~` but lack the `/// `\nextraction sentinel.  The likely intent is that they are reused unchanged\nfrom RFC 8435 / RFC 8881 and already exist in the combined XDR.  Stating\nthis explicitly (e.g., \"The `ff_device_versions4` structure is unchanged\nfrom {{RFC8435}}\") prevents a reader running the extraction script from\nwondering whether the sentinel is missing by mistake.\n\n**Suggested resolution**:\nEither add the sentinel (if the block is part of the extracted XDR) or\nadd a prose note stating the block is unchanged and referenced only for\nillustration.",
+      "createdAt": "2026-04-21T17:45:45Z",
+      "updatedAt": "2026-04-22T07:01:27Z",
+      "closedAt": "2026-04-22T07:01:27Z",
+      "comments": []
+    },
+    {
+      "number": 12,
+      "id": "I_kwDOOloKJ88AAAABAI9C9Q",
+      "title": "Missing nfs_argop4 / nfs_resop4 dispatch union arms for CHUNK ops",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/12",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "xdr",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 12\n\n**Location**: entire XDR block\n\n**Finding**:\nThe draft does not show the `nfs_argop4` and `nfs_resop4` dispatch union\narms for the new CHUNK ops.  Consumers will need these to compile the\nextracted XDR.  If the extraction is intended to append to the RFC 7863\nXDR, the new arms could be added as an amendment block.\n\n**Suggested resolution**:\nAdd an amendment block at the end of the extracted XDR with the\n`case OP_CHUNK_WRITE:` / `case OP_CHUNK_READ:` etc. arms.",
+      "createdAt": "2026-04-21T17:45:47Z",
+      "updatedAt": "2026-04-22T07:01:27Z",
+      "closedAt": "2026-04-22T07:01:27Z",
+      "comments": []
+    },
+    {
+      "number": 13,
+      "id": "I_kwDOOloKJ88AAAABAI9DaA",
+      "title": "chunk_owner4 co_id vs co_chunk_id inconsistency between XDR and examples",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/13",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "xdr",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 13\n\n**Location**: `chunk_owner4` at line 3152-3156 vs examples\n\n**Finding**:\n`chunk_owner4` defines `co_id` as its field name, but the wire examples\nuse `co_chunk_id` (see `fig-example-chunk-write-res` line 1858,\n`fig-example-CHUNK_READ4resok` line 3549, etc.).\n\n**Suggested resolution**:\nPick one and update the other.  Likely `co_chunk_id` is clearer (the\nfield holds a chunk identifier, not a generic id).",
+      "createdAt": "2026-04-21T17:45:48Z",
+      "updatedAt": "2026-04-22T07:01:28Z",
+      "closedAt": "2026-04-22T07:01:28Z",
+      "comments": []
+    },
+    {
+      "number": 14,
+      "id": "I_kwDOOloKJ88AAAABAI9Dxw",
+      "title": "CHUNK_REPAIRED prefix cpa_/cpr_ \u2192 cra_/crr_ (convention fix)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/14",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "xdr",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 14\n\n**Location**: Section sec-CHUNK_REPAIRED\n\n**Finding**:\nCHUNK_REPAIRED args use prefix `cpa_`/`cpr_` rather than the expected\n`cra_`/`crr_` per the convention in RFC 8881.  The NFS convention\n(captured in `ietf-review-prompts/patterns/xdr.md`) takes first letters\nof each word in the op name.  For CHUNK_REPAIRED that is \"cr\", producing\n`cra_`/`crr_`.  A prefix collision with CHUNK_READ is explicitly\npermitted by the convention.\n\n**Status**: Fix applied in the working tree (`cpa_` \u2192 `cra_`,\n`cpr_` \u2192 `crr_`).  Pending commit.  Close on commit with\n`Fixes #NN`.",
+      "createdAt": "2026-04-21T17:45:50Z",
+      "updatedAt": "2026-04-21T18:44:16Z",
+      "closedAt": "2026-04-21T18:44:15Z",
+      "comments": []
+    },
+    {
+      "number": 15,
+      "id": "I_kwDOOloKJ88AAAABAI9ENA",
+      "title": "CHUNK_ROLLBACK prefix crb_ \u2192 cra_ (convention fix)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/15",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "xdr",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 15\n\n**Location**: Section sec-CHUNK_ROLLBACK\n\n**Finding**:\nCHUNK_ROLLBACK args use `crb_` (for \"chunk rollback\"?) \u2014 another\ndeparture from the CR-prefix convention.  The res side is `crr_`, which\ndoes match the convention and collides with CHUNK_READ's `crr_`\n(acceptable per the convention).\n\n**Status**: Fix applied in the working tree (`crb_` \u2192 `cra_` on the args\nside).  Pending commit.  Close on commit with `Fixes #NN`.",
+      "createdAt": "2026-04-21T17:45:52Z",
+      "updatedAt": "2026-04-21T18:44:16Z",
+      "closedAt": "2026-04-21T18:44:16Z",
+      "comments": []
+    },
+    {
+      "number": 16,
+      "id": "I_kwDOOloKJ88AAAABAI9EmQ",
+      "title": "read_chunk4: cr_locked<> / cr_status<> scalar vs array semantics",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/16",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "xdr",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 16\n\n**Location**: `read_chunk4`, lines 3471-3480\n\n**Finding**:\n`read_chunk4` has `cr_locked<>` and `cr_status<>` as variable-length\nsequences.  The inline comment \"TDH - make a flag\" suggests these were\nmeant to be scalars.  If \"a shard has a lock or doesn't\", `bool` scalars\nare simpler than `<>`.  If the `<>` was intended to allow\nper-chunk-within-the-struct arrays of status, that should be documented \u2014\notherwise the semantics are ambiguous.\n\n**Suggested resolution**:\nDecide scalar vs array, update XDR and prose.  The inline comment\nsuggests the author already intended scalars.",
+      "createdAt": "2026-04-21T17:45:53Z",
+      "updatedAt": "2026-04-22T07:01:28Z",
+      "closedAt": "2026-04-22T07:01:28Z",
+      "comments": []
+    },
+    {
+      "number": 17,
+      "id": "I_kwDOOloKJ88AAAABAI9E7w",
+      "title": "Line 548: 'should' \u2014 normative or descriptive?",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/17",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "bcp14",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 17\n\n**Location**: line 548\n\n**Finding**:\n\"the metadata server should return a synthetic uid that is not set on the\nstorage device\" \u2014 if this is a RECOMMENDED behavior, s/should/SHOULD/.\n\n**Suggested resolution**:\nPromote to `SHOULD` or reword to avoid the normative reading.",
+      "createdAt": "2026-04-21T17:45:54Z",
+      "updatedAt": "2026-04-22T07:01:26Z",
+      "closedAt": "2026-04-22T07:01:26Z",
+      "comments": []
+    },
+    {
+      "number": 18,
+      "id": "I_kwDOOloKJ88AAAABAI9F6w",
+      "title": "Line 1714: COMMIT contract uses lowercase 'must' twice",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/18",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "bcp14",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 18\n\n**Location**: line 1714\n\n**Finding**:\n\"once a COMMIT is replied to, all replicas must reflect the writes that\nhave been done, and this data must have been committed to stable storage\non all replicas\" \u2014 two lowercase `must` in a sentence describing the\nCOMMIT contract.  These look like hard requirements.\n\n**Suggested resolution**:\nUppercase both to `MUST`.",
+      "createdAt": "2026-04-21T17:45:56Z",
+      "updatedAt": "2026-04-22T07:01:26Z",
+      "closedAt": "2026-04-22T07:01:26Z",
+      "comments": []
+    },
+    {
+      "number": 19,
+      "id": "I_kwDOOloKJ88AAAABAI9GaA",
+      "title": "ffv2_flags4 flag definitions: normative or descriptive wording?",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/19",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "bcp14",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 19\n\n**Location**: lines 1007, 1010, 1015\n\n**Finding**:\nThe `ffv2_flags4` flag definitions say \"can be set to indicate that the\nclient should not send...\" \u2014 when a flag directs client behavior, the\ndirected behavior is either normative (`MUST NOT` / `SHOULD NOT`) or\ndescriptive.  Pick one and stick to it across the flag definitions.\n\n**Suggested resolution**:\nAudit all ffv2_flags4 flag prose and normalize.",
+      "createdAt": "2026-04-21T17:45:58Z",
+      "updatedAt": "2026-04-22T07:01:26Z",
+      "closedAt": "2026-04-22T07:01:26Z",
+      "comments": []
+    },
+    {
+      "number": 20,
+      "id": "I_kwDOOloKJ88AAAABAI9Gxg",
+      "title": "CRC32 scope: note authenticated-but-malicious-client case (Section 22.1)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/20",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "security",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 20\n\n**Location**: Section 22.1 (CRC32 Integrity Scope)\n\n**Finding**:\nSection 22.1 correctly says CRC32 is for error detection, not adversarial\nintegrity.  Worth adding that an authenticated but malicious client can\nstill write garbage with a matching CRC32 (the server validates CRC32\nagainst the bytes the client provided).  In the loose-coupled AUTH_SYS\nmodel, this is essentially the existing attack surface of NFSv3 writes;\nin RPCSEC_GSS or TLS deployments, it reduces to \"only the authenticated\nclient can write garbage to its own owned chunks\", which is arguably\nacceptable.  Stating this explicitly would help.\n\n**Suggested resolution**:\nAdd a paragraph explicitly acknowledging the authenticated-malicious\ncase and the residual surface under each auth model.",
+      "createdAt": "2026-04-21T17:45:59Z",
+      "updatedAt": "2026-04-22T07:01:28Z",
+      "closedAt": "2026-04-22T07:01:28Z",
+      "comments": []
+    },
+    {
+      "number": 21,
+      "id": "I_kwDOOloKJ88AAAABAI9HMw",
+      "title": "chunk_guard4 cg_gen_id | cg_client_id collision semantics (Section 23.1)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/21",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "security",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 21\n\n**Location**: Section 23.1 (chunk_guard4)\n\n**Finding**:\nSection 23.1 defines uniqueness as `cg_gen_id | cg_client_id`, where\n`cg_client_id` is 32-bit and derived from the NFSv4 clientid.  If two\nclients independently choose the same `cg_gen_id` (not hard under\nsequential generation after restart), their writes to the same chunk\nrange produce distinct guards only because of `cg_client_id`.  A note on\nthe uniqueness expectation \u2014 and what a DS does if it detects a\ncollision \u2014 would strengthen Section 22.\n\n**Suggested resolution**:\nDocument uniqueness assumptions and DS collision-detection behavior.\n(Note: the working tree has added `CHUNK_GUARD_CLIENT_ID_MDS = 0xFFFFFFFF`\nas a reserved sentinel; the collision rules need to cover that case too.)",
+      "createdAt": "2026-04-21T17:46:01Z",
+      "updatedAt": "2026-04-22T07:01:29Z",
+      "closedAt": "2026-04-22T07:01:29Z",
+      "comments": []
+    },
+    {
+      "number": 22,
+      "id": "I_kwDOOloKJ88AAAABAI9HmQ",
+      "title": "NORMAND reference declared but never cited",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/22",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "idnits",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 22\n\n**Location**: informative reference at line 57\n\n**Finding**:\nNORMAND (informative, at line 57) is declared but never cited in the\nprose.  The corner-peeling algorithm description in Section 10.9 (line\n~2486) is the natural citation site.  Either add a citation or drop\nNORMAND from the informative block.  Flagged by idnits.",
+      "createdAt": "2026-04-21T17:46:02Z",
+      "updatedAt": "2026-04-22T07:01:25Z",
+      "closedAt": "2026-04-22T07:01:25Z",
+      "comments": []
+    },
+    {
+      "number": 23,
+      "id": "I_kwDOOloKJ88AAAABAI9H_g",
+      "title": "Typo: 'itelf' \u2192 'itself' (line 1774)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/23",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 23\n\n**Location**: line 1774\n\n**Finding**:\n\"The erasure coding algorithm itelf might not be sufficient\" \u2014 typo:\n\"itelf\" \u2192 \"itself\".",
+      "createdAt": "2026-04-21T17:46:04Z",
+      "updatedAt": "2026-04-21T20:41:07Z",
+      "closedAt": "2026-04-21T20:41:07Z",
+      "comments": [
+        {
+          "author": "loghyr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Fixed in 1cfd770ede38 as part of the design-deck-mining commit.",
+          "createdAt": "2026-04-21T20:41:07Z",
+          "updatedAt": "2026-04-21T20:41:07Z"
+        }
+      ]
+    },
+    {
+      "number": 24,
+      "id": "I_kwDOOloKJ88AAAABAI9IcQ",
+      "title": "Figure anchor typo: fig-parallel-fileystem \u2192 fig-parallel-filesystem",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/24",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 24\n\n**Location**: line 1247 (anchor), referenced from 1211, 1591\n\n**Finding**:\nFigure anchor `fig-parallel-fileystem` has a typo (\"fileystem\").  Cosmetic\nonly \u2014 the cross-refs use the same typo consistently.",
+      "createdAt": "2026-04-21T17:46:05Z",
+      "updatedAt": "2026-04-22T07:01:24Z",
+      "closedAt": "2026-04-22T07:01:24Z",
+      "comments": []
+    },
+    {
+      "number": 25,
+      "id": "I_kwDOOloKJ88AAAABAI9I2w",
+      "title": "Remove the 'As a WIP, the XDR extraction may not yet work' note before WGLC",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/25",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 25\n\n**Location**: line 102\n\n**Finding**:\n\"_As a WIP, the XDR extraction may not yet work._\" \u2014 fine for a -NN\ndraft but will need to come out before WG last call.\n\n**Suggested resolution**:\nRemove before WGLC.",
+      "createdAt": "2026-04-21T17:46:07Z",
+      "updatedAt": "2026-04-22T06:40:59Z",
+      "closedAt": "2026-04-22T06:40:59Z",
+      "comments": [
+        {
+          "author": "loghyr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Already removed from the draft in a prior edit \u2014 no WIP note present at line 102 or elsewhere. Closing as resolved without code change.",
+          "createdAt": "2026-04-22T06:40:58Z",
+          "updatedAt": "2026-04-22T06:40:58Z"
+        }
+      ]
+    },
+    {
+      "number": 26,
+      "id": "I_kwDOOloKJ88AAAABAI9JRA",
+      "title": "Address NFSv3 + tight coupling explicitly in fffi_stateid discussion",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/26",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 26\n\n**Location**: lines 1395-1414\n\n**Finding**:\nThe `fffi_stateid` discussion distinguishes tight vs. loose coupling but\ndoes not explicitly address the NFSv3-with-tight-coupling case.  Is that\ncombination permitted?  The `ff_device_versions4` text at line 801-804\nforbids it (\"If `ffdv_version` equals 3, then the server MUST set\n`ffdv_tightly_coupled` to false\").\n\n**Suggested resolution**:\nAdd a forward reference from the stateid discussion to that paragraph so\nthe prohibition is discoverable from both places.",
+      "createdAt": "2026-04-21T17:46:08Z",
+      "updatedAt": "2026-04-22T07:01:30Z",
+      "closedAt": "2026-04-22T07:01:30Z",
+      "comments": []
+    },
+    {
+      "number": 27,
+      "id": "I_kwDOOloKJ88AAAABAI9KLg",
+      "title": "RFC 1813 cited in normative context \u2014 move to normative references",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/27",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 27\n\n**Location**: line 804, line 833\n\n**Finding**:\nRFC 1813 is listed as informative but cited in normative context at line\n804 (\"The client MUST then access the storage device using the NFSv3\nprotocol {{RFC1813}}\") and line 833 (\"see Section 3.3.7 of {{RFC1813}}\").\nIf NFSv3 is a required storage protocol for FFv2 (as `ffdv_version=3`\nsuggests), RFC 1813 is a normative reference.\n\n**Suggested resolution**:\nMove RFC 1813 from informative to normative references.",
+      "createdAt": "2026-04-21T17:46:09Z",
+      "updatedAt": "2026-04-22T07:01:25Z",
+      "closedAt": "2026-04-22T07:01:25Z",
+      "comments": []
+    },
+    {
+      "number": 28,
+      "id": "I_kwDOOloKJ88AAAABAI9Kpg",
+      "title": "Replace em dashes (U+2014) and en dashes (U+2013) with ASCII",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/28",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "idnits",
+        "review-comment"
+      ],
+      "body": "**Origin**: review-comments.txt item 28\n\n**Location**: lines 977, 942, 1774, 2509, 2548, 3999-4003, 4029-4030\n(em dashes); lines 4118-4122, 4125, 4132, 4139, 4147 (en dashes)\n\n**Finding**:\nidnits flags these as NON_ASCII_UTF8 comments.  RFC 7997 permits them,\nbut substitution with `--` (for em dash) and `-` (for en dash) is safer\nfor predictable rendering.\n\n**Suggested resolution**:\nGlobal replace U+2014 \u2192 `--` and U+2013 \u2192 `-` across the draft body.",
+      "createdAt": "2026-04-21T17:46:11Z",
+      "updatedAt": "2026-04-22T07:01:25Z",
+      "closedAt": "2026-04-22T07:01:25Z",
+      "comments": []
+    },
+    {
+      "number": 29,
+      "id": "I_kwDOOloKJ88AAAABALMDrQ",
+      "title": "U4: Add 'not atomic writes' early disclaimer to Motivation",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/29",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 124 NFSv4 WG (Madrid, Nov 2025)\n**Raised by**: David Black\n\n**Paraphrase**: Disabuse readers of the notion that Flex Files v2 is trying to make arbitrary writes atomic -- it is not.  The goal is RAID consistency, not POSIX write ordering.\n\n**Current status**: PARTIAL.  The Non-Goals list in sec-system-model-consistency (line ~3410) already says 'no multi-chunk atomicity or ordering guarantee', but the disclaimer is buried deep in the System Model section.  Black specifically asked for a prominent up-front statement.  Hellwig and Pawlowski have repeatedly been confused by this.\n\n**Proposed action**: Add one paragraph near the top of sec-motivation or as an early subsection of sec-use-cases: 'RAID consistency, not POSIX write ordering; not a substitute for locking.'\n\n**Tier**: A (prose-only, direct WG commitment from IETF 124)",
+      "createdAt": "2026-04-22T04:30:16Z",
+      "updatedAt": "2026-04-22T05:56:12Z",
+      "closedAt": "2026-04-22T05:56:12Z",
+      "comments": []
+    },
+    {
+      "number": 30,
+      "id": "I_kwDOOloKJ88AAAABALMD5g",
+      "title": "U8: IANA registry for ffv2_coding_type4 should reserve PEN / private range",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/30",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "iana",
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 120 NFSv4 WG (July 2024)\n**Raised by**: Chris Inacio\n\n**Paraphrase**: The coding-type registry should split its namespace into a public (IANA-assigned, standards-track) portion and a private / Private Enterprise Number (PEN) portion so vendors can allocate values without IANA registration.  The high bit or a dedicated range is the usual way to do this.\n\n**Commitment**: Tom said at IETF 120 he would follow up on list.  Not landed.\n\n**Current status**: UNADDRESSED.  The current draft's ffv2_coding_type4 is a single enum with no reserved PEN / experimental range.\n\n**Proposed action**:\n- Reserve a PEN-based or high-bit range in the IANA Considerations section of the draft.\n- Add corresponding prose in the ffv2_coding_type4 section describing the split.\n- (Out of scope for this issue: whether to require PEN registration at IETF Review vs Expert Review.)\n\n**Tier**: A (clear WG commitment from IETF 120)",
+      "createdAt": "2026-04-22T04:30:17Z",
+      "updatedAt": "2026-04-22T05:56:14Z",
+      "closedAt": "2026-04-22T05:56:14Z",
+      "comments": []
+    },
+    {
+      "number": 31,
+      "id": "I_kwDOOloKJ88AAAABALMEIQ",
+      "title": "Why are WRITE holes an NFS problem? (beepy's question)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/31",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "wg-feedback"
+      ],
+      "body": "**Origin**: internal question from Brian Pawlowski (beepy), recorded in q.txt.\n\n**Paraphrase**: In Flex Files v1 (RFC 8435), recovery from partial writes / write holes was an implementation concern -- the spec just said 'resilver' without describing how.  Why does v2 elevate write-hole recovery to a protocol-level concern?\n\n**Current status**: UNADDRESSED.  The current Motivation section explains why client-side erasure coding exists (performance, parallelization), but does not explain why write-hole recovery needs a protocol mechanism (CHUNK_ROLLBACK, CHUNK_LOCK, CB_CHUNK_REPAIR) rather than being left to the implementer.\n\n**Proposed answer** (from q.txt and the design trajectory):\n- In v1, replication means every DS has a full copy; a partial write is detected and repaired by resilvering from a surviving copy.  The server-side can do this without client coordination.\n- In v2, client-side erasure coding makes the client the fan-out coordinator for a write transaction.  When the client fails mid-fan-out, the partial state across DSes must be reconciled.\n- No single server-side actor has whole-transaction visibility, so recovery must be protocol-level rather than implementer-internal.\n- This is the reason Flex Files v2 introduces CHUNK_ROLLBACK, CHUNK_LOCK with escrow, CB_CHUNK_REPAIR, and the broader repair coordination model.\n\n**Proposed action**: Add one paragraph to sec-motivation or sec-use-cases answering this question directly.  Closes the gap for readers who ask the same question.\n\n**Tier**: A",
+      "createdAt": "2026-04-22T04:30:19Z",
+      "updatedAt": "2026-04-22T05:56:13Z",
+      "closedAt": "2026-04-22T05:56:13Z",
+      "comments": []
+    },
+    {
+      "number": 32,
+      "id": "I_kwDOOloKJ88AAAABALMEYA",
+      "title": "P1: Callout chunk_guard4 = 8 bytes as response to IETF 121 overhead feedback",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/32",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 121 NFSv4 WG (Nov 2024)\n**Raised by**: Christoph Hellwig\n\n**Paraphrase**: '30+ bytes being added just to manage the erasure coding metadata consistency' -- write amplification on the MDS is unacceptable.\n\n**Current status**: PARTIAL.  Design was reduced to 8-byte chunk_guard4 in response to this feedback.  The sec-chunk_guard4 section describes the structure but the Motivation does not call out that the per-chunk overhead is 8 bytes total.  A reviewer reading cold will re-raise the concern.\n\n**Proposed action**: Add one sentence in sec-motivation referencing sec-chunk_guard4 and stating the per-chunk header overhead is 8 bytes (cg_gen_id 32-bit + cg_client_id 32-bit).\n\n**Tier**: A (prose-only, one-liner)",
+      "createdAt": "2026-04-22T04:30:20Z",
+      "updatedAt": "2026-04-22T05:56:13Z",
+      "closedAt": "2026-04-22T05:56:13Z",
+      "comments": []
+    },
+    {
+      "number": 33,
+      "id": "I_kwDOOloKJ88AAAABALMEpw",
+      "title": "P2: Declustered RAID entry in Rejected Alternatives",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/33",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 121 NFSv4 WG (Nov 2024)\n**Raised by**: Christoph Hellwig\n\n**Paraphrase**: Declustered RAID with non-fixed parity mapping on the MDS might be a better fit than per-chunk CAS.  Linear address space, fixed mapping -- either 'write out of place and swap' or 'Haynes's proposal'.\n\n**Current status**: PARTIAL.  The Rejected Alternatives appendix (sec-rejected-alternatives) covers per-client swap files, block-type-layout, lock manager, and Paxos-per-chunk.  Declustered RAID is not explicitly listed, so Hellwig's concrete alternative has no 'why rejected' rationale in the draft.\n\n**Proposed action**: Add a new '## Declustered RAID with Dynamic Parity Mapping' subsection to sec-rejected-alternatives, summarising:\n- What the approach is (MDS maintains a per-chunk mapping from logical address to current DS location; writes create new parity stripes rather than overwriting).\n- Why it is attractive (no write-in-place, atomic reconfiguration).\n- Why rejected for Flex Files v2 (MDS mapping load scales with file size, not file count; mapping storms during rebalancing; metadata-server becomes the bottleneck we are trying to parallelize around).\n\n**Tier**: A (prose-only, ~25 lines)",
+      "createdAt": "2026-04-22T04:30:21Z",
+      "updatedAt": "2026-04-22T05:56:14Z",
+      "closedAt": "2026-04-22T05:56:14Z",
+      "comments": []
+    },
+    {
+      "number": 34,
+      "id": "I_kwDOOloKJ88AAAABALME8A",
+      "title": "P5: Honest inside-vs-outside-storage trade-off in Motivation",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/34",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 120 NFSv4 WG (July 2024)\n**Raised by**: David Black (seconding Christoph Hellwig)\n\n**Paraphrase**: 'Better to have protection algorithm inside the storage system rather than outside' -- i.e., server-side erasure coding, not client-side.\n\n**Current status**: PARTIAL.  The Motivation section argues for client-side (parallelization, MDS bottleneck avoidance), but does not acknowledge the legitimate server-side alternative or explain the trade-off honestly.  A reviewer who shares Black's view will not find their concern answered in the text.\n\n**Proposed action**: Add one paragraph to sec-motivation that:\n- Names the server-side alternative explicitly.\n- States the reasons it was not chosen (MDS scale bottleneck, loss of client-parallel fan-out, fixed codec at server rather than per-file codec flexibility).\n- References the benchmark evidence summarised in the Implementation Status section.\n\n**Tier**: A (prose-only, ~15 lines)",
+      "createdAt": "2026-04-22T04:30:23Z",
+      "updatedAt": "2026-04-22T05:56:13Z",
+      "closedAt": "2026-04-22T05:56:13Z",
+      "comments": []
+    },
+    {
+      "number": 35,
+      "id": "I_kwDOOloKJ88AAAABALMFKQ",
+      "title": "U1: Safe buffer scope should be per-writer/per-layout, not global",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/35",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 124 NFSv4 WG (Madrid, Nov 2025)\n**Raised by**: Christoph Hellwig\n\n**Commitment**: Tom committed at IETF 124 to follow up on list.  Not yet landed.\n\n**Paraphrase**: The way the safe buffer is done seems to leak too much into global state -- it needs to be more tightly bound to an owner.  Non-committed data should not be visible globally.\n\n**Current status**: UNADDRESSED.  The draft's PENDING / FINALIZED / COMMITTED model is described as per-chunk state on the DS; the prior-content rollback buffer is implicitly global in visibility and retention.  No text ties retention to an owning stateid / layout, and no GC rule limits shared visibility to within the owner's lease.\n\n**Proposed action**: Add a new subsection 'Ownership and Scope of Retained Prior Content' to the Erasure Coding section or the System Model, specifying:\n- Retention of a chunk's prior FINALIZED / COMMITTED content (behind a newer PENDING) is bound by the lease of the stateid that wrote the PENDING successor.\n- The owning stateid is recorded with the PENDING chunk.\n- Readers whose stateid does not match the PENDING owner's stateid MUST NOT observe the PENDING content; they see the prior FINALIZED / COMMITTED.\n- If the owning lease expires without transition to FINALIZED or COMMITTED, the DS MUST discard the PENDING and promote the prior content to be the visible state (see also U2 for the orphaned-PENDING scavenger rule).\n\n**Tier**: B (design-adjacent, normative rules + ~1 page of text)\n\nRelated: U2 (orphaned PENDING scavenger), P6 (non-committed visibility framing).",
+      "createdAt": "2026-04-22T04:30:25Z",
+      "updatedAt": "2026-04-22T06:34:06Z",
+      "closedAt": "2026-04-22T06:34:06Z",
+      "comments": []
+    },
+    {
+      "number": 36,
+      "id": "I_kwDOOloKJ88AAAABALMFZQ",
+      "title": "U2: Orphaned PENDING chunks when all writers and readers leave",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/36",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 124 NFSv4 WG (Madrid, Nov 2025)\n**Raised by**: Christoph Hellwig\n\n**Quote**: 'What happens if no one wins and all the clients go away due to network outages?'\n\n**Current status**: UNADDRESSED.  The sec-system-model-progress section covers MDS-driven repair when a live client exists to receive CB_CHUNK_REPAIR.  It is silent on the case where every writer and every reader of an orphaned PENDING chunk has expired; retention becomes indefinite.\n\n**Proposed action**: Add a normative paragraph to sec-system-model-progress:\n- The MDS maintains an expiry-based scavenger for PENDING chunks whose owning stateid has expired.\n- When the owning lease expires without transition to FINALIZED or COMMITTED, the DS (driven by the MDS) MUST demote the PENDING chunk back to the last FINALIZED / COMMITTED state.\n- CHUNK_LOCK escrow held by an expired stateid MUST be released after an MDS-defined grace period.\n- The scavenger timeout is implementation-defined but SHOULD be tied to the MDS lease period.\n\n**Tier**: B\n\nRelated: U1 (ownership-scoping), sec-chunk_guard_mds (lock escrow).",
+      "createdAt": "2026-04-22T04:30:26Z",
+      "updatedAt": "2026-04-22T06:34:07Z",
+      "closedAt": "2026-04-22T06:34:07Z",
+      "comments": []
+    },
+    {
+      "number": 37,
+      "id": "I_kwDOOloKJ88AAAABALMFkg",
+      "title": "U3: Differentiate racing-writer repair from stale-on-read scrub repair",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/37",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 123 NFSv4 WG (July 2025)\n**Raised by**: Christoph Hellwig\n\n**Paraphrase**: The first case (racing live writers) and the second case (stale payload discovered on read) are very different and should not use the same repair operation.  Racing writers: avoid by granting layouts to entire stripes.  Stale-on-read: background scrub driven by the MDS.\n\n**Current status**: UNADDRESSED.  The sec-repair-selection section and CB_CHUNK_REPAIR fold both cases into one callback.  There is no concept of an MDS-initiated scrub distinct from client-reported repair.\n\n**Proposed action**: Split into:\n- Live-race repair (current path): client detects inconsistency and reports LAYOUTERROR; MDS selects a repair client and issues CB_CHUNK_REPAIR.\n- MDS-initiated scrub: MDS runs a background scan of chunk generations; when it detects stale payloads, it issues a separate operation (or a CB_CHUNK_REPAIR with a REPAIR_REASON flag) to a selected client or data mover.\n\nMinimal version: add a REPAIR_REASON field (enum: RACE, SCRUB) to CB_CHUNK_REPAIR so the client can apply different retry / timeout policies.\n\nMaximal version: separate CB op for scrub, plus prose distinguishing the two flows.\n\n**Tier**: B (design decision + prose)",
+      "createdAt": "2026-04-22T04:30:27Z",
+      "updatedAt": "2026-04-22T06:34:07Z",
+      "closedAt": "2026-04-22T06:34:07Z",
+      "comments": []
+    },
+    {
+      "number": 38,
+      "id": "I_kwDOOloKJ88AAAABALMF0g",
+      "title": "U5: Atomicity granularity is undefined -- WG's most consequential open design gap",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/38",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 123 NFSv4 WG (July 2025)\n**Raised by**: Christoph Hellwig\n\n**Quote**: 'We need to figure out what are the boundaries on which we can easily support concurrent writers and what happens when concurrent writes from different clients happen inside such a range.'\n\n**Current status**: UNADDRESSED.  The sec-chunk_guard4 and multi-writer mode describe the tiebreaker; the draft never defines the 'unit of atomicity' (chunk? stripe? block?) as a first-class concept that applications can query.  No attribute, no layouthint field, no normative text fixes it.\n\n**Why it matters**: Without a defined atomicity unit, applications cannot reason about which writes race (allowed) vs which must be serialized externally (required).  Hellwig flagged this as a boundary condition the protocol must specify before the repair design can stabilise.\n\n**Proposed action**: Three options; pick one:\n1. Define a server-advertised atomicity granularity as an attribute on the file or as an ffv2_layouthint field.  Clients query it before issuing concurrent I/O.\n2. Fix it normatively at the chunk boundary: concurrent overlapping writes at sub-chunk granularity produce undefined content, but chunk-boundary-aligned writes never interfere.\n3. Fix it at the stripe boundary: entire stripes are the atomicity unit, and layout ranges are granted per-stripe (Hellwig's suggestion).\n\n**Tier**: B (largest open design gap per the audit -- could slip to C if WG consensus is needed)",
+      "createdAt": "2026-04-22T04:30:29Z",
+      "updatedAt": "2026-04-22T06:34:09Z",
+      "closedAt": "2026-04-22T06:34:09Z",
+      "comments": []
+    },
+    {
+      "number": 39,
+      "id": "I_kwDOOloKJ88AAAABALMGIQ",
+      "title": "U6: Network semantics framing missing -- 'how to enable smart-DS implementations'",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/39",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 122 NFSv4 WG (March 2025)\n**Raised by**: Christoph Hellwig, seconded by Chris Inacio\n\n**Paraphrase** (Hellwig): 'What we really need to figure out: what are the right network semantics that would enable an implementation like that?'\n\n**Paraphrase** (Inacio): Another abstraction layer may be needed between client and DS so the DS storage model isn't exposed on the wire.\n\n**Current status**: UNADDRESSED.  The current draft is operation-first (CHUNK_WRITE / CHUNK_FINALIZE / CHUNK_COMMIT / CHUNK_ROLLBACK).  It does not have a 'Wire Semantics vs Implementation' framing section that explicitly abstracts over DS implementation choices.\n\n**Proposed action**: Add a short subsection to sec-system-model (or an appendix) that:\n- States the wire semantics the protocol defines.\n- States explicitly that the DS's internal representation (log-structured, append-only, in-place, external object store, etc.) is NOT exposed on the wire.\n- Notes that the protocol is intentionally decoupled from DS implementation to allow future smart-DS designs without protocol changes.\n\n**Tier**: B (one section, ~1 page)",
+      "createdAt": "2026-04-22T04:30:30Z",
+      "updatedAt": "2026-04-22T06:34:05Z",
+      "closedAt": "2026-04-22T06:34:05Z",
+      "comments": []
+    },
+    {
+      "number": 40,
+      "id": "I_kwDOOloKJ88AAAABALMGdQ",
+      "title": "U7: Layout-level generation counter -- evaluate or reject as alternative",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/40",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 122 NFSv4 WG (March 2025)\n**Raised by**: Christoph Hellwig\n\n**Paraphrase**: Give outstanding layouts a generation counter that gets sent over the wire to the data servers, so the MDS can redirect writes to new DSes without a full LAYOUTRECALL storm.\n\n**Current status**: UNADDRESSED.  The draft has per-chunk cg_gen_id but no layout-level generation.  The LAYOUTGET / LAYOUTRECALL path is unchanged from RFC 8881.  Hellwig's proposal to avoid layout-recall storms during remapping is not evaluated.\n\n**Proposed action**: Either\n- Add a layout-level generation field on ffv2_layout4, OR\n- Document explicitly in sec-rejected-alternatives why per-chunk gen_id is sufficient and layout-level generation is unnecessary (likely: CB_CHUNK_REPAIR and the Data Mover design cover the re-mapping cases without requiring a layout-level counter).\n\n**Tier**: B or C (depends on whether adding the field is warranted)",
+      "createdAt": "2026-04-22T04:30:32Z",
+      "updatedAt": "2026-04-22T06:34:08Z",
+      "closedAt": "2026-04-22T06:34:08Z",
+      "comments": []
+    },
+    {
+      "number": 41,
+      "id": "I_kwDOOloKJ88AAAABALMGvg",
+      "title": "U9: CB_CHUNK_REPAIR cost / frequency guidance missing",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/41",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 123 NFSv4 WG (July 2025)\n**Raised by**: Chris Inacio\n\n**Paraphrase**: I'm still nervous about the cost of CB_CHUNK_REPAIR.  Hopefully these are rare events, but the costs seem potentially expensive.\n\n**Current status**: UNADDRESSED.  The draft does not state the expected frequency of CB_CHUNK_REPAIR, does not frame it as an exceptional path, and does not give operators or implementers guidance about provisioning for it.\n\n**Proposed action**: Add a one-paragraph operational-expectations paragraph to sec-repair-selection or sec-CB_CHUNK_REPAIR:\n- CB_CHUNK_REPAIR is an exceptional path triggered by race or data-server failure; it is not a steady-state operation.\n- Implementations SHOULD treat the CB_CHUNK_REPAIR handler as rare-path code and avoid over-optimising it, but SHOULD also provision enough client-side compute to handle repair work without stalling foreground I/O.\n- Expected frequency is a function of racing-writer and DS-failure rates in the deployment, not of normal client workload.\n\n**Tier**: B (could fold into U3's split)",
+      "createdAt": "2026-04-22T04:30:33Z",
+      "updatedAt": "2026-04-22T06:34:04Z",
+      "closedAt": "2026-04-22T06:34:04Z",
+      "comments": []
+    },
+    {
+      "number": 42,
+      "id": "I_kwDOOloKJ88AAAABALMG8w",
+      "title": "Hellwig-121: Intent-based approach useful beyond erasure coding",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/42",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 121 NFSv4 WG (Nov 2024)\n**Raised by**: Christoph Hellwig\n\n**Paraphrase**: Consider an intent-based approach to writing related data blocks.  He feels it will be useful outside the erasure coding constitute.\n\n**Current status**: UNADDRESSED (noted but not in the transcript-mining audit output; captured from q.txt).  The draft's mechanisms (CHUNK_WRITE / FINALIZE / COMMIT / ROLLBACK, CHUNK_LOCK escrow, chunk_guard4 CAS) are described as erasure-coding-specific.  A more general 'intent + commit' pattern that could be reused for non-EC use cases (e.g., multi-file transactions, atomic directory updates) isn't articulated.\n\n**Proposed action**: Either\n- Refactor the mechanism as a general 'intent + finalize + commit' primitive in the System Model, with erasure coding as one application, OR\n- Document explicitly that the mechanism is intentionally EC-scoped and generalisation is future work.\n\n**Tier**: B or C (if the generalisation is attractive, it's a design effort)",
+      "createdAt": "2026-04-22T04:30:35Z",
+      "updatedAt": "2026-04-22T06:34:09Z",
+      "closedAt": "2026-04-22T06:34:09Z",
+      "comments": []
+    },
+    {
+      "number": 43,
+      "id": "I_kwDOOloKJ88AAAABALMHNg",
+      "title": "P3: Split-brain / network-partition convergence not stated explicitly",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/43",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 120 (Chris Inacio), IETF 124 (Christoph Hellwig)\n\n**Paraphrase** (Inacio): Scariest failure mode is not pure failure but network partition -- split brain.\n**Paraphrase** (Hellwig): What happens in face of network partitions?\n\n**Current status**: PARTIAL.  sec-system-model-failures (line ~3367-3377) covers network partitions and says 'partition-tolerant at the cost of availability'.  But the document never explicitly names 'split-brain' or states how chunk_guard4 CAS + MDS-escrow + NFS4ERR_PAYLOAD_LOST bound the damage on partition heal.\n\n**Proposed action**: Strengthen the relevant paragraph with:\n- Explicit 'split-brain' naming so a reviewer grepping for the term finds it.\n- A sentence stating that a partitioned minority of mirror set members cannot make progress and will be reconciled via chunk_guard4 on partition heal; stale writes are detected by guard mismatch and discarded.\n- Reference to NFS4ERR_PAYLOAD_LOST as the terminal outcome when reconciliation is impossible.\n\n**Tier**: A or B (prose-only, but touches normative language)",
+      "createdAt": "2026-04-22T04:30:36Z",
+      "updatedAt": "2026-04-22T06:34:05Z",
+      "closedAt": "2026-04-22T06:34:05Z",
+      "comments": []
+    },
+    {
+      "number": 44,
+      "id": "I_kwDOOloKJ88AAAABALMHeg",
+      "title": "P4: Codec evolution story -- how do clients handle unknown codecs",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/44",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 120 NFSv4 WG (July 2024)\n**Raised by**: Christoph Hellwig\n\n**Paraphrase**: Scared of every client having to understand the erasure encoding protection types.  These algorithms change over time.\n\n**Current status**: PARTIAL.  The draft has ffv2_coding_type4 as an extensible enum, and the informative encoding-type-interoperability section exists, but there is no explicit negotiation story: what does a client do when the MDS offers a codec it doesn't understand?  What does the MDS do when a client doesn't advertise support for a particular codec?\n\n**Proposed action**: Either\n- Define per-codec capability bits advertised at EXCHANGE_ID time (similar to EXCHGID4_FLAG_SUPP_RECALL_DEVICEID in the recalldevice draft), so the MDS only issues layouts whose codecs the client has advertised support for.  MDS falls back to a mutually-supported codec.\n- OR add normative text spelling out the existing implicit path: client LAYOUTERRORs with NFS4ERR_UNKNOWN_LAYOUTTYPE (or similar); MDS falls back.\n\n**Tier**: B (depends on capability-bit design)",
+      "createdAt": "2026-04-22T04:30:37Z",
+      "updatedAt": "2026-04-22T06:34:08Z",
+      "closedAt": "2026-04-22T06:34:08Z",
+      "comments": []
+    },
+    {
+      "number": 45,
+      "id": "I_kwDOOloKJ88AAAABALMHwA",
+      "title": "P6: Non-committed (PENDING) visibility framing not called out explicitly",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/45",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "wg-feedback"
+      ],
+      "body": "**Origin**: IETF 124 NFSv4 WG (Madrid, Nov 2025)\n**Raised by**: Christoph Hellwig\n\n**Paraphrase**: Non-committed data should not be visible globally.  How to bound the shared state / view.\n\n**Current status**: PARTIAL.  The CHUNK_READ normative text restricts reads to FINALIZED / COMMITTED chunks, and the sec-system-model-consistency rollback invariant covers ordering.  But the invariant is scattered across sections and uses FINALIZED / COMMITTED terminology without Hellwig's 'not globally visible' framing.\n\n**Proposed action**: Add a 'Visibility Rules' subsection to sec-system-model-consistency (or a forward reference from sec-motivation) that explicitly states:\n- PENDING chunks MUST NOT be visible to any reader other than the writer that created them, until they transition to FINALIZED or COMMITTED.\n- CHUNK_READ returns only FINALIZED / COMMITTED chunks.\n- The visibility rule composes with the ownership-scoping in U1.\n\n**Tier**: A or B (prose-only but normative)\n\nRelated: U1 (ownership scope), U2 (orphan scavenger).",
+      "createdAt": "2026-04-22T04:30:39Z",
+      "updatedAt": "2026-04-22T06:34:06Z",
+      "closedAt": "2026-04-22T06:34:06Z",
+      "comments": []
+    },
+    {
+      "number": 46,
+      "id": "I_kwDOOloKJ88AAAABALbFvg",
+      "title": "Optional: ASCII diagram of repair topology (client / MDS / DS + CB_CHUNK_REPAIR)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/46",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "nice-to-have"
+      ],
+      "body": "**Origin**: internal design review (2026-04-21)\n\nAn ASCII diagram showing the repair topology -- client(s), metadata server, data servers, and the CB_CHUNK_REPAIR arrows between them -- would help readers reason about who initiates repair and what messages cross which hop.  The prose in sec-repair-selection describes this, but a diagram grounds the description.\n\n**Status**: Optional.  The prose is complete and builds a correct mental model for a careful reader.  A diagram is a readability improvement, not a correctness fix.\n\n**Proposed action**: ~20 lines of box-and-arrow ASCII in sec-repair-selection or sec-CB_CHUNK_REPAIR.  Existing slide material in ietf122-nfsv4-erasure-coding.pdf and ietf123-nfsv4-erasure-coding.pdf has the equivalent graphical figure.\n\n**Tier**: optional",
+      "createdAt": "2026-04-22T05:42:30Z",
+      "updatedAt": "2026-04-22T07:01:30Z",
+      "closedAt": "2026-04-22T07:01:30Z",
+      "comments": []
+    },
+    {
+      "number": 47,
+      "id": "I_kwDOOloKJ88AAAABALbH8Q",
+      "title": "Optional: ASCII diagram of chunk wire layout (chunk_guard4 + payload)",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/47",
+      "state": "CLOSED",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial",
+        "nice-to-have"
+      ],
+      "body": "**Origin**: internal design review (2026-04-21)\n\nAn ASCII diagram of the chunk wire layout -- chunk_guard4 (cg_gen_id + cg_client_id) followed by the CRC32 and the opaque payload -- would make the 8-byte overhead claim in sec-motivation concrete and let implementers confirm field order at a glance.\n\n**Status**: Optional.  The XDR definition in sec-chunk_guard4 is authoritative and complete.  A diagram duplicates information already present in XDR form but aids readability.\n\n**Proposed action**: ~10-15 lines of box-diagram ASCII near sec-chunk_guard4, similar in style to the packet-layout diagrams in RFC 1813.\n\n**Tier**: optional",
+      "createdAt": "2026-04-22T05:42:39Z",
+      "updatedAt": "2026-04-22T07:01:31Z",
+      "closedAt": "2026-04-22T07:01:31Z",
+      "comments": []
+    }
+  ],
+  "pulls": []
+}
