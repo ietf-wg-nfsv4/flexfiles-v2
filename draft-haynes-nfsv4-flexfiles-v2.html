@@ -3105,6 +3105,42 @@ therefore has the same authorization properties as plain
 AUTH_SYS.<a href="#section-6.4.4-8.2.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
+<p id="section-6.4.4-9">When a client's I/O is routed through a proxy server (PS) -- that
+is, the layout the metadata server returns to the client has
+FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry,
+per the companion Data Mover draft -- the storage device observes
+CHUNK operations arriving from the PS's address rather than from
+the client directly.  The tsa_principal the metadata server
+populates in TRUST_STATEID is the principal the <em>storage device</em>
+will observe on those CHUNK operations, and the Data Mover
+draft's credential-forwarding rules (in particular rule 1,
+"Credential pass-through") require the PS to forward the
+client's credentials verbatim on every CHUNK operation it issues
+on the client's behalf.  Therefore:<a href="#section-6.4.4-9" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.4.4-10.1">
+              <p id="section-6.4.4-10.1.1">For an RPCSEC_GSS client whose I/O is proxied through a PS,
+the metadata server <span class="bcp14">MUST</span> set tsa_principal to the client's
+RPCSEC_GSS display name (identical to the non-proxied case).
+The storage device's principal check on CHUNK operations will
+match against the client's principal on the forwarded
+compound, not the PS's service identity.<a href="#section-6.4.4-10.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6.4.4-10.2">
+              <p id="section-6.4.4-10.2.1">For an AUTH_SYS client whose I/O is proxied through a PS,
+the metadata server <span class="bcp14">MUST</span> set tsa_principal to the empty
+string (identical to the non-proxied case).  The PS forwards
+the client's AUTH_SYS uid/gid; the storage device's stateid
+check plus the forwarded AUTH_SYS uid/gid constitute the
+authorization.<a href="#section-6.4.4-10.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-6.4.4-11">The metadata server <span class="bcp14">MUST NOT</span> set tsa_principal to the PS's own
+service principal.  Doing so would require the PS to
+authenticate to the storage device as itself (bypassing
+credential forwarding) which is explicitly prohibited by the
+Data Mover draft's rule 4 ("PS service identity is for the
+control plane only").<a href="#section-6.4.4-11" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-tight-coupling-trust-gap">
@@ -3458,7 +3494,8 @@ of the XDR extracted from this document (see
            LAYOUT4_OSD2_OBJECTS    = 2,
            LAYOUT4_BLOCK_VOLUME    = 3,
            LAYOUT4_FLEX_FILES      = 4,
-           LAYOUT4_FLEX_FILES_V2   = 5
+           LAYOUT4_SCSI            = 5,
+           LAYOUT4_FLEX_FILES_V2   = 6
        };
 
        struct layout_content4 {
@@ -3484,7 +3521,7 @@ layouttype4 constant alone:<a href="#section-8-3" class="pilcrow">¶</a></p>
 <figure id="figure-8">
         <div class="lang-xdr sourcecode" id="section-8-4.1">
 <pre>
-   /// const LAYOUT4_FLEX_FILES_V2 = 5;
+   /// const LAYOUT4_FLEX_FILES_V2 = 6;
 </pre>
 </div>
 <figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
@@ -11275,7 +11312,7 @@ document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
         <tbody>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">LAYOUT4_FLEX_FILES_V2</td>
-            <td class="text-left" rowspan="1" colspan="1">0x5</td>
+            <td class="text-left" rowspan="1" colspan="1">0x6</td>
             <td class="text-left" rowspan="1" colspan="1">RFCTBD10</td>
             <td class="text-left" rowspan="1" colspan="1">L</td>
             <td class="text-left" rowspan="1" colspan="1">1</td>
