@@ -36,7 +36,6 @@ normative:
   RFC9289:
 
 informative:
-  I-D.haynes-nfsv4-flexfiles-v2-proxy-server:
   Plank97:
     title: A Tutorial on Reed-Solomon Coding for Fault-Tolerance in RAID-like System
     author:
@@ -7278,7 +7277,7 @@ Wire-format performance objections raised earlier in the working
 group's review of this work are addressed in
 {{sec-rejected-alternatives}}: the per-RPC byte-shuffling cost of
 the original Mojette-specific projection header has been replaced
-with XDR-encoded chunk metadata (see {{chunk_guard4}}), so the
+with XDR-encoded chunk metadata (see {{sec-chunk_guard4}}), so the
 remaining wire-format cost is the XDR-encoded chunk header itself,
 which is identical for every codec and is part of the +7% to +22%
 v2 write overhead measured above.
@@ -7520,12 +7519,14 @@ rather than to a global mapping table.
 {:numbered="false"}
 
 ## Source
+{:numbered="false"}
 
 Christoph Hellwig, IETF 120, NFSv4 Working Group session, during the
 discussion of the original Flexible File Version 2 erasure-coding
 proposal.
 
 ## The Question as Asked
+{:numbered="false"}
 
 Christoph stated that he was "very scared of the implications of
 having every client be a full participant in a distributed storage
@@ -7544,6 +7545,7 @@ David Black seconded the concern in the same session, stating that
 boundary of what you think the storage system is than outside."
 
 ## What We Believe Is Being Asked
+{:numbered="false"}
 
 Two coupled requirements:
 
@@ -7565,6 +7567,7 @@ In short: the data-protection algorithm and its recovery story
 belong inside a storage boundary, not at the client.
 
 ## How the Proxy Server Addresses This
+{:numbered="false"}
 
 The Proxy Server (PS) role, defined in
 {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, is the storage
@@ -7575,7 +7578,7 @@ A PS is a peer of the MDS and the data servers that:
 -  speaks the codec on behalf of clients that cannot;
 -  receives whole-stripe operations from a codec-ignorant client;
 -  encodes (or decodes) using whatever the layout's
-    {{ffv2_coding_type4}} demands;
+    {{fig-ffv2_coding_type4}} demands;
 -  drives the CHUNK operations to the participating data servers;
 -  carries the partial-write / FINALIZE / COMMIT recovery machinery
     that the codec requires.
@@ -7588,13 +7591,13 @@ Three properties follow:
     the codec is upgraded.
 
 -  Codec evolution is a server-side concern.  Adding a new entry
-    to {{ffv2_coding_type4}} requires updating the PSes and DSes,
+    to {{fig-ffv2_coding_type4}} requires updating the PSes and DSes,
     not every client in the deployment.  This matches the operational
     pattern of every other distributed-storage protocol on the wire.
 
 -  The recovery machinery (PENDING -> FINALIZED -> COMMITTED, the
     chunk-state machine, partial-write detection via
-    {{chunk_guard4}}) executes on the PS, not the client.  Clients
+    {{sec-chunk_guard4}}) executes on the PS, not the client.  Clients
     see ordinary NFSv4.2 semantics; the PS is responsible for
     converting those semantics into the chunk state-machine the
     DSes implement.
@@ -7619,18 +7622,20 @@ which talk to the DSes directly.
 {:numbered="false"}
 
 ## Source
+{:numbered="false"}
 
 Christoph Hellwig, IETF 122, NFSv4 Working Group session, during
 the FFv2 erasure-coding discussion.
 
 ## The Question as Asked
+{:numbered="false"}
 
 Christoph observed that performing erasure coding across a set of
 data servers, where clients need a coherent view of the encoded
 data while writes are in flight, is "just really complicated,
 especially without recalling layouts."  He continued: "maybe we
 need a more efficient network operation that doesn't recall layout
-but updates layouts in a [different] way, and that might reduce
+but updates layouts in a different way, and that might reduce
 the overhead.  Basically any scheme would require either a fair
 amount of intelligence on the data servers or some form of updating
 outstanding layouts to point to a new right-out-of-place location."
@@ -7643,6 +7648,7 @@ data server now needs to look for a new location for the same
 existing layout."
 
 ## What We Believe Is Being Asked
+{:numbered="false"}
 
 Two coupled requirements:
 
@@ -7665,6 +7671,7 @@ Two coupled requirements:
     "smarter data server" Christoph was asking for.
 
 ## How TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID Address This
+{:numbered="false"}
 
 Sections {{sec-TRUST_STATEID}}, {{sec-REVOKE_STATEID}}, and
 {{sec-BULK_REVOKE_STATEID}} of this document define exactly the
@@ -7721,12 +7728,13 @@ a primitive that makes layout updates a local event the MDS can
 resolve before the client has to pay a recall round-trip.
 
 The chunk state machine (PENDING -> FINALIZED -> COMMITTED) and
-{{chunk_guard4}} address the orthogonal concern of partial-write
+{{sec-chunk_guard4}} address the orthogonal concern of partial-write
 recovery, ensuring that even when the MDS reroutes mid-write the
 DSes can detect inconsistent stripes via per-chunk generation
 checks rather than via a global wall-clock or consensus protocol.
 
 ## Combined Effect on the "Cluster Tax"
+{:numbered="false"}
 
 The Proxy Server addresses the codec-distribution cost; the trust
 stateid mechanism addresses the layout-mutation cost.  Together,
