@@ -36,6 +36,7 @@ normative:
   RFC9289:
 
 informative:
+  I-D.haynes-nfsv4-flexfiles-v2-proxy-server:
   Plank97:
     title: A Tutorial on Reed-Solomon Coding for Fault-Tolerance in RAID-like System
     author:
@@ -3218,11 +3219,10 @@ place.  In this case the metadata server MUST either:
     byte ranges with NFS4ERR_PAYLOAD_LOST (see
     {{sec-NFS4ERR_PAYLOAD_LOST}}).
 
-The Data Mover mechanism is work in progress and is specified in a
-companion document.  The current design is maintained at
-<https://github.com/ietf-wg-nfsv4/flexfiles-v2-data-mover>.  Once
-the mechanism is submitted as an Internet-Draft, this section will
-be updated with a normative reference to that draft.
+The Data Mover mechanism is specified in the companion Proxy
+Server document {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}.
+The reference design is also maintained at
+<https://github.com/ietf-wg-nfsv4/flexfiles-v2-proxy-server>.
 
 Implementations that do not support the Data Mover mechanism can
 still perform recovery for cases where per-range repair suffices,
@@ -7569,7 +7569,7 @@ belong inside a storage boundary, not at the client.
 ## How the Proxy Server Addresses This
 
 The Proxy Server (PS) role, defined in
-{{?I-D.haynes-nfsv4-flexfiles-v2-data-mover}}, is the storage
+{{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, is the storage
 boundary that Christoph and David asked for.
 
 A PS is a peer of the MDS and the data servers that:
