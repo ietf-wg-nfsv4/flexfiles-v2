@@ -7489,6 +7489,233 @@ at LAYOUTGET time plus chunk_guard4 CAS for writes, which
 localises consistency decisions to the chunks being written
 rather than to a global mapping table.
 
+# Working Group Concern: Codec on Every Client {#sec-wg-concern-codec-on-client}
+{:numbered="false"}
+
+## Source
+
+Christoph Hellwig, IETF 120, NFSv4 Working Group session, during the
+discussion of the original Flexible File Version 2 erasure-coding
+proposal.
+
+## The Question as Asked
+
+Christoph stated that he was "very scared of the implications of
+having every client be a full participant in a distributed storage
+system."  He pointed out that any erasure-coding or replication
+protocol that runs at the client requires every client implementation
+to understand the codec, and that codecs evolve over time as new
+algorithms appear in the storage research literature.  He observed
+that the same problem appears with replication ("simple two-, three-,
+four-way replication"): a client power-failure event mid-write leaves
+the participating data servers in inconsistent states, and the
+recovery machinery (mirrored logs, write-ahead replay, partial-write
+detection) is "a bit of overkill for simple replication."
+
+David Black seconded the concern in the same session, stating that
+"it's better to have the data protection algorithm be inside the
+boundary of what you think the storage system is than outside."
+
+## What We Believe Is Being Asked
+
+Two coupled requirements:
+
+1.  Codec correctness and codec evolution must not be a per-client
+    burden.  An ecosystem in which every client must ship and update
+    every supported codec does not interoperate at scale: an
+    organisation cannot upgrade its storage system's encoding without
+    coordinating an upgrade across every client.
+
+2.  The expensive recovery paths (partial writes, durable shard
+    placement, mirrored logging) must not live at the client either.
+    A protocol that exposes those paths to the client forces every
+    client implementation to carry the failure-recovery machinery,
+    which is precisely what RAID controllers and distributed storage
+    systems put behind a service boundary so that hosts do not have
+    to reason about it.
+
+In short: the data-protection algorithm and its recovery story
+belong inside a storage boundary, not at the client.
+
+## How the Proxy Server Addresses This
+
+The Proxy Server (PS) role, defined in
+{{?I-D.haynes-nfsv4-flexfiles-v2-data-mover}}, is the storage
+boundary that Christoph and David asked for.
+
+A PS is a peer of the MDS and the data servers that:
+
+-  speaks the codec on behalf of clients that cannot;
+-  receives whole-stripe operations from a codec-ignorant client;
+-  encodes (or decodes) using whatever the layout's
+    {{ffv2_coding_type4}} demands;
+-  drives the CHUNK operations to the participating data servers;
+-  carries the partial-write / FINALIZE / COMMIT recovery machinery
+    that the codec requires.
+
+Three properties follow:
+
+-  A legacy NFSv4.2 (or even NFSv3) client gets erasure-coded
+    durability without speaking erasure coding.  The PS is where
+    the codec lives; the client does not have to be upgraded when
+    the codec is upgraded.
+
+-  Codec evolution is a server-side concern.  Adding a new entry
+    to {{ffv2_coding_type4}} requires updating the PSes and DSes,
+    not every client in the deployment.  This matches the operational
+    pattern of every other distributed-storage protocol on the wire.
+
+-  The recovery machinery (PENDING -> FINALIZED -> COMMITTED, the
+    chunk-state machine, partial-write detection via
+    {{chunk_guard4}}) executes on the PS, not the client.  Clients
+    see ordinary NFSv4.2 semantics; the PS is responsible for
+    converting those semantics into the chunk state-machine the
+    DSes implement.
+
+A codec-aware NFSv4.2 client is still permitted (and is the fast
+path: no proxy hop, no double bandwidth on the proxy's link).  The
+PS is the answer for clients that either cannot speak the codec
+or are too old to be upgraded.  In Christoph's framing, the PS is
+the inside of the storage boundary; codec-aware clients are
+implementations that have been admitted into that boundary by
+design.
+
+The PS does carry a data-plane cost: client bytes traverse the
+proxy on the way to the DSes, so the proxy's link sees roughly
+twice the bandwidth of a direct client-to-DS path, and the PS pays
+the encode/decode CPU.  This is the price of admission for clients
+that do not speak the codec; it is the same store-and-forward cost
+any storage gateway pays.  It does not affect codec-aware clients,
+which talk to the DSes directly.
+
+# Working Group Concern: Coherent Multi-DS Writes Without Recall Storms {#sec-wg-concern-recall-storms}
+{:numbered="false"}
+
+## Source
+
+Christoph Hellwig, IETF 122, NFSv4 Working Group session, during
+the FFv2 erasure-coding discussion.
+
+## The Question as Asked
+
+Christoph observed that performing erasure coding across a set of
+data servers, where clients need a coherent view of the encoded
+data while writes are in flight, is "just really complicated,
+especially without recalling layouts."  He continued: "maybe we
+need a more efficient network operation that doesn't recall layout
+but updates layouts in a [different] way, and that might reduce
+the overhead.  Basically any scheme would require either a fair
+amount of intelligence on the data servers or some form of updating
+outstanding layouts to point to a new right-out-of-place location."
+He explicitly noted he was "leaning to updating the data servers
+to be smarter."
+
+The same conversation introduced the idea of a "generation counter
+that gets sent over the wire to the data servers, which means the
+data server now needs to look for a new location for the same
+existing layout."
+
+## What We Believe Is Being Asked
+
+Two coupled requirements:
+
+1.  The MDS must be able to mutate where data lives -- replace a
+    failing data server, redirect to a spare, rebalance, repair --
+    without serialising every layout-holding client through a
+    CB_LAYOUTRECALL round-trip.  A recall is global with respect
+    to the layout: every client holding it must drain in-flight I/O
+    and DELEGRETURN before the MDS can mutate.  In an erasure-coded
+    workload with many concurrent clients, this turns a localised
+    DS hiccup into a global stall.
+
+2.  The data servers must be smart enough to enforce per-client
+    access on a finer grain than "the file is reachable from the
+    network."  Anonymous-stateid I/O combined with synthetic-uid
+    fencing is a coarse instrument: fencing one client's access
+    to a file affects every client's access to that file.  The
+    only way to selectively revoke is to teach the DS who is
+    permitted, on which file, with which iomode -- which is the
+    "smarter data server" Christoph was asking for.
+
+## How TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID Address This
+
+Sections {{sec-TRUST_STATEID}}, {{sec-REVOKE_STATEID}}, and
+{{sec-BULK_REVOKE_STATEID}} of this document define exactly the
+"smarter data server" the working group asked for.
+
+The mechanism:
+
+-  At LAYOUTGET, the MDS issues a real layout stateid and fans out
+    TRUST_STATEID to each DS in the mirror set, registering
+    `(stateid.other, fh, clientid, iomode, expire)` in a per-DS
+    trust table.  CHUNK_WRITE and CHUNK_READ on the DS now validate
+    against the trust table; an unknown, expired, or revoked
+    stateid yields NFS4ERR_BAD_STATEID.
+
+-  When the MDS needs to mutate the layout for a particular client
+    -- because that client misbehaved, because a DS the layout
+    points at is being drained, because the file is being repaired
+    -- it issues REVOKE_STATEID to the affected DS.  Other clients'
+    trust entries on the same file are untouched.
+
+-  When the MDS needs to mutate at client-scope (lease expiry,
+    client eviction), it issues BULK_REVOKE_STATEID, which removes
+    every trust entry the named client has on the DS without
+    affecting other clients.
+
+The control-plane cost reshapes accordingly:
+
+-  Layout mutation is no longer global.  The MDS reroutes data to a
+    spare DS, rebuilds shards from surviving copies, and revokes
+    only the trust entries that pointed at the failing location.
+    The other clients holding the layout are not contacted.
+
+-  The revoked client only learns of the mutation lazily, on its
+    next CHUNK_WRITE or CHUNK_READ to the affected stripe.  That
+    operation returns NFS4ERR_BAD_STATEID; the client responds with
+    LAYOUTERROR; the MDS replies with a refreshed layout pointing
+    at the new location; the client re-trusts and resumes.  A
+    client that never touches the affected stripe never pays the
+    cost at all.
+
+-  With warm spares known to the MDS, the entire repair can complete
+    before any client notices.  The MDS reconstructs onto a spare
+    using server-to-server traffic, atomically swaps the layout slot
+    in its in-memory state, and revokes only the trust entries on
+    the now-evacuated DS.  Reading clients see no interruption (any
+    k of the surviving shards reconstructs); writing clients pay
+    one round-trip to refresh the layout when they next write the
+    affected stripe.
+
+The combination of TRUST_STATEID and a warm-spare DS pool is the
+"more efficient network operation that updates layouts" Christoph
+asked for.  It is not literally a layout update on the wire; it is
+a primitive that makes layout updates a local event the MDS can
+resolve before the client has to pay a recall round-trip.
+
+The chunk state machine (PENDING -> FINALIZED -> COMMITTED) and
+{{chunk_guard4}} address the orthogonal concern of partial-write
+recovery, ensuring that even when the MDS reroutes mid-write the
+DSes can detect inconsistent stripes via per-chunk generation
+checks rather than via a global wall-clock or consensus protocol.
+
+## Combined Effect on the "Cluster Tax"
+
+The Proxy Server addresses the codec-distribution cost; the trust
+stateid mechanism addresses the layout-mutation cost.  Together,
+they confine the residual cluster overhead to:
+
+-  the store-and-forward bandwidth on the PS link, paid only by
+    clients that route through a PS rather than going DS-direct;
+    and
+
+-  one LAYOUTERROR/LAYOUTGET round-trip per client per affected
+    stripe, paid only by clients that actually try to use a stripe
+    whose backing has changed.
+
+Neither cost scales with the number of layout-holding clients,
+which is the property the working group asked for.
+
 # Acknowledgments
 {:numbered="false"}
 
