@@ -7256,6 +7256,35 @@ consume this specification.
 A full benchmark report with per-size tables, figures, and the
 platform comparison is available alongside the source code.
 
+## Architectural Implication: Cost of Fault Tolerance {#sec-architectural-implication}
+{:numbered="false"}
+
+The headline question every storage audience asks of an
+erasure-coding protocol is: "what does it cost when something goes
+wrong?"  The benchmark answer for the recommended operating point
+is **essentially zero**.  Mojette systematic at 4+2 reconstructs a
+missing data shard with read-latency overhead within run-to-run
+noise of healthy operation.  Mojette systematic at 8+2 holds at
+approximately +4%.
+
+This shifts the deployment conversation away from "is erasure
+coding cheap enough to enable" and toward "which codec and
+geometry minimise the compromise."  The compromise that remains is
+not the cost of fault tolerance; it is the cost of write-time
+encoding, which is bounded (under 60% at 1 MB, under 25% at 64 KB),
+and the cost of crash-safe durability via the chunk state machine
+(see {{sec-system-model-consistency}}), which is +7% to +22% on
+writes and +2% to +10% on reads.
+
+Wire-format performance objections raised earlier in the working
+group's review of this work are addressed in
+{{sec-rejected-alternatives}}: the per-RPC byte-shuffling cost of
+the original Mojette-specific projection header has been replaced
+with XDR-encoded chunk metadata (see {{chunk_guard4}}), so the
+remaining wire-format cost is the XDR-encoded chunk header itself,
+which is identical for every codec and is part of the +7% to +22%
+v2 write overhead measured above.
+
 # Design Rationale: Rejected Alternatives {#sec-rejected-alternatives}
 {:numbered="false"}
 
