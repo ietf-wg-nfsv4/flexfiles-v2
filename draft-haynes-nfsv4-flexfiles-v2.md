@@ -3221,8 +3221,6 @@ place.  In this case the metadata server MUST either:
 
 The Data Mover mechanism is specified in the companion Proxy
 Server document {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}.
-The reference design is also maintained at
-<https://github.com/ietf-wg-nfsv4/flexfiles-v2-proxy-server>.
 
 Implementations that do not support the Data Mover mechanism can
 still perform recovery for cases where per-range repair suffices,
