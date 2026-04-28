@@ -248,15 +248,16 @@ CB_CHUNK_REPAIR together form that on-wire reconciliation
 protocol.
 
 Scope note: the consistency goal of Flex Files v2 is RAID
-consistency across the chunks that make up an encoded stripe, not
+consistency across the shards that make up an encoded stripe, not
 POSIX write ordering across arbitrary application writes.  The
 protocol does not attempt to make overlapping application writes
 from different clients atomic: that is the province of file
 locking ({{RFC8881}}, Section 12) and of application-level
 coordination.  What the protocol does guarantee is that the
-chunks comprising a given stripe agree on which write produced
-them, so that readers and repair clients never observe a
-half-applied stripe.  Readers who need cross-write ordering
+shards comprising a given stripe agree on which write produced
+them -- expressed on the wire as agreement on the chunk_guard4
+value of every chunk that carries those shards -- so that
+readers and repair clients never observe a half-applied stripe.  Readers who need cross-write ordering
 beyond a single stripe MUST use the existing NFSv4 locking
 primitives.
 
@@ -301,11 +302,46 @@ blocking the critical path for the first two workload classes.
 
 #  Definitions
 
+block:
+
+:  the application's view of file data.  A block is a unit of file
+content as observed by an NFS client at the POSIX layer or by the
+local file system.  A chunk's payload, after any decoding the client
+performs, is presented to the application as one or more blocks.
+
+shard:
+
+:  the codec's view.  A shard is a single piece of an encoded stripe
+produced by an erasure-coding (or replication) transformation.  A
+stripe of k data shards plus m parity shards is the unit a codec
+encodes and decodes.  The word "shard" only has meaning while the
+codec is reasoning about a stripe; once a shard is at rest on a data
+server it is, by virtue of having been transmitted, the payload of a
+chunk.
+
 chunk:
 
-:  One of the resulting chunks to be exchanged with a data server after
-a transformation has been applied to a data block.  The resulting chunk
-may be a different size than the data block.
+:  the protocol's view.  A chunk is the addressable unit named in the
+CHUNK_* operations defined in this document and durably persisted by
+a data server with associated state ({{sec-system-model-chunk-state}})
+and concurrency metadata ({{sec-chunk_guard4}}).  A chunk's payload
+may be a block (mirrored layout) or a shard (erasure-coded layout);
+the wire protocol does not distinguish.  The chunk size MAY differ
+from the size of the block or shard it carries.
+
+The three terms describe the same data at three different layers and
+should be used accordingly.  The codec transforms blocks into shards;
+the wire protocol transmits shards as chunk payloads; the data server
+persists chunks.  On read the path reverses.
+
+A protocol-internal note: the chunk state machine
+({{sec-system-model-chunk-state}}) and several CHUNK_* operations
+refer to the per-chunk-offset state records as "blocks" (PENDING /
+FINALIZED / COMMITTED / errored).  This is a finer-grained use of
+the word, internal to the data server's chunk metadata, and should
+not be confused with the application-layer "block" defined above.
+Where ambiguity matters, this document writes "chunk-state block"
+or relies on context (operation names, state names) to disambiguate.
 
 control communication requirements:
 
@@ -328,7 +364,7 @@ updating all of the mirrored copies of a layout segment.
 
 data block:
 
-:  A block of data in the client's cache for a file.
+:  A block (as defined above) in the client's cache for a file.
 
 data file:
 
@@ -341,9 +377,11 @@ different locations.
 
 Erasure Coding:
 
-:  A data protection scheme where a block of data is replicated into
-fragments and additional redundant fragments are added to achieve parity.
-The new chunks are stored in different locations.
+:  A data protection scheme where a stripe of data is encoded into
+shards (k data shards and m parity shards) so that the original
+content can be reconstructed from any sufficient subset of the
+shards.  Shards are transmitted as the payload of CHUNK operations
+and stored on different data servers.
 
 Client Side Erasure Coding:
 
@@ -3086,9 +3124,10 @@ The repair sequence when the selected client is the original writer is:
    inconsistent state (PENDING with a CRC mismatch, or in the errored
    state set by a prior CHUNK_ERROR).
 
-2. For each errored block, the repair client reconstructs the correct
+2. For each errored chunk, the repair client reconstructs the correct
    data using the erasure coding algorithm (RS matrix inversion or Mojette
-   back-projection) from the surviving consistent blocks.
+   back-projection) from the surviving consistent chunks (treating each
+   chunk's payload as a shard of the stripe).
 
 3. The repair client issues CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}})
    to write the reconstructed data.  CHUNK_WRITE_REPAIR bypasses the guard
@@ -3117,27 +3156,27 @@ The multiple writer write sequence is:
    incremented for each new transaction.
 
 2. The client issues CHUNK_WRITE (cwa_guard.cwg_check = TRUE) for each
-   shard.  The data server checks that no other client's block is in the
-   PENDING state for this chunk.  If another client's block is already
+   chunk.  The data server checks that no other client's chunk is in the
+   PENDING state at this offset.  If another client's chunk is already
    pending, the data server returns NFS4ERR_CHUNK_LOCKED with the
    clr_owner field identifying the lock holder.
 
 3. On NFS4ERR_CHUNK_LOCKED, the client MUST back off.  It issues
-   CHUNK_ROLLBACK for any shards it has already written in this
+   CHUNK_ROLLBACK for any chunks it has already written in this
    transaction, then retries after a delay.
 
 4. If all CHUNK_WRITEs succeed, the client issues CHUNK_FINALIZE and
    CHUNK_COMMIT as in single writer mode.
 
-The guard ensures that the complete set of shards forming a consistent
-erasure-coded block all carry the same chunk_guard4.  A reader that
-encounters shards with different guard values knows the payload is not
+The guard ensures that the chunks carrying the shards of a consistent
+erasure-coded stripe all carry the same chunk_guard4.  A reader that
+encounters chunks with different guard values knows the stripe is not
 yet consistent and MUST either retry or report NFS4ERR_PAYLOAD_NOT_CONSISTENT.
 
 #### Repairing Multiple Writer Payloads
 
-In multiple writer mode, inconsistent blocks can arise from two sources:
-a client failure leaving some shards in PENDING state, or two clients
+In multiple writer mode, inconsistent chunks can arise from two sources:
+a client failure leaving some chunks in PENDING state, or two clients
 writing different data to the same chunk before one has committed.
 
 The metadata server coordinates repair by designating a repair
@@ -3633,8 +3672,8 @@ preferred path on transient single-DS failures when the layout
 exposes a suitable spare.
 
 In the multiple writer model, a write hole can also arise when two clients
-are racing.  The chunk_guard4 value on each shard identifies which
-transaction wrote it.  A reader that finds shards with different guard
+are racing.  The chunk_guard4 value on each chunk identifies which
+transaction wrote it.  A reader that finds chunks with different guard
 values detects the inconsistency and either retries (if a concurrent write
 is still in progress) or reports NFS4ERR_PAYLOAD_NOT_CONSISTENT to the
 metadata server to trigger repair.
@@ -7298,7 +7337,18 @@ and may guide future extensions or replacements.
 
 The earliest iteration placed a 16-byte Mojette-specific header at
 the start of the READ/WRITE opaque payload, interpreted in the
-endianness of the writer's host.  This was rejected because:
+endianness of the writer's host.  The motivation was concrete:
+NFSv3 READ and WRITE arguments carry data as `opaque data<>` and
+provide no XDR room for per-write structured metadata such as
+codec geometry, integrity, or write-ordering tiebreakers.  An
+NFSv3 server cannot be extended; if a Flex Files deployment
+wanted an NFSv3 server to participate as a data server in an
+erasure-coded layout, the only place to put codec metadata was
+inside that opaque payload, prepended to the data bytes.  The DS
+stored the entire opaque blob without interpreting it; the reader
+peeled the 16-byte prefix off and acted on it.
+
+This was rejected because:
 
 -  It embedded a specific erasure-coding type (Mojette) into the
    generic replication-method framework, preventing alternate
@@ -7310,11 +7360,21 @@ endianness of the writer's host.  This was rejected because:
 
 -  Carrying integrity and identification data inside an opaque
    disrespected the XDR self-description model that the rest of
-   NFSv4 relies on.
+   NFSv4 relies on.  A generic NFSv3 inspector watching the wire
+   could not tell those bytes apart from application data, which
+   among other things made debugging, traffic analysis, and
+   middlebox processing rely on out-of-band knowledge.
 
-The rejection of this approach at IETF 120 (July 2024) motivated
-the shift to explicit XDR-encoded chunk headers and the
-chunk_guard4 structure, both visible in the wire format.
+The endianness objection raised at IETF 120 (July 2024) was the
+surface complaint; the structural objection -- that smuggling
+structured fields through an opaque type bypasses XDR's
+self-description -- was the deeper reason the working group
+declined the approach.  Once the design accepted that data
+servers in a Flex Files Version 2 deployment would speak
+NFSv4.2 (with new ops in this document), the constraint that
+forced the smuggling disappeared: chunk metadata could be
+expressed as proper XDR fields in CHUNK_WRITE / CHUNK_READ /
+chunk_guard4, visible to every observer of the wire.
 
 ##  Per-Client Swap Files with MDS MAPPING_RECALL
 {:numbered="false"}
@@ -7767,7 +7827,7 @@ Version 2 Layout Type was applicable to more than the Mojette
 Transformation.
 
 David Black clarified at IETF 124 that the consistency goal of
-Flex Files v2 is RAID consistency across the chunks of a stripe
+Flex Files v2 is RAID consistency across the shards of a stripe
 rather than POSIX write ordering across application writes; that
 framing is reflected in {{sec-motivation}} and in the Non-Goals
 of {{sec-system-model-consistency}}.
