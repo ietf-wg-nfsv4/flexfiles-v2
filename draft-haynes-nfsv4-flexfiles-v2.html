@@ -30,8 +30,8 @@ Erasure Coding algorithms are used for data protection.
     platformdirs 4.9.6
     pycountry 24.6.1
     PyYAML 6.0.3
-    requests 2.32.5
-    wcwidth 0.6.0
+    requests 2.33.1
+    wcwidth 0.7.0
 -->
 <link href="draft-haynes-nfsv4-flexfiles-v2.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1052,11 +1052,11 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">Flex File Layout v2</td>
-<td class="right">April 2026</td>
+<td class="right">May 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">Haynes</td>
-<td class="center">Expires 30 October 2026</td>
+<td class="center">Expires 21 November 2026</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1069,12 +1069,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-04-28" class="published">28 April 2026</time>
+<time datetime="2026-05-20" class="published">20 May 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2026-10-30">30 October 2026</time></dd>
+<dd class="expires"><time datetime="2026-11-21">21 November 2026</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1127,7 +1127,7 @@ code and issues list for this draft can be found at
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 30 October 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 21 November 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1251,7 +1251,16 @@ code and issues list for this draft can be found at
                 <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-ffv2_coding_type4" class="internal xref">ffv2_coding_type4</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1.2.1">
-                    <p id="section-toc.1-1.8.2.1.2.1.1"><a href="#section-8.1.1" class="auto internal xref">8.1.1</a>.  <a href="#name-encoding-type-interoperabil" class="internal xref">Encoding Type Interoperability</a></p>
+                    <p id="section-toc.1-1.8.2.1.2.1.1"><a href="#section-8.1.1" class="auto internal xref">8.1.1</a>.  <a href="#name-heterogeneous-mirror-sets" class="internal xref">Heterogeneous Mirror Sets</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1.2.2">
+                    <p id="section-toc.1-1.8.2.1.2.2.1"><a href="#section-8.1.2" class="auto internal xref">8.1.2</a>.  <a href="#name-ffv2_encoding_passthrough" class="internal xref">FFV2_ENCODING_PASSTHROUGH</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1.2.3">
+                    <p id="section-toc.1-1.8.2.1.2.3.1"><a href="#section-8.1.3" class="auto internal xref">8.1.3</a>.  <a href="#name-ffv2_encoding_mirrored" class="internal xref">FFV2_ENCODING_MIRRORED</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1.2.4">
+                    <p id="section-toc.1-1.8.2.1.2.4.1"><a href="#section-8.1.4" class="auto internal xref">8.1.4</a>.  <a href="#name-encoding-type-interoperabil" class="internal xref">Encoding Type Interoperability</a></p>
 </li>
                 </ul>
 </li>
@@ -1487,10 +1496,10 @@ code and issues list for this draft can be found at
                     <p id="section-toc.1-1.13.2.2.2.3.1"><a href="#section-13.2.3" class="auto internal xref">13.2.3</a>.  <a href="#name-setattr-on-a-data-file" class="internal xref">SETATTR on a Data File</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2.2.4">
-                    <p id="section-toc.1-1.13.2.2.2.4.1"><a href="#section-13.2.4" class="auto internal xref">13.2.4</a>.  <a href="#name-mirrored-data-files-ffv2_co" class="internal xref">Mirrored Data Files (FFV2_CODING_MIRRORED)</a></p>
+                    <p id="section-toc.1-1.13.2.2.2.4.1"><a href="#section-13.2.4" class="auto internal xref">13.2.4</a>.  <a href="#name-passthrough-data-files-ffv2" class="internal xref">PASSTHROUGH Data Files (FFV2_ENCODING_PASSTHROUGH)</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2.2.5">
-                    <p id="section-toc.1-1.13.2.2.2.5.1"><a href="#section-13.2.5" class="auto internal xref">13.2.5</a>.  <a href="#name-erasure-coded-data-files-ff" class="internal xref">Erasure-Coded Data Files (FFV2<em>ENCODING</em>*)</a></p>
+                    <p id="section-toc.1-1.13.2.2.2.5.1"><a href="#section-13.2.5" class="auto internal xref">13.2.5</a>.  <a href="#name-chunked-data-files-ffv2-enc" class="internal xref">Chunked Data Files (FFV2<em>ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE</em>*, FFV2_ENCODING_RS_VANDERMONDE)</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2.2.6">
                     <p id="section-toc.1-1.13.2.2.2.6.1"><a href="#section-13.2.6" class="auto internal xref">13.2.6</a>.  <a href="#name-operations-that-must-not-be" class="internal xref">Operations That MUST NOT Be Sent to a Data File</a></p>
@@ -3624,10 +3633,11 @@ this otherwise opaque value, ffv2_layout4.<a href="#section-8-5" class="pilcrow"
           <div class="lang-xdr sourcecode" id="section-8.1-1.1">
 <pre>
    /// enum ffv2_coding_type4 {
-   ///     FFV2_CODING_MIRRORED                  = 1,
+   ///     FFV2_ENCODING_PASSTHROUGH             = 1,
    ///     FFV2_ENCODING_MOJETTE_SYSTEMATIC      = 2,
    ///     FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC  = 3,
-   ///     FFV2_ENCODING_RS_VANDERMONDE          = 4
+   ///     FFV2_ENCODING_RS_VANDERMONDE          = 4,
+   ///     FFV2_ENCODING_MIRRORED                = 5
    /// };
 </pre>
 </div>
@@ -3638,66 +3648,268 @@ this otherwise opaque value, ffv2_layout4.<a href="#section-8-5" class="pilcrow"
 <p id="section-8.1-2">The ffv2_coding_type4 (see <a href="#fig-ffv2_coding_type4" class="auto internal xref">Figure 9</a>) encompasses
 a new IANA registry for 'Flexible Files Version 2 Erasure Coding
 Type Registry'.  I.e., instead of defining a new Layout Type for
-each Erasure Coding, we define a new Erasure Coding Type.  Except
-for FFV2_CODING_MIRRORED, each of the types is expected to employ
-the new operations in this document.<a href="#section-8.1-2" class="pilcrow">¶</a></p>
-<p id="section-8.1-3">The 32-bit ffv2_coding_type4 value space is partitioned by
+each Erasure Coding, we define a new Erasure Coding Type.  The
+encoding types this document defines fall into two groups:<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1-3.1">
+            <p id="section-8.1-3.1.1">FFV2_ENCODING_PASSTHROUGH is the non-chunked, non-integrity
+on-ramp from FFv1.  It uses NFSv3 WRITE / READ directly
+against each replica's data server.  No CHUNK_WRITE, no
+CHUNK_READ, no per-chunk CRC.  See <a href="#sec-encoding-passthrough" class="auto internal xref">Section 8.1.2</a>.<a href="#section-8.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-3.2">
+            <p id="section-8.1-3.2.1">FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, and
+FFV2_ENCODING_RS_VANDERMONDE all use the new operations
+defined here: in particular CHUNK_WRITE
+(<a href="#sec-CHUNK_WRITE" class="auto internal xref">Section 25.10</a>) and CHUNK_READ (<a href="#sec-CHUNK_READ" class="auto internal xref">Section 25.6</a>),
+which carry the per-chunk CRC32 this version of the layout
+type relies on for end-to-end integrity.  The encoding type
+selects how chunks are produced from application data
+(mirrored verbatim, Reed-Solomon shards, Mojette
+projections); the wire and the storage device are the same
+in every case.<a href="#section-8.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-8.1-4">The 32-bit ffv2_coding_type4 value space is partitioned by
 intended scope -- Standards Track, Experimental, Vendor (open),
 and Private / proprietary -- with different allocation policies
 per range, so that vendors can assign codec values without
 consuming standards-track codepoints.  See
 <a href="#tbl-coding-ranges" class="auto internal xref">Table 13</a> and the accompanying prose in
 <a href="#iana-considerations" class="auto internal xref">Section 28</a> for the range assignments and allocation
-policies.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
-<p id="section-8.1-4">FFV2_CODING_MIRRORED offers replication of data and not integrity of
-data.  As such, it does not need operations like CHUNK_WRITE (see
-<a href="#sec-CHUNK_WRITE" class="auto internal xref">Section 25.10</a>.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
-<div id="encoding-type-interoperability">
+policies.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
+<div id="sec-heterogeneous-mirrors">
 <section id="section-8.1.1">
-          <h4 id="name-encoding-type-interoperabil">
-<a href="#section-8.1.1" class="section-number selfRef">8.1.1. </a><a href="#name-encoding-type-interoperabil" class="section-name selfRef">Encoding Type Interoperability</a>
+          <h4 id="name-heterogeneous-mirror-sets">
+<a href="#section-8.1.1" class="section-number selfRef">8.1.1. </a><a href="#name-heterogeneous-mirror-sets" class="section-name selfRef">Heterogeneous Mirror Sets</a>
           </h4>
-<p id="section-8.1.1-1">The data servers do not interpret erasure-coded data -- they store and
+<p id="section-8.1.1-1">A single FFv2 layout's <code>ffl_mirrors</code> array <span class="bcp14">MAY</span> carry mirror
+entries of different encoding types.  The protocol does not
+require the entries to agree -- one mirror can be
+FFV2_ENCODING_PASSTHROUGH, another can be
+FFV2_ENCODING_RS_VANDERMONDE, both describing the same file's
+data range.  This combination is the structural primitive for
+three operations that motivate keeping PASSTHROUGH in the
+layout type's vocabulary:<a href="#section-8.1.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1.1-2.1">
+              <p id="section-8.1.1-2.1.1"><strong>Assimilate.</strong>  A file that exists today as a plain copy on
+storage outside FFv2 -- no chunk envelope, no per-chunk
+CRC -- enters the namespace as a PASSTHROUGH mirror against
+the source bytes as they are.  The metadata server then
+adds one or more encoded mirrors (MIRRORED, RS, Mojette) to
+the same layout and synchronizes them from the PASSTHROUGH
+source.  Clients can read the file via the PASSTHROUGH
+mirror immediately; the encoded mirrors become available as
+they are populated.  No "rewrite before serve" step is
+required.<a href="#section-8.1.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.1-2.2">
+              <p id="section-8.1.1-2.2.1"><strong>Copy / migrate between encodings.</strong>  Changing a file from
+one encoding to another is "add a mirror in the target
+encoding to the same layout, let it sync from any healthy
+source mirror, retire the source mirror."  PASSTHROUGH is
+the special case where one endpoint of that migration is
+"no encoding."<a href="#section-8.1.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.1-2.3">
+              <p id="section-8.1.1-2.3.1"><strong>Repair across encodings.</strong>  When an encoded mirror has a
+chunk whose CRC fails and whose parity cannot reconstruct,
+a PASSTHROUGH mirror in the same layout is an authoritative
+source: CHUNK_READ a peer encoded mirror or read the
+PASSTHROUGH byte range, then CHUNK_WRITE the repaired
+chunk.  The reverse is also true: a byte range on the
+PASSTHROUGH copy whose contents the metadata server suspects
+has drifted can be repaired by reconstructing from the
+verified-CRC chunks of an encoded peer.  Two encodings of
+the same file are two independent recovery paths.<a href="#section-8.1.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-8.1.1-3">The metadata server is responsible for keeping the entries in
+a heterogeneous mirror set in sync; the protocol does not
+require client awareness of which encoding produced which
+mirror beyond what the layout already states.<a href="#section-8.1.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-encoding-passthrough">
+<section id="section-8.1.2">
+          <h4 id="name-ffv2_encoding_passthrough">
+<a href="#section-8.1.2" class="section-number selfRef">8.1.2. </a><a href="#name-ffv2_encoding_passthrough" class="section-name selfRef">FFV2_ENCODING_PASSTHROUGH</a>
+          </h4>
+<p id="section-8.1.2-1">FFV2_ENCODING_PASSTHROUGH is the on-ramp from FFv1 (<span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>)
+into the FFv2 layout type.  A PASSTHROUGH mirror points at the
+file's bytes as they exist on the data server, without the
+chunk envelope, CRC32 header, or chunk_guard4 fields that the
+encoded types use.  Client I/O against a PASSTHROUGH mirror
+uses NFSv3 WRITE / READ (<span>[<a href="#RFC1813" class="cite xref">RFC1813</a>]</span>) or NFSv4 READ / WRITE
+(<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) directly -- not CHUNK_WRITE / CHUNK_READ.<a href="#section-8.1.2-1" class="pilcrow">¶</a></p>
+<p id="section-8.1.2-2">PASSTHROUGH provides:<a href="#section-8.1.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1.2-3.1">
+              <p id="section-8.1.2-3.1.1">Replication of data across N data servers, exactly as FFv1
+does.  Clients write to every replica; clients read from any
+one.  N-way redundancy tolerates up to N-1 replica losses.<a href="#section-8.1.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.2-3.2">
+              <p id="section-8.1.2-3.2.1">Zero codec compute at the client and zero chunk-metadata
+overhead at the server.  The on-disk format is the file
+itself.<a href="#section-8.1.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.2-3.3">
+              <p id="section-8.1.2-3.3.1">Compatibility with files that already exist outside FFv2.
+A PASSTHROUGH mirror can be created over an existing
+file without rewriting it.<a href="#section-8.1.2-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-8.1.2-4">PASSTHROUGH does NOT provide:<a href="#section-8.1.2-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1.2-5.1">
+              <p id="section-8.1.2-5.1.1">Per-chunk integrity.  There is no CRC32 on the data path.
+Silent corruption is undetectable without out-of-band
+tooling (e.g., comparing checksums across replicas).<a href="#section-8.1.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.2-5.2">
+              <p id="section-8.1.2-5.2.1">Chunk-grained repair.  The repair unit is the whole file:
+resilvering picks a trusted replica and replicates it end
+to end to the affected replica(s).<a href="#section-8.1.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.2-5.3">
+              <p id="section-8.1.2-5.3.1">The concurrent-writer disambiguation that chunk_guard4
+provides for encoded types.<a href="#section-8.1.2-5.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-8.1.2-6">PASSTHROUGH is <span class="bcp14">RECOMMENDED</span> for the assimilation, migration, and
+heterogeneous-mirror use cases described in
+<a href="#sec-heterogeneous-mirrors" class="auto internal xref">Section 8.1.1</a>.  New deployments that do not
+need an FFv1 on-ramp <span class="bcp14">SHOULD</span> use FFV2_ENCODING_MIRRORED for
+the integrity guarantees described in
+<a href="#sec-encoding-mirrored" class="auto internal xref">Section 8.1.3</a>.<a href="#section-8.1.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-encoding-mirrored">
+<section id="section-8.1.3">
+          <h4 id="name-ffv2_encoding_mirrored">
+<a href="#section-8.1.3" class="section-number selfRef">8.1.3. </a><a href="#name-ffv2_encoding_mirrored" class="section-name selfRef">FFV2_ENCODING_MIRRORED</a>
+          </h4>
+<p id="section-8.1.3-1">FFV2_ENCODING_MIRRORED is the chunked-with-integrity peer of
+PASSTHROUGH.  The chunk produced for each replica is the
+application data verbatim -- no transform, no parity shards --
+but it travels on the wire and is stored on the data server
+through CHUNK_WRITE / CHUNK_READ and so carries every integrity
+property the encoded coding types carry.<a href="#section-8.1.3-1" class="pilcrow">¶</a></p>
+<p id="section-8.1.3-2">What FFV2_ENCODING_MIRRORED keeps from the mirror model:<a href="#section-8.1.3-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1.3-3.1">
+              <p id="section-8.1.3-3.1.1">Zero codec compute at the client.  Each replica's chunk is
+the input bytes; there is no transform to apply on write and
+nothing to decode on read.<a href="#section-8.1.3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.3-3.2">
+              <p id="section-8.1.3-3.2.1">Storage cost of N x payload, where N is the replica count.
+Mirroring trades storage for redundancy without the
+reconstruction machinery that erasure coding requires.<a href="#section-8.1.3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.3-3.3">
+              <p id="section-8.1.3-3.3.1">Reading any one intact replica is sufficient.  If a replica
+fails to verify (see below), the client tries another.<a href="#section-8.1.3-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-8.1.3-4">What FFV2_ENCODING_MIRRORED adds beyond PASSTHROUGH, by virtue
+of using CHUNK_WRITE and CHUNK_READ:<a href="#section-8.1.3-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.1.3-5.1">
+              <p id="section-8.1.3-5.1.1">Per-chunk CRC32 on write and on read.  The CRC is computed
+by the client over the chunk payload, sent on the wire with
+the chunk, recomputed by the data server before storing,
+and recomputed again from disk by the data server on every
+CHUNK_READ.  Wire-level bit flips are caught before the
+chunk is stored; on-disk bit rot is caught the next time
+the chunk is read.<a href="#section-8.1.3-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.3-5.2">
+              <p id="section-8.1.3-5.2.1">Per-chunk repair granularity.  When one replica's CRC fails
+to verify and another replica's verifies, the repair unit
+is the chunk, not the file: CHUNK_READ the good replica,
+CHUNK_WRITE to the bad replica, done.  No whole-file
+resilvering is required.<a href="#section-8.1.3-5.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-8.1.3-5.3">
+              <p id="section-8.1.3-5.3.1">Per-chunk concurrent-writer disambiguation.  Mirrored
+writes carry the same chunk_guard4 (<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>)
+the erasure-coded types do.  Two clients racing to write
+the same offset of the same file fan out to every replica
+with a guard pair (generation, owning-client short-id) per
+chunk; the CHUNK_FINALIZE step resolves which writer's
+chunk wins and the other writer observes a deterministic
+loss instead of an unresolved split-mirror.<a href="#section-8.1.3-5.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-8.1.3-6">What FFV2_ENCODING_MIRRORED is for: files where the deployment
+wants integrity and replication without the storage savings or
+the reconstruction story of erasure coding.  Small files that
+do not exceed a single stripe, files whose access pattern is
+read-mostly and where the N x storage cost is acceptable, and
+files where the operator prefers the simplicity of "any one
+replica is the file" over "k of (k+m) shards reconstruct the
+file."  The coding choice is per-file; a deployment can mix
+mirrored and erasure-coded files in the same namespace and
+pick whichever fits each file's profile.<a href="#section-8.1.3-6" class="pilcrow">¶</a></p>
+<p id="section-8.1.3-7">What FFV2_ENCODING_MIRRORED is not: a substitute for erasure
+coding when storage efficiency or multi-replica fault tolerance
+matters.  An N-way mirror tolerates up to N-1 replica losses
+but costs N x the payload; a (k, m) erasure code tolerates m
+losses at (k+m)/k x the payload.  Both have per-chunk
+integrity under this document; the choice is the
+cost-vs-tolerance one.<a href="#section-8.1.3-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="encoding-type-interoperability">
+<section id="section-8.1.4">
+          <h4 id="name-encoding-type-interoperabil">
+<a href="#section-8.1.4" class="section-number selfRef">8.1.4. </a><a href="#name-encoding-type-interoperabil" class="section-name selfRef">Encoding Type Interoperability</a>
+          </h4>
+<p id="section-8.1.4-1">The data servers do not interpret erasure-coded data -- they store and
 return opaque chunks.  The NFS wire protocol likewise does not depend
 on the encoding mathematics.  However, a client that writes data using
 one encoding type <span class="bcp14">MUST</span> be able to read it back, and a different
 client implementation <span class="bcp14">MUST</span> be able to read data written by the first
-client if both claim to support the same encoding type.<a href="#section-8.1.1-1" class="pilcrow">¶</a></p>
-<p id="section-8.1.1-2">This interoperability requirement means that each registered
+client if both claim to support the same encoding type.<a href="#section-8.1.4-1" class="pilcrow">¶</a></p>
+<p id="section-8.1.4-2">This interoperability requirement means that each registered
 encoding type <span class="bcp14">MUST</span> fully specify the encoding and decoding
 mathematics such that two independent implementations produce
 byte-identical encoded output for the same input.  The specification
-of a new encoding type <span class="bcp14">MUST</span> include one of the following:<a href="#section-8.1.1-2" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-8.1.1-3">
-<li id="section-8.1.1-3.1">
-              <p id="section-8.1.1-3.1.1">A complete mathematical specification of the encoding and decoding
+of a new encoding type <span class="bcp14">MUST</span> include one of the following:<a href="#section-8.1.4-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-8.1.4-3">
+<li id="section-8.1.4-3.1">
+              <p id="section-8.1.4-3.1.1">A complete mathematical specification of the encoding and decoding
 algorithms, including all parameters (e.g., field polynomial,
 matrix construction, element size) sufficient for an independent
-implementation to produce interoperable results.<a href="#section-8.1.1-3.1.1" class="pilcrow">¶</a></p>
+implementation to produce interoperable results.<a href="#section-8.1.4-3.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-8.1.1-3.2">
-              <p id="section-8.1.1-3.2.1">A reference to a published patent or pending patent application
+            <li id="section-8.1.4-3.2">
+              <p id="section-8.1.4-3.2.1">A reference to a published patent or pending patent application
 that contains the algorithm specification.  Implementors can then
 evaluate the licensing terms and decide whether to support the
-encoding type.<a href="#section-8.1.1-3.2.1" class="pilcrow">¶</a></p>
+encoding type.<a href="#section-8.1.4-3.2.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-8.1.1-3.3">
-              <p id="section-8.1.1-3.3.1">A declaration that the encoding type is a proprietary
+            <li id="section-8.1.4-3.3">
+              <p id="section-8.1.4-3.3.1">A declaration that the encoding type is a proprietary
 implementation.  In this case, the encoding type name <span class="bcp14">SHOULD</span>
 include an organizational prefix (e.g.,
 FFV2_ENCODING_ACME_FOOBAR) to signal that interoperability is
-limited to implementations licensed by that organization.<a href="#section-8.1.1-3.3.1" class="pilcrow">¶</a></p>
+limited to implementations licensed by that organization.<a href="#section-8.1.4-3.3.1" class="pilcrow">¶</a></p>
 </li>
           </ol>
-<p id="section-8.1.1-4">Option 1 is <span class="bcp14">RECOMMENDED</span> for encoding types intended for broad
+<p id="section-8.1.4-4">Option 1 is <span class="bcp14">RECOMMENDED</span> for encoding types intended for broad
 interoperability.  Options 2 and 3 allow vendors to register encoding
 types for use within their own ecosystems while preserving the
-encoding type namespace.<a href="#section-8.1.1-4" class="pilcrow">¶</a></p>
-<p id="section-8.1.1-5">The rationale for this requirement is that erasure coding moves
+encoding type namespace.<a href="#section-8.1.4-4" class="pilcrow">¶</a></p>
+<p id="section-8.1.4-5">The rationale for this requirement is that erasure coding moves
 computation from the server to the client.  If the client cannot
 determine how data was encoded, it cannot decode it.  Unlike layout
 types (where the server controls the storage format), encoding types
-require client-side agreement on the mathematics.<a href="#section-8.1.1-5" class="pilcrow">¶</a></p>
+require client-side agreement on the mathematics.<a href="#section-8.1.4-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3920,7 +4132,9 @@ file and how to access it via the different NFS protocols.<a href="#section-8.5-
 <pre>
    /// union ffv2_coding_type_data4 switch
    ///         (ffv2_coding_type4 fctd_coding) {
-   ///     case FFV2_CODING_MIRRORED:
+   ///     case FFV2_ENCODING_PASSTHROUGH:
+   ///         ffv2_data_protection4   fctd_protection;
+   ///     case FFV2_ENCODING_MIRRORED:
    ///         ffv2_data_protection4   fctd_protection;
    ///     default:
    ///         ffv2_data_protection4   fctd_protection;
@@ -3937,19 +4151,37 @@ ffv2_data_protection4 (<a href="#fig-ffv2_data_protection4" class="auto internal
 number of data and parity shards.  The coding type enum determines how
 the shards are encoded; the protection structure determines how many
 shards there are.<a href="#section-8.6-2" class="pilcrow">¶</a></p>
-<p id="section-8.6-3">Although the FFV2_CODING_MIRRORED case and the default case currently
-carry the same type, the union form is intentional.  Future revisions
-of this specification may assign distinct arm types to specific coding
-types; using a union now avoids an incompatible change to the XDR at
-that time.<a href="#section-8.6-3" class="pilcrow">¶</a></p>
-<p id="section-8.6-4">For FFV2_CODING_MIRRORED, fdp_data is 1 and fdp_parity is the number
-of additional copies (e.g., fdp_parity=2 for 3-way mirroring).
-Erasure coding types registered in companion documents (e.g.,
-Reed-Solomon Vandermonde, Mojette systematic) use fdp_data &gt;= 2 and
-fdp_parity &gt;= 1.<a href="#section-8.6-4" class="pilcrow">¶</a></p>
+<p id="section-8.6-3">Although every arm of the union currently carries the same
+type, the union form is intentional.  Future revisions of this
+specification may assign distinct arm types to specific coding
+types; using a union now avoids an incompatible change to the
+XDR at that time.<a href="#section-8.6-3" class="pilcrow">¶</a></p>
+<p id="section-8.6-4">The (data, parity) tuple is interpreted per encoding type:<a href="#section-8.6-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.6-5.1">
+            <p id="section-8.6-5.1.1">FFV2_ENCODING_PASSTHROUGH preserves the FFv1-style notation
+for backward compatibility: fdp_data is 1 and fdp_parity is
+the number of additional copies (e.g., fdp_parity=2 for
+3-way mirroring).  The "1" data carrier is the file as
+stored; the fdp_parity additional copies are the FFv1
+mirror replicas.<a href="#section-8.6-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.6-5.2">
+            <p id="section-8.6-5.2.1">FFV2_ENCODING_MIRRORED uses the N+0 notation: fdp_data is
+the number of replicas (e.g., fdp_data=3 for 3-way
+mirroring) and fdp_parity <span class="bcp14">MUST</span> be 0.  Every replica is a
+full, independent data carrier; mirroring carries no
+parity reconstruction.<a href="#section-8.6-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.6-5.3">
+            <p id="section-8.6-5.3.1">Erasure coding types registered in companion documents
+(e.g., Reed-Solomon Vandermonde, Mojette systematic) use
+fdp_data &gt;= 2 and fdp_parity &gt;= 1.<a href="#section-8.6-5.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
 <span id="name-the-stripes-v2"></span><div id="fig-ffv2_stripes4">
 <figure id="figure-15">
-          <div class="lang-xdr sourcecode" id="section-8.6-5.1">
+          <div class="lang-xdr sourcecode" id="section-8.6-6.1">
 <pre>
    /// enum ffv2_striping {
    ///     FFV2_STRIPING_NONE = 0,
@@ -3966,10 +4198,13 @@ fdp_parity &gt;= 1.<a href="#section-8.6-4" class="pilcrow">¶</a></p>
 <a href="#name-the-stripes-v2" class="selfRef">The stripes v2</a>
           </figcaption></figure>
 </div>
-<p id="section-8.6-6">Each stripe contains a set of data servers in ffs_data_servers.
+<p id="section-8.6-7">Each stripe contains a set of data servers in ffs_data_servers.
 If the stripe is part of a ffv2_coding_type_data4 of
-FFV2_CODING_MIRRORED, then the length of ffs_data_servers
-<span class="bcp14">MUST</span> be 1.<a href="#section-8.6-6" class="pilcrow">¶</a></p>
+FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then the
+length of ffs_data_servers <span class="bcp14">MUST</span> be 1: under both encoding
+types each stripe's data lives on a single data server, with
+replica multiplicity expressed in ffl_mirrors rather than in
+ffs_data_servers.<a href="#section-8.6-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="ffv2key4">
@@ -4077,8 +4312,11 @@ the value of ffm_striping is FFV2_STRIPING_NONE, then the value
 of ffm_striping_unit_size <span class="bcp14">MUST</span> be 1.<a href="#section-8.8-8" class="pilcrow">¶</a></p>
 <p id="section-8.8-9">The ffm_stripes is the array of stripes for the mirror; the
 length of the array is the stripe count.  If there is no
-striping or the ffm_coding_type_data is FFV2_CODING_MIRRORED,
-then the length of ffm_stripes <span class="bcp14">MUST</span> be 1.<a href="#section-8.8-9" class="pilcrow">¶</a></p>
+striping or the ffm_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
+then the length of ffm_stripes <span class="bcp14">MUST</span> be 1.  Under
+FFV2_ENCODING_MIRRORED the file <span class="bcp14">MAY</span> be striped within each
+replica; the constraint that ffs_data_servers length is 1
+still applies, but ffm_stripes may carry multiple stripes.<a href="#section-8.8-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="ffv2layout4">
@@ -4147,15 +4385,20 @@ The time is in seconds.<a href="#section-8.9-4" class="pilcrow">¶</a></p>
           </figcaption></figure>
 </div>
 <p id="section-8.9-6">As shown in <a href="#fig-parallel-filesystem" class="auto internal xref">Figure 19</a> if the ffm_coding_type_data
-is FFV2_CODING_MIRRORED, then each of the stripes <span class="bcp14">MUST</span>
-only have 1 storage device. I.e., the length of ffs_data_servers
-<span class="bcp14">MUST</span> be 1. The other encoding types can have any number of
-storage devices.<a href="#section-8.9-6" class="pilcrow">¶</a></p>
-<p id="section-8.9-7">The abstraction here is that for FFV2_CODING_MIRRORED, each
-stripe describes exactly one data server. And for all other
-encoding types, each of the stripes describes a set of
-data servers to which the chunks are distributed. Further,
-the payload length can be different per stripe.<a href="#section-8.9-7" class="pilcrow">¶</a></p>
+is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then
+each of the stripes <span class="bcp14">MUST</span> only have 1 storage device.  I.e.,
+the length of ffs_data_servers <span class="bcp14">MUST</span> be 1.  The erasure-coding
+encoding types (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
+FFV2_ENCODING_RS_VANDERMONDE) distribute shards across multiple
+storage devices and so carry multiple entries in
+ffs_data_servers.<a href="#section-8.9-6" class="pilcrow">¶</a></p>
+<p id="section-8.9-7">The abstraction here is that for FFV2_ENCODING_PASSTHROUGH and
+FFV2_ENCODING_MIRRORED, each stripe describes exactly one data
+server.  And for the erasure-coded encoding types, each of the
+stripes describes a set of data servers to which the shards are
+distributed.  Further, the payload length can be different per
+stripe.<a href="#section-8.9-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="ffv2dataprotection4">
@@ -4289,7 +4532,8 @@ geometry dictated by policy.<a href="#section-8.11-4.4.1" class="pilcrow">¶</a>
 protection would send:<a href="#section-8.11-5" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-8.11-6">
 <pre>
-fflh_supported_types = { FFV2_CODING_MIRRORED,
+fflh_supported_types = { FFV2_ENCODING_PASSTHROUGH,
+                         FFV2_ENCODING_MIRRORED,
                          FFV2_ENCODING_MOJETTE_SYSTEMATIC,
                          FFV2_ENCODING_RS_VANDERMONDE }
 fflh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
@@ -4298,8 +4542,10 @@ fflh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
 <p id="section-8.11-7">A server with a policy of RS 4+2 for this directory would ignore
 both hints and return a layout with FFV2_ENCODING_RS_VANDERMONDE
 and (fdp_data=4, fdp_parity=2).  A server without erasure coding
-might return FFV2_CODING_MIRRORED with (fdp_data=1, fdp_parity=2)
-for 3-way mirroring.<a href="#section-8.11-7" class="pilcrow">¶</a></p>
+might return FFV2_ENCODING_MIRRORED with (fdp_data=3, fdp_parity=0)
+for 3-way mirroring with per-chunk integrity, or
+FFV2_ENCODING_PASSTHROUGH with (fdp_data=1, fdp_parity=2) for
+3-way FFv1-compatible mirroring without per-chunk integrity.<a href="#section-8.11-7" class="pilcrow">¶</a></p>
 <div id="sec-codec-negotiation">
 <section id="section-8.11.1">
           <h4 id="name-codec-negotiation">
@@ -4358,9 +4604,10 @@ understands both the file's native codec and a codec
 the client does support.  The MDS issues a layout with
 the proxy's data-server entry carrying
 FFV2_DS_FLAGS_PROXY and a coding_type the client does
-support (typically FFV2_CODING_MIRRORED for a minimal
-NFSv4.2 client, or a flat NFSv3 surface for an NFSv3
-client).  The proxy encodes and decodes on the fly
+support (typically FFV2_ENCODING_MIRRORED for a minimal
+NFSv4.2 client, or FFV2_ENCODING_PASSTHROUGH / a flat
+NFSv3 surface for an NFSv3 client).  The proxy encodes
+and decodes on the fly
 against the real DSes.  This preserves parallel I/O
 for the codec-ignorant client that the MDS-I/O
 fallback loses.  The proxy registration, directive, and
@@ -5815,14 +6062,16 @@ each of which has a ffv2_coding_type4.  The main reason to allow
 for this is to provide for either the assimilation of a non-erasure
 coded file to an erasure coded file or the exporting of an erasure
 coded file to a non-erasure coded file.<a href="#section-11.3-1" class="pilcrow">¶</a></p>
-<p id="section-11.3-2">Assume there is an additional ffv2_coding_type4 of FFV2_CODING_REED_SOLOMON
-and it needs 8 active chunks.  The user wants to actively assimilate
-a regular file.  As such, a layout might be as represented in
-<a href="#fig-example_mixing" class="auto internal xref">Figure 32</a>.  As this is an assimilation, most of the
-data reads will be satisfied by READ (see Section 18.22 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>)
-calls to index 0.  However, as this is also an active file, there
-could also be CHUNK_READ (see <a href="#sec-CHUNK_READ" class="auto internal xref">Section 25.6</a>) calls to the other
-indexes.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
+<p id="section-11.3-2">Consider a Reed-Solomon Vandermonde layout
+(FFV2_ENCODING_RS_VANDERMONDE) that needs 8 active chunks.  The
+user wants to actively assimilate a regular file.  As such, a
+layout might be as represented in <a href="#fig-example_mixing" class="auto internal xref">Figure 32</a>.  As
+this is an assimilation, most of the data reads will be satisfied
+by READ (see Section 18.22 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) calls to index 0 (the
+PASSTHROUGH mirror over the source file).  However, as this is
+also an active file, there could also be CHUNK_READ (see
+<a href="#sec-CHUNK_READ" class="auto internal xref">Section 25.6</a>) calls to the other indexes (the encoded
+mirror under construction).<a href="#section-11.3-2" class="pilcrow">¶</a></p>
 <span id="name-example-of-mixed-coding-typ"></span><div id="fig-example_mixing">
 <figure id="figure-32">
           <div class="alignLeft art-text artwork" id="section-11.3-3.1">
@@ -5834,7 +6083,7 @@ indexes.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
  |         ffs_data_servers:                           |
  |             ffv2_data_server4[0]                    |
  |                 ffv2ds_flags: 0                     |
- |         ffm_coding: FFV2_CODING_MIRRORED            |
+ |         ffm_coding: FFV2_ENCODING_PASSTHROUGH       |
  +-----------------------------------------------------+
  |     ffl_mirrors[1]:                                 |
  |         ffs_data_servers:                           |
@@ -5854,7 +6103,7 @@ indexes.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
  |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
  |             ffv2_data_server4[7]                    |
  |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
- |     ffm_coding: FFV2_CODING_REED_SOLOMON            |
+ |     ffm_coding: FFV2_ENCODING_RS_VANDERMONDE        |
  +-----------------------------------------------------+
 </pre>
 </div>
@@ -5862,27 +6111,29 @@ indexes.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
 <a href="#name-example-of-mixed-coding-typ" class="selfRef">Example of Mixed Coding Types in a Layout</a>
           </figcaption></figure>
 </div>
-<p id="section-11.3-4">When performing I/O via a FFV2_CODING_MIRRORED coding type, the
-non- transformed data will be used, Whereas with other coding types,
-a metadata header and transformed block will be sent.  Further,
-when reading data from the instance files, the client <span class="bcp14">MUST</span> be
-prepared to have one of the coding types supply data and the other
-type not to supply data.  I.e., the CHUNK_READ call to the data
-servers in mirror 1 might return rlr_eof set to true (see
-<a href="#fig-read_chunk4" class="auto internal xref">Figure 70</a>), which indicates that there is no data, where
-the READ call to the data server in mirror 0 might return eof to
-be false, which indicates that there is data.  The client <span class="bcp14">MUST</span>
-determine that there is in fact data.  An example use case is the
-active assimilation of a file to ensure integrity.  As the client
-is helping to translated the file to the new coding scheme, it is
+<p id="section-11.3-4">When performing I/O via a FFV2<em>ENCODING_PASSTHROUGH coding type,
+the non-transformed data will be used; whereas with the chunked
+coding types (FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE</em>*,
+FFV2_ENCODING_RS_VANDERMONDE), a metadata header and transformed
+block will be sent.  Further, when reading data from the
+instance files, the client <span class="bcp14">MUST</span> be prepared to have one of the
+coding types supply data and the other type not to supply data.
+I.e., the CHUNK_READ call to the data servers in mirror 1 might
+return rlr_eof set to true (see <a href="#fig-read_chunk4" class="auto internal xref">Figure 70</a>), which
+indicates that there is no data, where the READ call to the
+data server in mirror 0 might return eof to be false, which
+indicates that there is data.  The client <span class="bcp14">MUST</span> determine that
+there is in fact data.  An example use case is the active
+assimilation of a file to ensure integrity.  As the client is
+helping to translate the file to the new coding scheme, it is
 actively modifying the file.  As such, it might be sequentially
-reading the file in order to translate.  The READ calls to mirror
-0 would be returning data and the CHUNK_READ calls to mirror 1 would
-not be returning data.  As the client overwrites the file, the WRITE
-call and CHUNK_WRITE call would have data sent to all of the
-data servers.  Finally, if the client reads back a section which
-had been modified earlier, both the READ and CHUNK_READ calls would
-return data.<a href="#section-11.3-4" class="pilcrow">¶</a></p>
+reading the file in order to translate.  The READ calls to
+mirror 0 would be returning data and the CHUNK_READ calls to
+mirror 1 would not be returning data.  As the client overwrites
+the file, the WRITE call and CHUNK_WRITE call would have data
+sent to all of the data servers.  Finally, if the client reads
+back a section which had been modified earlier, both the READ
+and CHUNK_READ calls would return data.<a href="#section-11.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-rs-encoding">
@@ -6117,11 +6368,17 @@ shard size for all mirrors.<a href="#section-11.4.7-1" class="pilcrow">¶</a></p
 geometry rather than algebraic field operations.  It computes 1D
 projections of a 2D grid along selected directions.  Given enough
 projections, the original grid can be reconstructed exactly.<a href="#section-11.5.1-1" class="pilcrow">¶</a></p>
-<p id="section-11.5.1-2">The transform operates on unsigned integer elements using modular
-addition.  The element size is an implementation choice: 128-bit
-elements leverage SSE SIMD instructions; 64-bit elements are
-compatible with NEON and AVX2 vector widths.  No Galois field
-operations are required.<a href="#section-11.5.1-2" class="pilcrow">¶</a></p>
+<p id="section-11.5.1-2">The transform operates on fixed-width words combined with bitwise
+XOR -- the additive group of GF(2)^W where W is the element width
+in bits.  Encoders and decoders <span class="bcp14">MUST</span> use XOR; modular integer
+addition is not equivalent and is not interoperable.  XOR has no
+carry chain, is its own inverse (so the residual subtraction in
+reconstruction is identical to the forward accumulation), and
+scales straightforwardly to wider SIMD lanes (NEON, SSE, AVX, AVX-512)
+without requiring multiplicative Galois field operations.  The
+element width W is an implementation choice; 64-bit elements are
+the conventional choice and align well with NEON, SSE2, and AVX2
+vector widths.<a href="#section-11.5.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="grid-structure">
@@ -6165,27 +6422,40 @@ around zero:<a href="#section-11.5.3-1" class="pilcrow">¶</a></p>
 <a href="#section-11.5.4" class="section-number selfRef">11.5.4. </a><a href="#name-forward-transform-encoding" class="section-name selfRef">Forward Transform (Encoding)</a>
           </h4>
 <p id="section-11.5.4-1">For each direction (p_i, q_i), the forward transform computes a 1D
-projection.  Each bin sums the grid elements along a discrete line:<a href="#section-11.5.4-1" class="pilcrow">¶</a></p>
+projection.  Each bin XORs the grid elements that lie on a discrete
+line through the grid.  This specification adopts the bin
+convention of <span>[<a href="#NORMAND" class="cite xref">NORMAND</a>]</span>: a grid cell at (row, col) maps to bin<a href="#section-11.5.4-1" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-11.5.4-2">
 <pre>
-Projection(b, p, q) = SUM over all (row, col) where
-                       col * p - row * q + offset = b
-                       of Grid[row][col]
+b = row * p + col * q - off
 </pre><a href="#section-11.5.4-2" class="pilcrow">¶</a>
 </div>
-<p id="section-11.5.4-3">The number of bins B in a projection is:<a href="#section-11.5.4-3" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-11.5.4-4">
+<p id="section-11.5.4-3">where off is chosen so that the smallest reachable bin index is 0
+(off = min over all (row, col) in [0, Q) x [0, P) of row * p + col * q).
+All implementations <span class="bcp14">MUST</span> use this convention -- the alternative
+"transposed" convention <code>b = col * p - row * q + off</code> produces a
+different bin ordering and is not interoperable.<a href="#section-11.5.4-3" class="pilcrow">¶</a></p>
+<p id="section-11.5.4-4">The full forward transform along direction (p, q) is then:<a href="#section-11.5.4-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.5.4-5">
+<pre>
+Projection(b, p, q) = XOR over all (row, col) where
+                       row * p + col * q - off = b
+                       of Grid[row][col]
+</pre><a href="#section-11.5.4-5" class="pilcrow">¶</a>
+</div>
+<p id="section-11.5.4-6">The number of bins B in a projection is:<a href="#section-11.5.4-6" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.5.4-7">
 <pre>
 B(p, q, P, Q) = |p| * (Q - 1) + |q| * (P - 1) + 1
-</pre><a href="#section-11.5.4-4" class="pilcrow">¶</a>
+</pre><a href="#section-11.5.4-7" class="pilcrow">¶</a>
 </div>
-<p id="section-11.5.4-5">For q = 1, this simplifies to:<a href="#section-11.5.4-5" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-11.5.4-6">
+<p id="section-11.5.4-8">For q = 1, this simplifies to:<a href="#section-11.5.4-8" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.5.4-9">
 <pre>
 B = abs(p) * (Q - 1) + P
-</pre><a href="#section-11.5.4-6" class="pilcrow">¶</a>
+</pre><a href="#section-11.5.4-9" class="pilcrow">¶</a>
 </div>
-<p id="section-11.5.4-7">The byte size of the projection is B * W.<a href="#section-11.5.4-7" class="pilcrow">¶</a></p>
+<p id="section-11.5.4-10">The byte size of the projection is B * W.<a href="#section-11.5.4-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="katz-reconstruction-criterion">
@@ -6208,22 +6478,33 @@ SUM(i=1..n) |q_i| &gt;= Q    OR    SUM(i=1..n) |p_i| &gt;= P
           <h4 id="name-inverse-transform-decoding">
 <a href="#section-11.5.6" class="section-number selfRef">11.5.6. </a><a href="#name-inverse-transform-decoding" class="section-name selfRef">Inverse Transform (Decoding)</a>
           </h4>
-<p id="section-11.5.6-1">The inverse uses the corner-peeling algorithm:<a href="#section-11.5.6-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-11.5.6-2">
-<li id="section-11.5.6-2.1">
-              <p id="section-11.5.6-2.1.1">Count how many unknown elements contribute to each bin.<a href="#section-11.5.6-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-11.5.6-1">The choice of inverse algorithm is purely an implementer concern:
+all correct inverses produce byte-identical plaintext from the same
+shards and bin layout, so the choice has no on-the-wire impact.
+Two well-known algorithms apply.<a href="#section-11.5.6-1" class="pilcrow">¶</a></p>
+<p id="section-11.5.6-2">The corner-peeling algorithm:<a href="#section-11.5.6-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-11.5.6-3">
+<li id="section-11.5.6-3.1">
+              <p id="section-11.5.6-3.1.1">Count how many unknown elements contribute to each bin.<a href="#section-11.5.6-3.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-11.5.6-2.2">
-              <p id="section-11.5.6-2.2.1">Find any bin with exactly one contributor (singleton).<a href="#section-11.5.6-2.2.1" class="pilcrow">¶</a></p>
+            <li id="section-11.5.6-3.2">
+              <p id="section-11.5.6-3.2.1">Find any bin with exactly one contributor (singleton).<a href="#section-11.5.6-3.2.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-11.5.6-2.3">
-              <p id="section-11.5.6-2.3.1">Recover the element, subtract from all projections.<a href="#section-11.5.6-2.3.1" class="pilcrow">¶</a></p>
+            <li id="section-11.5.6-3.3">
+              <p id="section-11.5.6-3.3.1">Recover the element, XOR it back through all projections.<a href="#section-11.5.6-3.3.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-11.5.6-2.4">
-              <p id="section-11.5.6-2.4.1">Repeat until all elements are recovered.<a href="#section-11.5.6-2.4.1" class="pilcrow">¶</a></p>
+            <li id="section-11.5.6-3.4">
+              <p id="section-11.5.6-3.4.1">Repeat until all elements are recovered.<a href="#section-11.5.6-3.4.1" class="pilcrow">¶</a></p>
 </li>
           </ol>
-<p id="section-11.5.6-3">The algorithm is O(n * P * Q).<a href="#section-11.5.6-3" class="pilcrow">¶</a></p>
+<p id="section-11.5.6-4">Corner peeling runs in O(n * P * Q) and is the simplest correct
+inverse.  Implementations <span class="bcp14">MAY</span> instead use the geometry-driven
+inverse of <span>[<a href="#NORMAND" class="cite xref">NORMAND</a>]</span>, which precomputes a recurrence over the
+sorted projection slopes and walks each line once: it eliminates
+the inner singleton search and runs substantially faster on the
+parameter ranges typical of FFv2 deployments (high redundancy,
+wide stripes), with no change to the shards or to the
+reconstructed plaintext.<a href="#section-11.5.6-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="systematic-mojette">
@@ -7363,15 +7644,16 @@ Similarly, a client <span class="bcp14">MUST NOT</span> issue DEALLOCATE against
 file; see the next subsection.<a href="#section-13.2.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="mirrored-data-files-ffv2codingmirrored">
+<div id="passthrough-data-files-ffv2encodingpassthrough">
 <section id="section-13.2.4">
-          <h4 id="name-mirrored-data-files-ffv2_co">
-<a href="#section-13.2.4" class="section-number selfRef">13.2.4. </a><a href="#name-mirrored-data-files-ffv2_co" class="section-name selfRef">Mirrored Data Files (FFV2_CODING_MIRRORED)</a>
+          <h4 id="name-passthrough-data-files-ffv2">
+<a href="#section-13.2.4" class="section-number selfRef">13.2.4. </a><a href="#name-passthrough-data-files-ffv2" class="section-name selfRef">PASSTHROUGH Data Files (FFV2_ENCODING_PASSTHROUGH)</a>
           </h4>
-<p id="section-13.2.4-1">For a mirror whose ffm_coding_type_data is FFV2_CODING_MIRRORED
-(see <a href="#sec-ffv2-mirror4" class="auto internal xref">Section 8.8</a>), client operations on the data file
-follow the same pattern as the File Layout Type in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>
-Section 13.6 and the Flex Files v1 Layout Type in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>:<a href="#section-13.2.4-1" class="pilcrow">¶</a></p>
+<p id="section-13.2.4-1">For a mirror whose ffm_coding_type_data is
+FFV2_ENCODING_PASSTHROUGH (see <a href="#sec-encoding-passthrough" class="auto internal xref">Section 8.1.2</a>),
+client operations on the data file follow the same pattern as
+the File Layout Type in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 13.6 and the
+Flex Files v1 Layout Type in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>:<a href="#section-13.2.4-1" class="pilcrow">¶</a></p>
 <p id="section-13.2.4-2">Required:<a href="#section-13.2.4-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-13.2.4-3.1">
@@ -7407,14 +7689,14 @@ fans out to the data servers as a control-plane operation.<a href="#section-13.2
           </ul>
 </section>
 </div>
-<div id="erasure-coded-data-files-ffv2encoding">
+<div id="chunked-data-files-ffv2encodingmirrored-ffv2encodingmojette-ffv2encodingrsvandermonde">
 <section id="section-13.2.5">
-          <h4 id="name-erasure-coded-data-files-ff">
-<a href="#section-13.2.5" class="section-number selfRef">13.2.5. </a><a href="#name-erasure-coded-data-files-ff" class="section-name selfRef">Erasure-Coded Data Files (FFV2<em>ENCODING</em>*)</a>
+          <h4 id="name-chunked-data-files-ffv2-enc">
+<a href="#section-13.2.5" class="section-number selfRef">13.2.5. </a><a href="#name-chunked-data-files-ffv2-enc" class="section-name selfRef">Chunked Data Files (FFV2<em>ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE</em>*, FFV2_ENCODING_RS_VANDERMONDE)</a>
           </h4>
-<p id="section-13.2.5-1">For a mirror whose ffm_coding_type_data is any of the erasure-
+<p id="section-13.2.5-1">For a mirror whose ffm_coding_type_data is any of the chunked
 coding types defined in this document
-(FFV2<em>ENCODING_MOJETTE_SYSTEMATIC,
+(FFV2<em>ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
 FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
 FFV2_ENCODING_RS_VANDERMONDE), client operations use the CHUNK</em>*
 operations rather than READ / WRITE / COMMIT.<a href="#section-13.2.5-1" class="pilcrow">¶</a></p>
@@ -11487,7 +11769,7 @@ encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table
           <p id="section-28-7.2.1">Encoding types intended for broad interoperability.  The
 specification <span class="bcp14">MUST</span> include a complete mathematical description
 sufficient for independent interoperable implementations (see
-<a href="#encoding-type-interoperability" class="auto internal xref">Section 8.1.1</a>).  Allocated by IETF Review.<a href="#section-28-7.2.1" class="pilcrow">¶</a></p>
+<a href="#encoding-type-interoperability" class="auto internal xref">Section 8.1.4</a>).  Allocated by IETF Review.<a href="#section-28-7.2.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-28-7.3">Experimental (0x0100-0x0FFF)</dt>
@@ -11527,17 +11809,19 @@ it as an unsupported encoding type.<a href="#section-28-7.8.1" class="pilcrow">�
 <p id="section-28-8">This partitioning prevents contention for small numbers in the
 Standards Track range and provides a clear signal to clients about
 what level of interoperability to expect.<a href="#section-28-8" class="pilcrow">¶</a></p>
-<p id="section-28-9">This document defines the FFV2_CODING_MIRRORED type for Client-Side
-Mirroring (see <a href="#tbl-coding-types" class="auto internal xref">Table 14</a>).<a href="#section-28-9" class="pilcrow">¶</a></p>
+<p id="section-28-9">This document defines five encoding types: the FFv1-compatible
+PASSTHROUGH (see <a href="#sec-encoding-passthrough" class="auto internal xref">Section 8.1.2</a>), the chunked
+MIRRORED (see <a href="#sec-encoding-mirrored" class="auto internal xref">Section 8.1.3</a>), and three chunked
+erasure-coding types (see <a href="#tbl-coding-types" class="auto internal xref">Table 14</a>).<a href="#section-28-9" class="pilcrow">¶</a></p>
 <span id="name-flexible-file-version-2-layo"></span><div id="tbl-coding-types">
 <table class="center" id="table-14">
         <caption>
 <a href="#table-14" class="selfRef">Table 14</a>:
-<a href="#name-flexible-file-version-2-layo" class="selfRef">Flexible File Version 2 Layout Type Erasure Coding Type Assignments</a>
+<a href="#name-flexible-file-version-2-layo" class="selfRef">Flexible File Version 2 Layout Type Encoding Type Assignments</a>
         </caption>
 <thead>
           <tr>
-            <th class="text-left" rowspan="1" colspan="1">Erasure Coding Type Name</th>
+            <th class="text-left" rowspan="1" colspan="1">Encoding Type Name</th>
             <th class="text-left" rowspan="1" colspan="1">Value</th>
             <th class="text-left" rowspan="1" colspan="1">RFC</th>
             <th class="text-left" rowspan="1" colspan="1">How</th>
@@ -11546,7 +11830,7 @@ Mirroring (see <a href="#tbl-coding-types" class="auto internal xref">Table 14</
         </thead>
         <tbody>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">FFV2_CODING_MIRRORED</td>
+            <td class="text-left" rowspan="1" colspan="1">FFV2_ENCODING_PASSTHROUGH</td>
             <td class="text-left" rowspan="1" colspan="1">1</td>
             <td class="text-left" rowspan="1" colspan="1">RFCTBD10</td>
             <td class="text-left" rowspan="1" colspan="1">L</td>
@@ -11569,6 +11853,13 @@ Mirroring (see <a href="#tbl-coding-types" class="auto internal xref">Table 14</
           <tr>
             <td class="text-left" rowspan="1" colspan="1">FFV2_ENCODING_RS_VANDERMONDE</td>
             <td class="text-left" rowspan="1" colspan="1">4</td>
+            <td class="text-left" rowspan="1" colspan="1">RFCTBD10</td>
+            <td class="text-left" rowspan="1" colspan="1">L</td>
+            <td class="text-left" rowspan="1" colspan="1">2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">FFV2_ENCODING_MIRRORED</td>
+            <td class="text-left" rowspan="1" colspan="1">5</td>
             <td class="text-left" rowspan="1" colspan="1">RFCTBD10</td>
             <td class="text-left" rowspan="1" colspan="1">L</td>
             <td class="text-left" rowspan="1" colspan="1">2</td>
@@ -12481,9 +12772,12 @@ which is the property the working group asked for.<a href="#section-33.5-3" clas
 <p id="section-34-1">The following from Hammerspace were instrumental in driving Flexible
 File Version 2 Layout Type: David Flynn, Trond Myklebust, Didier
 Feron, Jean-Pierre Monchanin, Pierre Evenou, and Brian Pawlowski.<a href="#section-34-1" class="pilcrow">¶</a></p>
-<p id="section-34-2">Pierre Evenou contributed the Mojette Transform encoding type
-specification, drawing on the work of Nicolas Normand, Benoit Parrein,
-and the discrete geometry research group at the University of Nantes.<a href="#section-34-2" class="pilcrow">¶</a></p>
+<p id="section-34-2">The Mojette Transform encoding type specification in
+<a href="#sec-mojette-encoding" class="auto internal xref">Section 11.5</a> -- including the algebra, the bin
+convention, the projection sizing, and the reconstruction
+algorithms -- was contributed by Pierre Evenou, drawing on the
+work of Nicolas Normand, Benoit Parrein, and the discrete
+geometry research group at the University of Nantes.<a href="#section-34-2" class="pilcrow">¶</a></p>
 <p id="section-34-3">Christoph Hellwig was instrumental in making sure the Flexible File
 Version 2 Layout Type was applicable to more than the Mojette
 Transformation.<a href="#section-34-3" class="pilcrow">¶</a></p>
