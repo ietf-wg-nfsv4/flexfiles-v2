@@ -7370,10 +7370,7 @@ While the XDR can be appended to that from {{RFC7863}}, the various
 code snippets belong in their respective areas of that XDR.
 
 # Implementation Status {#sec-implementation-status}
-{:numbered="false"}
-
-Note to RFC Editor: please remove this section prior to publication,
-per {{RFC7942}}.
+{:numbered="false" removeInRFC="true"}
 
 This section records the implementation status of this specification
 at the time of writing.  The purpose, per {{RFC7942}}, is to help
@@ -7807,7 +7804,7 @@ localises consistency decisions to the chunks being written
 rather than to a global mapping table.
 
 # Working Group Concern: Codec on Every Client {#sec-wg-concern-codec-on-client}
-{:numbered="false"}
+{:numbered="false" removeInRFC="true"}
 
 ## Source
 {:numbered="false"}
@@ -7910,7 +7907,7 @@ any storage gateway pays.  It does not affect codec-aware clients,
 which talk to the DSes directly.
 
 # Working Group Concern: Coherent Multi-DS Writes Without Recall Storms {#sec-wg-concern-recall-storms}
-{:numbered="false"}
+{:numbered="false" removeInRFC="true"}
 
 ## Source
 {:numbered="false"}
