@@ -1575,7 +1575,7 @@ policies.
 
 ### Heterogeneous Mirror Sets {#sec-heterogeneous-mirrors}
 
-A single flexible file v2 layout's `ffl_mirrors` array MAY carry mirror
+A single flexible file v2 layout's `ffv2l_mirrors` array MAY carry mirror
 entries of different encoding types.  The protocol does not
 require the entries to agree -- one mirror can be
 FFV2_ENCODING_PASSTHROUGH, another can be
@@ -1831,8 +1831,8 @@ prevent collisions across concurrent writers.
 
 ~~~ xdr
    /// struct ffv2_file_info4 {
-   ///     stateid4                fffi_stateid;
-   ///     nfs_fh4                 fffi_fh_vers;
+   ///     stateid4                ffv2fi_stateid;
+   ///     nfs_fh4                 ffv2fi_fh_vers;
    /// };
 ~~~
 {: #fig-ffv2_file_info4 title="The ffv2_file_info4" }
@@ -1979,28 +1979,28 @@ The (data, parity) tuple is interpreted per encoding type:
    /// };
    ///
    /// struct ffv2_stripes4 {
-   ///         ffv2_data_server4       ffs_data_servers<>;
+   ///         ffv2_data_server4       ffv2s_data_servers<>;
    /// };
 ~~~
 {: #fig-ffv2_stripes4 title="The stripes v2"}
 
-Each stripe contains a set of data servers in ffs_data_servers.
+Each stripe contains a set of data servers in ffv2s_data_servers.
 If the stripe is part of a ffv2_coding_type_data4 of
 FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then the
-length of ffs_data_servers MUST be 1: under both encoding
+length of ffv2s_data_servers MUST be 1: under both encoding
 types each stripe's data lives on a single data server, with
-replica multiplicity expressed in ffl_mirrors rather than in
-ffs_data_servers.
+replica multiplicity expressed in ffv2l_mirrors rather than in
+ffv2s_data_servers.
 
 ## ffv2_mirror4 {#sec-ffv2-mirror4}
 
 ~~~ xdr
    /// struct ffv2_mirror4 {
-   ///         ffv2_coding_type_data4  ffm_coding_type_data;
-   ///         ffv2_striping           ffm_striping;
-   ///         uint32_t                ffm_striping_unit_size;
-   ///         uint32_t                ffm_client_id;
-   ///         ffv2_stripes4           ffm_stripes<>;
+   ///         ffv2_coding_type_data4  ffv2m_coding_type_data;
+   ///         ffv2_striping           ffv2m_striping;
+   ///         uint32_t                ffv2m_striping_unit_size;
+   ///         uint32_t                ffv2m_client_id;
+   ///         ffv2_stripes4           ffv2m_stripes<>;
    /// };
 ~~~
 {: #fig-ffv2_mirror4 title="The ffv2_mirror4" }
@@ -2008,7 +2008,7 @@ ffs_data_servers.
 The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) describes the Flexible
 File Layout Version 2 specific fields.
 
-The ffm_client_id is a 32-bit value, assigned by the metadata
+The ffv2m_client_id is a 32-bit value, assigned by the metadata
 server at layout-grant time, that the client MUST use as the
 cg_client_id field of chunk_guard4 (see {{sec-chunk_guard4}}) in
 every CHUNK_WRITE it issues against the mirror's data servers.
@@ -2025,10 +2025,10 @@ writers on the same file are distinguishable:
 
 -  Only the metadata server has the information needed to avoid
    such collisions: it sees every layout it grants on a file and
-   can assign a dense 32-bit ffm_client_id that is guaranteed
-   distinct from the ffm_client_ids assigned to other clients
+   can assign a dense 32-bit ffv2m_client_id that is guaranteed
+   distinct from the ffv2m_client_ids assigned to other clients
    holding concurrent write layouts on the same file.  The
-   metadata server MUST assign ffm_client_id subject to this
+   metadata server MUST assign ffv2m_client_id subject to this
    uniqueness rule.
 
 -  Because cg_client_id participates in the deterministic
@@ -2040,19 +2040,19 @@ writers on the same file are distinguishable:
    scope for this document, but the protocol mechanism is
    present.
 
-An ffm_client_id is scoped to the file and layout for which it
+An ffv2m_client_id is scoped to the file and layout for which it
 was granted.  A client that holds layouts on two different files
-may receive two different ffm_client_ids from the same metadata
+may receive two different ffv2m_client_ids from the same metadata
 server, and a client that relinquishes and later re-acquires a
-layout on a given file MAY be assigned a different ffm_client_id.
-ffm_client_id does NOT survive a metadata server restart: the
+layout on a given file MAY be assigned a different ffv2m_client_id.
+ffv2m_client_id does NOT survive a metadata server restart: the
 metadata server reassigns values as clients reclaim layouts
 during the grace period.
 
-The ffm_coding_type_data is which encoding type is used
+The ffv2m_coding_type_data is which encoding type is used
 by the mirror.
 
-The ffm_striping selects the striping method used by the
+The ffv2m_striping selects the striping method used by the
 mirror.  The three permissible values are FFV2_STRIPING_NONE
 (the mirror is not striped), FFV2_STRIPING_SPARSE (stripe units
 are mapped to the same physical offset on every data server,
@@ -2060,26 +2060,26 @@ leaving holes), and FFV2_STRIPING_DENSE (stripe units are
 packed contiguously on each data server without holes).  See
 {{sec-striping}} for the mapping math for each option.
 
-The ffm_striping_unit_size is the stripe unit size used
+The ffv2m_striping_unit_size is the stripe unit size used
 by the mirror.  The minimum stripe unit size is 64 bytes.  If
-the value of ffm_striping is FFV2_STRIPING_NONE, then the value
-of ffm_striping_unit_size MUST be 1.
+the value of ffv2m_striping is FFV2_STRIPING_NONE, then the value
+of ffv2m_striping_unit_size MUST be 1.
 
-The ffm_stripes is the array of stripes for the mirror; the
+The ffv2m_stripes is the array of stripes for the mirror; the
 length of the array is the stripe count.  If there is no
-striping or the ffm_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
-then the length of ffm_stripes MUST be 1.  Under
+striping or the ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
+then the length of ffv2m_stripes MUST be 1.  Under
 FFV2_ENCODING_MIRRORED the file MAY be striped within each
-replica; the constraint that ffs_data_servers length is 1
-still applies, but ffm_stripes may carry multiple stripes.
+replica; the constraint that ffv2s_data_servers length is 1
+still applies, but ffv2m_stripes may carry multiple stripes.
 
 ## ffv2_layout4
 
 ~~~ xdr
    /// struct ffv2_layout4 {
-   ///     ffv2_mirror4            ffl_mirrors<>;
-   ///     ffv2_flags4             ffl_flags;
-   ///     uint32_t                ffl_stats_collect_hint;
+   ///     ffv2_mirror4            ffv2l_mirrors<>;
+   ///     ffv2_flags4             ffv2l_flags;
+   ///     uint32_t                ffv2l_stats_collect_hint;
    /// };
 ~~~
 {: #fig-ffv2_layout4 title="The ffv2_layout4" }
@@ -2087,10 +2087,10 @@ still applies, but ffm_stripes may carry multiple stripes.
 The ffv2_layout4 (in {{fig-ffv2_layout4}}) describes the Flexible
 File Layout Version 2.
 
-The ffl_mirrors field is the array of mirrored storage devices that
+The ffv2l_mirrors field is the array of mirrored storage devices that
 provide the storage for the current stripe; see {{fig-parallel-filesystem}}.
 
-The ffl_stats_collect_hint field provides a hint to the client on
+The ffv2l_stats_collect_hint field provides a hint to the client on
 how often the server wants it to report LAYOUTSTATS for a file.
 The time is in seconds.
 
@@ -2126,15 +2126,15 @@ The time is in seconds.
 ~~~
 {: #fig-parallel-filesystem title="The Relationship between MDS and DSes"}
 
-As shown in {{fig-parallel-filesystem}} if the ffm_coding_type_data
+As shown in {{fig-parallel-filesystem}} if the ffv2m_coding_type_data
 is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then
 each of the stripes MUST only have 1 storage device.  I.e.,
-the length of ffs_data_servers MUST be 1.  The erasure-coding
+the length of ffv2s_data_servers MUST be 1.  The erasure-coding
 encoding types (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
 FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
 FFV2_ENCODING_RS_VANDERMONDE) distribute shards across multiple
 storage devices and so carry multiple entries in
-ffs_data_servers.
+ffv2s_data_servers.
 
 The abstraction here is that for FFV2_ENCODING_PASSTHROUGH and
 FFV2_ENCODING_MIRRORED, each stripe describes exactly one data
@@ -2182,8 +2182,8 @@ The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
 
 ~~~ xdr
    /// struct ffv2_layouthint4 {
-   ///     ffv2_coding_type4       fflh_supported_types<>;
-   ///     ffv2_data_protection4   fflh_preferred_protection;
+   ///     ffv2_coding_type4       ffv2lh_supported_types<>;
+   ///     ffv2_data_protection4   ffv2lh_preferred_protection;
    /// };
 ~~~
 {: #fig-ffv2_layouthint4 title="The ffv2_layouthint4" }
@@ -2194,7 +2194,7 @@ provide to the metadata server.
 
 The client provides two hints:
 
-fflh_supported_types
+ffv2lh_supported_types
 
 :  An ordered list of coding types the client supports,
 with the most preferred type first.  The server SHOULD select a type
@@ -2203,7 +2203,7 @@ does not support any of the listed types, it returns
 NFS4ERR_CODING_NOT_SUPPORTED, and the client can retry
 with a different list to discover the overlapping set.
 
-fflh_preferred_protection
+ffv2lh_preferred_protection
 
 :  The client's preferred data protection geometry as a
 (fdp_data, fdp_parity) pair.  The server SHOULD honor this hint but
@@ -2216,11 +2216,11 @@ For example, a client that prefers Mojette systematic with 8+2
 protection would send:
 
 ~~~
-fflh_supported_types = { FFV2_ENCODING_PASSTHROUGH,
+ffv2lh_supported_types = { FFV2_ENCODING_PASSTHROUGH,
                          FFV2_ENCODING_MIRRORED,
                          FFV2_ENCODING_MOJETTE_SYSTEMATIC,
                          FFV2_ENCODING_RS_VANDERMONDE }
-fflh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
+ffv2lh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
 ~~~
 
 A server with a policy of RS 4+2 for this directory would ignore
@@ -2243,14 +2243,14 @@ the negotiation surface:
 Client-side advertisement:
 :  A client that wishes to influence codec selection SHOULD
    send the set of codecs it actually implements in
-   fflh_supported_types.  A client MUST NOT claim support for
+   ffv2lh_supported_types.  A client MUST NOT claim support for
    a codec it cannot encode or decode: a false advertisement
    produces silent data unavailability when the resulting layout
    is issued.
 
 Metadata-server selection:
 :  The metadata server SHOULD select a codec from the client's
-   fflh_supported_types list when the server's policy permits.
+   ffv2lh_supported_types list when the server's policy permits.
    The server MAY override the hint when its policy dictates a
    specific codec (for example, per-export objectives); in that
    case the server issues a layout with the policy-dictated
@@ -2263,7 +2263,7 @@ Fallback when no overlap exists:
 
    1.  Return NFS4ERR_CODING_NOT_SUPPORTED on the LAYOUTGET.
        The client MAY retry with a different (possibly empty)
-       fflh_supported_types list to learn the server's codec
+       ffv2lh_supported_types list to learn the server's codec
        repertoire through the errors returned.
 
    2.  Fall back to I/O via the metadata server itself, so the
@@ -2313,11 +2313,11 @@ per-request negotiation surface; adding a session-level
 capability set would duplicate it and would complicate codec
 upgrades without additional value, because a client that
 genuinely upgrades its codec set at runtime can simply update
-the fflh_supported_types on its next LAYOUTGET.
+the ffv2lh_supported_types on its next LAYOUTGET.
 
 Note: In {{fig-ffv2_layout4}} ffv2_coding_type_data4 is an enumerated
 union with the payload of each arm being defined by the protection
-type. ffm_client_id tells the client which id to use when interacting
+type. ffv2m_client_id tells the client which id to use when interacting
 with the data servers.
 
 The ffv2_layout4 structure (see {{fig-ffv2_layout4}}) specifies a layout
@@ -2333,12 +2333,12 @@ each ffv2_layout4 also describes a layout segment.  It is possible
 that the file is concatenated from more than one layout segment.
 Each layout segment MAY represent different striping parameters.
 
-The ffm_striping_unit_size field (inside each ffv2_mirror4) is
+The ffv2m_striping_unit_size field (inside each ffv2_mirror4) is
 the stripe unit size in use for that mirror.  The number of
-stripes is given by the number of elements in ffs_data_servers
+stripes is given by the number of elements in ffv2s_data_servers
 within each ffv2_stripes4.  If the number of stripes is one,
-then ffm_striping_unit_size MUST be zero.  The mapping scheme
-(sparse or dense) is selected per mirror by ffm_striping and is
+then ffv2m_striping_unit_size MUST be zero.  The mapping scheme
+(sparse or dense) is selected per mirror by ffv2m_striping and is
 detailed in {{sec-striping}}.
 
 Stripe unit size and stripe count MAY differ between mirrors in
@@ -2351,7 +2351,7 @@ internally; cross-mirror coherence is at the byte level (every
 mirror represents the same file bytes), not at the stripe-geometry
 level.
 
-The ffl_mirrors field represents an array of state information for
+The ffv2l_mirrors field represents an array of state information for
 each mirrored copy of the current layout segment.  Each element is
 described by a ffv2_mirror4 type.
 
@@ -2359,7 +2359,7 @@ ffv2ds_deviceid provides the deviceid of the storage device holding
 the data file.
 
 ffv2ds_file_info is an array of ffv2_file_info4 structures, each
-pairing a filehandle (fffi_fh_vers) with a stateid (fffi_stateid).
+pairing a filehandle (ffv2fi_fh_vers) with a stateid (ffv2fi_stateid).
 There MUST be exactly as many elements in ffv2ds_file_info as there
 are in ffda_versions.  Each element of the array corresponds to a
 particular combination of ffdv_version, ffdv_minorversion, and
@@ -2369,9 +2369,9 @@ for different combinations of version, minor version, and coupling
 strength.  See {{sec-version-errors}} for how to handle versioning
 issues between the client and storage devices.
 
-For tight coupling, fffi_stateid provides the stateid to be used
+For tight coupling, ffv2fi_stateid provides the stateid to be used
 by the client to access the file.  The metadata server registers
-fffi_stateid with each tight-coupling-capable storage device via
+ffv2fi_stateid with each tight-coupling-capable storage device via
 TRUST_STATEID (see {{sec-tight-coupling-control}}) before returning
 the layout; the storage device validates subsequent CHUNK operations
 against its trust table.
@@ -2380,18 +2380,18 @@ For loose coupling and an NFSv4 storage device, the client MUST use
 the anonymous stateid to perform I/O on the storage device, because
 the metadata server stateid has no meaning to a storage device that
 is not participating in the control protocol.  In this case the
-metadata server MUST set fffi_stateid to the anonymous stateid.
+metadata server MUST set ffv2fi_stateid to the anonymous stateid.
 
 For an NFSv3 storage device (ffdv_version = 3), the tight-coupling
 model does not apply: {{sec-ff_device_addr4}} requires
 ffdv_tightly_coupled to be FALSE whenever ffdv_version equals 3,
 because NFSv3 has no wire encoding for stateids.  The corresponding
-fffi_stateid element in the ffv2ds_file_info array MUST therefore
+ffv2fi_stateid element in the ffv2ds_file_info array MUST therefore
 be the anonymous stateid and is unused; an NFSv3 data server uses
 the synthetic-uid fencing model (see {{sec-Fencing-Clients}})
 rather than a stateid-based trust table.
 
-This specification of the fffi_stateid restricts both models for
+This specification of the ffv2fi_stateid restricts both models for
 NFSv4.x storage protocols:
 
 loosely couple
@@ -2402,7 +2402,7 @@ tightly couple
 
 :  the stateid has to be a global stateid
 
-By pairing each fffi_fh_vers with its own fffi_stateid inside
+By pairing each ffv2fi_fh_vers with its own ffv2fi_stateid inside
 ffv2_file_info4, the v2 layout addresses the v1 limitation where a
 singleton stateid was shared across all filehandles.  Each open file
 on the storage device can now have its own stateid, eliminating the
@@ -2483,7 +2483,7 @@ filehandles, they are independent of the multipathing being used.
 If the metadata server wants to provide multiple read-only copies
 of the same file on the same storage device, then it should provide
 multiple mirrored instances, each with a different ff_device_addr4.
-The client can then determine that, since each of the fffi_fh_vers
+The client can then determine that, since each of the ffv2fi_fh_vers
 values within ffv2ds_file_info are different, there are multiple
 copies of the file for the current layout segment available.
 
@@ -2497,7 +2497,7 @@ and ffdv_tightly_coupled.  However, due to the limitations of
 reporting errors in GETDEVICEINFO (see Section 18.40 in {{RFC8881}}),
 the client is not able to specify which specific device it cannot
 communicate with over one of the provided ffdv_version and
-ffdv_minorversion combinations.  Using ff_ioerr4 ({{sec-ff_ioerr4}})
+ffdv_minorversion combinations.  Using ffv2_ioerr4 ({{sec-ffv2_ioerr4}})
 inside either the LAYOUTRETURN (see Section 18.44 of {{RFC8881}})
 or the LAYOUTERROR (see Section 15.6 of {{RFC7862}} and {{sec-LAYOUTERROR}}
 of this document), the client can isolate the problematic storage
@@ -2518,13 +2518,13 @@ back to doing the I/O through the metadata server.
 The flexible file v2 layout version 2 inherits the dense and
 sparse striping dispositions defined by the file layout type in
 Section 13.4 of {{RFC8881}}.  The disposition for a given
-mirror is selected by the ffm_striping field (see
+mirror is selected by the ffv2m_striping field (see
 {{sec-ffv2-mirror4}}) and applies to every data server in that
-mirror's ffs_data_servers list.  Three values are permitted:
+mirror's ffv2s_data_servers list.  Three values are permitted:
 
 FFV2_STRIPING_NONE:
-:  The mirror is not striped.  ffm_striping_unit_size MUST be 1
-   and ffm_stripes MUST contain exactly one stripe.  The entire
+:  The mirror is not striped.  ffv2m_striping_unit_size MUST be 1
+   and ffv2m_stripes MUST contain exactly one stripe.  The entire
    mirror lives on that stripe's single data server list, with
    no offset transformation.
 
@@ -2550,8 +2550,8 @@ The mapping math for sparse and dense is given in
 
 ~~~
 L: logical offset within the file (bytes)
-U: stripe-unit size in bytes  = ffm_striping_unit_size
-W: stripe width               = length of ffs_data_servers
+U: stripe-unit size in bytes  = ffv2m_striping_unit_size
+W: stripe width               = length of ffv2s_data_servers
 S: stripe size in bytes       = W * U
 N: stripe number              = L / S
 i: index (0-based) of the data server that owns L
@@ -2579,8 +2579,8 @@ The pNFS client may encounter errors when directly accessing the
 storage devices.  However, it is the responsibility of the metadata
 server to recover from the I/O errors.  When the LAYOUT4_FLEX_FILES
 layout type is used, the client MUST report the I/O errors to the
-server at LAYOUTRETURN time using the ff_ioerr4 structure (see
-{{sec-ff_ioerr4}}).
+server at LAYOUTRETURN time using the ffv2_ioerr4 structure (see
+{{sec-ffv2_ioerr4}}).
 
 The metadata server analyzes the error and determines the required
 recovery operations such as recovering media failures or reconstructing
@@ -2631,7 +2631,7 @@ it is informed of via the layout.  If a layout segment is being
 resilvered to a storage device, that mirrored copy will not be in
 the layout.  Thus, the metadata server MUST update that copy until
 the client is presented it in a layout.  If the FF_FLAGS_WRITE_ONE_MIRROR
-is set in ffl_flags, the client need only update one of the mirrors
+is set in ffv2l_flags, the client need only update one of the mirrors
 (see {{sec-write-mirrors}}).  If the client is writing to the layout
 segments via the metadata server, then the metadata server MUST
 update all copies of the mirror.  As seen in {{sec-mds-resilvering}},
@@ -2665,7 +2665,7 @@ segments are presented below.
 
 ####  Single Storage Device Updates Mirrors
 
-If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is set, the
+If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffv2l_flags is set, the
 client MAY update just one of the copies of the layout segment.
 For this case, the storage device MUST ensure that all copies of
 the mirror are updated when any one of the mirrors is updated.  If
@@ -2679,7 +2679,7 @@ when making this choice.
 
 ####  Client Updates All Mirrors
 
-If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffl_flags is not set, the
+If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffv2l_flags is not set, the
 client is responsible for updating all mirrored copies of the layout
 segments that it is given in the layout.  A single failed update
 is sufficient to fail the entire operation.  If all but one copy
@@ -2717,8 +2717,8 @@ forced to repair the file across the mirror.
 If the client supports NFSv4.2, it can use LAYOUTERROR and LAYOUTRETURN
 to provide hints to the metadata server about the recovery efforts.
 A LAYOUTERROR on a file is for a non-fatal error.  A subsequent
-LAYOUTRETURN without a ff_ioerr4 indicates that the client successfully
-replayed the I/O to all mirrors.  Any LAYOUTRETURN with a ff_ioerr4
+LAYOUTRETURN without a ffv2_ioerr4 indicates that the client successfully
+replayed the I/O to all mirrors.  Any LAYOUTRETURN with a ffv2_ioerr4
 is an error that the metadata server needs to repair.  The client
 MUST be prepared for the LAYOUTERROR to trigger a CB_LAYOUTRECALL
 if the metadata server determines it needs to start repairing the
@@ -3061,7 +3061,7 @@ server has data integrity.
 
 There are two basic writing modes for erasure coding and they depend
 on the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER in the
-ffl_flags in the ffv2_layout4 (see {{fig-ffv2_layout4}}) to inform
+ffv2l_flags in the ffv2_layout4 (see {{fig-ffv2_layout4}}) to inform
 the client whether it is the only writer to the file or not.  If
 it is the only writer, then CHUNK_WRITE with the cwa_guard not set
 can be used to write chunks.  In this scenario, there is no write
@@ -3318,7 +3318,7 @@ NFS4ERR_PAYLOAD_LOST on the CB_CHUNK_REPAIR response.
 #### Single Writer Mode
 
 In single writer mode, the metadata server sets FFV2_FLAGS_ONLY_ONE_WRITER
-in ffl_flags, indicating that no other client holds a write layout for
+in ffv2l_flags, indicating that no other client holds a write layout for
 the file.  The client sends CHUNK_WRITE with cwa_guard.cwg_check set to
 FALSE, omitting the guard value.  Because only one writer is active,
 there is no risk of two clients overwriting the same chunk concurrently.
@@ -3521,14 +3521,14 @@ mirror under construction).
  +-----------------------------------------------------+
  | ffv2_layout4:                                       |
  +-----------------------------------------------------+
- |     ffl_mirrors[0]:                                 |
- |         ffs_data_servers:                           |
+ |     ffv2l_mirrors[0]:                                 |
+ |         ffv2s_data_servers:                           |
  |             ffv2_data_server4[0]                    |
  |                 ffv2ds_flags: 0                     |
- |         ffm_coding: FFV2_ENCODING_PASSTHROUGH       |
+ |         ffv2m_coding: FFV2_ENCODING_PASSTHROUGH       |
  +-----------------------------------------------------+
- |     ffl_mirrors[1]:                                 |
- |         ffs_data_servers:                           |
+ |     ffv2l_mirrors[1]:                                 |
+ |         ffv2s_data_servers:                           |
  |             ffv2_data_server4[0]                    |
  |                 ffv2ds_flags: FFV2_DS_FLAGS_ACTIVE  |
  |             ffv2_data_server4[1]                    |
@@ -3545,7 +3545,7 @@ mirror under construction).
  |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
  |             ffv2_data_server4[7]                    |
  |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
- |     ffm_coding: FFV2_ENCODING_RS_VANDERMONDE        |
+ |     ffv2m_coding: FFV2_ENCODING_RS_VANDERMONDE        |
  +-----------------------------------------------------+
 ~~~
 {: #fig-example_mixing title="Example of Mixed Coding Types in a Layout" }
@@ -4249,7 +4249,7 @@ Applications that require byte-level write merging or sub-chunk
 ordering guarantees MUST serialize such writes externally, for
 example via NFSv4 byte-range locks ({{RFC8881}}, Section 12).
 The chunk size that bounds the atomicity unit for a given file
-is the product of ffm_striping_unit_size and the stripe width
+is the product of ffv2m_striping_unit_size and the stripe width
 W in {{fig-striping-math}}; applications can query
 fattr4_coding_block_size (see {{sec-fattr4_coding_block_size}})
 to learn the effective chunk size and align their writes
@@ -4686,7 +4686,7 @@ file; see the next subsection.
 
 ### PASSTHROUGH Data Files (FFV2_ENCODING_PASSTHROUGH)
 
-For a mirror whose ffm_coding_type_data is
+For a mirror whose ffv2m_coding_type_data is
 FFV2_ENCODING_PASSTHROUGH (see {{sec-encoding-passthrough}}),
 client operations on the data file follow the same pattern as
 the File Layout Type in {{RFC8881}} Section 13.6 and the
@@ -4713,7 +4713,7 @@ The client MUST NOT send:
 
 ### Chunked Data Files (FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_*, FFV2_ENCODING_RS_VANDERMONDE)
 
-For a mirror whose ffm_coding_type_data is any of the chunked
+For a mirror whose ffv2m_coding_type_data is any of the chunked
 coding types defined in this document
 (FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
 FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
@@ -4743,7 +4743,7 @@ Clients MUST NOT send:
    data server MUST reject these with NFS4ERR_NOTSUPP and MAY
    log the client for operator attention; this case is almost
    always a client bug in which the client did not inspect the
-   mirror's ffm_coding_type_data before issuing I/O.
+   mirror's ffv2m_coding_type_data before issuing I/O.
 -  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against an erasure-coded data file.  Chunk-level allocation is a
    metadata-server responsibility.
 
@@ -4884,28 +4884,28 @@ Section 18.44.1 of {{RFC8881}} (also shown in {{fig-LAYOUTRETURN}}).
 
 If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
 lr_returntype is LAYOUTRETURN4_FILE, then the lrf_body opaque value
-is defined by ff_layoutreturn4 (see {{sec-ff_layoutreturn4}}).  This
+is defined by ffv2_layoutreturn4 (see {{sec-ffv2_layoutreturn4}}).  This
 allows the client to report I/O error information or layout usage
 statistics back to the metadata server as defined below.  Note that
 while the data structures are built on concepts introduced in
 NFSv4.2, the effective discriminated union (lora_layout_type combined
-with ff_layoutreturn4) allows for an NFSv4.1 metadata server to
+with ffv2_layoutreturn4) allows for an NFSv4.1 metadata server to
 utilize the data.
 
 ##  I/O Error Reporting {#sec-io-error}
 
-###  ff_ioerr4 {#sec-ff_ioerr4}
+###  ffv2_ioerr4 {#sec-ffv2_ioerr4}
 
 ~~~ xdr
    /// struct ffv2_ioerr4 {
-   ///         offset4        ffie_offset;
-   ///         length4        ffie_length;
-   ///         stateid4       ffie_stateid;
-   ///         device_error4  ffie_errors<>;
+   ///         offset4        ffv2ie_offset;
+   ///         length4        ffv2ie_length;
+   ///         stateid4       ffv2ie_stateid;
+   ///         device_error4  ffv2ie_errors<>;
    /// };
    ///
 ~~~
-{: #fig-ff_ioerr4 title="ff_ioerr4"}
+{: #fig-ffv2_ioerr4 title="ffv2_ioerr4"}
 
 Recall that {{RFC7862}} defines device_error4 as in {{fig-device_error4}}:
 
@@ -4918,12 +4918,12 @@ Recall that {{RFC7862}} defines device_error4 as in {{fig-device_error4}}:
 ~~~
 {: #fig-device_error4 title="device_error4"}
 
-The ff_ioerr4 structure is used to return error indications for
+The ffv2_ioerr4 structure is used to return error indications for
 data files that generated errors during data transfers.  These are
 hints to the metadata server that there are problems with that file.
-For each error, ffie_errors.de_deviceid, ffie_offset, and ffie_length
+For each error, ffv2ie_errors.de_deviceid, ffv2ie_offset, and ffv2ie_length
 represent the storage device and byte range within the file in which
-the error occurred; ffie_errors represents the operation and type
+the error occurred; ffv2ie_errors represents the operation and type
 of error.  The use of device_error4 is described in Section 15.6
 of {{RFC7862}}.
 
@@ -4939,13 +4939,13 @@ operations.
 
 ~~~ xdr
    /// struct ffv2_io_latency4 {
-   ///         uint64_t       ffil_ops_requested;
-   ///         uint64_t       ffil_bytes_requested;
-   ///         uint64_t       ffil_ops_completed;
-   ///         uint64_t       ffil_bytes_completed;
-   ///         uint64_t       ffil_bytes_not_delivered;
-   ///         nfstime4       ffil_total_busy_time;
-   ///         nfstime4       ffil_aggregate_completion_time;
+   ///         uint64_t       ffv2il_ops_requested;
+   ///         uint64_t       ffv2il_bytes_requested;
+   ///         uint64_t       ffv2il_ops_completed;
+   ///         uint64_t       ffv2il_bytes_completed;
+   ///         uint64_t       ffv2il_bytes_not_delivered;
+   ///         nfstime4       ffv2il_total_busy_time;
+   ///         nfstime4       ffv2il_aggregate_completion_time;
    /// };
    ///
 ~~~
@@ -4955,17 +4955,17 @@ Both operation counts and bytes transferred are kept in the
 ff_io_latency4 (see {{fig-ff_io_latency4}}.  As seen in ff_layoutupdate4
 (see {{sec-ff_layoutupdate4}}), READ and WRITE operations are
 aggregated separately.  READ operations are used for the ff_io_latency4
-ffl_read.  Both WRITE and COMMIT operations are used for the
-ff_io_latency4 ffl_write.  "Requested" counters track what the
+ffv2l_read.  Both WRITE and COMMIT operations are used for the
+ff_io_latency4 ffv2l_write.  "Requested" counters track what the
 client is attempting to do, and "completed" counters track what was
 done.  There is no requirement that the client only report completed
 results that have matching requested results from the reported
 period.
 
-ffil_bytes_not_delivered is used to track the aggregate number of
+ffv2il_bytes_not_delivered is used to track the aggregate number of
 bytes requested but not fulfilled due to error conditions.
-ffil_total_busy_time is the aggregate time spent with outstanding
-RPC calls. ffil_aggregate_completion_time is the sum of all round-trip
+ffv2il_total_busy_time is the aggregate time spent with outstanding
+RPC calls. ffv2il_aggregate_completion_time is the sum of all round-trip
 times for completed RPC calls.
 
 In Section 3.3.1 of {{RFC8881}}, the nfstime4 is defined as the
@@ -4986,23 +4986,23 @@ data.
 
 ~~~ xdr
    /// struct ffv2_layoutupdate4 {
-   ///         netaddr4         ffl_addr;
-   ///         nfs_fh4          ffl_fhandle;
-   ///         ffv2_io_latency4 ffl_read;
-   ///         ffv2_io_latency4 ffl_write;
-   ///         nfstime4         ffl_duration;
-   ///         bool             ffl_local;
+   ///         netaddr4         ffv2l_addr;
+   ///         nfs_fh4          ffv2l_fhandle;
+   ///         ffv2_io_latency4 ffv2l_read;
+   ///         ffv2_io_latency4 ffv2l_write;
+   ///         nfstime4         ffv2l_duration;
+   ///         bool             ffv2l_local;
    /// };
    ///
 ~~~
 {: #fig-ff_layoutupdate4 title="ff_layoutupdate4"}
 
-ffl_addr differentiates which network address the client is connected
-to on the storage device.  In the case of multipathing, ffl_fhandle
-indicates which read-only copy was selected. ffl_read and ffl_write
+ffv2l_addr differentiates which network address the client is connected
+to on the storage device.  In the case of multipathing, ffv2l_fhandle
+indicates which read-only copy was selected. ffv2l_read and ffv2l_write
 convey the latencies for both READ and WRITE operations, respectively.
-ffl_duration is used to indicate the time period over which the
-statistics were collected.  If true, ffl_local indicates that the
+ffv2l_duration is used to indicate the time period over which the
+statistics were collected.  If true, ffv2l_local indicates that the
 I/O was serviced by the client's cache.  This flag allows the client
 to inform the metadata server about "hot" access to a file it would
 not normally be allowed to report on.
@@ -5011,13 +5011,13 @@ not normally be allowed to report on.
 
 ~~~ xdr
    /// struct ffv2_iostats4 {
-   ///         offset4            ffis_offset;
-   ///         length4            ffis_length;
-   ///         stateid4           ffis_stateid;
-   ///         io_info4           ffis_read;
-   ///         io_info4           ffis_write;
-   ///         deviceid4          ffis_deviceid;
-   ///         ffv2_layoutupdate4 ffis_layoutupdate;
+   ///         offset4            ffv2is_offset;
+   ///         length4            ffv2is_length;
+   ///         stateid4           ffv2is_stateid;
+   ///         io_info4           ffv2is_read;
+   ///         io_info4           ffv2is_write;
+   ///         deviceid4          ffv2is_deviceid;
+   ///         ffv2_layoutupdate4 ffv2is_layoutupdate;
    /// };
    ///
 ~~~
@@ -5052,35 +5052,35 @@ suggested.  For example, a client can define the default byte-range
 resolution to be 1 MB in size and the thresholds for reporting to
 be 1 MB/second or 10 I/O operations per second.
 
-For each byte range, ffis_offset and ffis_length represent the
+For each byte range, ffv2is_offset and ffv2is_length represent the
 starting offset of the range and the range length in bytes.
-ffis_read.ii_count, ffis_read.ii_bytes, ffis_write.ii_count, and
-ffis_write.ii_bytes represent the number of contiguous READ and
+ffv2is_read.ii_count, ffv2is_read.ii_bytes, ffv2is_write.ii_count, and
+ffv2is_write.ii_bytes represent the number of contiguous READ and
 WRITE I/Os and the respective aggregate number of bytes transferred
 within the reported byte range.
 
-The combination of ffis_deviceid and ffl_addr uniquely identifies
+The combination of ffv2is_deviceid and ffv2l_addr uniquely identifies
 both the storage path and the network route to it.  Finally,
-ffl_fhandle allows the metadata server to differentiate between
+ffv2l_fhandle allows the metadata server to differentiate between
 multiple read-only copies of the file on the same storage device.
 
-##  ff_layoutreturn4 {#sec-ff_layoutreturn4}
+##  ffv2_layoutreturn4 {#sec-ffv2_layoutreturn4}
 
 ~~~ xdr
    /// struct ffv2_layoutreturn4 {
-   ///         ffv2_ioerr4     fflr_ioerr_report<>;
-   ///         ffv2_iostats4   fflr_iostats_report<>;
+   ///         ffv2_ioerr4     ffv2lr_ioerr_report<>;
+   ///         ffv2_iostats4   ffv2lr_iostats_report<>;
    /// };
    ///
 ~~~
-{: #fig-ff_layoutreturn4 title="ff_layoutreturn4"}
+{: #fig-ffv2_layoutreturn4 title="ffv2_layoutreturn4"}
 
-When data file I/O operations fail, fflr_ioerr_report<> is used to
+When data file I/O operations fail, ffv2lr_ioerr_report<> is used to
 report these errors to the metadata server as an array of elements
-of type ff_ioerr4.  Each element in the array represents an error
-that occurred on the data file identified by ffie_errors.de_deviceid.
-If no errors are to be reported, the size of the fflr_ioerr_report<>
-array is set to zero.  The client MAY also use fflr_iostats_report<>
+of type ffv2_ioerr4.  Each element in the array represents an error
+that occurred on the data file identified by ffv2ie_errors.de_deviceid.
+If no errors are to be reported, the size of the ffv2lr_ioerr_report<>
+array is set to zero.  The client MAY also use ffv2lr_iostats_report<>
 to report a list of I/O statistics as an array of elements of type
 ff_iostats4.  Each element in the array represents statistics for
 a particular byte range.  Byte ranges are not guaranteed to be
@@ -5093,7 +5093,7 @@ server, then instead of waiting for a LAYOUTRETURN to send error
 information to the metadata server (see {{sec-io-error}}), it MAY
 use LAYOUTERROR (see Section 15.6 of {{RFC7862}}) to communicate
 that information.  For the flexible file v2 layout, this means
-that LAYOUTERROR4args is treated the same as ff_ioerr4.
+that LAYOUTERROR4args is treated the same as ffv2_ioerr4.
 
 #  Flexible File Version 2 Layout Type LAYOUTSTATS
 
@@ -5103,7 +5103,7 @@ statistics to the metadata server (see {{sec-layout-stats}}), it
 MAY use LAYOUTSTATS (see Section 15.7 of {{RFC7862}}) to communicate
 that information.  For the flexible file v2 layout, this means
 that LAYOUTSTATS4args.lsa_layoutupdate is overloaded with the same
-contents as in ffis_layoutupdate.
+contents as in ffv2is_layoutupdate.
 
 #  Flexible File Version 2 Layout Type Creation Hint
 
@@ -5452,7 +5452,7 @@ cg_gen_id:
 cg_client_id:
 :  A 32-bit value established by the metadata server at the time
    the client's layout is granted (see {{sec-ffv2-mirror4}} and
-   ffm_client_id).  The metadata server MUST assign distinct
+   ffv2m_client_id).  The metadata server MUST assign distinct
    cg_client_id values to distinct clients that hold concurrent
    write layouts on the same file.  cg_client_id is opaque with
    respect to client identity -- a data server MUST NOT
@@ -5499,7 +5499,7 @@ not provide a preference mechanism at layout-grant time.
 
 To uphold the uniqueness contract, the metadata server MUST
 follow these rules when assigning cg_client_id (that is, when
-populating ffm_client_id at layout-grant time):
+populating ffv2m_client_id at layout-grant time):
 
 -  Two clients holding concurrent write layouts on the same
    file MUST receive distinct cg_client_id values.  A client
