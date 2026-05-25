@@ -6222,21 +6222,108 @@ interface.
 
 ### DESCRIPTION
 
-CHUNK_COMMIT is COMMIT (see Section 18.3 of {{RFC8881}}) with
-additional semantics over the chunk_owner activating the blocks.
-As such, all of the normal semantics of COMMIT directly apply.
+The CHUNK_COMMIT operation is based upon the NFSv4.1 COMMIT
+operation (see Section 18.3 of {{RFC8881}}) and similarly
+commits previously written data to stable storage on the
+regular file identified by the current filehandle, with the
+difference that CHUNK_COMMIT operates on the chunk
+coordinate system used by Flexible File Version 2 layouts
+rather than on the byte coordinate system, and that
+CHUNK_COMMIT advances each named chunk through the chunk
+state machine from FINALIZED to COMMITTED
+({{fig-chunk-state-machine}}) rather than acting on a byte
+range without a state-machine context.
 
-The main difference between the two operations is that CHUNK_COMMIT
-works on blocks and not a raw data stream.  As such cca_offset is
-the starting block offset in the file and not the byte offset in
-the file.  Some erasure coding types can have different block sizes
-depending on the block type.  Further, cca_count is a count of
-blocks to activate and not bytes to activate.
+The client provides cca_offset and cca_count to bound the
+chunk range, and cca_chunks to name the specific
+(chunk_owner4) generations within that range to commit:
 
-Further, while it may appear that the combination of cca_offset and
-cca_count are redundant to cca_chunks, the purpose of cca_chunks
-is to allow the data server to differentiate between potentially
-multiple pending blocks.
+cca_offset:
+:  starting chunk index in the file (not a byte offset).
+
+cca_count:
+:  number of chunks the range covers, starting at
+   cca_offset.  A zero cca_count, or a cca_offset beyond
+   the data server's highest chunk, is not an error; the
+   data server returns NFS4_OK with an empty ccr_status
+   array.
+
+cca_chunks:
+:  an array of chunk_owner4 entries
+   ({{fig-chunk_owner4}}) naming the specific
+   (cg_gen_id, cg_client_id, co_id) generations to
+   commit.  Each entry's co_id MUST fall within
+   [cca_offset, cca_offset + cca_count); an entry whose
+   co_id is outside the range is rejected with
+   NFS4ERR_INVAL in the corresponding ccr_status slot.
+   The reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
+   cg_client_id of any cca_chunks entry; see
+   {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
+
+cca_offset and cca_count would appear redundant given
+cca_chunks contains explicit co_id values, but they exist
+because a chunk index MAY have multiple persisted
+generations at the moment CHUNK_COMMIT arrives -- an
+older COMMITTED generation retained for the rollback
+invariant ({{sec-system-model-consistency}}) alongside a
+newer FINALIZED successor.  cca_chunks selects which
+(cg_gen_id, cg_client_id) generation to advance to
+COMMITTED; cca_offset and cca_count bound the work scope
+so the data server can reject malformed requests that
+name chunks outside the intended commit window.
+
+The CHUNK_COMMIT result reports the outcome per chunk in
+the same order as cca_chunks:
+
+ccr_writeverf:
+:  a verifier identifying the data server's incarnation
+   at the time the commit completed.  A client compares
+   ccr_writeverf to the cwr_writeverf returned by the
+   prior CHUNK_WRITE ({{sec-CHUNK_WRITE}}) to detect a
+   data server restart that lost UNSTABLE4 writes
+   between the write and the commit; on a mismatch the
+   client MUST re-issue the CHUNK_WRITE before any
+   committed bytes are considered durable.
+   ccr_writeverf changes on every data server restart
+   that loses uncommitted state.
+
+ccr_status:
+:  per-chunk commit status, one entry per cca_chunks
+   entry, co-indexed.  NFS4_OK indicates that the named
+   chunk is COMMITTED on return.  Other per-entry
+   failure codes are described in
+   "Interaction with CHUNK_FINALIZE" and "Interaction
+   with a Locked Chunk" below.  The top-level
+   CHUNK_COMMIT status is NFS4_OK as long as the data
+   server could evaluate each cca_chunks entry;
+   per-chunk failures are reported in ccr_status rather
+   than by failing the whole operation.  The top-level
+   status returns a non-OK code only when the request
+   could not be evaluated at all (for example,
+   NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).
+
+Unlike CHUNK_READ ({{sec-CHUNK_READ}}) and CHUNK_WRITE
+({{sec-CHUNK_WRITE}}), CHUNK_COMMIT has no explicit
+stateid field in its arguments.  The data server
+authorizes CHUNK_COMMIT against the stateid context the
+compound has already established, typically the stateid
+carried on an immediately preceding PUTFH or an earlier
+CHUNK_* operation in the same compound.  Under
+trusted-stateid tight coupling ({{sec-TRUST_STATEID}}),
+the data server applies the trust-table check to
+whichever layout stateid the compound has presented; if
+no layout stateid has been presented or the presented
+stateid is not in the trust table, the data server
+rejects CHUNK_COMMIT with NFS4ERR_BAD_STATEID.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned.  If the current filehandle
+represents an object of type NF4DIR, NFS4ERR_ISDIR is
+returned.  If the current filehandle designates a
+symbolic link, NFS4ERR_SYMLINK is returned.  In all
+other cases of non-regular-file filehandles,
+NFS4ERR_WRONG_TYPE is returned.
 
 #### Interaction with CHUNK_FINALIZE
 
