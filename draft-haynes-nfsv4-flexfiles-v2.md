@@ -1257,11 +1257,24 @@ drain in-flight CHUNK operations before shutting down.
 
 ###  Metadata Server Crash Recovery {#sec-tight-coupling-mds-crash}
 
-When the metadata server restarts, its control sessions to the
-storage devices are lost.  Trust entries remain on the storage
-devices until tsa_expire, but the metadata server is no longer
-renewing them; the entries are effectively orphaned until the
-metadata server completes grace.
+A metadata server MAY persist all its trust-management state
+across restarts.  An implementation that does so MUST also
+persist its server-instance identity, returning the same
+eir_server_owner.so_minor_id on EXCHANGE_ID after the restart
+(per {{RFC8881}} S18.35), so that storage devices observe the
+metadata server as continuously available and accept incoming
+TRUST_STATEID and REVOKE_STATEID operations against the existing
+trust entries without revalidation.  No grace period is required.
+
+A metadata server that presents a new server instance
+(incremented so_minor_id) on restart follows the recovery path
+in the remainder of this section.
+
+When the metadata server restarts as a new instance, its control
+sessions to the storage devices are lost.  Trust entries remain
+on the storage devices until tsa_expire, but the metadata server
+is no longer renewing them; the entries are effectively orphaned
+until the metadata server completes grace.
 
 When the metadata server reconnects to a storage device with a
 new boot epoch -- that is, the EXCHANGE_ID returns a new server
