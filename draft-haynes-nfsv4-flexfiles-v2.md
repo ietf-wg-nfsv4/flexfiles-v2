@@ -9100,80 +9100,112 @@ for the new callback operation defined in this document.
 
 ### DESCRIPTION
 
-CB_CHUNK_REPAIR is sent by the metadata server to request that
-a selected client repair one or more non-atomic chunk ranges.
-Selection follows the rules in {{sec-repair-selection}}; those
-rules are normative for how the client MUST respond on receipt
-of this callback.
+CB_CHUNK_REPAIR is sent by the metadata server to a
+selected pNFS client to request that the client repair one
+or more non-atomic chunk ranges on the file's data
+servers.  CB_CHUNK_REPAIR is the back-channel companion to
+the chunk repair flow: the metadata server selects a
+repair client per {{sec-repair-selection}} (those rules
+are normative for how the client MUST respond on receipt
+of this callback) and uses CB_CHUNK_REPAIR to deliver the
+work item.
 
-The ccra_fh identifies the file whose chunks are non-atomic.The callback compound carries the filehandle directly; there is
-no preceding PUTFH in callback compounds.
+CB_CHUNK_REPAIR has no analog in {{RFC8881}}.  RFC 8881
+back-channel callbacks operate at the layout layer
+(CB_LAYOUTRECALL) or the file-state layer (CB_RECALL,
+CB_NOTIFY); CB_CHUNK_REPAIR is the new chunk-layer
+callback that drives reconstruction or rollback of
+non-atomic chunks without requiring a full layout return.
 
-The ccra_layout_stateid carries the recipient client's current
-layout stateid for the file if one is held.  A client that does
-not hold a layout on ccra_fh MUST ignore ccra_layout_stateid
-(it will be the anonymous stateid) and MUST acquire one via
-LAYOUTGET before issuing any CHUNK operation on the ranges.
+The metadata server provides:
 
-The ccra_deadline is a wall-clock nfstime4 (seconds and
-nanoseconds since the epoch, as defined in Section 3.3.1 of
-{{RFC8881}}) by which the client is expected to have driven every
-range to completion (CHUNK_REPAIRED on the reconstruction path,
-or CHUNK_UNLOCK on the rollback path).  Missing the deadline
-does not corrupt state -- the metadata server MAY re-select
-another repair client after the deadline elapses -- but a
-client that has missed the deadline MUST re-verify its layout
-and the chunk lock state before continuing any repair-related
-CHUNK operation.
+ccra_fh:
+:  the filehandle of the file whose chunks are non-atomic.
+   The callback compound carries the filehandle directly;
+   there is no preceding PUTFH in callback compounds.
 
-The ccra_reason distinguishes the two flows that cause the
-metadata server to issue a repair callback:
+ccra_layout_stateid:
+:  the recipient client's current layout stateid for the
+   file if one is held.  A client that does not hold a
+   layout on ccra_fh MUST ignore ccra_layout_stateid (it
+   will be the anonymous stateid in that case) and MUST
+   acquire one via LAYOUTGET before issuing any CHUNK_*
+   operation on the ranges.
 
-CB_REPAIR_REASON_RACE:
-:  A live-race repair.  A client (not necessarily the recipient
-   of this callback) detected a chunk-level non-atomicity at
-   write or read time and reported it via LAYOUTERROR.  The
-   metadata server is driving repair synchronously because the
-   affected chunk is on the critical path of some I/O.  The
-   recipient SHOULD prioritise the callback over background
-   work.
+ccra_deadline:
+:  a wall-clock nfstime4 (seconds and nanoseconds since
+   the epoch, as defined in Section 3.3.1 of {{RFC8881}})
+   by which the client is expected to have driven every
+   range to completion (CHUNK_REPAIRED on the
+   reconstruction path, or CHUNK_UNLOCK on the rollback
+   path).  Missing the deadline does not corrupt state --
+   the metadata server MAY re-select another repair
+   client after the deadline elapses -- but a client that
+   has missed the deadline MUST re-verify its layout and
+   the chunk lock state before continuing any
+   repair-related CHUNK_* operation.
 
-CB_REPAIR_REASON_SCRUB:
-:  A background scrub.  The metadata server has detected stale
-   or non-atomic payloads during a scheduled integrity sweep
-   and is opportunistically driving repair.  No client is
-   currently blocked on these ranges.  The recipient MAY
-   schedule the callback at lower priority than
-   CB_REPAIR_REASON_RACE, and MAY return NFS4ERR_DELAY to defer
-   repair to a more convenient time; the metadata server will
-   retry.
+ccra_reason:
+:  distinguishes the two flows that cause the metadata
+   server to issue a repair callback:
 
-The two reasons share all other semantics: the same ccra_ranges
-encoding, the same response codes, the same deadline contract.
-Only the priority / retry behaviour differs.
+   CB_REPAIR_REASON_RACE:
+   :  A live-race repair.  A client (not necessarily the
+      recipient of this callback) detected a chunk-level
+      non-atomicity at write or read time and reported it
+      via LAYOUTERROR.  The metadata server is driving
+      repair synchronously because the affected chunk is
+      on the critical path of some I/O.  The recipient
+      SHOULD prioritise the callback over background
+      work.
 
-The ccra_ranges array lists every chunk range the metadata
-server requests the client to repair.  Each entry carries its
-own ccr_error describing the failure mode the client is being
-asked to remedy.  The repair strategy depends on the error code;
-see {{sec-repair-selection}} for the normative and guidance
-split.
+   CB_REPAIR_REASON_SCRUB:
+   :  A background scrub.  The metadata server has
+      detected stale or non-atomic payloads during a
+      scheduled integrity sweep and is opportunistically
+      driving repair.  No client is currently blocked on
+      these ranges.  The recipient MAY schedule the
+      callback at lower priority than
+      CB_REPAIR_REASON_RACE, and MAY return NFS4ERR_DELAY
+      to defer repair to a more convenient time; the
+      metadata server will retry.
 
-The metadata server SHOULD keep each CB_CHUNK_REPAIR compound
-within the back-channel maximum (ca_maxrequestsize) negotiated
-in CREATE_SESSION (see Section 18.36.3 of {{RFC8881}}).  If the
-set of affected ranges would exceed that maximum, the metadata
-server MAY issue multiple CB_CHUNK_REPAIR callbacks to the same
-client.  Each callback is independent; the client drives each
-to completion before the deadline on that callback's ranges.
+   The two reasons share all other semantics: the same
+   ccra_ranges encoding, the same response codes, the same
+   deadline contract.  Only the priority and retry
+   behaviour differs.
 
-The fact that a range appears in ccra_ranges implies the data
-server holds a chunk lock on the range (the failure occurred in
-or around a PENDING or FINALIZED state that established the
-lock).  The repair client MUST use CHUNK_LOCK with
-CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) to take ownership
-of the lock before issuing CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK,
-or CHUNK_WRITE on any chunk in a requested range.
+ccra_ranges:
+:  the list of every chunk range the metadata server
+   requests the client to repair.  Each entry carries its
+   own ccr_error describing the failure mode the client
+   is being asked to remedy.  The repair strategy depends
+   on the error code; see {{sec-repair-selection}} for
+   the normative and guidance split.
+
+The metadata server SHOULD keep each CB_CHUNK_REPAIR
+compound within the back-channel maximum
+(ca_maxrequestsize) negotiated in CREATE_SESSION (see
+Section 18.36.3 of {{RFC8881}}).  If the set of affected
+ranges would exceed that maximum, the metadata server MAY
+issue multiple CB_CHUNK_REPAIR callbacks to the same
+client.  Each callback is independent; the client drives
+each to completion before the deadline on that callback's
+ranges.
+
+The fact that a range appears in ccra_ranges implies the
+data server holds a chunk lock on the range (the failure
+occurred in or around a PENDING or FINALIZED state that
+established the lock).  The repair client MUST use
+CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT
+({{sec-CHUNK_LOCK}}) to take ownership of the lock before
+issuing CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK, or CHUNK_WRITE
+on any chunk in a requested range.
+
+CB_CHUNK_REPAIR returns only a top-level status in
+ccrr_status; see "RESPONSE CODES" below for the normative
+meanings the metadata server attaches to each returned
+nfsstat4.
 
 ### RESPONSE CODES
 
