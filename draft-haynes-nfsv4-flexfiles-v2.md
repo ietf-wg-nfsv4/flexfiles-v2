@@ -422,6 +422,23 @@ data server (DS):
 :  a pNFS server that provides the file's data when the file system
 object is accessed over a file-based protocol.
 
+escrow (lock escrow, MDS-escrow):
+
+:  a state in which a chunk lock is held by the metadata server on
+behalf of an as-yet-unselected future owner.  When the metadata
+server revokes a client's stateid while the client still holds
+chunk locks, the locks are not dropped (which would expose the
+chunks to concurrent writers) but are transferred to the metadata
+server itself, marked by the reserved cg_client_id value
+CHUNK_GUARD_CLIENT_ID_MDS (see {{sec-chunk_guard_mds}}).  The
+metadata server holds the locks in escrow until a repair client
+adopts them via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT (driven by
+CB_CHUNK_REPAIR).  An "MDS-escrow owner" is the metadata server
+acting in this placeholder role; "in escrow" describes a lock in
+this state.  Escrow preserves the lock-continuity invariant
+across stateid revocation: at no point during the revocation
+sequence is a chunk simultaneously locked and unowned.
+
 fencing:
 
 :  the process by which the metadata server prevents the storage devices
