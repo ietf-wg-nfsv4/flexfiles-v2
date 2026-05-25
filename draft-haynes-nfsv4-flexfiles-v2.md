@@ -9746,19 +9746,6 @@ erasure coding types (see {{tbl-coding-types}}).
  | FFV2_ENCODING_MIRRORED               | 5     | RFCTBD10 | L   | 2        |
 {: #tbl-coding-types title="Flexible File Version 2 Layout Type Encoding Type Assignments"}
 
-##  Flag-Word Allocation {#iana-flag-words}
-
-This document defines three bitmap spaces -- ffv2_flags4
-(see {{sec-ffv2_flags4}}), ffv2_ds_flags4 (see
-{{sec-ffv2_ds_flags4}}), and cwa_flags (see
-{{sec-CHUNK_WRITE}}) -- whose allocated bits are enumerated in
-this document.  Following the precedent of ff_flags4 in
-{{RFC8435}}, IANA does not maintain a registry for any of these
-bitmap spaces.  Future bit allocations are made by a document
-that updates or obsoletes this one.  Implementations MUST
-treat unknown bits as reserved and MUST NOT assign meaning to
-them locally.
-
 #  XDR Description of the Flexible File Version 2 Layout Type
 
 This document contains the External Data Representation (XDR)
