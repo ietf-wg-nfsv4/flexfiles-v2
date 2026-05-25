@@ -3064,7 +3064,7 @@ the CHUNK_WRITEargs.
 #### Calculating the CRC32
 
 ~~~
-  +---+----------------+
+  +--------------------+
   | HEADER             |
   +--------------------+
   | guard:             |
@@ -3172,7 +3172,7 @@ it is calculated to be 0x21de8.  Thus this payload for the data
 server has data integrity.
 
 ~~~
-  +---+----------------+
+  +--------------------+
   | HEADER             |
   +--------------------+
   | guard:             |
@@ -3706,14 +3706,14 @@ mirror under construction).
  +-----------------------------------------------------+
  | ffv2_layout4:                                       |
  +-----------------------------------------------------+
- |     ffv2l_mirrors[0]:                                 |
- |         ffv2s_data_servers:                           |
+ |     ffv2l_mirrors[0]:                               |
+ |         ffv2s_data_servers:                         |
  |             ffv2_data_server4[0]                    |
  |                 ffv2ds_flags: 0                     |
- |         ffv2m_coding: FFV2_ENCODING_PASSTHROUGH       |
+ |         ffv2m_coding: FFV2_ENCODING_PASSTHROUGH     |
  +-----------------------------------------------------+
- |     ffv2l_mirrors[1]:                                 |
- |         ffv2s_data_servers:                           |
+ |     ffv2l_mirrors[1]:                               |
+ |         ffv2s_data_servers:                         |
  |             ffv2_data_server4[0]                    |
  |                 ffv2ds_flags: FFV2_DS_FLAGS_ACTIVE  |
  |             ffv2_data_server4[1]                    |
@@ -3730,7 +3730,7 @@ mirror under construction).
  |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
  |             ffv2_data_server4[7]                    |
  |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
- |     ffv2m_coding: FFV2_ENCODING_RS_VANDERMONDE        |
+ |     ffv2m_coding: FFV2_ENCODING_RS_VANDERMONDE      |
  +-----------------------------------------------------+
 ~~~
 {: #fig-example_mixing title="Example of Mixed Coding Types in a Layout" }
@@ -5814,7 +5814,7 @@ The MDS-escrow owner is released only by a CHUNK_LOCK from the
 client selected via CB_CHUNK_REPAIR, carrying
 CHUNK_LOCK_FLAGS_ADOPT.  See {{sec-CHUNK_LOCK}}.
 
-## chunk_owner4
+## chunk_owner4 {#sec-chunk_owner4}
 
 ~~~ xdr
    /// struct chunk_owner4 {
@@ -6596,7 +6596,7 @@ generated fields.
   | cra_stateid: 0                 |
   | cra_offset: 2                  |
   | cra_count: 4                   |
-  +----------+---------------------+
+  +--------------------------------+
 ~~~
 {: #fig-example-CHUNK_READ4args title="Example: CHUNK_READ4args parameters" }
 
