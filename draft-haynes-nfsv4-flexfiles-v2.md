@@ -2408,20 +2408,17 @@ proceed with a LAYOUTGET that returns an error of either
 NFS4ERR_LAYOUTTRYLATER, NFS4ERR_LAYOUTUNAVAILABLE, and NFS4ERR_DELAY.
 Within the context of this document:
 
-NFS4ERR_LAYOUTUNAVAILABLE
-
+NFS4ERR_LAYOUTUNAVAILABLE:
 :  there is no layout available and the I/O is to go to the metadata
 server.  Note that it is possible to have had a layout before a
 recall and not after.
 
-NFS4ERR_LAYOUTTRYLATER
-
+NFS4ERR_LAYOUTTRYLATER:
 :  there is some issue preventing the layout from being granted.
 If the client already has an appropriate layout, it should continue
 with I/O to the storage devices.
 
-NFS4ERR_DELAY
-
+NFS4ERR_DELAY:
 :  there is some issue preventing the layout from being granted.
 If the client already has an appropriate layout, it should not
 continue with I/O to the storage devices.
@@ -3561,18 +3558,15 @@ here.
 All RS operations are performed over GF(2^8), the Galois field with
 256 elements.  Each element is represented as a byte.
 
-Irreducible Polynomial
-
+Irreducible Polynomial:
 :  The field is constructed using the irreducible polynomial
 x^8 + x^4 + x^3 + x^2 + 1 (0x11d in hexadecimal).  The primitive
 element (generator) is g = 2, which has multiplicative order 255.
 
-Addition
-
+Addition:
 :  Addition in GF(2^8) is bitwise XOR.
 
-Multiplication
-
+Multiplication:
 :  Multiplication uses log/antilog tables.  For non-zero elements
 a and b: a * b = exp(log(a) + log(b)), where the exp table is
 doubled to 512 entries to avoid modular reduction on the index sum.
@@ -7412,29 +7406,25 @@ or CHUNK_WRITE on any chunk in a requested range.
 The ccrr_status value returned by the client has the following
 normative meanings to the metadata server:
 
-NFS4_OK
-
+NFS4_OK:
 :  The client has accepted the request and driven every range in
 this callback to completion (CHUNK_REPAIRED or CHUNK_UNLOCK on
 every affected chunk).  The metadata server clears the repair
 queue entry.
 
-NFS4ERR_DELAY
-
+NFS4ERR_DELAY:
 :  The client has accepted the request but requires more time.
 The metadata server MAY extend the deadline by issuing a new
 CB_CHUNK_REPAIR with a later ccra_deadline, or MAY re-select
 another client.  The client continues to hold any locks it has
 adopted until the original or extended deadline.
 
-NFS4ERR_CODING_NOT_SUPPORTED
-
+NFS4ERR_CODING_NOT_SUPPORTED:
 :  The client does not implement the encoding type of the layout
 and cannot reconstruct.  The metadata server MUST NOT retry with
 the same client and SHOULD select a different client.
 
-NFS4ERR_PAYLOAD_LOST
-
+NFS4ERR_PAYLOAD_LOST:
 :  The client has concluded that the identified ranges cannot
 be repaired -- there are not enough surviving shards to
 reconstruct and rollback is also impossible.  The metadata
@@ -7678,30 +7668,26 @@ encoding type (see {{tbl-coding-ranges}}).
  | 0xFFFF | Reserved | -- |
 {: #tbl-coding-ranges title="Erasure Coding Type Value Ranges"}
 
-Standards Track (0x0000-0x00FF)
-
+Standards Track (0x0000-0x00FF):
 :  Encoding types intended for broad interoperability.  The
 specification MUST include a complete mathematical description
 sufficient for independent interoperable implementations (see
 {{encoding-type-interoperability}}).  Allocated by IETF Review.
 
-Experimental (0x0100-0x0FFF)
-
+Experimental (0x0100-0x0FFF):
 :  Encoding types under development or evaluation.  An Internet-Draft
 is sufficient for allocation.  The specification SHOULD include
 enough detail for interoperability testing.  Allocated by Expert
 Review.
 
-Vendor (open) (0x1000-0x7FFF)
-
+Vendor (open) (0x1000-0x7FFF):
 :  Encoding types with a published specification or patent reference.
 Interoperability is expected among implementations that license or
 implement the specification.  The registration MUST include either a
 math specification or a patent reference.  Allocated First Come
 First Served.
 
-Private/proprietary (0x8000-0xFFFE)
-
+Private/proprietary (0x8000-0xFFFE):
 :  Encoding types for use within a single vendor's ecosystem.
 No IANA registration is required.  Interoperability with other
 implementations is not expected.  To reduce the likelihood of
