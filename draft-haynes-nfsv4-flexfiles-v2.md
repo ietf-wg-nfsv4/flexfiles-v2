@@ -831,26 +831,28 @@ use TRUST_STATEID via a two-part handshake, both parts of which
 MUST succeed before the metadata server may issue TRUST_STATEID
 against that storage device for production traffic:
 
-1.  **Capability probe.**  At control-session setup the metadata
-    server sends a TRUST_STATEID against the anonymous stateid
-    (see {{sec-tight-coupling-probe}}).  A storage device that
-    supports tight coupling MUST reject the probe with
-    NFS4ERR_INVAL; a storage device that does not support tight
-    coupling returns NFS4ERR_NOTSUPP and the metadata server
-    falls back to loose coupling.  The metadata server records
-    the result per storage device in ffdv_tightly_coupled.
+Capability probe:
+:  At control-session setup the metadata
+   server sends a TRUST_STATEID against the anonymous stateid
+   (see {{sec-tight-coupling-probe}}).  A storage device that
+   supports tight coupling MUST reject the probe with
+   NFS4ERR_INVAL; a storage device that does not support tight
+   coupling returns NFS4ERR_NOTSUPP and the metadata server
+   falls back to loose coupling.  The metadata server records
+   the result per storage device in ffdv_tightly_coupled.
 
-2.  **Control-session gating.**  The metadata server presents
-    EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID when it opens the
-    control session to the storage device
-    (see {{sec-tight-coupling-control-session}}).  The storage
-    device MUST reject any incoming TRUST_STATEID,
-    REVOKE_STATEID, or BULK_REVOKE_STATEID that does not arrive
-    on such a session with NFS4ERR_PERM.  This is the
-    authorization mechanism that distinguishes the metadata
-    server from ordinary pNFS clients, which connect with
-    EXCHGID4_FLAG_USE_PNFS_DS or EXCHGID4_FLAG_USE_NON_PNFS and
-    are therefore structurally unable to invoke these operations.
+Control-session gating:
+:  The metadata server presents
+   EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID when it opens the
+   control session to the storage device
+   (see {{sec-tight-coupling-control-session}}).  The storage
+   device MUST reject any incoming TRUST_STATEID,
+   REVOKE_STATEID, or BULK_REVOKE_STATEID that does not arrive
+   on such a session with NFS4ERR_PERM.  This is the
+   authorization mechanism that distinguishes the metadata
+   server from ordinary pNFS clients, which connect with
+   EXCHGID4_FLAG_USE_PNFS_DS or EXCHGID4_FLAG_USE_NON_PNFS and
+   are therefore structurally unable to invoke these operations.
 
 Given this basic structure, locking-related operations are handled
 as follows:
@@ -3182,48 +3184,54 @@ The following requirements are normative.  An implementation
 that violates any of these can leak inconsistency or write-holes
 into the cluster:
 
-1.  **Final state flat.**  Every shard in every range identified
-    in a CB_CHUNK_REPAIR MUST reach either the COMMITTED state
-    (repaired) or the EMPTY state (rolled back).  No shard is
-    left in PENDING or FINALIZED indefinitely.
+Final state flat:
+:  Every shard in every range identified
+   in a CB_CHUNK_REPAIR MUST reach either the COMMITTED state
+   (repaired) or the EMPTY state (rolled back).  No shard is
+   left in PENDING or FINALIZED indefinitely.
 
-2.  **Lock before write.**  The repair client MUST adopt the
-    lock on every affected range via CHUNK_LOCK with
-    CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) before issuing
-    any CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK, or CHUNK_WRITE on a
-    chunk in that range.  The lock on the affected chunks is
-    held continuously from the failure that triggered
-    CB_CHUNK_REPAIR through the adoption; at no point is the
-    range unlocked.
+Lock before write:
+:  The repair client MUST adopt the
+   lock on every affected range via CHUNK_LOCK with
+   CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) before issuing
+   any CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK, or CHUNK_WRITE on a
+   chunk in that range.  The lock on the affected chunks is
+   held continuously from the failure that triggered
+   CB_CHUNK_REPAIR through the adoption; at no point is the
+   range unlocked.
 
-3.  **Clear the errored state.**  On the reconstruction path,
-    the repair client MUST issue CHUNK_REPAIRED
-    ({{sec-CHUNK_REPAIRED}}) after CHUNK_COMMIT.  Without it,
-    readers continue to see holes regardless of on-disk state.
+Clear the errored state:
+:  On the reconstruction path,
+   the repair client MUST issue CHUNK_REPAIRED
+   ({{sec-CHUNK_REPAIRED}}) after CHUNK_COMMIT.  Without it,
+   readers continue to see holes regardless of on-disk state.
 
-4.  **Release locks explicitly.**  CHUNK_ROLLBACK does not
-    release chunk locks.  On the rollback path the client MUST
-    issue CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) on each affected
-    chunk.  A client that walks away without either completing
-    CHUNK_REPAIRED or issuing CHUNK_UNLOCK holds the locks
-    until lease expiry, blocking progress for other writers.
+Release locks explicitly:
+:  CHUNK_ROLLBACK does not
+   release chunk locks.  On the rollback path the client MUST
+   issue CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) on each affected
+   chunk.  A client that walks away without either completing
+   CHUNK_REPAIRED or issuing CHUNK_UNLOCK holds the locks
+   until lease expiry, blocking progress for other writers.
 
-5.  **Deadline honored.**  The client MUST drive every range to
-    its final flat state before ccra_deadline, or MUST respond
-    to the CB_CHUNK_REPAIR with NFS4ERR_DELAY (requesting an
-    extension), NFS4ERR_CODING_NOT_SUPPORTED (declining), or
-    NFS4ERR_PAYLOAD_LOST (declaring the data unrecoverable).
-    A deadline that elapses without any of these leaves the
-    metadata server free to re-select; the client MUST NOT
-    continue repair-related CHUNK operations after the
-    deadline without first re-verifying its layout and the
-    chunk lock state.
+Deadline honored:
+:  The client MUST drive every range to
+   its final flat state before ccra_deadline, or MUST respond
+   to the CB_CHUNK_REPAIR with NFS4ERR_DELAY (requesting an
+   extension), NFS4ERR_CODING_NOT_SUPPORTED (declining), or
+   NFS4ERR_PAYLOAD_LOST (declaring the data unrecoverable).
+   A deadline that elapses without any of these leaves the
+   metadata server free to re-select; the client MUST NOT
+   continue repair-related CHUNK operations after the
+   deadline without first re-verifying its layout and the
+   chunk lock state.
 
-6.  **Terminal return codes.**  NFS4ERR_CODING_NOT_SUPPORTED
-    MUST mean "decline; select another client."
-    NFS4ERR_PAYLOAD_LOST MUST mean "the data is not
-    recoverable; do not retry."  The metadata server relies on
-    these to decide whether to re-issue.
+Terminal return codes:
+:  NFS4ERR_CODING_NOT_SUPPORTED
+   MUST mean "decline; select another client."
+   NFS4ERR_PAYLOAD_LOST MUST mean "the data is not
+   recoverable; do not retry."  The metadata server relies on
+   these to decide whether to re-issue.
 
 The following aspects are informative / implementation-defined:
 
@@ -4427,30 +4435,34 @@ election and log replication.
 This protocol is not a consensus protocol and does not attempt
 to be.  Its approach instead is:
 
-1.  **Designated coordinator.**  The metadata server is the
-    coordinator for a file.  Clients accept the MDS's authority
-    for layout grants, stateid registration, repair client
-    selection, and revocation.  This assumption is the same one
-    made by {{RFC8434}} and all pNFS layout types to date.
+Designated coordinator:
+:  The metadata server is the
+   coordinator for a file.  Clients accept the MDS's authority
+   for layout grants, stateid registration, repair client
+   selection, and revocation.  This assumption is the same one
+   made by {{RFC8434}} and all pNFS layout types to date.
 
-2.  **Per-chunk CAS, not per-chunk voting.**  Concurrent writes
-    on the same chunk serialize via chunk_guard4 as a CAS
-    primitive (see {{sec-chunk_guard4}}).  No replica vote is
-    required; the data server that owns the chunk evaluates the
-    guard locally and rejects stale writes with
-    NFS4ERR_CHUNK_GUARDED.
+Per-chunk CAS, not per-chunk voting:
+:  Concurrent writes
+   on the same chunk serialize via chunk_guard4 as a CAS
+   primitive (see {{sec-chunk_guard4}}).  No replica vote is
+   required; the data server that owns the chunk evaluates the
+   guard locally and rejects stale writes with
+   NFS4ERR_CHUNK_GUARDED.
 
-3.  **Pessimistic locks off the critical path.**  CHUNK_LOCK is
-    used only during repair, never on the normal write path.
-    Lock escrow (see {{sec-chunk_guard_mds}}) preserves the
-    "exactly one owner" invariant across stateid revocation
-    without requiring a consensus round to elect the next owner.
+Pessimistic locks off the critical path:
+:  CHUNK_LOCK is
+   used only during repair, never on the normal write path.
+   Lock escrow (see {{sec-chunk_guard_mds}}) preserves the
+   "exactly one owner" invariant across stateid revocation
+   without requiring a consensus round to elect the next owner.
 
-4.  **Erasure-coded reads replace quorum reads.**  A reader
-    reconstructs from any k of k+m shards with matching guards.
-    No voting is needed because there is no disagreement to
-    resolve: the guard identifies the single generation that was
-    committed.
+Erasure-coded reads replace quorum reads:
+:  A reader
+   reconstructs from any k of k+m shards with matching guards.
+   No voting is needed because there is no disagreement to
+   resolve: the guard identifies the single generation that was
+   committed.
 
 The result is a data path with O(1) round-trip cost independent
 of the number of replicas, and a repair path whose cost is
