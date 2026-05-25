@@ -990,10 +990,15 @@ check and the three operations are identical for both roles.
 
 ###  Capability Discovery {#sec-tight-coupling-probe}
 
-A storage device indicates support for tight coupling implicitly,
-by processing TRUST_STATEID rather than returning NFS4ERR_NOTSUPP.
-The metadata server probes each storage device during
-control-session setup:
+A storage device indicates support for trusted-stateid tight
+coupling implicitly, by processing TRUST_STATEID rather than
+returning NFS4ERR_NOTSUPP.  (A storage device that supports a
+non-TRUST_STATEID form of tight coupling but not the
+trusted-stateid variant defined here will return NFS4ERR_NOTSUPP
+on this probe; from this specification's perspective it is
+treated the same as a storage device that does not support tight
+coupling at all.)  The metadata server probes each storage device
+during control-session setup:
 
 ~~~
 SEQUENCE + PUTROOTFH + TRUST_STATEID(
@@ -1010,13 +1015,13 @@ probe cannot accidentally register garbage in the trust table.  The
 metadata server interprets the probe response as follows:
 
 NFS4ERR_NOTSUPP:
-:  tight coupling is not supported on this
+:  trusted-stateid tight coupling is not supported on this
    storage device.  The metadata server falls back to loose coupling
    (anonymous stateid plus fencing) and sets ffdv_tightly_coupled
    to false for this storage device.
 
 NFS4ERR_INVAL:
-:  tight coupling is supported.  The anonymous
+:  trusted-stateid tight coupling is supported.  The anonymous
    stateid was correctly rejected.  The metadata server records the
    capability and sets ffdv_tightly_coupled to true for this
    storage device.
@@ -1442,15 +1447,22 @@ the ffdv_rsize and ffdv_wsize allow the metadata server to
 communicate that information on behalf of the storage device.
 
 ffdv_tightly_coupled informs the client as to whether the
-metadata server is tightly coupled with this storage device.  Note
-that even if the data protocol is at least NFSv4.1, it may still
-be the case that there is loose coupling in effect.  For an NFSv4.2
-storage device, the metadata server sets ffdv_tightly_coupled to
-true only after confirming the storage device implements the
-TRUST_STATEID control protocol via the capability probe described
-in {{sec-tight-coupling-probe}}.  An NFSv4.2 storage device that
-does not implement TRUST_STATEID (returning NFS4ERR_NOTSUPP to the
-probe) MUST be advertised with ffdv_tightly_coupled set to false.
+metadata server is tightly coupled with this storage device.  The
+flag was defined by {{RFC8435}} as a general tight-coupling
+indicator; in flexible file v2 layouts the flag specifically
+indicates trusted-stateid tight coupling
+({{sec-tight-coupling-control}}).  Note that even if the data
+protocol is at least NFSv4.1, it may still be the case that there
+is loose coupling in effect.  For an NFSv4.2 storage device, the
+metadata server sets ffdv_tightly_coupled to true only after
+confirming the storage device implements the TRUST_STATEID control
+protocol via the capability probe described in
+{{sec-tight-coupling-probe}}.  An NFSv4.2 storage device that does
+not implement TRUST_STATEID (returning NFS4ERR_NOTSUPP to the
+probe) MUST be advertised with ffdv_tightly_coupled set to false,
+regardless of whether it implements some other (non-TRUST_STATEID)
+tight-coupling control protocol; from this specification's
+perspective, only trusted-stateid tight coupling is interoperable.
 
 If ffdv_tightly_coupled is not set, then the client MUST commit
 writes to the storage devices for the file before sending a
