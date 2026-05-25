@@ -7667,47 +7667,50 @@ similar overhead ratios.
 
 Selected findings:
 
-- **Erasure-coded write overhead is modest at small and mid sizes.**
-  At 4 KB to 64 KB payloads, all three EC codecs add 14% to 21%
-  write latency relative to plain mirroring.  Above 64 KB the
-  encoding cost begins to dominate; at 1 MB Reed-Solomon and Mojette
-  systematic reach approximately +54%, Mojette non-systematic
-  approximately +62%.
+Erasure-coded write overhead is modest at small and mid sizes:
+:  At 4 KB to 64 KB payloads, all three EC codecs add 14% to 21%
+   write latency relative to plain mirroring.  Above 64 KB the
+   encoding cost begins to dominate; at 1 MB Reed-Solomon and Mojette
+   systematic reach approximately +54%, Mojette non-systematic
+   approximately +62%.
 
-- **The dominant write cost is encoding, not fan-out.**  A pure-
-  striping variant (6 data shards, no parity) isolates the two
-  costs.  At 1 MB, plain mirroring writes in 64 ms, striping in
-  71 ms (+11%), Reed-Solomon in 103 ms (+60%).  Of the 39 ms
-  Reed-Solomon penalty, only 7 ms comes from parallel fan-out; the
-  remaining 32 ms is encoding plus two additional parity RPCs.
+The dominant write cost is encoding, not fan-out:
+:  A pure-
+   striping variant (6 data shards, no parity) isolates the two
+   costs.  At 1 MB, plain mirroring writes in 64 ms, striping in
+   71 ms (+11%), Reed-Solomon in 103 ms (+60%).  Of the 39 ms
+   Reed-Solomon penalty, only 7 ms comes from parallel fan-out; the
+   remaining 32 ms is encoding plus two additional parity RPCs.
 
-- **Reconstruction of a missing data shard is essentially free for
-  systematic codecs at 4+2.**  Reed-Solomon and Mojette systematic
-  add 1% to 6% to read latency in degraded-1 mode (one data shard
-  missing, reconstructed from the remaining five).  A client that
-  discovers a failed DS at read time can reconstruct transparently
-  with no user-visible latency impact.
+Reconstruction of a missing data shard is essentially free for systematic codecs at 4+2:
+:  Reed-Solomon and Mojette systematic
+   add 1% to 6% to read latency in degraded-1 mode (one data shard
+   missing, reconstructed from the remaining five).  A client that
+   discovers a failed DS at read time can reconstruct transparently
+   with no user-visible latency impact.
 
-- **At 8+2, systematic-codec reconstruction diverges.**  Mojette
-  systematic reconstruction overhead stays at approximately +4% at
-  1 MB, while Reed-Solomon grows to approximately +54% due to the
-  O(k^2) cost of inverting a k x k matrix in GF(2^8).  Mojette
-  systematic's back-projection algorithm scales with m (parity
-  count) rather than k (data count) and is therefore preferable at
-  wider geometries.
+At 8+2, systematic-codec reconstruction diverges:
+:  Mojette
+   systematic reconstruction overhead stays at approximately +4% at
+   1 MB, while Reed-Solomon grows to approximately +54% due to the
+   O(k^2) cost of inverting a k x k matrix in GF(2^8).  Mojette
+   systematic's back-projection algorithm scales with m (parity
+   count) rather than k (data count) and is therefore preferable at
+   wider geometries.
 
-- **Mojette non-systematic applies a full inverse transform on
-  every read** regardless of whether any shard is missing.  At
-  1 MB this produces approximately 4x read overhead at 4+2 and
-  approximately 7x at 8+2.  This codec is suitable only for
-  write-once cold storage where reads are rare; it should not be
-  the default for interactive workloads.
+Mojette non-systematic applies a full inverse transform on every read:
+:  Regardless of whether any shard is missing.  At
+   1 MB this produces approximately 4x read overhead at 4+2 and
+   approximately 7x at 8+2.  This codec is suitable only for
+   write-once cold storage where reads are rare; it should not be
+   the default for interactive workloads.
 
-- **Results are platform-independent.**  The largest absolute
-  latency delta between macOS M4 and Fedora 43 at 1 MB is 20 ms
-  on writes.  Codec ordering, overhead percentages, and
-  qualitative scaling behavior are reproducible across operating
-  systems and Docker implementations.
+Results are platform-independent:
+:  The largest absolute
+   latency delta between macOS M4 and Fedora 43 at 1 MB is 20 ms
+   on writes.  Codec ordering, overhead percentages, and
+   qualitative scaling behavior are reproducible across operating
+   systems and Docker implementations.
 
 The benchmarks confirm that the protocol's central design claims
 hold in practice: client-side erasure coding is affordable at
