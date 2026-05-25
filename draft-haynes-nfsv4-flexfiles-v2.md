@@ -6081,9 +6081,9 @@ across all data files that a chunk corresponds.
    ///
    /// /* MDS-to-DS control-plane operations for tight coupling */
    ///
-   ///  OP_TRUST_STATEID       = 90,
-   ///  OP_REVOKE_STATEID      = 91,
-   ///  OP_BULK_REVOKE_STATEID = 92,
+   ///  OP_TRUST_STATEID       = 89,
+   ///  OP_REVOKE_STATEID      = 90,
+   ///  OP_BULK_REVOKE_STATEID = 91,
    ///
 ~~~
 {: #fig-ops-xdr title="Operations XDR" }
@@ -6141,8 +6141,8 @@ XDR applies these amendments at the union's extension point.
 {: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
 
 Operations 78 through 88 (the CHUNK_* operations) are sent by
-clients to storage devices on the data path.  Operations 90
-through 92 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
+clients to storage devices on the data path.  Operations 89
+through 91 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
 are sent by the metadata server to storage devices on the
 MDS-to-DS control session (see
 {{sec-tight-coupling-control-session}}); they MUST NOT be sent by
@@ -6181,9 +6181,9 @@ interface.
    | CHUNK_UNLOCK           | 86     | data server (client)       | {{sec-CHUNK_UNLOCK}} |
    | CHUNK_WRITE            | 87     | data server (client)       | {{sec-CHUNK_WRITE}} |
    | CHUNK_WRITE_REPAIR     | 88     | data server (client)       | {{sec-CHUNK_WRITE_REPAIR}} |
-   | TRUST_STATEID          | 90     | data server (metadata server control)  | {{sec-TRUST_STATEID}} |
-   | REVOKE_STATEID         | 91     | data server (metadata server control)  | {{sec-REVOKE_STATEID}} |
-   | BULK_REVOKE_STATEID    | 92     | data server (metadata server control)  | {{sec-BULK_REVOKE_STATEID}} |
+   | TRUST_STATEID          | 89     | data server (metadata server control)  | {{sec-TRUST_STATEID}} |
+   | REVOKE_STATEID         | 90     | data server (metadata server control)  | {{sec-REVOKE_STATEID}} |
+   | BULK_REVOKE_STATEID    | 91     | data server (metadata server control)  | {{sec-BULK_REVOKE_STATEID}} |
 {: #tbl-protocol-ops title="Protocol OPs"}
 
 ## Operation 78: CHUNK_COMMIT - Activate Cached Chunk Data {#sec-CHUNK_COMMIT}
@@ -7483,7 +7483,7 @@ NFS4ERR_STALE:
 :  the current filehandle no longer identifies a
    valid file.
 
-## Operation 90: TRUST_STATEID - Register Layout Stateid on Data Server {#sec-TRUST_STATEID}
+## Operation 89: TRUST_STATEID - Register Layout Stateid on Data Server {#sec-TRUST_STATEID}
 
 ### ARGUMENTS
 
@@ -7610,7 +7610,7 @@ NFS4ERR_SERVERFAULT:
 :  the data server failed while processing
    the request.
 
-## Operation 91: REVOKE_STATEID - Revoke Registered Stateid on Data Server {#sec-REVOKE_STATEID}
+## Operation 90: REVOKE_STATEID - Revoke Registered Stateid on Data Server {#sec-REVOKE_STATEID}
 
 ### ARGUMENTS
 
@@ -7729,7 +7729,7 @@ NFS4ERR_SERVERFAULT:
 :  the data server failed while processing
    the request.
 
-## Operation 92: BULK_REVOKE_STATEID - Revoke All Stateids for a Client {#sec-BULK_REVOKE_STATEID}
+## Operation 91: BULK_REVOKE_STATEID - Revoke All Stateids for a Client {#sec-BULK_REVOKE_STATEID}
 
 ### ARGUMENTS
 
