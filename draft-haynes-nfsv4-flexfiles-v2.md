@@ -2171,8 +2171,8 @@ uniformly to all coding types:
 By expressing all protection modes as (fdp_data, fdp_parity) pairs,
 a single structure serves mirroring, striping, and all erasure
 coding types.  The coding type ({{fig-ffv2_coding_type4}}) determines
-HOW the shards are encoded; the protection structure determines
-HOW MANY shards there are.
+how the shards are encoded; the protection structure determines
+how many shards there are.
 
 The total number of data servers required is fdp_data + fdp_parity.
 The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
