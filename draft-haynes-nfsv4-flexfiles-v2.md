@@ -935,15 +935,22 @@ been revoked.
 When locking-related operations are requested, they are primarily dealt
 with by the metadata server, which generates the appropriate stateids.
 These stateids MUST be made known to the storage device using control
-protocol facilities.  For flexible file v2 layout deployments in which the storage
-devices are NFSv4.2 servers, those facilities are provided by the
-TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID operations
-defined in {{sec-tight-coupling-control}}.
+protocol facilities.  This document defines one such control protocol
+-- the TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID
+operations in {{sec-tight-coupling-control}} -- for deployments in
+which the storage devices are NFSv4.2 servers willing to implement
+the new operations.  A storage device with its own established
+back-end control protocol that provides the equivalent functional
+capabilities is conformant under this specification without
+implementing the TRUST_STATEID family; see
+{{sec-tight-coupling-control}} for the conformance framing.
 
-The metadata server and a storage device establish that they can
-use TRUST_STATEID via a two-part handshake, both parts of which
-MUST succeed before the metadata server may issue TRUST_STATEID
-against that storage device for production traffic:
+When using the TRUST_STATEID control protocol defined in
+{{sec-tight-coupling-control}}, the metadata server and a storage
+device establish that they can use it via a two-part handshake,
+both parts of which MUST succeed before the metadata server may
+issue TRUST_STATEID against that storage device for production
+traffic:
 
 Capability probe:
 :  At control-session setup the metadata
@@ -1057,17 +1064,27 @@ metadata server to each storage device over a dedicated control
 session (see {{sec-tight-coupling-control-session}}) and MUST NOT
 be sent by pNFS clients.
 
-Other tight-coupling control protocols may be defined elsewhere
-(proprietary or future Standards Track work).  Their interoperability
-with trusted-stateid tight coupling is outside the scope of this
-document.  A storage device that does not implement TRUST_STATEID
-is treated as not supporting trusted-stateid tight coupling
-specifically; the capability probe in {{sec-tight-coupling-probe}}
-detects this and the metadata server falls back to loose coupling
-({{sec-tight-coupling-compat}}).  Within the remainder of
-{{sec-tight-coupling-control}} and its subsections, unqualified
-references to "tight coupling" or "tightly coupled" refer to the
-trusted-stateid variant defined here.
+Other tight-coupling control protocols may exist or be defined
+elsewhere.  Existing pNFS server implementations with established
+back-end control protocols -- for example, dCache, which has its
+own control protocol between its metadata service and its data
+servers -- satisfy the tightly-coupled locking model
+({{sec-state-locking}}) through their own mechanisms and are
+conformant under this specification provided they meet the
+functional capabilities described there.  Such implementations
+need not adopt the TRUST_STATEID family, and their interoperability
+with the TRUST_STATEID family is outside the scope of this
+document.
+
+A storage device that does not implement TRUST_STATEID is treated
+as not supporting trusted-stateid tight coupling specifically; the
+capability probe in {{sec-tight-coupling-probe}} detects this and
+the metadata server falls back to loose coupling
+({{sec-tight-coupling-compat}}) or, if the storage device's own
+control protocol is in use, that protocol governs.  Within the
+remainder of {{sec-tight-coupling-control}} and its subsections,
+unqualified references to "tight coupling" or "tightly coupled"
+refer to the trusted-stateid variant defined here.
 
 The receiver of these operations is any server the metadata
 server delegates client-I/O admission to.  In this document that
