@@ -4487,9 +4487,9 @@ Byzantine fault tolerance:
    layer above or below this protocol.
 
 Metadata server high availability:
-:  Single-MDS-per-file
-   is the protocol model.  Metadata server HA, if deployed, is implemented
-   below the wire protocol and transparent to clients.
+:  Single-MDS-per-file is the protocol model.  Metadata server
+   high availability, if deployed, is implemented below the wire
+   protocol and transparent to clients.
 
 Cross-file atomicity:
 :  Writes to multiple files are not
