@@ -4313,6 +4313,31 @@ Data server (DS):
    entirely at the client, and the data server stores the
    resulting chunks without interpreting their contents.
 
+An entity MAY simultaneously hold more than one of these roles
+with respect to a given data server, with each role bound to a
+distinct session.  A metadata server that opens a control
+session to a data server (presenting EXCHGID4_FLAG_USE_PNFS_MDS
+at EXCHANGE_ID; see {{sec-tight-coupling-control-session}})
+issues TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID on
+that session; on a separate client-side session (presenting
+EXCHGID4_FLAG_USE_NON_PNFS), the same metadata server MAY also
+issue CHUNK_* operations as a data-path client.  A data server
+MUST NOT assume that the metadata server is not also one of its
+clients; it distinguishes MDS-only operations from client-side
+operations by the EXCHANGE_ID flags of the session that carries
+the operation, not by the requester's IP address or principal.
+
+A data server MAY likewise act as a client of another data
+server -- for example, when selected as the repair client by an
+MDS-directed CB_CHUNK_REPAIR.  Independent of the actor role,
+any entity may operate as codec-aware (issuing CHUNK_*
+operations directly against data servers) or codec-unaware
+(operating through the proxy-server-mediated READ / WRITE path
+described in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).
+Proxy-server registration carries the codec capability
+explicitly; direct pNFS clients reveal their codec posture
+implicitly through the operations they issue.
+
 The protocol does NOT mandate how a data server implements the
 chunk state machine or stores PENDING chunks.  An implementation
 MAY use per-client staging files, a single append-only instance
