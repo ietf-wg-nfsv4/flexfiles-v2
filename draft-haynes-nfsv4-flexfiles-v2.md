@@ -7439,19 +7439,75 @@ NFS4ERR_STALE:
 
 ### DESCRIPTION
 
-CHUNK_REPAIRED signals that blocks previously marked as errored
-(via CHUNK_ERROR, {{sec-CHUNK_ERROR}}) have been repaired.  The
-repair client writes replacement data via CHUNK_WRITE_REPAIR
-({{sec-CHUNK_WRITE_REPAIR}}), then calls CHUNK_REPAIRED to clear
-the error state and make the blocks available for normal reads.
+CHUNK_REPAIRED signals that chunks previously marked as
+errored (via CHUNK_ERROR, see {{sec-CHUNK_ERROR}}) have been
+repaired and the errored state can be cleared.  The repair
+client writes replacement data via CHUNK_WRITE_REPAIR
+({{sec-CHUNK_WRITE_REPAIR}}), advances the new chunks
+through CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}) and
+CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}), and only then issues
+CHUNK_REPAIRED to make the repaired chunks visible to
+normal CHUNK_READ traffic again.
 
-The cra_offset and cra_count identify the repaired block range.
-The cra_owner identifies the repair client that performed the
-repair.  The data server verifies that the blocks were previously
-in error and that the repair data has been written and finalized.
+CHUNK_REPAIRED has no direct analog in {{RFC8881}}; it is
+the chunk-protocol equivalent of clearing a "needs scrub"
+flag after a RAID controller has rewritten a parity stripe.
+Together with CHUNK_ERROR it forms the data-server-side
+state-bit pair that quarantines damaged chunks from
+ordinary reads during the repair window.
 
-If the blocks are not in the errored state, the operation returns
-NFS4ERR_INVAL.
+The client provides:
+
+cra_stateid:
+:  the layout stateid the metadata server granted to the
+   repair client.  Under trusted-stateid tight coupling
+   ({{sec-TRUST_STATEID}}), this stateid MUST be in the
+   data server's trust table; otherwise the data server
+   rejects the operation with NFS4ERR_BAD_STATEID.
+
+cra_offset:
+:  starting chunk index of the repaired range (not a byte
+   offset).
+
+cra_count:
+:  number of chunks the repaired range covers, starting
+   at cra_offset.  The cra_offset / cra_count range MUST
+   match the range named in the original CHUNK_ERROR that
+   marked these chunks errored; mismatched ranges are
+   rejected with NFS4ERR_INVAL.
+
+cra_owner:
+:  the chunk_owner4 ({{fig-chunk_owner4}}) identifying the
+   repair client.  The data server uses this to record
+   which actor cleared the errored state.  The reserved
+   sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear in cra_owner;
+   see {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
+
+CHUNK_REPAIRED returns a single top-level status; there is
+no per-chunk status array because the data server either
+accepts the confirmation for the whole range or returns a
+top-level error.
+
+The data server MUST verify before accepting the
+confirmation that:
+
+-  every chunk in [cra_offset, cra_offset + cra_count) is
+   currently in the errored state, and
+
+-  every chunk in the range has been advanced to COMMITTED
+   by a CHUNK_WRITE_REPAIR / CHUNK_FINALIZE / CHUNK_COMMIT
+   sequence since the CHUNK_ERROR that marked them errored.
+
+If either precondition fails, the data server returns
+NFS4ERR_INVAL and the errored state is left in place.  A
+repair client that sees NFS4ERR_INVAL SHOULD verify the
+chunks via CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}})
+before retrying.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
 
 ### RESPONSE CODES
 
