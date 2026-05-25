@@ -1057,8 +1057,7 @@ For each new or refreshed layout segment, the metadata server:
     {{sec-tight-coupling-lease}}), and the client's authenticated
     identity in tsa_principal;
 
-4.  waits for all fan-outs to complete (or reach their per-storage-
-    device timeout) before returning the layout.
+4.  waits for all fan-outs to complete (or reach their per-storage-device timeout) before returning the layout.
 
 If every storage device in the mirror set rejects the TRUST_STATEID
 fan-out, the metadata server MUST NOT return the layout; instead it
@@ -1107,8 +1106,7 @@ The metadata server MUST populate tsa_principal with the
 RPCSEC_GSS display name of the authenticated client when the
 client authenticated to the metadata server via RPCSEC_GSS.  The
 metadata server MUST set tsa_principal to the empty string only
-for AUTH_SYS and TLS clients (for which there is no server-
-verified per-user identity).  Setting tsa_principal to the empty
+for AUTH_SYS and TLS clients (for which there is no server-verified per-user identity).  Setting tsa_principal to the empty
 string for an RPCSEC_GSS client disables the principal check on
 the storage device and silently re-opens the flexible file v1 layout
 Kerberos gap; it is a metadata server bug, not a protocol option.
@@ -2281,8 +2279,7 @@ Runtime codec change:
    affected layouts via CB_LAYOUTRECALL and may re-issue new
    layouts with the new codec.  Clients that do not support the
    new codec LAYOUTRETURN with NFS4ERR_CODING_NOT_SUPPORTED,
-   and the server either grants a layout using a mutually-
-   supported codec or the client falls back to I/O via the
+   and the server either grants a layout using a mutually-supported codec or the client falls back to I/O via the
    metadata server.
 
 This mechanism deliberately avoids a separate capability-bit
@@ -3451,8 +3448,7 @@ place.  In this case the metadata server MUST either:
     I/O during the transition, pushing reconstructed content to the
     replacement data servers in the background).  The Data Mover
     mechanism also covers the non-repair cases where a file's layout
-    must change while remaining available to clients -- policy-
-    driven layout transitions, data server maintenance evacuation,
+    must change while remaining available to clients -- policy-driven layout transitions, data server maintenance evacuation,
     administrative ingest, TLS coverage transition, and
     filehandle-backend migration.
 
@@ -3470,8 +3466,7 @@ still perform recovery for cases where per-range repair suffices,
 using CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}) and the repair
 client selection rules in {{sec-repair-selection}}.  Such
 implementations will surface NFS4ERR_PAYLOAD_LOST on any failure
-that exceeds per-range repair's reach, including the multi-data-
-server failure scenarios the Data Mover mechanism is intended to
+that exceeds per-range repair's reach, including the multi-data-server failure scenarios the Data Mover mechanism is intended to
 handle.
 
 ## Mixing of Coding Types
@@ -4724,8 +4719,7 @@ Clients MUST NOT send:
    log the client for operator attention; this case is almost
    always a client bug in which the client did not inspect the
    mirror's ffm_coding_type_data before issuing I/O.
--  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against an erasure-
-   coded data file.  Chunk-level allocation is a
+-  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against an erasure-coded data file.  Chunk-level allocation is a
    metadata-server responsibility.
 
 ### Operations That MUST NOT Be Sent to a Data File
@@ -4746,8 +4740,7 @@ MUST return NFS4ERR_NOTSUPP:
    18.5, 18.6 and {{RFC7862}} Section 15.3).  Delegations are
    issued by the metadata server.
 -  Any operation whose purpose is to manipulate the file's
-   namespace: RENAME, LINK, SYMLINK, CREATE (at the file-
-   creation use, not MDS runway creation), REMOVE.  Namespace
+   namespace: RENAME, LINK, SYMLINK, CREATE (at the file-creation use, not MDS runway creation), REMOVE.  Namespace
    operations belong on the metadata server.
 -  Any ACL-scoped SETATTR or GETATTR bit (FATTR4_ACL,
    FATTR4_DACL, FATTR4_SACL).  Access control on data files is
@@ -7675,8 +7668,7 @@ Erasure-coded write overhead is modest at small and mid sizes:
    approximately +62%.
 
 The dominant write cost is encoding, not fan-out:
-:  A pure-
-   striping variant (6 data shards, no parity) isolates the two
+:  A pure-striping variant (6 data shards, no parity) isolates the two
    costs.  At 1 MB, plain mirroring writes in 64 ms, striping in
    71 ms (+11%), Reed-Solomon in 103 ms (+60%).  Of the 39 ms
    Reed-Solomon penalty, only 7 ms comes from parallel fan-out; the
