@@ -4684,7 +4684,8 @@ Visibility:
    client) MUST observe the predecessor COMMITTED or EMPTY
    state, not the PENDING successor.  This is the normative
    form of the "non-committed data MUST NOT be globally visible"
-   rule in the Visibility bullet above.
+   rule stated in the "Visibility of non-committed state"
+   bullet of {{sec-system-model-consistency}}.
 
 Retention window:
 :  The data server MUST retain the predecessor COMMITTED (or
