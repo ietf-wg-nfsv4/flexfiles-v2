@@ -522,8 +522,7 @@ non-systematic encoding:
 :  An erasure coding scheme in which the encoded shards do not contain
 verbatim copies of the original data.  Every read requires decoding,
 even when no shards are lost.  The Mojette non-systematic transform is
-an example.  Non-systematic encodings are typically used for archival
-workloads where reads are infrequent.
+an example.
 
 proxy server (PS):
 
@@ -4080,13 +4079,16 @@ last chunk in a parity shard MAY be shorter than the stride.
 | Reconstruction cost | O(k^2) | O(m * k) | O(m * k) |
 | Healthy read cost | Zero | Zero | Full decode |
 | GF operations | Yes (GF(2^8)) | No | No |
-| Recommended k | k <= 6 | k >= 4 | Archive only |
 {: #tbl-encoding-comparison title="Comparison of erasure encoding types"}
 
-At small k (k <= 6), RS is the conservative choice with uniform shard
-sizes.  At wider geometries (k >= 8), systematic Mojette offers lower
-reconstruction cost.  Non-systematic Mojette is suitable only for
-archive workloads where reads are infrequent.
+Reed-Solomon uses uniform shard sizes and GF(2^8) operations.
+Mojette systematic provides zero-cost healthy reads with variable
+parity shard sizes; reconstruction cost scales as O(m * k) rather
+than O(k^2).  Mojette non-systematic encodes all k + m shards as
+projections, providing constant decode cost regardless of failure
+count at a higher baseline read cost than systematic.  The choice
+among these is a deployment decision driven by workload
+characteristics and operational priorities.
 
 ## First-Line Substitution to a Spare {#sec-spare-substitution}
 
@@ -8273,15 +8275,15 @@ At 8+2, systematic-codec reconstruction diverges:
    1 MB, while Reed-Solomon grows to approximately +54% due to the
    O(k^2) cost of inverting a k x k matrix in GF(2^8).  Mojette
    systematic's back-projection algorithm scales with m (parity
-   count) rather than k (data count) and is therefore preferable at
-   wider geometries.
+   count) rather than k (data count), so its reconstruction
+   overhead does not exhibit the same growth at wider geometries.
 
 Mojette non-systematic applies a full inverse transform on every read:
 :  Regardless of whether any shard is missing.  At
    1 MB this produces approximately 4x read overhead at 4+2 and
-   approximately 7x at 8+2.  This codec is suitable only for
-   write-once cold storage where reads are rare; it should not be
-   the default for interactive workloads.
+   approximately 7x at 8+2.  The read cost is independent of
+   failure count, which is the algorithmic trade-off of the
+   non-systematic form.
 
 Results are platform-independent:
 :  The largest absolute
@@ -8297,12 +8299,13 @@ shards cheaply; and the scaling properties of the three codec
 families follow directly from their published algorithmic
 complexities.
 
-The benchmarks also identify two non-goals for deployment: Mojette
-non-systematic is not a viable general-purpose read codec, and
-Reed-Solomon at k greater than approximately 6 loses its
-"reconstruction is free" property.  These observations inform the
-choice of default codec and geometry in implementations that
-consume this specification.
+The benchmarks quantify the algorithmic trade-offs each codec
+family makes: Mojette non-systematic's constant decode cost comes
+at a higher baseline read cost, and Reed-Solomon's matrix-
+inversion reconstruction grows as O(k^2) at wider geometries.
+The choice of default codec and geometry in a given deployment
+follows from these properties applied to the workload's read /
+write mix, fault-tolerance target, and acceptable encoding cost.
 
 A full benchmark report with per-size tables, figures, and the
 platform comparison is available alongside the source code.
@@ -8312,8 +8315,9 @@ platform comparison is available alongside the source code.
 
 The headline question every storage audience asks of an
 erasure-coding protocol is: "what does it cost when something goes
-wrong?"  The benchmark answer for the recommended operating point
-is **essentially zero**.  Mojette systematic at 4+2 reconstructs a
+wrong?"  At the systematic-codec operating points measured
+(Mojette systematic at 4+2 and 8+2), the benchmark answer is
+**essentially zero**.  Mojette systematic at 4+2 reconstructs a
 missing data shard with read-latency overhead within run-to-run
 noise of healthy operation.  Mojette systematic at 8+2 holds at
 approximately +4%.
