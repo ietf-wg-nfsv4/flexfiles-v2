@@ -6269,10 +6269,61 @@ CHUNK_FINALIZE before CHUNK_COMMIT is accepted:
    this has lost a race and SHOULD re-read the chunk (see
    {{sec-chunk_guard4}}).
 
+#### Pipelining Considerations
+
 The three-step CHUNK_WRITE -> CHUNK_FINALIZE -> CHUNK_COMMIT
 sequence MAY be pipelined within a single NFSv4.2 compound
-(see {{sec-system-model-progress}}); each operation evaluates the
-current state of the target chunks independently.
+(see Section 12.8 of {{RFC8881}}) in single-writer mode, where
+no other writer can race the client's per-chunk transitions
+and the CHUNK_WRITE per-block status array reports only
+local-failure cases (NFS4ERR_NOSPC, NFS4ERR_IO, and so on).
+
+Same-compound pipelining is NOT RECOMMENDED in multiple-writer
+mode.  CHUNK_WRITE reports per-block outcomes in cwr_status
+({{sec-CHUNK_WRITE}}); a partial-success outcome (some chunks
+accepted, others rejected with NFS4ERR_CHUNK_GUARDED on a lost
+race) leaves the client without an opportunity to react before
+a same-compound CHUNK_FINALIZE / CHUNK_COMMIT proceeds against
+whichever chunks happen to be PENDING.  The compound-level
+status is NFS4_OK in this case because per-block failures are
+reported in the per-op status array rather than as a compound-
+level error, so NFSv4 compound short-circuit (Section 2.10.6.4
+of {{RFC8881}}) does not stop the trailing ops.  A client that
+wants atomic-or-none semantics across multiple chunks MUST
+examine the per-block status returned by each CHUNK_WRITE
+before issuing the corresponding CHUNK_FINALIZE.
+
+For multi-chunk pipelines in multiple-writer mode, the
+recommended pattern is to stagger the three steps across
+compounds so each trailing operation acts only on chunks whose
+preceding operation's status the client has already inspected:
+
+~~~
+Compound A:  SEQUENCE PUTFH CHUNK_WRITE(a)
+Compound B:  SEQUENCE PUTFH CHUNK_WRITE(b) CHUNK_FINALIZE(a)
+Compound C:  SEQUENCE PUTFH CHUNK_WRITE(c) CHUNK_FINALIZE(b)
+                              CHUNK_COMMIT(a)
+Compound D:  SEQUENCE PUTFH CHUNK_WRITE(d) CHUNK_FINALIZE(c)
+                              CHUNK_COMMIT(b)
+...
+~~~
+{: #fig-staggered-chunk-pipeline title="Staggered three-stage chunk pipeline (multiple-writer mode)"}
+
+In each compound, the CHUNK_WRITE acts on the trailing chunk
+the client wants to enqueue next; the CHUNK_FINALIZE operates
+on a chunk whose CHUNK_WRITE the client has already inspected
+in a previous compound; the CHUNK_COMMIT operates on a chunk
+whose CHUNK_FINALIZE the client has already inspected.  If
+any per-block status in compound N reports a guard loss or
+other failure, the client abandons the affected chunk (via
+CHUNK_ROLLBACK in compound N+1 or later) without ever issuing
+the trailing FINALIZE / COMMIT for it.
+
+This pattern adds two compounds of latency between a chunk's
+write and its commit (one for the FINALIZE wait, one for the
+COMMIT wait), but provides the client with the per-step
+inspection point required for atomic-or-none multi-chunk
+writes under contention.
 
 #### Interaction with a Locked Chunk
 
