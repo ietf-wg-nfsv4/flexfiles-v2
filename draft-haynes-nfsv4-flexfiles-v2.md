@@ -8013,42 +8013,142 @@ NFS4ERR_STALE:
 
 ### DESCRIPTION
 
-CHUNK_WRITE_REPAIR has the same semantics as CHUNK_WRITE
-({{sec-CHUNK_WRITE}}) but is used specifically for writing
-reconstructed chunk data to a replacement data server during
-repair operations.
+CHUNK_WRITE_REPAIR is the repair-path variant of CHUNK_WRITE
+({{sec-CHUNK_WRITE}}).  It writes reconstructed chunk data
+to a data server whose chunks have been reported errored
+(via CHUNK_ERROR, see {{sec-CHUNK_ERROR}}) or to a
+replacement data server selected during whole-file repair.
+The data server applies repair-specific policies to the
+write that are not appropriate for normal client writes:
+the chunk_guard4 CAS check is bypassed (the repair client
+is writing a reconstructed value rather than competing in
+a multiple-writer race), and the data server MAY log the
+repair separately for operator audit.
 
-The repair workflow is:
+CHUNK_WRITE_REPAIR has no direct analog in {{RFC8881}}; it
+is the chunk-protocol equivalent of writing reconstructed
+data into a RAID stripe whose other members are known
+healthy.  The reconstructed data is produced by the repair
+client from surviving shards via the erasure-coding
+algorithm of the file's layout (RS matrix inversion or
+Mojette corner-peeling, see {{sec-rs-encoding}} and
+{{sec-mojette-encoding}}).
 
-1. The repair client reads surviving chunks from the remaining
-   data servers via CHUNK_READ.
+The repair workflow that invokes CHUNK_WRITE_REPAIR is:
 
-2. The client reconstructs the missing chunks using the erasure
-   coding algorithm (RS matrix inversion or Mojette corner-peeling).
+1.  The repair client (selected per
+    {{sec-repair-selection}}) reads surviving chunks from
+    the remaining data servers via CHUNK_READ
+    ({{sec-CHUNK_READ}}).
 
-3. The client acquires a CHUNK_LOCK ({{sec-CHUNK_LOCK}}) on the
-   target data server to prevent concurrent writes during repair.
+2.  The repair client reconstructs the missing chunks
+    using the erasure-coding algorithm of the file's
+    layout.
 
-4. The client writes the reconstructed data via CHUNK_WRITE_REPAIR.
+3.  The repair client acquires a CHUNK_LOCK
+    ({{sec-CHUNK_LOCK}}) on the target data server to
+    prevent concurrent writes during repair.  For repair
+    that adopts an MDS-escrow lock, the CHUNK_LOCK
+    carries CHUNK_LOCK_FLAGS_ADOPT
+    ({{sec-chunk_guard_mds}}).
 
-5. The client calls CHUNK_FINALIZE and CHUNK_COMMIT to persist
-   the repair.
+4.  The repair client writes the reconstructed data via
+    CHUNK_WRITE_REPAIR.
 
-6. The client calls CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}) to
-   clear the error state.
+5.  The repair client issues CHUNK_FINALIZE
+    ({{sec-CHUNK_FINALIZE}}) and CHUNK_COMMIT
+    ({{sec-CHUNK_COMMIT}}) to persist the repair.
 
-7. The client releases the lock via CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}).
+6.  The repair client issues CHUNK_REPAIRED
+    ({{sec-CHUNK_REPAIRED}}) to clear the errored state.
 
-CHUNK_WRITE_REPAIR is distinguished from CHUNK_WRITE to allow the
-data server to apply different policies to repair writes (e.g.,
-bypassing guard checks, logging repair activity, or prioritizing
-repair I/O).  The CRC32 validation on the repair data follows the
-same rules as CHUNK_WRITE.
+7.  The repair client releases the lock via CHUNK_UNLOCK
+    ({{sec-CHUNK_UNLOCK}}).
 
-The target blocks SHOULD be in the errored state (set by
-CHUNK_ERROR) or EMPTY.  If the blocks are in the COMMITTED state
-with valid data, the data server MAY reject the repair to prevent
-overwriting good data.
+The arguments mirror CHUNK_WRITE except that
+CHUNK_WRITE_REPAIR has no cwa_flags field (the
+activation-shortcut behaviour is not offered on the repair
+path) and no cwa_guard field (the guard CAS is bypassed
+by construction):
+
+cwra_stateid:
+:  the layout stateid the metadata server granted to the
+   repair client.  Under trusted-stateid tight coupling
+   ({{sec-TRUST_STATEID}}), this stateid MUST be in the
+   data server's trust table; otherwise the data server
+   rejects the operation with NFS4ERR_BAD_STATEID.
+
+cwra_offset:
+:  starting chunk index in the file (not a byte offset).
+
+cwra_stable:
+:  the stable_how4 durability level the data server MUST
+   apply before returning.  Semantics match cwa_stable in
+   CHUNK_WRITE (see {{sec-CHUNK_WRITE}} "Stability and
+   Activation").
+
+cwra_owner:
+:  the chunk_owner4 ({{fig-chunk_owner4}}) the repair
+   client uses for the reconstructed payload.  The
+   cg_client_id MUST be the repair client's own
+   ffv2m_client_id (not CHUNK_GUARD_CLIENT_ID_MDS); the
+   cg_gen_id is the repair client's locally chosen
+   per-chunk generation counter.  The reserved sentinels
+   CHUNK_GUARD_CLIENT_ID_NONE and
+   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear in
+   cwra_owner; see {{sec-chunk_guard_none}} and
+   {{sec-chunk_guard_mds}}.
+
+cwra_payload_id:
+:  the payload-id the repair client associates with the
+   reconstructed payload, used by the repair coordinator
+   to correlate this repair across mirrors.
+
+cwra_chunk_size:
+:  the nominal chunk size of the reconstructed payload,
+   in bytes.
+
+cwra_crc32s:
+:  per-chunk CRC32 array.  Semantics match cwa_crc32s in
+   CHUNK_WRITE.
+
+cwra_chunks:
+:  the reconstructed chunk payload as an opaque blob,
+   packed identically to cwa_chunks in CHUNK_WRITE.
+
+The CHUNK_WRITE_REPAIR result reports per-chunk outcomes:
+
+cwrr_count:
+:  the number of chunks the data server successfully
+   accepted.
+
+cwrr_committed:
+:  the stable_how4 level the data server actually applied.
+   MUST be at least as durable as cwra_stable.
+
+cwrr_writeverf:
+:  a verifier identifying the data server's incarnation.
+   Semantics match cwr_writeverf in CHUNK_WRITE.
+
+cwrr_status:
+:  per-chunk acceptance status, one entry per chunk in
+   the payload, co-indexed.  The top-level
+   CHUNK_WRITE_REPAIR status is NFS4_OK as long as the
+   data server could evaluate each chunk; per-chunk
+   failures are reported in cwrr_status rather than by
+   failing the whole operation.
+
+The target chunks SHOULD be in the errored state (set by
+a prior CHUNK_ERROR) or EMPTY.  If a target chunk is
+COMMITTED with valid data, the data server MAY reject the
+repair-write with NFS4ERR_INVAL in the corresponding
+cwrr_status slot to prevent overwriting good data; the
+repair client SHOULD re-verify the chunk before
+attempting another repair-write on the same range.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
 
 ### RESPONSE CODES
 
