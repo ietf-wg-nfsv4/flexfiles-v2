@@ -945,12 +945,11 @@ be sent by pNFS clients.
 The receiver of these operations is any server the metadata
 server delegates client-I/O admission to.  In this document that
 is the storage device (data server).  The same mechanism applies to a
-proxy server (PS) as defined in the companion Data Mover
-draft -- a proxy server may or may not additionally act as a data server, but in
+proxy server (PS) {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} -- a proxy server may or may not additionally act as a data server, but in
 either role it needs the metadata server to register a layout
 stateid before it can admit client I/O.  Where this section
 says "storage device," read it as "storage device, or proxy
-server as defined in the companion Data Mover draft"; the flag
+server {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}"; the flag
 check and the three operations are identical for both roles.
 
 ###  Capability Discovery {#sec-tight-coupling-probe}
@@ -1134,12 +1133,11 @@ This is the expected setting for AUTH_SYS and TLS clients:
 When a client's I/O is routed through a proxy server (PS) -- that
 is, the layout the metadata server returns to the client has
 FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry,
-per the companion Data Mover draft -- the storage device observes
+per {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} -- the storage device observes
 CHUNK operations arriving from the proxy server's address rather than from
 the client directly.  The tsa_principal the metadata server
 populates in TRUST_STATEID is the principal the *storage device*
-will observe on those CHUNK operations, and the Data Mover
-draft's credential-forwarding rules (in particular rule 1,
+will observe on those CHUNK operations, and {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}'s credential-forwarding rules (in particular rule 1,
 "Credential pass-through") require the proxy server to forward the
 client's credentials verbatim on every CHUNK operation it issues
 on the client's behalf.  Therefore:
@@ -1161,8 +1159,7 @@ on the client's behalf.  Therefore:
 The metadata server MUST NOT set tsa_principal to the proxy server's own
 service principal.  Doing so would require the proxy server to
 authenticate to the storage device as itself (bypassing
-credential forwarding) which is explicitly prohibited by the
-Data Mover draft's rule 4 ("proxy server service identity is for the
+credential forwarding) which is explicitly prohibited by rule 4 of {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} ("proxy server service identity is for the
 control plane only").
 
 ###  Client-Detected Trust Gap {#sec-tight-coupling-trust-gap}
@@ -2261,7 +2258,7 @@ Fallback when no overlap exists:
        for the codec-ignorant client that the MDS-I/O
        fallback loses.  The proxy registration, directive, and
        credential-forwarding rules are defined in the
-       companion Data Mover design; this draft defines only
+       {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}; this draft defines only
        the layout-flag surface (FFV2_DS_FLAGS_PROXY in
        {{sec-ffv2_ds_flags4}}) that makes the proxy visible to
        the client.
@@ -3443,30 +3440,28 @@ flow defined in {{sec-repair-selection}} to reconstruct the file in
 place.  In this case the metadata server MUST either:
 
 1.  Construct a new layout backed by replacement data servers and
-    drive the reconstruction via the **Data Mover** mechanism (a
+    drive the reconstruction via the **Proxy Server** mechanism (a
     designated data server acts as the source of truth for client
     I/O during the transition, pushing reconstructed content to the
-    replacement data servers in the background).  The Data Mover
-    mechanism also covers the non-repair cases where a file's layout
+    replacement data servers in the background).  The Proxy Server mechanism also covers the non-repair cases where a file's layout
     must change while remaining available to clients -- policy-driven layout transitions, data server maintenance evacuation,
     administrative ingest, TLS coverage transition, and
     filehandle-backend migration.
 
-2.  If the metadata server has no data-mover-capable data server
+2.  If the metadata server has no proxy-server-capable data server
     available, or the surviving shards are insufficient to
     reconstruct any portion of the file, terminate the affected
     byte ranges with NFS4ERR_PAYLOAD_LOST (see
     {{sec-NFS4ERR_PAYLOAD_LOST}}).
 
-The Data Mover mechanism is specified in the companion Proxy
-Server document {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}.
+The Proxy Server mechanism is specified in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}.
 
-Implementations that do not support the Data Mover mechanism can
+Implementations that do not support the Proxy Server mechanism can
 still perform recovery for cases where per-range repair suffices,
 using CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}) and the repair
 client selection rules in {{sec-repair-selection}}.  Such
 implementations will surface NFS4ERR_PAYLOAD_LOST on any failure
-that exceeds per-range repair's reach, including the multi-data-server failure scenarios the Data Mover mechanism is intended to
+that exceeds per-range repair's reach, including the multi-data-server failure scenarios the Proxy Server mechanism is intended to
 handle.
 
 ## Mixing of Coding Types
@@ -4593,7 +4588,7 @@ when issued by the metadata server:
 The metadata server MAY also use other NFSv4.2 operations on data
 files as implementation-defined control-plane actions (for
 example, COPY or CLONE to migrate a data file between data
-servers during a data mover operation).  The list above is the
+servers during a proxy server operation).  The list above is the
 minimum set a flexible file v2 layout data server MUST support for the
 metadata server's use.
 
@@ -4627,7 +4622,7 @@ GETATTR MAY be issued by a client against a data file.  The
 primary use case is repair: a repair client selected by
 CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}) may need to query the
 per-server file size or allocation state when reconstructing a
-payload, and the data mover described informally in
+payload, and the proxy server described informally in
 {{sec-system-model-roles}} similarly benefits from attribute
 queries on surviving mirrors.  Diagnostic use is also permitted.
 
@@ -4637,7 +4632,7 @@ mode, ACL, and so on).  The metadata server is the sole authority
 for file attributes.  Values returned by a data server reflect the
 per-server data file instance only and MAY diverge from the
 metadata server's view, particularly during a write layout's
-lifetime or during a Data Mover transition.  A client that uses a
+lifetime or during a proxy server transition.  A client that uses a
 data-server GETATTR result to determine the file's visible size
 will observe inconsistencies.
 
@@ -7930,11 +7925,11 @@ layout-level counter would disambiguate successive placements
 of the same data.  This was rejected because:
 
 -  The use case is already covered.  CB_CHUNK_REPAIR (see
-   {{sec-CB_CHUNK_REPAIR}}) and the Data Mover / Proxy-data server
-   mechanism (see the companion Data Mover design) together
+   {{sec-CB_CHUNK_REPAIR}}) and the Proxy Server
+   mechanism (see {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) together
    handle mid-layout remap without requiring a layout-level
    epoch on the wire.  CB_CHUNK_REPAIR reaches the specific
-   chunks that need redirection; the Data Mover reaches the
+   chunks that need redirection; the proxy server reaches the
    broader re-placement case; between them the full remap
    space is covered.
 
