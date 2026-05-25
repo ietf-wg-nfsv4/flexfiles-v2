@@ -3497,6 +3497,41 @@ The repair sequence when the selected client is the original writer is:
 5. The repair client issues CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}) to
    clear the errored state and make the blocks available for normal reads.
 
+#### Transitioning from Single Writer Mode to Multiple Writer Mode {#sec-swm-to-mwm}
+
+When a second writer requests a write layout for a file currently
+covered by a single-writer layout (FFV2_FLAGS_ONLY_ONE_WRITER set),
+the metadata server recalls the existing layout before granting
+the new request.  The sequence is:
+
+1. The metadata server issues CB_LAYOUTRECALL to the single-writer
+   client.
+
+2. The single-writer client drains its outstanding I/O issued
+   under the single-writer assumption (CHUNK_WRITE with
+   cwa_guard.cwg_check = FALSE).  Operations already underway
+   complete under the layout that authorized them: CHUNK_FINALIZE
+   and CHUNK_COMMIT proceed normally for blocks already written.
+
+3. Once drained, the single-writer client issues LAYOUTRETURN.
+
+4. The metadata server grants the new writer a layout without
+   FFV2_FLAGS_ONLY_ONE_WRITER set.  When the original writer next
+   issues LAYOUTGET, it also receives a layout without the flag.
+   Both clients then operate in multiple writer mode
+   ({{sec-multi-writer}}), supplying cwa_guard.cwg_check = TRUE
+   and a chunk_guard4 on every CHUNK_WRITE.
+
+The transition uses standard NFSv4.1 layout recall semantics
+(Section 12.5.5 of {{RFC8881}}).  Drained single-writer I/O does
+not need to be re-issued under multiple writer rules; it
+completed under the layout that authorized it.  If the
+single-writer client fails to return the layout within the
+recall window, the metadata server escalates to layout
+revocation (Section 12.5.5.2.1 of {{RFC8881}}); any single-writer
+writes that did not complete before revocation are repaired via
+the multiple-writer repair path on subsequent access.
+
 #### Multiple Writer Mode {#sec-multi-writer}
 
 In multiple writer mode, the metadata server does not set
@@ -3570,6 +3605,31 @@ repair client.  The repair sequence is:
 
 6. The repair client reports success to the metadata server via
    LAYOUTRETURN.
+
+#### Transitioning from Multiple Writer Mode to Single Writer Mode {#sec-mwm-to-swm}
+
+The reverse transition is optional.  When the metadata server
+determines that only one writer holds a write layout for a file
+(for example, because other writers' layouts have been returned or
+their leases have expired), it MAY recall the remaining writer's
+layout and grant a fresh layout with FFV2_FLAGS_ONLY_ONE_WRITER
+set, restoring the single-writer optimization.  The metadata
+server MAY also leave the writer in multiple writer mode
+indefinitely; single writer mode is an optimization, not a
+correctness requirement.
+
+The metadata server's choice of when to grant
+FFV2_FLAGS_ONLY_ONE_WRITER is policy and is implementation-defined.
+A metadata server that aggressively grants single writer mode and
+then must recall it each time a second writer appears can produce
+recall churn under workloads with irregular concurrent access:
+each single-writer-to-multiple-writer transition costs a
+CB_LAYOUTRECALL round trip and drain time for in-flight I/O.
+Strategies to limit churn include withholding
+FFV2_FLAGS_ONLY_ONE_WRITER until sustained single-writer behavior
+is observed, deferring the single-writer grant after a recent
+recall, or never granting single writer mode for files with a
+history of concurrent access.
 
 ### Reading Chunks {#sec-reading-chunks}
 
