@@ -10510,5 +10510,13 @@ rather than POSIX write ordering across application writes; that
 framing is reflected in {{sec-motivation}} and in the Non-Goals
 of {{sec-system-model-consistency}}.
 
+The authors thank Dave Noveck, Chuck Lever, Tigran
+Mkrtchyan, Rick Macklem, and Christoph Hellwig for their
+detailed review of earlier revisions of this draft.  Their
+comments shaped the system model presentation, the chunk
+lifecycle and guard semantics, the trusted-stateid design,
+and many smaller choices recorded throughout the
+document.
+
 Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
 process.
