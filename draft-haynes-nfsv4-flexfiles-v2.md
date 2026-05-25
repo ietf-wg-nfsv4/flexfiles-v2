@@ -3686,21 +3686,58 @@ handle.
 
 Multiple coding types can be present in a Flexible File Version 2
 Layout Type layout.  The ffv2_layout4 has an array of ffv2_mirror4,
-each of which has a ffv2_coding_type4.  The main reason to allow
-for this is to provide for either the assimilation of a non-erasure
-coded file to an erasure-coded file or the exporting of an erasure
-coded file to a non-erasure-coded file.
+each of which has a ffv2_coding_type4.  Mixing coding types in a
+single file's mirror set addresses several use cases:
 
-Consider a Reed-Solomon Vandermonde layout
-(FFV2_ENCODING_RS_VANDERMONDE) that needs 8 active chunks.  The
-user wants to actively assimilate a regular file.  As such, a
-layout might be as represented in {{fig-example_mixing}}.  As
-this is an assimilation, most of the data reads will be satisfied
-by READ (see Section 18.22 of [RFC8881]) calls to index 0 (the
-PASSTHROUGH mirror over the source file).  However, as this is
-also an active file, there could also be CHUNK_READ (see
-{{sec-CHUNK_READ}}) calls to the other indexes (the encoded
-mirror under construction).
+- Assimilation of a non-erasure-coded file into an erasure-coded
+  representation, or export of an erasure-coded file to a
+  non-erasure-coded representation.
+
+- Online migration between encodings, for example from a
+  Reed-Solomon Vandermonde encoding to a Mojette systematic
+  encoding when a read-access-pattern change makes the new codec
+  a better fit.  Both representations remain addressable through
+  the layout throughout the transition.
+
+- Cross-encoding recovery: when one encoding loses data to a
+  correlated failure mode (a codec implementation bug, a
+  memory-corruption pattern that affects parity shards
+  identically), a second mirror in a different encoding provides
+  an independent recovery surface.
+
+- Client-capability routing: a Proxy Server
+  ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) sees the full
+  mirror set and chooses between encodings on behalf of clients
+  that do not implement every codec the file is represented in.
+
+Consider a layout that exposes a file in two encodings
+simultaneously: a PASSTHROUGH mirror over the original byte
+stream and a Reed-Solomon Vandermonde
+(FFV2_ENCODING_RS_VANDERMONDE) mirror with 8 active data shards
+(plus 2 parity and 2 spare data servers).  A layout for such a
+file might appear as in {{fig-example_mixing}}.  Both
+representations are active and addressable through the layout
+simultaneously.  This is the transition-window pattern: a file
+may transiently span encodings while it is being assimilated
+from a non-FFv2 source or migrated between codecs.  Steady
+state is homogeneous; the multi-encoding window is what the
+protocol must accommodate.
+
+The active mirrors serve different access patterns concurrently:
+
+- A client that speaks only the file-layout READ path issues
+  READ (Section 18.22 of {{RFC8881}}) calls to index 0 (the
+  PASSTHROUGH mirror).
+
+- A client that speaks the chunked path issues CHUNK_READ
+  ({{sec-CHUNK_READ}}) calls to index 1 (the RS_VANDERMONDE
+  mirror).
+
+- A Proxy Server fronting legacy clients chooses between the two
+  encodings on the client's behalf
+  ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).
+
+All three patterns coexist during the transition.
 
 ~~~
  +-----------------------------------------------------+
