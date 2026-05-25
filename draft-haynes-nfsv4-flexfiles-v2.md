@@ -2185,11 +2185,13 @@ Its purpose is to satisfy the 32-bit-per-field budget of
 chunk_guard4 while preserving the guarantee that concurrent
 writers on the same file are distinguishable:
 
--  The NFSv4 clientid4 ({{RFC8881}}) is a 64-bit structured
-   value whose low 32 bits (a slot index) are not guaranteed
-   unique across clients that hold layouts on the same file.
-   Folding clientid4 to 32 bits locally at each client could
-   therefore collide with another client's folded value and
+-  The NFSv4 clientid4 ({{RFC8881}}) is a 64-bit identifier;
+   {{RFC8881}} does not constrain how a server populates its
+   bits, and the bit-layout choices made by any particular
+   metadata server implementation are not visible to the
+   client and MUST NOT be assumed by the client.  Folding
+   clientid4 to 32 bits locally at the client therefore risks
+   colliding with another client's folded value, which would
    violate the uniqueness contract on chunk_guard4.
 
 -  Only the metadata server has the information needed to avoid
