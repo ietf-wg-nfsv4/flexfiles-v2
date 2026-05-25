@@ -7573,28 +7573,124 @@ NFS4ERR_SERVERFAULT:
 
 ### DESCRIPTION
 
-CHUNK_ROLLBACK reverts blocks from the PENDING or FINALIZED state
-back to their previous state, effectively undoing a CHUNK_WRITE
-that has not yet been committed via CHUNK_COMMIT.
+CHUNK_ROLLBACK reverts chunks from the PENDING or
+FINALIZED state to their previous state, effectively
+undoing a CHUNK_WRITE ({{sec-CHUNK_WRITE}}) that has not
+yet reached COMMITTED via CHUNK_COMMIT
+({{sec-CHUNK_COMMIT}}).  The reversion target is the
+prior COMMITTED generation, if one exists for the
+affected chunk; otherwise the chunk returns to the EMPTY
+state ({{fig-chunk-state-machine}}).  CHUNK_ROLLBACK
+against a chunk already in the COMMITTED state is
+permitted only on the repair path; see "Rollback of
+COMMITTED Chunks" below.
 
-The cra_offset is the starting block offset and cra_count is the
-number of blocks to roll back.  The cra_chunks array lists the
-chunk_owner4 entries whose blocks are to be rolled back.  Each
-owner's blocks at the specified offsets MUST be in the PENDING or
-FINALIZED state; blocks that have already been committed via
-CHUNK_COMMIT cannot be rolled back.
+CHUNK_ROLLBACK has no direct analog in {{RFC8881}}: NFS
+WRITE has no separate finalization or commit step that a
+client could undo without contacting other components.
+CHUNK_ROLLBACK exists because the chunk state machine
+exposes the PENDING and FINALIZED states explicitly, and
+the writer needs a way to abandon a non-committed
+generation without committing it.
 
-CHUNK_ROLLBACK is used in two scenarios:
+The client provides cra_offset and cra_count to bound the
+chunk range, and cra_chunks to name the specific
+(chunk_owner4) generations within that range to roll back:
 
-1. A client discovers an encoding error after CHUNK_WRITE and
-   before CHUNK_COMMIT, and needs to undo the write to try again.
+cra_offset:
+:  starting chunk index in the file (not a byte offset).
 
-2. A repair client needs to undo a repair attempt that was found
-   to be incorrect before committing it.
+cra_count:
+:  number of chunks the range covers, starting at
+   cra_offset.
 
-The data server deletes the pending chunk data and restores the
-block metadata to EMPTY.  If the block was in the FINALIZED state,
-the persisted metadata is also removed.
+cra_chunks:
+:  an array of chunk_owner4 entries
+   ({{fig-chunk_owner4}}) naming the specific
+   (cg_gen_id, cg_client_id, co_id) generations to roll
+   back.  Each entry's co_id MUST fall within
+   [cra_offset, cra_offset + cra_count); entries outside
+   the range are rejected with NFS4ERR_INVAL in the
+   corresponding crr_status slot (the result struct is
+   sized to match cra_chunks).  The reserved sentinels
+   CHUNK_GUARD_CLIENT_ID_NONE and
+   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
+   cg_client_id of any cra_chunks entry; see
+   {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
+
+The CHUNK_ROLLBACK result returns:
+
+crr_writeverf:
+:  a verifier identifying the data server's incarnation.
+   Semantics match cwr_writeverf in CHUNK_WRITE.
+
+CHUNK_ROLLBACK has two principal scenarios:
+
+1.  A writer in multiple-writer mode that observed
+    per-chunk failures in the CHUNK_WRITE response (e.g.,
+    NFS4ERR_CHUNK_GUARDED on a subset of chunks) needs to
+    abandon the partial write before issuing CHUNK_FINALIZE
+    on the chunks that did succeed.  CHUNK_ROLLBACK on the
+    abandoned chunks releases their PENDING generation
+    cleanly.
+
+2.  A repair client that wrote reconstructed data via
+    CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) and
+    subsequently discovered the reconstruction was wrong
+    (for example, a CRC mismatch detected during
+    cross-mirror verification) needs to abandon the
+    repair before any client commits it.
+
+The data server effects the rollback as follows:
+
+-  Chunks in PENDING with a matching chunk_owner4: the
+   data server deletes the PENDING payload and restores
+   the chunk to its prior state (EMPTY, or the prior
+   COMMITTED generation if the rollback invariant in
+   {{sec-system-model-consistency}} required retention).
+
+-  Chunks in FINALIZED with a matching chunk_owner4: the
+   data server deletes the FINALIZED payload and the
+   persisted finalization metadata, restoring the chunk
+   to its prior state.
+
+-  Chunks not in PENDING or FINALIZED at the named
+   generation, or whose chunk_owner4 does not match: the
+   corresponding crr_status slot reports NFS4ERR_INVAL
+   and the chunk is left unchanged.
+
+#### Rollback of COMMITTED Chunks
+
+CHUNK_ROLLBACK against a COMMITTED chunk is permitted
+ONLY on the repair path, when a repair client is
+restoring a prior COMMITTED generation that another
+client incorrectly advanced.  In this case the data
+server replaces the current COMMITTED generation with
+the chunk_owner4 named in the cra_chunks entry, which
+MUST itself name a generation already persisted at the
+data server (typically the prior COMMITTED kept under
+the rollback invariant).  A non-repair CHUNK_ROLLBACK
+against a COMMITTED chunk is rejected with
+NFS4ERR_INVAL.
+
+#### Stateid and Authorization
+
+Like CHUNK_COMMIT, CHUNK_ROLLBACK has no explicit
+stateid field in its arguments.  The data server
+authorizes CHUNK_ROLLBACK against the stateid context
+the compound has already established, typically the
+stateid carried on an immediately preceding PUTFH or an
+earlier CHUNK_* operation.  Under trusted-stateid tight
+coupling ({{sec-TRUST_STATEID}}), the data server
+applies the trust-table check to whichever layout
+stateid the compound has presented; if no layout
+stateid has been presented or the presented stateid is
+not in the trust table, the data server rejects
+CHUNK_ROLLBACK with NFS4ERR_BAD_STATEID.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
 
 ### RESPONSE CODES
 
