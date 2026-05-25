@@ -5773,6 +5773,24 @@ This rule is what {{sec-system-model-consistency}} calls
 "lock continuity across revocation": the COMMIT privilege
 follows the lock without gaps in which a non-owner could race.
 
+### RESPONSE CODES
+
+-  NFS4_OK: every named chunk transitioned to COMMITTED.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to commit on this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_DELAY: the data server is temporarily unable to process
+   the request.
+-  NFS4ERR_FHEXPIRED: the current filehandle has expired.
+-  NFS4ERR_INVAL: arguments named chunks outside the file's mirror
+   set or in an inconsistent state.
+-  NFS4ERR_IO: an I/O error occurred while persisting the commit.
+-  NFS4ERR_NOTSUPP: the data server does not implement CHUNK_COMMIT.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
+-  NFS4ERR_STALE: the current filehandle no longer identifies a
+   valid file.
+
 ## Operation 79: CHUNK_ERROR - Report Error on Cached Chunk Data {#sec-CHUNK_ERROR}
 
 ### ARGUMENTS
@@ -5815,6 +5833,18 @@ The client SHOULD report errors via CHUNK_ERROR before reporting
 them to the metadata server via LAYOUTERROR.  This allows the data
 server to prevent other clients from reading corrupt data while
 the metadata server coordinates repair.
+
+### RESPONSE CODES
+
+-  NFS4_OK: the client's chunk error report has been recorded.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to report errors on this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_INVAL: the reported chunk range or error code was not
+   recognized.
+-  NFS4ERR_NOTSUPP: the data server does not implement CHUNK_ERROR.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
 
 ## Operation 80: CHUNK_FINALIZE - Transition Chunks from Pending to Finalized {#sec-CHUNK_FINALIZE}
 
@@ -5872,6 +5902,27 @@ restarts.
 Blocks that have been finalized but not yet committed MAY be rolled
 back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
 
+### RESPONSE CODES
+
+-  NFS4_OK: every named chunk transitioned from PENDING to
+   FINALIZED.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to finalize on this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_DELAY: the data server is temporarily unable to process
+   the request.
+-  NFS4ERR_FHEXPIRED: the current filehandle has expired.
+-  NFS4ERR_INVAL: arguments named chunks not in PENDING or outside
+   the file's mirror set.
+-  NFS4ERR_IO: an I/O error occurred while persisting the
+   transition.
+-  NFS4ERR_NOTSUPP: the data server does not implement
+   CHUNK_FINALIZE.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
+-  NFS4ERR_STALE: the current filehandle no longer identifies a
+   valid file.
+
 ## Operation 81: CHUNK_HEADER_READ - Read Chunk Header from File {#sec-CHUNK_HEADER_READ}
 
 ### ARGUMENTS
@@ -5912,6 +5963,23 @@ back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
 
 CHUNK_HEADER_READ differs from CHUNK_READ in that it only reads chunk
 headers in the desired data range.
+
+### RESPONSE CODES
+
+-  NFS4_OK: the chunk headers have been returned.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to read chunk headers on this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_DELAY: the data server is temporarily unable to process
+   the request.
+-  NFS4ERR_FHEXPIRED: the current filehandle has expired.
+-  NFS4ERR_IO: an I/O error occurred while reading chunk headers.
+-  NFS4ERR_NOTSUPP: the data server does not implement
+   CHUNK_HEADER_READ.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
+-  NFS4ERR_STALE: the current filehandle no longer identifies a
+   valid file.
 
 ## Operation 82: CHUNK_LOCK - Lock Cached Chunk Data {#sec-CHUNK_LOCK}
 
@@ -6024,6 +6092,20 @@ CHUNK_LOCK_FLAGS_ADOPT if cla_owner's cg_client_id equals
 CHUNK_GUARD_CLIENT_ID_MDS -- that value is reserved for server
 production and MUST NOT be presented by a client.  The operation
 returns NFS4ERR_INVAL in that case.
+
+### RESPONSE CODES
+
+-  NFS4_OK: the requested chunk range has been locked.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to lock chunks on this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_CHUNK_LOCKED: one or more chunks in the requested
+   range are already locked by another writer.
+-  NFS4ERR_INVAL: the requested range was malformed or outside
+   the file's mirror set.
+-  NFS4ERR_NOTSUPP: the data server does not implement CHUNK_LOCK.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
 
 ## Operation 83: CHUNK_READ - Read Chunks from File {#sec-CHUNK_READ}
 
@@ -6148,6 +6230,24 @@ generated fields.
 ~~~
 {: #fig-example-CHUNK_READ4resok title="Example: Resulting CHUNK_READ4resok reply" }
 
+### RESPONSE CODES
+
+-  NFS4_OK: the requested chunks have been returned.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to read this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_DELAY: the data server is temporarily unable to process
+   the request.
+-  NFS4ERR_FHEXPIRED: the current filehandle has expired.
+-  NFS4ERR_IO: an I/O error occurred while reading the chunks.
+-  NFS4ERR_NOTSUPP: the data server does not implement CHUNK_READ.
+-  NFS4ERR_PAYLOAD_NOT_CONSISTENT: one or more chunks failed their
+   persisted guard or CRC check.  See {{sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}}.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
+-  NFS4ERR_STALE: the current filehandle no longer identifies a
+   valid file.
+
 ## Operation 84: CHUNK_REPAIRED - Confirm Repair of Errored Chunk Data {#sec-CHUNK_REPAIRED}
 
 ### ARGUMENTS
@@ -6190,6 +6290,19 @@ in error and that the repair data has been written and finalized.
 
 If the blocks are not in the errored state, the operation returns
 NFS4ERR_INVAL.
+
+### RESPONSE CODES
+
+-  NFS4_OK: the repair confirmation has been recorded.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to confirm repair on this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_INVAL: the chunks named were not in an errored state,
+   or the repair did not match the recorded error.
+-  NFS4ERR_NOTSUPP: the data server does not implement
+   CHUNK_REPAIRED.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
 
 ## Operation 85: CHUNK_ROLLBACK - Rollback Changes on Cached Chunk Data {#sec-CHUNK_ROLLBACK}
 
@@ -6249,6 +6362,19 @@ The data server deletes the pending chunk data and restores the
 block metadata to EMPTY.  If the block was in the FINALIZED state,
 the persisted metadata is also removed.
 
+### RESPONSE CODES
+
+-  NFS4_OK: the named chunks have been rolled back.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to roll back chunks on this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_INVAL: arguments named chunks not eligible for rollback
+   or outside the file's mirror set.
+-  NFS4ERR_NOTSUPP: the data server does not implement
+   CHUNK_ROLLBACK.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
+
 ## Operation 86: CHUNK_UNLOCK - Unlock Cached Chunk Data {#sec-CHUNK_UNLOCK}
 
 ### ARGUMENTS
@@ -6289,6 +6415,20 @@ If the blocks are not locked, the operation returns NFS4_OK
 A client SHOULD release chunk locks promptly after completing
 its write or repair operation.  Chunk locks are also released
 implicitly when the client's lease expires.
+
+### RESPONSE CODES
+
+-  NFS4_OK: the named chunks have been unlocked, or no lock was
+   held (idempotent).
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to unlock chunks on this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_INVAL: arguments named chunks not in a locked state
+   owned by this caller.
+-  NFS4ERR_NOTSUPP: the data server does not implement
+   CHUNK_UNLOCK.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
 
 ## Operation 87: CHUNK_WRITE - Write Chunks to File {#sec-CHUNK_WRITE}
 
@@ -6467,6 +6607,28 @@ race (and the losing client sees NFS4ERR_CHUNK_GUARDED for the
 contested block) or be rejected itself, without introducing
 data-server-level locking beyond the per-chunk scope.
 
+### RESPONSE CODES
+
+-  NFS4_OK: the chunks have been written and are in the PENDING
+   state.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to write to this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_CHUNK_GUARDED: the chunk_guard4 condition supplied by
+   the client did not match the persisted state.
+-  NFS4ERR_CHUNK_LOCKED: one or more chunks in the requested
+   range are locked by another writer.
+-  NFS4ERR_DELAY: the data server is temporarily unable to process
+   the request.
+-  NFS4ERR_FHEXPIRED: the current filehandle has expired.
+-  NFS4ERR_IO: an I/O error occurred while persisting the chunks.
+-  NFS4ERR_NOSPC: there is insufficient space at the data server.
+-  NFS4ERR_NOTSUPP: the data server does not implement CHUNK_WRITE.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
+-  NFS4ERR_STALE: the current filehandle no longer identifies a
+   valid file.
+
 ## Operation 88: CHUNK_WRITE_REPAIR - Write Repaired Cached Chunk Data {#sec-CHUNK_WRITE_REPAIR}
 
 ### ARGUMENTS
@@ -6546,6 +6708,25 @@ The target blocks SHOULD be in the errored state (set by
 CHUNK_ERROR) or EMPTY.  If the blocks are in the COMMITTED state
 with valid data, the data server MAY reject the repair to prevent
 overwriting good data.
+
+### RESPONSE CODES
+
+-  NFS4_OK: the repair-write succeeded.
+-  NFS4ERR_ACCESS: the layout stateid or credentials are not
+   permitted to write repair data to this file.
+-  NFS4ERR_BADXDR: arguments could not be decoded.
+-  NFS4ERR_DELAY: the data server is temporarily unable to process
+   the request.
+-  NFS4ERR_FHEXPIRED: the current filehandle has expired.
+-  NFS4ERR_IO: an I/O error occurred while persisting the repair
+   data.
+-  NFS4ERR_NOSPC: there is insufficient space at the data server.
+-  NFS4ERR_NOTSUPP: the data server does not implement
+   CHUNK_WRITE_REPAIR.
+-  NFS4ERR_SERVERFAULT: the data server failed while processing
+   the request.
+-  NFS4ERR_STALE: the current filehandle no longer identifies a
+   valid file.
 
 ## Operation 90: TRUST_STATEID - Register Layout Stateid on Data Server {#sec-TRUST_STATEID}
 
@@ -6992,7 +7173,7 @@ CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) to take ownership
 of the lock before issuing CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK,
 or CHUNK_WRITE on any chunk in a requested range.
 
-### Response Codes
+### RESPONSE CODES
 
 The ccrr_status value returned by the client has the following
 normative meanings to the metadata server:
