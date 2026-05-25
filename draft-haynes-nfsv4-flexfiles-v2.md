@@ -6921,30 +6921,154 @@ NFS4ERR_SERVERFAULT:
 
 ### DESCRIPTION
 
-CHUNK_READ is READ (see Section 18.22 of {{RFC8881}}) with additional
-semantics over the chunk_owner.  As such, all of the normal semantics
-of READ directly apply.
+The CHUNK_READ operation is based upon the NFSv4.1 READ
+operation (see Section 18.22 of {{RFC8881}}) and similarly
+reads data from the regular file identified by the current
+filehandle, with the difference that CHUNK_READ operates on
+the chunk coordinate system used by Flexible File Version 2
+layouts rather than on the byte coordinate system.
 
-The main difference between the two operations is that CHUNK_READ
-works on blocks and not a raw data stream.  As such cra_offset is
-the starting block offset in the file and not the byte offset in
-the file.  Some erasure coding types can have different block sizes
-depending on the block type.  Further, cra_count is a count of
-blocks to read and not bytes to read.
+The client provides a cra_offset of where the CHUNK_READ is
+to start and a cra_count of how many chunks are to be read.
+cra_offset is the starting chunk index in the file (not a
+byte offset); the chunk at index N occupies the bytes
+[N * chunk_size, (N + 1) * chunk_size) for codecs with a
+uniform chunk size, where chunk_size is taken from
+ffv2m_striping_unit_size in the file's layout
+({{sec-ffv2-mirror4}}).  For codecs whose parity shards
+have variable sizes (the Mojette family), the parity-shard
+chunks on a given data server may use a smaller per-shard
+chunk size; see {{sec-mojette-encoding}}.  cra_count is a
+count of chunks to read and not bytes to read.
 
-When reading a set of blocks across the data servers, it can be the
-case that some data servers do not have any data at that location.
-In that case, the server either returns crr_eof if the cra_offset
-exceeds the number of blocks that the data server is aware or it
-returns an empty block for that block.
+A cra_offset of zero starts reading at the first chunk of
+the file.  If cra_offset is greater than or equal to the
+number of chunks the data server holds for this file, the
+status NFS4_OK is returned with crr_chunks empty and
+crr_eof set to TRUE.
 
-For example, in {{fig-example-CHUNK_READ4args}}, the client asks
-for 4 blocks starting with the 3rd block in the file.  The second
-data server responds as in {{fig-example-CHUNK_READ4resok}}.  The
-client would read this as there is valid data for blocks 2 and 4,
-there is a hole at block 3, and there is no data for block 5.  The
-data server MUST calculate a valid cr_crc for block 3 based on the
-generated fields.
+If cra_count is zero, the CHUNK_READ succeeds and returns
+zero chunks.  In all situations the data server MAY choose
+to return fewer chunks than the client requested; the
+client must be prepared to handle a short read and reissue
+CHUNK_READ for the remaining chunks.
+
+The CHUNK_READ result is comprised of an array of
+read_chunk4, each describing the metadata and payload of
+one chunk.  The array entries are in chunk-index order
+starting from cra_offset.  Within each read_chunk4
+({{fig-read_chunk4}}):
+
+cr_crc:
+:  the CRC32 the data server computed over the chunk
+   payload (cr_chunk) at CHUNK_FINALIZE or CHUNK_COMMIT
+   time and persisted with the chunk metadata.  The client
+   uses cr_crc to detect transport corruption between the
+   data server and the client; see
+   {{sec-security-crc32-scope}} for the scope and limits
+   of CRC32 protection.
+
+cr_effective_len:
+:  the byte length of cr_chunk.  This may be smaller than
+   the layout's chunk_size when the chunk is the final
+   chunk of a file whose size is not chunk-aligned, or
+   when the chunk belongs to a variable-size Mojette
+   parity shard.
+
+cr_owner:
+:  the chunk_owner4 carrying the chunk_guard4 and chunk-id
+   of the COMMITTED generation being returned.  A client
+   reading from multiple data servers in an erasure-coded
+   layout MUST compare cr_owner.co_guard across data
+   servers; agreement of the chunk_guard4 across the k
+   data shards is the atomicity invariant on which
+   reconstruction depends.  See
+   {{sec-system-model-consistency}}.
+
+cr_payload_id:
+:  the payload-id the writer associated with the chunk at
+   CHUNK_WRITE time, used by repair coordinators to
+   correlate chunks across mirrors.
+
+cr_locked:
+:  TRUE if the chunk currently has a CHUNK_LOCK
+   ({{sec-CHUNK_LOCK}}) held against it; FALSE otherwise.
+   Lock state does not block the read.
+
+cr_status:
+:  per-chunk status.  NFS4_OK indicates that cr_chunk is
+   the COMMITTED payload.  NFS4ERR_PAYLOAD_NOT_ATOMIC
+   indicates the chunk's persisted CRC32 or guard check
+   failed at read time, in which case cr_chunk content
+   is undefined; see {{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}}.
+   NFS4ERR_NOENT indicates the chunk is EMPTY (no
+   COMMITTED generation has been written at this offset).
+
+cr_chunk:
+:  the chunk payload bytes.  Empty for cr_status values
+   other than NFS4_OK.
+
+A chunk that is EMPTY at the requested offset is returned
+as a synthetic zero-filled chunk: cr_status is
+NFS4ERR_NOENT, cr_chunk is zero-filled to the layout's
+chunk_size, cr_owner is set to all-zeros (with cg_client_id
+= CHUNK_GUARD_CLIENT_ID_NONE, see {{sec-chunk_guard_none}}),
+and cr_crc is the CRC32 of the synthetic zero-filled
+payload.  This lets a client reconstruct holes without a
+special-casing path.
+
+The data server MAY signal end-of-file by setting crr_eof
+to TRUE.  If the CHUNK_READ ended at the last chunk that
+exists on this data server (the read returned chunks up to
+and including the data server's last chunk) or extended
+beyond it, crr_eof MUST be TRUE.  Otherwise crr_eof is
+FALSE.  A successful CHUNK_READ of an empty file always
+returns crr_eof as TRUE with crr_chunks empty.  Note that
+crr_eof reflects the state at the data server only; in a
+multi-data-server erasure-coded layout the file's logical
+size is reconstructed at the client from the surviving
+shards' chunk_owner4 values, not from any single data
+server's crr_eof.
+
+Except when special stateids are used, the cra_stateid
+value represents a layout stateid returned by a prior
+LAYOUTGET against the metadata server (see Section 18.43
+of {{RFC8881}}).  The data server uses cra_stateid to
+verify that the client holds a valid layout that
+authorizes reading this file.  Under trusted-stateid tight
+coupling ({{sec-TRUST_STATEID}}), the data server
+additionally checks that the metadata server has
+registered the stateid via TRUST_STATEID; an unregistered
+stateid (other than a special stateid) returns
+NFS4ERR_BAD_STATEID.
+
+For a CHUNK_READ with a cra_stateid value of all bits
+equal to zero, the data server MAY allow the CHUNK_READ
+to be serviced subject to the chunk-lock state recorded in
+cr_locked.  For a CHUNK_READ with a cra_stateid value of
+all bits equal to one, the data server MAY allow CHUNK_READ
+to bypass lock-state reporting at the data server.  These
+special-stateid behaviours mirror the corresponding READ
+semantics in {{RFC8881}} adapted to the chunk-locking
+model ({{sec-CHUNK_LOCK}}) rather than the byte-range
+locking model of {{RFC8881}} Section 12.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned.  If the current filehandle
+represents an object of type NF4DIR, NFS4ERR_ISDIR is
+returned.  If the current filehandle designates a symbolic
+link, NFS4ERR_SYMLINK is returned.  In all other cases of
+non-regular-file filehandles, NFS4ERR_WRONG_TYPE is
+returned.
+
+{{fig-example-CHUNK_READ4args}} shows a client requesting
+4 chunks starting at chunk index 2.  Data Server 2
+responds as in {{fig-example-CHUNK_READ4resok}}: there is
+valid data for chunks 2 and 4, a synthetic zero-filled
+hole at chunk 3, and no data for chunk 5 (the data server's
+last chunk is chunk 4, so crr_eof is TRUE).  The data
+server calculates a valid cr_crc for chunk 3 based on the
+synthetic zero-filled payload.
 
 ~~~
         Data Server 2
