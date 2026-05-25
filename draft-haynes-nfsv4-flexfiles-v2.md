@@ -8771,64 +8771,99 @@ NFS4ERR_SERVERFAULT:
 
 ### DESCRIPTION
 
-REVOKE_STATEID invalidates a single trust entry on the data
-server.  Subsequent CHUNK operations that present the revoked
-stateid MUST fail with NFS4ERR_BAD_STATEID.
+REVOKE_STATEID invalidates a single trust entry on the
+data server.  Subsequent CHUNK_* operations that present
+the revoked stateid MUST fail with NFS4ERR_BAD_STATEID.
+REVOKE_STATEID is the per-file revoke counterpart to
+TRUST_STATEID ({{sec-TRUST_STATEID}}) -- registration and
+revocation form the matched pair that drives the per-file
+trust table for a tightly coupled deployment.
 
-The metadata server calls REVOKE_STATEID in any of the following
-situations:
+REVOKE_STATEID has no analog in {{RFC8881}}.  RFC 8881
+revokes pNFS layouts via LAYOUTRETURN with a special
+all-files marker or via implicit lease expiry;
+REVOKE_STATEID is the new MDS-to-DS surface that lets the
+metadata server force per-client invalidation at the data
+server without waiting for tsa_expire and without
+unsetting other clients' trust entries.
 
--  CB_LAYOUTRECALL timeout: the client did not return the layout
-   within the recall timeout.  REVOKE_STATEID terminates the
-   client's ability to issue further I/O to the data server
-   without waiting for tsa_expire.
+REVOKE_STATEID is an MDS-to-DS operation; pNFS clients
+MUST NOT send it.  The data server MUST verify that the
+operation arrived on a session whose owning client
+presented EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID and
+reject any REVOKE_STATEID received on a regular client
+session with NFS4ERR_PERM.  REVOKE_STATEID operates on
+the current filehandle; a PUTFH naming the data server's
+file MUST precede it in the same compound.
 
--  LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM: the data
-   server rejected the client's I/O; the trust entry is stale
-   and must be removed.  This mirrors the fencing case in the
-   loose-coupled model.
+The metadata server provides:
 
--  Explicit LAYOUTRETURN: the client returned the layout cleanly.
-   The metadata server MAY issue REVOKE_STATEID at this time or
-   MAY rely on tsa_expire; either is correct.
+rsa_layout_stateid:
+:  the stateid to revoke.  Together with the current
+   filehandle this identifies the trust entry to remove.
+   MUST NOT be a special stateid; the anonymous stateid
+   is rejected with NFS4ERR_INVAL and other special
+   stateids with NFS4ERR_BAD_STATEID.
 
-REVOKE_STATEID operates on the current filehandle; a PUTFH naming
-the data server's file MUST precede it in the same compound.  The
-filehandle and rsa_layout_stateid together identify the trust
-entry to revoke.
+The metadata server calls REVOKE_STATEID in any of the
+following situations:
 
-In-flight CHUNK operations that arrived before REVOKE_STATEID
-completes MAY be allowed to finish.  The data server MUST NOT
-process new CHUNK operations presenting rsa_layout_stateid after
-REVOKE_STATEID returns.
+-  CB_LAYOUTRECALL timeout: the client did not return the
+   layout within the recall timeout.  REVOKE_STATEID
+   terminates the client's ability to issue further I/O
+   to the data server without waiting for tsa_expire.
 
-Lock state (see {{sec-CHUNK_LOCK}}) held by the revoked stateid
-is NOT released as part of REVOKE_STATEID; the data server MUST
-transfer each held lock to the MDS-escrow owner (see
-{{sec-chunk_guard_mds}}).  Dropping a chunk lock during
-revocation would permit a write hole and is prohibited; the
-repair coordination sequence in {{sec-repair-selection}} assumes
-that locks held by a revoked writer remain held until a repair
+-  LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM: the
+   data server rejected the client's I/O; the trust
+   entry is stale and must be removed.  This mirrors the
+   fencing case in the loose-coupled model
+   ({{sec-Fencing-Clients}}).
+
+-  Explicit LAYOUTRETURN: the client returned the layout
+   cleanly.  The metadata server MAY issue REVOKE_STATEID
+   at this time or MAY rely on tsa_expire; either is
+   correct.
+
+In-flight CHUNK_* operations that arrived before
+REVOKE_STATEID completes MAY be allowed to finish.  The
+data server MUST NOT process new CHUNK_* operations
+presenting rsa_layout_stateid after REVOKE_STATEID
+returns.
+
+Lock state (see {{sec-CHUNK_LOCK}}) held by the revoked
+stateid is NOT released as part of REVOKE_STATEID; the
+data server MUST transfer each held lock to the
+MDS-escrow owner (see {{sec-chunk_guard_mds}}).
+Dropping a chunk lock during revocation would permit a
+write hole and is prohibited; the repair coordination
+sequence in {{sec-repair-selection}} assumes that locks
+held by a revoked writer remain held until a repair
 client adopts them via CHUNK_LOCK with
 CHUNK_LOCK_FLAGS_ADOPT.
 
-If the data server receives REVOKE_STATEID on a session whose
-owning client did not present EXCHGID4_FLAG_USE_PNFS_MDS at
-EXCHANGE_ID, the data server MUST return NFS4ERR_PERM.
+REVOKE_STATEID is scoped to the issuing metadata
+server's entries (see the tagging rule in
+{{sec-TRUST_STATEID}}).  The data server MUST NOT
+remove an entry that was registered by a different
+metadata server, even if rsa_layout_stateid happens to
+match.  In a multi-metadata-server deployment, one
+metadata server therefore cannot revoke another
+metadata server's entries.
 
-REVOKE_STATEID is scoped to the issuing metadata server's entries
-(see the tagging rule in {{sec-TRUST_STATEID}}).  The data server
-MUST NOT remove an entry that was registered by a different
-metadata server, even if rsa_layout_stateid happens to match.  In
-a multi-metadata-server deployment, one metadata server therefore
-cannot revoke another metadata server's entries.
-
-REVOKE_STATEID is idempotent: revoking a stateid that has no
-matching trust entry (either no entry exists, or the entry was
-registered by a different metadata server) returns NFS4_OK.  The
-metadata server therefore does not need to track precisely which
-entries are currently live on which data server in order to revoke
+REVOKE_STATEID is idempotent: revoking a stateid that
+has no matching trust entry (either no entry exists, or
+the entry was registered by a different metadata
+server) returns NFS4_OK.  The metadata server therefore
+does not need to track precisely which entries are
+currently live on which data server in order to revoke
 safely.
+
+REVOKE_STATEID returns only a top-level status; there
+is no result body beyond the nfsstat4 discriminant.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
 
 ### RESPONSE CODES
 
