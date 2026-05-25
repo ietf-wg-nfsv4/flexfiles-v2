@@ -334,13 +334,22 @@ chunk.
 
 chunk:
 
-:  the protocol's view.  A chunk is the addressable unit named in the
-CHUNK_* operations defined in this document and durably persisted by
-a data server with associated state ({{sec-system-model-chunk-state}})
-and concurrency metadata ({{sec-chunk_guard4}}).  A chunk's payload
-may be a block (mirrored layout) or a shard (erasure-coded layout);
-the wire protocol does not distinguish.  The chunk size MAY differ
-from the size of the block or shard it carries.
+:  the protocol's unit of file data on the wire, carrying an
+envelope that distinguishes it from a block: a compare-and-swap
+guard (chunk_guard4 -- atomicity, see {{sec-chunk_guard4}}), a
+CRC32 (per-chunk integrity), a provenance identifier
+(chunk_owner4, see {{sec-chunk_owner4}}), a lifecycle state
+(PENDING / FINALIZED / COMMITTED via the chunk state machine,
+see {{sec-system-model-chunk-state}}), and per-chunk locking that
+survives stateid revocation through lock escrow.  A chunk is the
+addressable unit named in the CHUNK_* operations defined in this
+document and durably persisted by a data server.  A chunk's
+payload may be a block (mirrored layout) or a shard
+(erasure-coded layout); the wire protocol does not distinguish.
+The chunk size MAY differ from the size of the block or shard it
+carries.  See {{sec-system-model-chunk-not-block}} for the
+load-bearing role each envelope property plays in the protocol's
+consistency story.
 
 The three terms describe the same data at three different layers and
 should be used accordingly.  The codec transforms blocks into shards;
@@ -4121,6 +4130,61 @@ observable (cache state, background scrubbing cadence,
 internal retry ordering, on-disk layout) is implementation
 detail and MUST NOT be depended upon.
 
+##  Chunks Are Not Blocks {#sec-system-model-chunk-not-block}
+
+The chunk is a protocol-level primitive distinct from a block.
+Throughout this document, "block" refers to a byte range in the
+file's address space (the application's view); "chunk" refers to
+the addressable unit carried by the CHUNK_* operations, which
+has an envelope that blocks do not.
+
+A chunk carries five properties that a block does not:
+
+-  **Atomicity.**  The chunk_guard4 compare-and-swap guard
+   ({{sec-chunk_guard4}}) sequences concurrent writers and
+   rejects torn-write attempts.  Block I/O has no comparable
+   primitive; concurrent block writes either serialize at the
+   storage layer or interleave unpredictably.
+
+-  **Integrity.**  The CRC32 in each chunk header is computed
+   over the header and payload and verified end-to-end on the
+   read path ({{sec-CHUNK_READ}}).  Block I/O carries no
+   integrity tag; data-corruption detection is delegated to
+   the underlying storage medium or is absent.
+
+-  **Provenance.**  The chunk_owner4 ({{sec-chunk_owner4}})
+   records which transaction produced the chunk.  Block I/O
+   carries no per-write provenance; a block's bytes have no
+   protocol-visible producer.
+
+-  **Lifecycle state.**  A chunk progresses through PENDING
+   -> FINALIZED -> COMMITTED via CHUNK_FINALIZE / CHUNK_COMMIT
+   ({{sec-system-model-chunk-state}}).  Block I/O has no
+   lifecycle states; a block is either present or absent.
+
+-  **Lock continuity across revocation.**  The chunk's lock
+   ({{sec-CHUNK_LOCK}}) is transferred to the metadata server
+   in escrow when a holder's stateid is revoked, and adopted
+   by a repair client via CHUNK_LOCK_FLAGS_ADOPT.  Block I/O
+   has no per-block locking and no continuity mechanism;
+   client failure leaves any external lock indeterminate.
+
+Each of these properties is load-bearing for some part of the
+flexible file v2 layout's consistency story: the chunk_guard4
+CAS underlies multi-writer correctness; the CRC32 underlies
+end-to-end integrity; lock escrow underlies repair coordination
+across stateid revocation; the state machine underlies the
+PENDING / FINALIZED / COMMITTED distinction that enables
+rollback and repair.  Removing any one of them would change
+what the protocol can guarantee.
+
+A protocol that exchanges file data as byte ranges with no
+envelope -- whether described as "block I/O" or as "generic
+data movement" -- is not interoperable with this specification's
+CHUNK_* operations.  The CHUNK_* operations are not a byte-range
+I/O surface with optional integrity bolted on; they are a
+chunk-protocol surface in which the envelope is the primitive.
+
 ##  Actors and Roles {#sec-system-model-roles}
 
 Three actors participate on behalf of any given file:
@@ -5799,6 +5863,26 @@ are sent by the metadata server to storage devices on the
 MDS-to-DS control session (see
 {{sec-tight-coupling-control-session}}); they MUST NOT be sent by
 pNFS clients.
+
+All CHUNK_* operations MUST be issued under an active flexible
+file v2 layout obtained via LAYOUTGET against the metadata
+server.  A data server receiving a CHUNK_* operation from a
+client that does not hold a current layout stateid for the
+target file MUST reject the operation with NFS4ERR_BAD_STATEID.
+In trusted-stateid tight coupling, the stateid presented MUST be
+present in the data server's trust table; an unknown stateid
+MUST be rejected with NFS4ERR_BAD_STATEID per
+{{sec-TRUST_STATEID}}.
+
+The chunk envelope's safety properties (atomicity via
+chunk_guard4 CAS, integrity via CRC32, lock continuity across
+revocation) depend on metadata-server coordination of layout
+grants, guard generation, and lock escrow.  A client that issues
+CHUNK_* operations outside an active layout is operating outside
+this specification; the data server's behaviour in that case is
+undefined.  See {{sec-system-model-chunk-not-block}} for the
+distinction between the CHUNK_* surface and a generic block I/O
+interface.
 
    | Operation              | Number | Target Server     | Description |
    | ---
