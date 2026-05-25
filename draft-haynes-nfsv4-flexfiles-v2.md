@@ -6587,25 +6587,130 @@ NFS4ERR_SERVERFAULT:
 
 ### DESCRIPTION
 
-CHUNK_FINALIZE transitions blocks from the PENDING state (set by
-CHUNK_WRITE) to the FINALIZED state.  A finalized block is visible
-to the owning client for reads and is eligible for CHUNK_COMMIT.
+CHUNK_FINALIZE transitions chunks from the PENDING state (set
+by CHUNK_WRITE, see {{sec-CHUNK_WRITE}}) to the FINALIZED
+state in the chunk state machine ({{fig-chunk-state-machine}}).
+A FINALIZED chunk is visible on the owning stateid for reads
+({{sec-system-model-consistency}}) and is eligible for
+CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}); the FINALIZED transition
+is the writer's signal that it will issue no further
+CHUNK_WRITEs for the named (cg_gen_id, cg_client_id)
+generation of each chunk.
 
-The cfa_offset is the starting block offset and cfa_count is the
-number of blocks to finalize.  The cfa_chunks array lists the
-chunk_owner4 entries whose blocks are to be finalized.  Each
-owner's blocks at the specified offsets MUST be in the PENDING state;
-if not, the corresponding entry in the per-owner status array
-ccr_status is set to NFS4ERR_INVAL.
+CHUNK_FINALIZE has no direct analog in {{RFC8881}}: the COMMIT
+operation in {{RFC8881}} Section 18.3 combines the "no more
+writes" signal and the "make durable and globally visible"
+step into one operation; the Flexible File Version 2 chunk
+lifecycle separates them so a writer in multiple-writer mode
+can validate the per-chunk acceptance status reported by
+CHUNK_WRITE before committing any chunk to durable storage
+(see "Pipelining Considerations" in
+{{sec-CHUNK_COMMIT}}).
 
-CHUNK_FINALIZE serves as the CRC validation checkpoint: the data
-server SHOULD have validated the CRC32 of each block at CHUNK_WRITE
-time.  After CHUNK_FINALIZE, the block metadata (CRC, owner, state)
-is persisted to stable storage so that it survives data server
-restarts.
+The client provides cfa_offset and cfa_count to bound the
+chunk range, and cfa_chunks to name the specific
+(chunk_owner4) generations within that range to finalize:
 
-Blocks that have been finalized but not yet committed MAY be rolled
-back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
+cfa_offset:
+:  starting chunk index in the file (not a byte offset).
+
+cfa_count:
+:  number of chunks the range covers, starting at
+   cfa_offset.  A zero cfa_count, or a cfa_offset beyond
+   the data server's highest chunk, is not an error; the
+   data server returns NFS4_OK with an empty cfr_status
+   array.
+
+cfa_chunks:
+:  an array of chunk_owner4 entries
+   ({{fig-chunk_owner4}}) naming the specific
+   (cg_gen_id, cg_client_id, co_id) generations to
+   finalize.  Each entry's co_id MUST fall within
+   [cfa_offset, cfa_offset + cfa_count); an entry whose
+   co_id is outside the range is rejected with
+   NFS4ERR_INVAL in the corresponding cfr_status slot.
+   The reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
+   cg_client_id of any cfa_chunks entry; see
+   {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
+
+The CHUNK_FINALIZE result reports the outcome per chunk in
+the same order as cfa_chunks:
+
+cfr_writeverf:
+:  a verifier identifying the data server's incarnation
+   at the time the finalization completed.  Semantics
+   match cwr_writeverf in CHUNK_WRITE
+   ({{sec-CHUNK_WRITE}}): a client that observes a
+   different writeverf on a subsequent CHUNK_COMMIT MUST
+   re-issue the CHUNK_WRITE before treating any of the
+   finalized chunks as durable.
+
+cfr_status:
+:  per-chunk finalization status, one entry per
+   cfa_chunks entry, co-indexed.  NFS4_OK indicates that
+   the named chunk is FINALIZED on return.  Other
+   per-entry failure cases:
+
+   *  NFS4ERR_INVAL -- the named generation is not in the
+      PENDING state at this offset (the chunk is EMPTY,
+      FINALIZED at a different generation, or COMMITTED),
+      or the entry's co_id is outside the
+      [cfa_offset, cfa_offset + cfa_count) range.
+
+   *  NFS4ERR_CHUNK_GUARDED -- the chunk is PENDING but
+      at a different (cg_gen_id, cg_client_id) than the
+      one named in the cfa_chunks entry.  A client that
+      sees this has lost a race; see {{sec-chunk_guard4}}.
+
+   *  NFS4ERR_CHUNK_LOCKED -- the chunk is locked by a
+      CHUNK_LOCK ({{sec-CHUNK_LOCK}}) held by a different
+      stateid; the finalize is rejected.
+
+   The top-level CHUNK_FINALIZE status is NFS4_OK as long
+   as the data server could evaluate each cfa_chunks
+   entry; per-chunk failures are reported in cfr_status
+   rather than by failing the whole operation.  The
+   top-level status returns a non-OK code only when the
+   request could not be evaluated at all (for example,
+   NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).
+
+CHUNK_FINALIZE serves as the CRC validation checkpoint for
+the chunk lifecycle.  The data server SHOULD have validated
+each chunk's CRC32 against the value supplied in cwa_crc32s
+at CHUNK_WRITE time; the FINALIZE transition persists the
+chunk metadata (CRC, owner, state) to stable storage so it
+survives a data server restart.  An implementation MAY
+defer some metadata persistence to CHUNK_COMMIT instead of
+CHUNK_FINALIZE; in that case the FINALIZED state is
+recovered by replay of the data server's local journal on
+restart.
+
+A chunk that has been FINALIZED but not yet COMMITTED MAY
+be rolled back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}),
+which returns the chunk to the EMPTY state (or to the
+prior COMMITTED generation, if one exists).
+
+Like CHUNK_COMMIT, CHUNK_FINALIZE has no explicit stateid
+field in its arguments.  The data server authorizes
+CHUNK_FINALIZE against the stateid context the compound
+has already established, typically the stateid carried on
+an immediately preceding PUTFH or an earlier CHUNK_*
+operation in the same compound.  Under trusted-stateid
+tight coupling ({{sec-TRUST_STATEID}}), the data server
+applies the trust-table check to whichever layout stateid
+the compound has presented; if no layout stateid has been
+presented or the presented stateid is not in the trust
+table, the data server rejects CHUNK_FINALIZE with
+NFS4ERR_BAD_STATEID.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned.  If the current filehandle
+represents an object of type NF4DIR, NFS4ERR_ISDIR is
+returned.  If the current filehandle designates a
+symbolic link, NFS4ERR_SYMLINK is returned.  In all
+other cases of non-regular-file filehandles,
+NFS4ERR_WRONG_TYPE is returned.
 
 ### RESPONSE CODES
 
