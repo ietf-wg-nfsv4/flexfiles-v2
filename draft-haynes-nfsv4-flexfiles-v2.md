@@ -9784,13 +9784,18 @@ more generic types such as uint32_t and uint64_t.
 While the XDR can be appended to that from {{RFC7863}}, the various
 code snippets belong in their respective areas of that XDR.
 
+--- back
+
 # Implementation Status {#sec-implementation-status}
 {:numbered="false" removeInRFC="true"}
 
-This section records the implementation status of this specification
-at the time of writing.  The purpose, per {{RFC7942}}, is to help
-reviewers evaluate the protocol against running code and to document
-which parts have been validated end-to-end versus specified on paper.
+This appendix records the implementation status of this
+specification at the time of writing.  The purpose, per
+{{RFC7942}}, is to help reviewers evaluate the protocol
+against running code and to document which parts have
+been validated end-to-end versus specified on paper.
+This appendix is reviewer-aid material and is removed
+from the final RFC.
 
 ##  reffs (metadata server and data server) and ec_demo (Client)
 {:numbered="false"}
@@ -9970,6 +9975,13 @@ v2 write overhead measured above.
 
 # Design Rationale: Rejected Alternatives {#sec-rejected-alternatives}
 {:numbered="false"}
+
+This appendix records design alternatives that were
+considered and rejected during the development of this
+specification.  It is reviewer-aid material in this draft
+and is retained in the final RFC as design-history
+context for future implementers; the alternatives below
+are not part of the normative specification.
 
 The design of flexible file v2 layout went through several iterations between
 2024 and 2026 that are recorded here for the benefit of future
@@ -10225,6 +10237,14 @@ rather than to a global mapping table.
 # Working Group Concern: Codec on Every Client {#sec-wg-concern-codec-on-client}
 {:numbered="false" removeInRFC="true"}
 
+This appendix captures a working-group concern raised
+during the review of an earlier revision of this draft:
+the source of the concern, the question as the working
+group asked it, the authors' understanding of what was
+being asked, and how the current specification addresses
+it.  This appendix is reviewer-aid material and is
+removed from the final RFC.
+
 ## Source
 {:numbered="false"}
 
@@ -10327,6 +10347,14 @@ which talk to the data servers directly.
 
 # Working Group Concern: Coherent Multi-data server Writes Without Recall Storms {#sec-wg-concern-recall-storms}
 {:numbered="false" removeInRFC="true"}
+
+This appendix captures a working-group concern raised
+during the review of an earlier revision of this draft:
+the source of the concern, the question as the working
+group asked it, the authors' understanding of what was
+being asked, and how the current specification addresses
+it.  This appendix is reviewer-aid material and is
+removed from the final RFC.
 
 ## Source
 {:numbered="false"}
