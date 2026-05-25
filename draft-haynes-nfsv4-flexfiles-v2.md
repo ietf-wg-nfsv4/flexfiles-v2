@@ -196,11 +196,11 @@ trusted copy essentially blind.  Flexible file v2 layout adds two integrity
 mechanisms -- a per-chunk CRC32 for on-wire and at-rest bit-flip
 detection, and the chunk_guard4 compare-and-swap primitive (see
 {{sec-chunk_guard4}}) for detecting concurrent-writer
-inconsistency -- while preserving the client-side compute model.
+non-atomicity -- while preserving the client-side compute model.
 The chunk_guard4 per-chunk header is 8 bytes total (a 32-bit
 generation id and a 32-bit owning-client short-id); this keeps
 the metadata-server overhead for maintaining erasure-coding
-consistency to the smallest value that still admits a CAS
+atomicity to the smallest value that still admits a CAS
 tiebreaker.
 
 An alternative to client-side erasure coding is to keep the
@@ -2891,17 +2891,18 @@ transformed back to a data block (see {{fig-decoding-db}}).
 The protocol provides two levels of payload integrity, consumed at
 different points in the read path:
 
-Consistency:
-:  A payload is **consistent** when all of the chunks that belong
+Atomicity:
+:  A payload is **atomic** when all of the chunks that belong
    to it carry the same chunk_guard4 value (see
-   {{sec-chunk_guard4}}).  Consistency alone does NOT imply the
+   {{sec-chunk_guard4}}).  Atomicity alone does NOT imply the
    bytes are free of corruption; it means only that every chunk in
-   the payload came from the same write transaction.  A reader
-   detects inconsistency when it assembles a payload and finds
-   differing chunk_guard4 values across chunks.
+   the payload came from one write transaction.  A reader detects
+   a non-atomic payload (a torn read across writes) when it
+   assembles a payload and finds differing chunk_guard4 values
+   across chunks.
 
 Integrity:
-:  A payload has **integrity** when it is consistent AND every
+:  A payload has **integrity** when it is atomic AND every
    contained chunk passes its CRC32 check.  Integrity is the
    precondition for returning the payload's data block to the
    application.
@@ -3169,8 +3170,8 @@ writes to prevent over writes and it does need the ability to
 rollback writes.
 
 In both modes, clients MUST NOT overwrite payloads which already
-contain inconsistency.  This directly follows from {{sec-reading-chunks}}
-and MUST be handled as discussed there.  Once consistency in the
+contain non-atomicity.  This directly follows from {{sec-reading-chunks}}
+and MUST be handled as discussed there.  Once atomicity in the
 payload has been detected, the client can use those chunks as a
 basis for read/modify/update.
 
@@ -3185,15 +3186,15 @@ had been performed on the chunk. As such, further CHUNK_WRITES by
 any client MUST be denied until the chunk is unlocked by CHUNK_UNLOCK
 ({{sec-CHUNK_UNLOCK}}).
 
-If the CHUNK_WRITE results in a consistent data block, then the
+If the CHUNK_WRITE results in a atomic data block, then the
 client will send a CHUNK_FINALIZE in a subsequent compound to inform
-the data server that the chunk is consistent and can be overwritten
+the data server that the chunk is finalized and can be overwritten
 by another CHUNK_WRITE.
 
-If the CHUNK_WRITE results in an inconsistent data block, or if the
+If the CHUNK_WRITE results in an non-atomic data block, or if the
 data server returns NFS4ERR_CHUNK_LOCKED, the client reports the
 condition to the metadata server via LAYOUTERROR with an error code
-of NFS4ERR_PAYLOAD_NOT_CONSISTENT.
+of NFS4ERR_PAYLOAD_NOT_ATOMIC.
 
 ### Selecting the Repair Client {#sec-repair-selection}
 
@@ -3242,7 +3243,7 @@ distinct paths, as shown in {{fig-repair-topology}}.
 
 The metadata server is the authority that selects which client
 (or, in a tightly coupled deployment, which data server) repairs
-an inconsistent payload.  This is analogous to the way the
+an non-atomic payload.  This is analogous to the way the
 metadata server assigns per-mirror priority via ffv2ds_efficiency
 (see {{sec-select-mirror}}): the protocol does not prescribe the
 selection algorithm, and each deployment MAY tune its policy.
@@ -3252,7 +3253,7 @@ Implementations MAY consider factors such as:
 - Whether a client holds an active write layout on the affected
   payload (the client most likely to hold surviving shards in
   cache).
-- Whether a client has previously reported consistent shards to
+- Whether a client has previously reported atomic shards to
   the metadata server via LAYOUTSTATS or a prior LAYOUTERROR.
 - Whether the layout exposes a data server carrying
   FFV2_DS_FLAGS_REPAIR as a target for reconstructed shards.
@@ -3267,7 +3268,7 @@ that every client MUST be prepared to:
     and
 
 2.  Continue its own workload after reporting
-    NFS4ERR_PAYLOAD_NOT_CONSISTENT without itself being selected
+    NFS4ERR_PAYLOAD_NOT_ATOMIC without itself being selected
     to repair the payload it reported.
 
 The metadata server signals the selected client via the
@@ -3378,7 +3379,7 @@ With the normative framing above, the reconstruction path is:
     range ({{sec-CHUNK_LOCK}}).
 
 2.  CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) with the
-    reconstructed data for each inconsistent shard.  The
+    reconstructed data for each non-atomic shard.  The
     client's chunk_owner4 on this and all subsequent operations
     is the one it presented in the CHUNK_LOCK ADOPT above;
     prior owners' generation ids are now historical.
@@ -3436,7 +3437,7 @@ chunk; the next CHUNK_WRITE is permitted immediately.
 
 #### Repairing Single Writer Payloads
 
-In single writer mode, inconsistent blocks arise from a client or data
+In single writer mode, non-atomic blocks arise from a client or data
 server failure during a CHUNK_WRITE / CHUNK_FINALIZE sequence.  Because
 no other writer is active, the original writer is the typical choice
 for repair, but the metadata server MAY designate any client according
@@ -3446,13 +3447,13 @@ section if it cannot reconstruct the payload from surviving shards.
 
 The repair sequence when the selected client is the original writer is:
 
-1. The repair client issues CHUNK_READ to identify which blocks are in an
-   inconsistent state (PENDING with a CRC mismatch, or in the errored
-   state set by a prior CHUNK_ERROR).
+1. The repair client issues CHUNK_READ to identify which blocks are in a
+   failed state (PENDING with a CRC mismatch, or in the errored state
+   set by a prior CHUNK_ERROR).
 
 2. For each errored chunk, the repair client reconstructs the correct
    data using the erasure coding algorithm (RS matrix inversion or Mojette
-   back-projection) from the surviving consistent chunks (treating each
+   back-projection) from the surviving atomic chunks (treating each
    chunk's payload as a shard of the stripe).
 
 3. The repair client issues CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}})
@@ -3494,14 +3495,14 @@ The multiple writer write sequence is:
 4. If all CHUNK_WRITEs succeed, the client issues CHUNK_FINALIZE and
    CHUNK_COMMIT as in single writer mode.
 
-The guard ensures that the chunks carrying the shards of a consistent
+The guard ensures that the chunks carrying the shards of an atomic
 erasure-coded stripe all carry the same chunk_guard4.  A reader that
 encounters chunks with different guard values knows the stripe is not
-yet consistent and MUST either retry or report NFS4ERR_PAYLOAD_NOT_CONSISTENT.
+yet atomic and MUST either retry or report NFS4ERR_PAYLOAD_NOT_ATOMIC.
 
 #### Repairing Multiple Writer Payloads
 
-In multiple writer mode, inconsistent chunks can arise from two sources:
+In multiple writer mode, non-atomic chunks can arise from two sources:
 a client failure leaving some chunks in PENDING state, or two clients
 writing different data to the same chunk before one has committed.
 
@@ -3520,20 +3521,20 @@ repair client.  The repair sequence is:
 
 2. The repair client issues CHUNK_READ on all data servers to retrieve
    the current payload.  It examines the chunk_owner4 of each shard to
-   identify which transaction (if any) produced a consistent set across
+   identify which transaction (if any) produced a atomic set across
    all k data shards.
 
-3. If a consistent set is found (all k data shards carry the same
+3. If a atomic set is found (all k data shards carry the same
    chunk_guard4), that payload is the winner.  The repair client issues
    CHUNK_WRITE_REPAIR to copy the winner's data to any data servers whose
-   shard is inconsistent, followed by CHUNK_FINALIZE and CHUNK_COMMIT.
+   shard is non-atomic, followed by CHUNK_FINALIZE and CHUNK_COMMIT.
 
-4. If no consistent set exists (all available payloads are partial), the
+4. If no atomic set exists (all available payloads are partial), the
    repair client selects one transaction's payload as authoritative
    (typically the one with the most complete set of shards, or the most
    recent cg_gen_id) and proceeds as above.
 
-5. After all data servers carry consistent, finalized, committed data, the
+5. After all data servers carry atomic, finalized, committed data, the
    repair client issues CHUNK_REPAIRED to clear the errored state and
    CHUNK_UNLOCK to release the locks acquired in step 1.
 
@@ -3543,18 +3544,18 @@ repair client.  The repair sequence is:
 ### Reading Chunks {#sec-reading-chunks}
 
 The client reads chunks from the data file via CHUNK_READ.  The
-number of chunks in the payload that need to be consistent depend
+number of chunks in the payload that need to be atomic depend
 on both the Erasure Coding Type and the level of protection selected.
-If the client has enough consistent chunks in the payload, then it
+If the client has enough atomic chunks in the payload, then it
 can proceed to use them to build a data block.  If it does not have
-enough consistent chunks in the payload, then it can either decide
-to return a LAYOUTERROR of NFS4ERR_PAYLOAD_NOT_CONSISTENT to the
+enough atomic chunks in the payload, then it can either decide
+to return a LAYOUTERROR of NFS4ERR_PAYLOAD_NOT_ATOMIC to the
 metadata server or it can retry the CHUNK_READ until there are
-enough consistent chunks in the payload.
+enough atomic chunks in the payload.
 
 As another client might be writing to the chunks as they are being
 read, it is entirely possible to read the chunks while they are not
-consistent.  As such, it might even be the non-consistent chunks
+atomic.  As such, it might even be the non-atomic chunks
 which contain the new data and a better action than building the
 data block is to retry the CHUNK_READ to see if new chunks are
 overwritten.
@@ -4008,14 +4009,14 @@ applies and substitution would collide).
 A write hole occurs when a client begins writing a stripe but does not
 successfully write all k+m shards before a failure.  Some data servers
 will hold new data while others still hold old data, producing an
-inconsistent payload.
+non-atomic payload.
 
 The CHUNK_WRITE / CHUNK_ROLLBACK mechanism addresses this.  When a client
 issues CHUNK_WRITE, the data server retains a copy of the previous shard
 and places the new data in the PENDING state.  If any shard write fails,
 the client issues CHUNK_ROLLBACK to each data server that received a
 CHUNK_WRITE, restoring the previous content.  The payload remains
-consistent from the reader's perspective throughout, because PENDING
+atomic from the reader's perspective throughout, because PENDING
 blocks carry the new chunk_guard4 value and CHUNK_READ returns the last
 COMMITTED or FINALIZED block when a PENDING block exists.
 
@@ -4029,8 +4030,8 @@ exposes a suitable spare.
 In the multiple writer model, a write hole can also arise when two clients
 are racing.  The chunk_guard4 value on each chunk identifies which
 transaction wrote it.  A reader that finds chunks with different guard
-values detects the inconsistency and either retries (if a concurrent write
-is still in progress) or reports NFS4ERR_PAYLOAD_NOT_CONSISTENT to the
+values detects the non-atomicity and either retries (if a concurrent write
+is still in progress) or reports NFS4ERR_PAYLOAD_NOT_ATOMIC to the
 metadata server to trigger repair.
 
 When substitution and CHUNK_ROLLBACK are both unavailable, and
@@ -4185,7 +4186,7 @@ Network partitions:
 
    Split-brain scenarios (in which a partitioned minority of
    the data servers in a mirror set attempts to make progress
-   independently of the majority) cannot drive inconsistent
+   independently of the majority) cannot drive non-atomic
    writes to COMMITTED state.  The chunk_guard4 CAS on each
    write requires the guard value from a successor chunk to
    strictly advance the guard value of its predecessor; on
@@ -4194,7 +4195,7 @@ Network partitions:
    not satisfy the CAS precondition, and those writes are
    discarded.  When reconciliation is impossible -- for example,
    the erasure coding has lost too many shards across both sides
-   of the partition to reconstruct any single consistent
+   of the partition to reconstruct any single atomic
    generation -- the repair flow terminates with
    NFS4ERR_PAYLOAD_LOST (see {{sec-NFS4ERR_PAYLOAD_LOST}}),
    which is terminal for the affected ranges.
@@ -5326,7 +5327,7 @@ revoked clients from the respective data files as described in
    /// /* Erasure Coding error constants; added to nfsstat4 enum */
    ///
    /// const NFS4ERR_CODING_NOT_SUPPORTED   = 10097;
-   /// const NFS4ERR_PAYLOAD_NOT_CONSISTENT = 10098;
+   /// const NFS4ERR_PAYLOAD_NOT_ATOMIC = 10098;
    /// const NFS4ERR_CHUNK_LOCKED           = 10099;
    /// const NFS4ERR_CHUNK_GUARDED          = 10100;
    /// const NFS4ERR_PAYLOAD_LOST           = 10101;
@@ -5341,7 +5342,7 @@ The new error codes are shown in {{fig-errors-xdr}}.
  | Error                          | Number | Description   |
  |---
  | NFS4ERR_CODING_NOT_SUPPORTED   | 10097  | {{sec-NFS4ERR_CODING_NOT_SUPPORTED}} |
- | NFS4ERR_PAYLOAD_NOT_CONSISTENT | 10098  | {{sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}} |
+ | NFS4ERR_PAYLOAD_NOT_ATOMIC | 10098  | {{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}} |
  | NFS4ERR_CHUNK_LOCKED | 10099  | {{sec-NFS4ERR_CHUNK_LOCKED}} |
  | NFS4ERR_CHUNK_GUARDED | 10100  | {{sec-NFS4ERR_CHUNK_GUARDED}} |
  | NFS4ERR_PAYLOAD_LOST | 10101  | {{sec-NFS4ERR_PAYLOAD_LOST}} |
@@ -5356,10 +5357,10 @@ this error code can be returned.  The client might have to send the
 layout_hint several times to determine the overlapping set of
 supported erasure coding types.
 
-### NFS4ERR_PAYLOAD_NOT_CONSISTENT (Error Code 10098) {#sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}
+### NFS4ERR_PAYLOAD_NOT_ATOMIC (Error Code 10098) {#sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}
 
-The client encountered a payload in which the blocks were inconsistent
-and stays inconsistent.  As the client can not tell if another
+The client encountered a payload in which the blocks were non-atomic
+and stay non-atomic.  As the client can not tell if another
 client is actively writing, it informs the metadata server of this
 error via LAYOUTERROR.  The metadata server can then arrange for
 repair of the file.
@@ -5413,7 +5414,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
  | CHUNK_FINALIZE     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
- | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_CONSISTENT, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_REPAIRED     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_ROLLBACK     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_UNLOCK       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
@@ -5858,13 +5859,13 @@ CHUNK_FINALIZE before CHUNK_COMMIT is accepted:
 -  If the target chunk is PENDING (i.e., the writer never
    issued CHUNK_FINALIZE), the data server MUST reject the
    CHUNK_COMMIT entry for that chunk with
-   NFS4ERR_PAYLOAD_NOT_CONSISTENT in the corresponding
+   NFS4ERR_PAYLOAD_NOT_ATOMIC in the corresponding
    ccr_status slot.  The writer is expected to either issue
    CHUNK_FINALIZE to advance the state or CHUNK_ROLLBACK to
    abandon the PENDING generation.
 
 -  If the target chunk is EMPTY (no generation to commit), the
-   data server MUST reject with NFS4ERR_PAYLOAD_NOT_CONSISTENT
+   data server MUST reject with NFS4ERR_PAYLOAD_NOT_ATOMIC
    for that chunk.
 
 -  If the target chunk is already COMMITTED at the generation
@@ -5931,7 +5932,7 @@ NFS4ERR_FHEXPIRED:
 
 NFS4ERR_INVAL:
 :  arguments named chunks outside the file's mirror
-   set or in an inconsistent state.
+   set or in a non-atomic state.
 
 NFS4ERR_IO:
 :  an I/O error occurred while persisting the commit.
@@ -5978,7 +5979,7 @@ CHUNK_ERROR allows a client to report that one or more chunks at
 the specified block range are in error.  The cea_offset is the
 starting block offset and cea_count is the number of blocks
 affected.  The cea_error indicates the type of error detected
-(e.g., NFS4ERR_PAYLOAD_NOT_CONSISTENT for a CRC mismatch).
+(e.g., NFS4ERR_PAYLOAD_NOT_ATOMIC for a CRC mismatch).
 
 The data server records the error state for the affected blocks.
 Once marked as errored, the blocks are not returned by CHUNK_READ
@@ -6471,9 +6472,9 @@ NFS4ERR_IO:
 NFS4ERR_NOTSUPP:
 :  the data server does not implement CHUNK_READ.
 
-NFS4ERR_PAYLOAD_NOT_CONSISTENT:
+NFS4ERR_PAYLOAD_NOT_ATOMIC:
 :  one or more chunks failed their
-   persisted guard or CRC check.  See {{sec-NFS4ERR_PAYLOAD_NOT_CONSISTENT}}.
+   persisted guard or CRC check.  See {{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}}.
 
 NFS4ERR_SERVERFAULT:
 :  the data server failed while processing
@@ -7453,13 +7454,12 @@ for the new callback operation defined in this document.
 ### DESCRIPTION
 
 CB_CHUNK_REPAIR is sent by the metadata server to request that
-a selected client repair one or more inconsistent chunk ranges.
+a selected client repair one or more non-atomic chunk ranges.
 Selection follows the rules in {{sec-repair-selection}}; those
 rules are normative for how the client MUST respond on receipt
 of this callback.
 
-The ccra_fh identifies the file whose chunks are inconsistent.
-The callback compound carries the filehandle directly; there is
+The ccra_fh identifies the file whose chunks are non-atomic.The callback compound carries the filehandle directly; there is
 no preceding PUTFH in callback compounds.
 
 The ccra_layout_stateid carries the recipient client's current
@@ -7484,7 +7484,7 @@ metadata server to issue a repair callback:
 
 CB_REPAIR_REASON_RACE:
 :  A live-race repair.  A client (not necessarily the recipient
-   of this callback) detected a chunk-level inconsistency at
+   of this callback) detected a chunk-level non-atomicity at
    write or read time and reported it via LAYOUTERROR.  The
    metadata server is driving repair synchronously because the
    affected chunk is on the critical path of some I/O.  The
@@ -7493,7 +7493,7 @@ CB_REPAIR_REASON_RACE:
 
 CB_REPAIR_REASON_SCRUB:
 :  A background scrub.  The metadata server has detected stale
-   or inconsistent payloads during a scheduled integrity sweep
+   or non-atomic payloads during a scheduled integrity sweep
    and is opportunistically driving repair.  No client is
    currently blocked on these ranges.  The recipient MAY
    schedule the callback at lower priority than
@@ -7686,7 +7686,7 @@ the coordination point for detecting and resolving such races.
 ##  Error Code Information Disclosure
 
 The new error codes NFS4ERR_CHUNK_LOCKED (10099) and
-NFS4ERR_PAYLOAD_NOT_CONSISTENT (10098) convey information about
+NFS4ERR_PAYLOAD_NOT_ATOMIC (10098) convey information about
 chunk state to the caller.  Both of these errors MAY be returned
 to callers whose credentials have not been verified by the data
 server (e.g., when the AUTH_SYS uid presented does not match the
@@ -8548,7 +8548,7 @@ resolve before the client has to pay a recall round-trip.
 The chunk state machine (PENDING -> FINALIZED -> COMMITTED) and
 {{sec-chunk_guard4}} address the orthogonal concern of partial-write
 recovery, ensuring that even when the metadata server reroutes mid-write the
-data servers can detect inconsistent stripes via per-chunk generation
+data servers can detect non-atomic stripes via per-chunk generation
 checks rather than via a global wall-clock or consensus protocol.
 
 ## Combined Effect on the "Cluster Tax"

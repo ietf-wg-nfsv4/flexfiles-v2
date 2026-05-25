@@ -159,7 +159,52 @@ NFSv4 client code, and the dstore vtables.
 - Some constants like `FFV2_ENCODING_PASSTHROUGH` use `FFV2_` as
   an all-caps prefix; these are not field-prefix renames.
 
-## Pending change 3 (deferred): MACHINE_ID_ANNOUNCE op
+## Pending change 3: rename NFS4ERR_PAYLOAD_NOT_CONSISTENT -> NFS4ERR_PAYLOAD_NOT_ATOMIC
+
+**Status: spec change applied on flexfiles-v2.  reffs side not yet
+updated.**
+
+The "consistency" / "atomicity" terminology pass renamed the
+cohort property (all chunks in a payload share the same
+chunk_guard4) from "consistency" to "atomicity".  The error code
+NFS4ERR_PAYLOAD_NOT_CONSISTENT was renamed to
+NFS4ERR_PAYLOAD_NOT_ATOMIC to match.  The numeric value is
+unchanged (10098); only the symbolic name moves.
+
+### What reffs needs to change
+
+1. **XDR constant rename** at `lib/xdr/nfsv42_xdr.x`:
+
+   ```
+   const NFS4ERR_PAYLOAD_NOT_CONSISTENT = 10098;
+   ```
+
+   becomes
+
+   ```
+   const NFS4ERR_PAYLOAD_NOT_ATOMIC = 10098;
+   ```
+
+2. **Regenerate XDR code** (`nfsv42_xdr_const.py`,
+   `nfsv42_xdr_type.py`, `nfsv42_xdr_pack.py`, `nfsv42_xdr.h`,
+   `nfsv42_xdr.c`) via `xdr-parser`.
+
+3. **C sources**: substitute every reference to
+   `NFS4ERR_PAYLOAD_NOT_CONSISTENT` with `NFS4ERR_PAYLOAD_NOT_ATOMIC`.
+   Likely paths: `lib/nfs4/server/chunk.c`,
+   `lib/nfs4/client/chunk_io.c`, `lib/nfs4/server/layout.c`,
+   anywhere that returns or checks the error.
+
+4. **Python sources** and **tests**: same substitution.
+
+5. **Build verification**: `make -f Makefile.reffs ci-check`.
+
+The numeric value stays the same, so on-the-wire behavior is
+unchanged.  Only source-code identifiers move.  Mechanical
+replace with a careful grep for the old name to confirm
+zero residual.
+
+## Pending change 4 (deferred): MACHINE_ID_ANNOUNCE op
 
 **Status: spec discussion recorded in `layout-affinity.md`; not
 yet added to the draft.**
