@@ -695,17 +695,35 @@ The security measure could be physical security (e.g., the servers
 are co-located in a physically secure area), encrypted communications,
 or some other technique.
 
-With tightly coupled storage devices, the metadata server sets the
-user and group owners, mode bits, and Access Control List (ACL) of
-the data file to be the same as the metadata file.  And the client must
-authenticate with the storage device and go through the same authorization
-process it would go through via the metadata server.  In the case of
-tight coupling, fencing is the responsibility of the control protocol and
-is not described in detail in this document.  However, implementations
-of the tightly coupled locking model (see {{sec-state-locking}}) will
-need a way to prevent access by certain clients to specific files by
-invalidating the corresponding stateids on the storage device.  In such
-a scenario, the client will be given an error of NFS4ERR_BAD_STATEID.
+With tightly coupled storage devices, the metadata server
+and the storage device agree on the authorization decision
+for each client access: a client allowed by the metadata
+server to read or write a file is allowed the same access
+at the storage device, and a client denied at the metadata
+server is denied at the storage device.  How the storage
+device reaches that decision is not constrained by this
+specification.  Some storage devices replicate the user,
+group, mode bits, and ACL of the metadata file onto a
+POSIX-shaped local representation of the data file and let
+their native filesystem enforce the decision; others (such
+as storage devices backed by an object store, a
+control-protocol-driven backend, or a backend with no
+exposed file namespace) consult the control protocol
+directly without ever materializing a POSIX file
+representation.  Both approaches are conformant; the
+specification's requirement is the authorization-outcome
+parity, not the mechanism that produces it.
+
+The client authenticates with the storage device and
+receives the same authorization outcome it would have
+received via the metadata server.  In the case of tight
+coupling, fencing is the responsibility of the control
+protocol and is not described in detail in this document.
+Implementations of the tightly coupled locking model (see
+{{sec-state-locking}}) will need a way to prevent access by
+certain clients to specific files by invalidating the
+corresponding stateids on the storage device; in such a
+scenario, the client receives NFS4ERR_BAD_STATEID.
 
 The client need not know the model used between the metadata server and
 the storage device.  It need only react consistently to any errors in
