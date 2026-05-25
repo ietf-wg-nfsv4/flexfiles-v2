@@ -7011,23 +7011,88 @@ NFS4ERR_STALE:
 
 ### DESCRIPTION
 
-CHUNK_LOCK acquires an exclusive lock on the block range specified
-by cla_offset and cla_count.  While locked, other clients' CHUNK_WRITE
-operations to the same block range will fail with NFS4ERR_CHUNK_LOCKED.
-The lock is associated with the chunk_owner4 in cla_owner.
+CHUNK_LOCK acquires an exclusive chunk-range lock on the
+range specified by cla_offset and cla_count.  While the
+lock is held, CHUNK_WRITE, CHUNK_WRITE_REPAIR,
+CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_ROLLBACK, and
+CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) operations on any of
+the locked chunks from any other chunk_owner4 receive
+NFS4ERR_CHUNK_LOCKED in the corresponding per-chunk
+status slot.  The lock is associated with the
+chunk_owner4 in cla_owner.
 
-If the blocks are already locked by a different owner and
-cla_flags does not include CHUNK_LOCK_FLAGS_ADOPT, the operation
-returns NFS4ERR_CHUNK_LOCKED with the clr_owner field identifying
-the current lock holder.
+CHUNK_LOCK is loosely analogous to LOCK ({{RFC8881}}
+Section 18.10) in that it acquires an exclusive
+guard against concurrent modification, but the two
+operate on different coordinate systems and use
+different naming: LOCK is byte-range and stateid-based;
+CHUNK_LOCK is chunk-range and chunk_owner4-based.
+CHUNK_LOCK is used in multiple-writer mode
+({{sec-multi-writer}}) to serialize racing writers on a
+common chunk range, and in the repair flow
+({{sec-repair-selection}}) to transfer lock ownership
+to a repair client via CHUNK_LOCK_FLAGS_ADOPT.
 
-CHUNK_LOCK is used in the multiple writer mode ({{sec-multi-writer}})
-to coordinate concurrent access to the same block range, and in the
-repair flow ({{sec-repair-selection}}) to transfer lock ownership
-to a repair client.
+The client provides:
 
-The lock is released by CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) or
-implicitly when the client's lease expires.
+cla_stateid:
+:  the layout stateid the metadata server granted for
+   this file.  Under trusted-stateid tight coupling
+   ({{sec-TRUST_STATEID}}), this stateid MUST be in the
+   data server's trust table; otherwise the data server
+   rejects the operation with NFS4ERR_BAD_STATEID.
+
+cla_offset:
+:  starting chunk index of the lock range (not a byte
+   offset).
+
+cla_count:
+:  number of chunks the lock range covers, starting at
+   cla_offset.
+
+cla_flags:
+:  bitmask of CHUNK_LOCK_FLAGS_* values.  Currently
+   defined: CHUNK_LOCK_FLAGS_ADOPT (lock-ownership
+   transfer; see "Lock Transfer via
+   CHUNK_LOCK_FLAGS_ADOPT" below).  Unknown bits MUST be
+   rejected with NFS4ERR_INVAL.
+
+cla_owner:
+:  the chunk_owner4 ({{fig-chunk_owner4}}) that will hold
+   the lock on success.  The reserved sentinels
+   CHUNK_GUARD_CLIENT_ID_NONE and
+   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
+   cg_client_id of cla_owner; see
+   {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
+   (A client requesting CHUNK_LOCK_FLAGS_ADOPT MUST use
+   its own cg_client_id, not the MDS-escrow sentinel,
+   even when adopting from an MDS-escrow holder.)
+
+The CHUNK_LOCK result returns:
+
+clr_status:
+:  NFS4_OK if the lock was acquired (or transferred via
+   ADOPT).  NFS4ERR_CHUNK_LOCKED if one or more chunks
+   in the range are already locked and the request does
+   not carry CHUNK_LOCK_FLAGS_ADOPT.
+
+clr_owner (NFS4ERR_CHUNK_LOCKED case only):
+:  the chunk_owner4 of the current lock holder, so the
+   caller can identify the blocking writer.
+
+The lock is released by CHUNK_UNLOCK
+({{sec-CHUNK_UNLOCK}}) or implicitly when the holder's
+lease expires; on lease expiry without explicit
+release, the data server transitions the lock to the
+MDS-escrow owner if the metadata server has revoked
+the holder's stateid via REVOKE_STATEID
+({{sec-REVOKE_STATEID}}), per the lock-continuity-
+across-revocation invariant in
+{{sec-system-model-consistency}}.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
 
 #### Lock Transfer via CHUNK_LOCK_FLAGS_ADOPT
 
