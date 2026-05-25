@@ -6858,15 +6858,60 @@ range of chunks in the target data file without returning
 the chunk payloads.  The operation enables clients and
 repair coordinators to inspect chunk lifecycle and
 ownership cheaply, without the data-transfer cost of
-CHUNK_READ ({{sec-CHUNK_READ}}).
+CHUNK_READ ({{sec-CHUNK_READ}}).  CHUNK_HEADER_READ has
+no direct analog in {{RFC8881}}; it is the chunk-protocol
+counterpart of a stat-like fast probe and exists because
+chunks are first-class state-bearing objects whose
+ownership, lock state, and lifecycle status are not
+recoverable from a byte-offset query.
 
-The chra_offset and chra_count fields name the chunk range
-in the same coordinate system as CHUNK_READ: chra_offset is
-the starting chunk index in the file (not a byte offset),
-and chra_count is the number of chunks to inspect.  The
-response arrays chrr_status, chrr_locked, and chrr_chunks
-are co-indexed, one entry per chunk in the requested range
-in chunk-offset order from chra_offset.
+The client provides:
+
+chra_stateid:
+:  the layout stateid the metadata server granted for
+   this file.  Under trusted-stateid tight coupling
+   ({{sec-TRUST_STATEID}}), this stateid MUST be in the
+   data server's trust table; otherwise the data server
+   rejects the operation with NFS4ERR_BAD_STATEID.
+
+chra_offset:
+:  starting chunk index of the range to inspect (not a
+   byte offset).
+
+chra_count:
+:  number of chunks the inspection range covers,
+   starting at chra_offset.
+
+The CHUNK_HEADER_READ result returns four co-indexed
+arrays, one entry per chunk in the requested range in
+chunk-offset order from chra_offset:
+
+chrr_eof:
+:  TRUE if the requested range extended at or past the
+   data server's last chunk for this file.  Same
+   per-data-server semantics as crr_eof in CHUNK_READ
+   ({{sec-CHUNK_READ}}).
+
+chrr_status:
+:  per-chunk lifecycle state encoded as an nfsstat4
+   (see "Per-Chunk Status Encoding" below).
+
+chrr_locked:
+:  per-chunk boolean.  TRUE if the chunk currently has a
+   CHUNK_LOCK ({{sec-CHUNK_LOCK}}) held by some
+   chunk_owner4; FALSE otherwise.  Lock state is
+   reported orthogonally to chrr_status so that a locked
+   chunk still surfaces its lifecycle state and
+   chunk_owner4 to the inspector.
+
+chrr_chunks:
+:  per-chunk chunk_owner4 ({{fig-chunk_owner4}}).  For a
+   chunk whose chrr_status is NFS4_OK the field is the
+   COMMITTED generation's owner.  For
+   NFS4ERR_PAYLOAD_NOT_ATOMIC the field is the writer of
+   the in-progress (PENDING or FINALIZED) generation.
+   For NFS4ERR_NOENT (EMPTY chunk) the chunk_owner4 is
+   unspecified.
 
 The operation has several uses:
 
@@ -6922,21 +6967,37 @@ Lock probe before write:
    lock MAY be acquired between the header read and the
    write.
 
-The per-chunk chrr_status field reports lifecycle state of
-each chunk encoded as an nfsstat4: NFS4_OK indicates that
-the chunk is COMMITTED and the chunk_owner4 in the
-corresponding chrr_chunks slot is the COMMITTED
-generation; NFS4ERR_PAYLOAD_NOT_ATOMIC indicates the chunk
-is PENDING or FINALIZED (a non-globally-visible generation
-in progress) and the chunk_owner4 names the writer of that
-in-progress generation; NFS4ERR_NOENT indicates the chunk
-is EMPTY and the chunk_owner4 is unspecified.
+CHUNK_HEADER_READ does not change any chunk state.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
+
+#### Per-Chunk Status Encoding
+
+The per-chunk chrr_status field reports the chunk's
+lifecycle state encoded as an nfsstat4:
+
+NFS4_OK:
+:  the chunk is COMMITTED and the chunk_owner4 in the
+   corresponding chrr_chunks slot is the COMMITTED
+   generation's owner.
+
+NFS4ERR_PAYLOAD_NOT_ATOMIC:
+:  the chunk is PENDING or FINALIZED (a non-globally-
+   visible generation is in progress).  The
+   chunk_owner4 in the corresponding chrr_chunks slot
+   names the writer of that in-progress generation.
+
+NFS4ERR_NOENT:
+:  the chunk is EMPTY (no COMMITTED generation has been
+   written at this offset).  The chunk_owner4 in the
+   corresponding chrr_chunks slot is unspecified.
+
 CHUNK_HEADER_READ never returns NFS4ERR_CHUNK_LOCKED in
 chrr_status; lock state is reported orthogonally via
 chrr_locked so that locked chunks still surface their
 chunk_owner4 to the inspector.
-
-CHUNK_HEADER_READ does not change any chunk state.
 
 ### RESPONSE CODES
 
