@@ -5621,15 +5621,51 @@ PNFS_FF_RCA4_TYPE_MASK_RW flag notifies the client to return layouts
 of iomode LAYOUTIOMODE4_RW.  When both mask flags are set, the
 client is notified to return layouts of either iomode.
 
-#  Client Fencing
+#  Layout Revocation and Fencing
 
 In cases where clients are uncommunicative and their lease has
-expired or when clients fail to return recalled layouts within a
-lease period, the server MAY revoke client layouts and reassign
-these resources to other clients (see Section 12.5.5 of {{RFC8881}}).
-To avoid data corruption, the metadata server MUST fence off the
-revoked clients from the respective data files as described in
-{{sec-Fencing-Clients}}.
+expired, or when clients fail to return recalled layouts within
+a lease period, the metadata server MAY revoke client layouts
+and reassign these resources to other clients (see Section
+12.5.5 of {{RFC8881}}).  To avoid data corruption from a
+revoked client continuing to issue I/O, the metadata server
+MUST fence the revoked client from the affected data files.
+The mechanism varies by coupling model and by whether the
+client's layout stateid has been registered with the data
+servers via TRUST_STATEID:
+
+Loosely coupled, untrusted stateid:
+:  The metadata server rotates the synthetic uid/gid on the
+   affected data files per {{sec-Fencing-Clients}}.  The
+   revoked client presents stale RPC credentials and receives
+   NFS4ERR_ACCESS from the data server.  This is the
+   FFv1-style fencing mechanism; it operates per data file and
+   does not distinguish between clients that hold layouts on
+   the same file.
+
+Tightly coupled, trusted stateid:
+:  When the metadata server has registered a client's layout
+   stateid with the data servers via TRUST_STATEID
+   ({{sec-TRUST_STATEID}}), it can revoke per-client access
+   without rotating credentials by issuing REVOKE_STATEID
+   ({{sec-REVOKE_STATEID}}) to each affected data server, or
+   BULK_REVOKE_STATEID ({{sec-BULK_REVOKE_STATEID}}) when
+   revoking all stateids belonging to a single clientid4
+   across a data server.  Subsequent I/O from the revoked
+   client carrying the revoked stateid receives
+   NFS4ERR_BAD_STATEID.  This is the preferred mechanism for
+   erasure-coded layouts because it is per-client and avoids
+   the FFv1 limitation of fencing all clients on a data file
+   when only one needs to be revoked.
+
+Mixed:
+:  A metadata server MAY combine the two mechanisms when a
+   file's layout includes both PASSTHROUGH mirrors (where
+   stateid registration is not in play) and erasure-coded
+   mirrors with trusted stateids.  The metadata server rotates
+   synthetic ids for the PASSTHROUGH mirror's data file and
+   issues REVOKE_STATEID for the erasure-coded mirror's data
+   servers.
 
 #  New NFSv4.2 Error Values
 
