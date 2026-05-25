@@ -478,6 +478,15 @@ even when no shards are lost.  The Mojette non-systematic transform is
 an example.  Non-systematic encodings are typically used for archival
 workloads where reads are infrequent.
 
+proxy server (PS):
+
+:  a peer of the metadata server, defined in
+{{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, that admits client
+I/O on the metadata server's behalf -- either as a translator for
+clients that cannot speak the file's native codec, or as a
+proxy-mediated data path during whole-file move and repair
+operations.  A proxy server may additionally act as a data server.
+
 recalling a layout:
 
 :  a graceful recall, via a callback, of a specific layout by the metadata
@@ -945,7 +954,7 @@ be sent by pNFS clients.
 The receiver of these operations is any server the metadata
 server delegates client-I/O admission to.  In this document that
 is the storage device (data server).  The same mechanism applies to a
-proxy server (PS) {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} -- a proxy server may or may not additionally act as a data server, but in
+proxy server {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} -- a proxy server may or may not additionally act as a data server, but in
 either role it needs the metadata server to register a layout
 stateid before it can admit client I/O.  Where this section
 says "storage device," read it as "storage device, or proxy
@@ -1133,7 +1142,7 @@ This is the expected setting for AUTH_SYS and TLS clients:
    therefore has the same authorization properties as plain
    AUTH_SYS.
 
-When a client's I/O is routed through a proxy server (PS) -- that
+When a client's I/O is routed through a proxy server -- that
 is, the layout the metadata server returns to the client has
 FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry,
 per {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} -- the storage device observes
@@ -8260,7 +8269,7 @@ belong inside a storage boundary, not at the client.
 ## How the Proxy Server Addresses This
 {:numbered="false"}
 
-The Proxy Server (PS) role, defined in
+The Proxy Server role, defined in
 {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, is the storage
 boundary that Christoph and David asked for.
 
