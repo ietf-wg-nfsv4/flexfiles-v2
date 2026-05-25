@@ -271,29 +271,29 @@ percentages below reflect the expected deployment mix in
 installations that choose flexible file v2 layout for its combination of
 integrity and performance; individual deployments may diverge.
 
-Single writer, multiple readers (approximately 90% of expected
-deployments):
-:  The common case is a file written by one client and subsequently
-   read by many.  Examples include artifacts deposited by batch
-   jobs, container images, and media files.  The protocol is
-   optimized for this case; see {{sec-system-model-progress}}.
+Single writer, multiple readers:
+:  Approximately 90% of expected deployments.  The common case is a
+   file written by one client and subsequently read by many.
+   Examples include artifacts deposited by batch jobs, container
+   images, and media files.  The protocol is optimized for this
+   case; see {{sec-system-model-progress}}.
 
-Multiple writers without sustained contention (approximately 9% of
-expected deployments):
-:  Files with multiple concurrent writers where races on the same
-   chunk are rare.  Examples include shared-directory append-only
-   logs and distributed builds.  The chunk_guard4 CAS primitive and
-   per-chunk locking cover this case without penalizing the common
+Multiple writers without sustained contention:
+:  Approximately 9% of expected deployments.  Files with multiple
+   concurrent writers where races on the same chunk are rare.
+   Examples include shared-directory append-only logs and
+   distributed builds.  The chunk_guard4 CAS primitive and per-chunk
+   locking cover this case without penalizing the common
    single-writer path.
 
-Multiple writers with high-frequency contention, no overwrite
-(approximately 1% of expected deployments):
-:  High-performance computing (HPC) checkpoint workloads, in which
-   many ranks write disjoint regions of the same file in lockstep.
-   The protocol relies on block alignment to keep per-chunk
-   contention rare despite overall high writer count.  Contention
-   that does occur is resolved via the deterministic tiebreaker
-   rule defined in {{sec-chunk_guard4}}.
+Multiple writers with high-frequency contention, no overwrite:
+:  Approximately 1% of expected deployments.  High-performance
+   computing (HPC) checkpoint workloads, in which many ranks write
+   disjoint regions of the same file in lockstep.  The protocol
+   relies on block alignment to keep per-chunk contention rare
+   despite overall high writer count.  Contention that does occur
+   is resolved via the deterministic tiebreaker rule defined in
+   {{sec-chunk_guard4}}.
 
 Scale targets include multi-thousand-client deployments (on the
 order of tens of thousands of concurrent clients for HPC
