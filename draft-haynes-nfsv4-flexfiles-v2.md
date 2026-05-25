@@ -8257,7 +8257,7 @@ updates it, and is prepared to write it back.  It guards the write
 such that if another writer has modified the block, the data server
 will reject the modification.
 
-As the chunk_guard4 (see {{fig-chunk_guard4}} does not have a
+As the chunk_guard4 (see {{fig-chunk_guard4}}) does not have a
 chunk_id and the CHUNK_WRITE applies to all blocks in the range of
 cwa_offset to the length of cwa_data, then each of the target blocks
 MUST have the same cg_gen_id and cg_client_id.  The client SHOULD
