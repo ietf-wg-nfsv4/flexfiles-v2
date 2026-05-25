@@ -1992,23 +1992,11 @@ types each stripe's data lives on a single data server, with
 replica multiplicity expressed in ffl_mirrors rather than in
 ffs_data_servers.
 
-## ffv2_key4
-
-~~~ xdr
-   /// typedef uint64_t ffv2_key4;
-~~~
-{: #fig-ffv2_key4 title="The ffv2_key4" }
-
-The ffv2_key4 is an opaque 64-bit identifier used to associate a
-mirror instance with its backing storage key.  The value is assigned
-by the metadata server and is opaque to the client.
-
 ## ffv2_mirror4 {#sec-ffv2-mirror4}
 
 ~~~ xdr
    /// struct ffv2_mirror4 {
    ///         ffv2_coding_type_data4  ffm_coding_type_data;
-   ///         ffv2_key4               ffm_key;
    ///         ffv2_striping           ffm_striping;
    ///         uint32_t                ffm_striping_unit_size;
    ///         uint32_t                ffm_client_id;
