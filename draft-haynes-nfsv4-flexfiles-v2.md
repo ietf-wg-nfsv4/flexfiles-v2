@@ -1085,13 +1085,14 @@ coupling, and re-issue the layout accordingly.
 
 ###  Principal Binding and the Kerberos Gap {#sec-tight-coupling-principal}
 
-Flexible file v1 layout has a known gap: a client authenticated to the
-metadata server with Kerberos has no way to present the same
-authenticated identity to the storage device, because v1 layouts
-carry only ffds_user / ffds_group (POSIX uid/gid for AUTH_SYS).  A
-strict Kerberos deployment on v1 must either allow AUTH_SYS from
-the metadata server's subnet or accept that the v1 data path is
-not Kerberos-protected.
+The flexible file v1 layout has a known gap: a client authenticated
+to the metadata server with Kerberos has no way to present the same
+authenticated identity to the storage device, because flexible file
+v1 layouts carry only ffds_user / ffds_group (POSIX uid/gid for
+AUTH_SYS).  A strict Kerberos deployment on the flexible file v1
+layout must either allow AUTH_SYS from the metadata server's subnet
+or accept that the flexible file v1 layout's data path is not
+Kerberos-protected.
 
 The tsa_principal field in TRUST_STATEID closes that gap.  When a
 client authenticates to the metadata server as a Kerberos
@@ -1982,7 +1983,7 @@ The (data, parity) tuple is interpreted per encoding type:
    ///         ffv2_data_server4       ffv2s_data_servers<>;
    /// };
 ~~~
-{: #fig-ffv2_stripes4 title="The stripes v2"}
+{: #fig-ffv2_stripes4 title="The ffv2_stripes4 structure"}
 
 Each stripe contains a set of data servers in ffv2s_data_servers.
 If the stripe is part of a ffv2_coding_type_data4 of
@@ -2403,10 +2404,11 @@ tightly couple
 :  the stateid has to be a global stateid
 
 By pairing each ffv2fi_fh_vers with its own ffv2fi_stateid inside
-ffv2_file_info4, the v2 layout addresses the v1 limitation where a
-singleton stateid was shared across all filehandles.  Each open file
-on the storage device can now have its own stateid, eliminating the
-ambiguity present in the v1 structure.
+ffv2_file_info4, the flexible file v2 layout addresses a limitation
+in the flexible file v1 layout where a singleton stateid was shared
+across all filehandles.  Each open file on the storage device can
+now have its own stateid, eliminating an ambiguity present in the
+flexible file v1 layout.
 
 For loosely coupled storage devices, ffv2ds_user and ffv2ds_group
 provide the synthetic user and group to be used in the RPC credentials
