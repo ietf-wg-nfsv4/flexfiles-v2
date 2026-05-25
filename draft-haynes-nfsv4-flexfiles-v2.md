@@ -823,25 +823,52 @@ users into one request.
 
 ##  State and Locking Models {#sec-state-locking}
 
-An implementation can always be deployed as a loosely coupled model.
-There is, however, no way for a storage device to indicate over an NFS
-protocol that it can definitively participate in a tightly coupled model:
+The coupling model in effect for a given metadata-server /
+storage-device pair is not negotiated over the NFS protocol.
+The metadata server determines the coupling model from
+out-of-band signals: administrative configuration, the
+choice and capabilities of the control protocol between
+the metadata server and the storage device, the storage
+device's data-path protocol version, and the storage
+device's backend architecture.  At the NFS protocol level,
+the metadata server's expectations of the storage device
+follow these classifications:
 
--  Storage devices implementing the NFSv3 and NFSv4.0 protocols are
-   always treated as loosely coupled.
+-  Storage devices implementing the NFSv3 or NFSv4.0
+   protocols on the data path are treated as loosely
+   coupled.
 
 -  NFSv4.1+ storage devices that do not return the
-   EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID are indicating that
-   they are to be treated as loosely coupled.  From the locking viewpoint,
-   they are treated in the same way as NFSv4.0 storage devices.
+   EXCHGID4_FLAG_USE_PNFS_DS flag in EXCHANGE_ID indicate
+   that they are to be treated as loosely coupled.  From
+   the locking viewpoint, they are treated in the same way
+   as NFSv4.0 storage devices.
 
--  NFSv4.1+ storage devices that do identify themselves with the
-   EXCHGID4_FLAG_USE_PNFS_DS flag set to EXCHANGE_ID can potentially
-   be tightly coupled.  They would use a back-end control protocol to
-   implement the global stateid model as described in {{RFC8881}}.
+-  NFSv4.1+ storage devices that identify themselves with
+   the EXCHGID4_FLAG_USE_PNFS_DS flag set in EXCHANGE_ID
+   can potentially be tightly coupled.  They use a back-end
+   control protocol to implement the global stateid model
+   described in {{RFC8881}}.
 
-A storage device would have to be either discovered or advertised over
-the control protocol to enable a tightly coupled model.
+Tight coupling additionally requires a control protocol
+between the metadata server and the storage device,
+discovered or advertised out-of-band as described above.
+
+Some storage devices cannot operate under the loosely
+coupled model at all.  The loose-coupling model in this
+specification relies on the storage device authorizing
+client access against synthetic uid and gid values
+({{sec-Fencing-Clients}}), which presupposes that the data
+file has a local representation on the storage device
+against which POSIX-style ownership checks can be applied.
+Storage devices whose backend has no exposed file namespace
+-- for example, object-store-backed data servers, or data
+servers driven entirely through a control protocol against
+a non-POSIX backend -- do not have that local representation
+and MUST operate in the tightly coupled model with a
+control protocol that conveys the authorization decision
+directly.  A metadata server deploying with such a storage
+device cannot fall back to loose coupling.
 
 ###  Loosely Coupled Locking Model
 
