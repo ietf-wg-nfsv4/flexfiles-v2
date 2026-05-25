@@ -985,9 +985,9 @@ metadata server interprets the probe response as follows:
 
 -  NFS4_OK: the storage device accepted an anonymous stateid into
    its trust table.  This is a storage device bug.  The metadata
-   server SHOULD log the anomaly.  It MAY treat the capability as
-   confirmed to avoid downgrading to loose coupling, but it MUST
-   immediately issue REVOKE_STATEID to remove the bogus entry.
+   server MAY treat the capability as confirmed to avoid
+   downgrading to loose coupling, but it MUST immediately issue
+   REVOKE_STATEID to remove the bogus entry.
 
 The capability is recorded per storage device, not per file.
 Partial support across a mirror set is permitted: each
