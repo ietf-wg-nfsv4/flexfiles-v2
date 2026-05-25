@@ -944,9 +944,9 @@ be sent by pNFS clients.
 
 The receiver of these operations is any server the metadata
 server delegates client-I/O admission to.  In this document that
-is the storage device (DS).  The same mechanism applies to a
+is the storage device (data server).  The same mechanism applies to a
 proxy server (PS) as defined in the companion Data Mover
-draft -- a PS may or may not additionally act as a DS, but in
+draft -- a proxy server may or may not additionally act as a data server, but in
 either role it needs the metadata server to register a layout
 stateid before it can admit client I/O.  Where this section
 says "storage device," read it as "storage device, or proxy
@@ -1135,34 +1135,34 @@ When a client's I/O is routed through a proxy server (PS) -- that
 is, the layout the metadata server returns to the client has
 FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry,
 per the companion Data Mover draft -- the storage device observes
-CHUNK operations arriving from the PS's address rather than from
+CHUNK operations arriving from the proxy server's address rather than from
 the client directly.  The tsa_principal the metadata server
 populates in TRUST_STATEID is the principal the *storage device*
 will observe on those CHUNK operations, and the Data Mover
 draft's credential-forwarding rules (in particular rule 1,
-"Credential pass-through") require the PS to forward the
+"Credential pass-through") require the proxy server to forward the
 client's credentials verbatim on every CHUNK operation it issues
 on the client's behalf.  Therefore:
 
--  For an RPCSEC_GSS client whose I/O is proxied through a PS,
+-  For an RPCSEC_GSS client whose I/O is proxied through a proxy server,
    the metadata server MUST set tsa_principal to the client's
    RPCSEC_GSS display name (identical to the non-proxied case).
    The storage device's principal check on CHUNK operations will
    match against the client's principal on the forwarded
-   compound, not the PS's service identity.
+   compound, not the proxy server's service identity.
 
--  For an AUTH_SYS client whose I/O is proxied through a PS,
+-  For an AUTH_SYS client whose I/O is proxied through a proxy server,
    the metadata server MUST set tsa_principal to the empty
-   string (identical to the non-proxied case).  The PS forwards
+   string (identical to the non-proxied case).  The proxy server forwards
    the client's AUTH_SYS uid/gid; the storage device's stateid
    check plus the forwarded AUTH_SYS uid/gid constitute the
    authorization.
 
-The metadata server MUST NOT set tsa_principal to the PS's own
-service principal.  Doing so would require the PS to
+The metadata server MUST NOT set tsa_principal to the proxy server's own
+service principal.  Doing so would require the proxy server to
 authenticate to the storage device as itself (bypassing
 credential forwarding) which is explicitly prohibited by the
-Data Mover draft's rule 4 ("PS service identity is for the
+Data Mover draft's rule 4 ("proxy server service identity is for the
 control plane only").
 
 ###  Client-Detected Trust Gap {#sec-tight-coupling-trust-gap}
@@ -2242,22 +2242,22 @@ Fallback when no overlap exists:
        repertoire through the errors returned.
 
    2.  Fall back to I/O via the metadata server itself, so the
-       client's reads and writes are satisfied by the MDS
-       translating to the underlying DS codec on the client's
+       client's reads and writes are satisfied by the metadata server
+       translating to the underlying data server codec on the client's
        behalf (see {{sec-Fencing-Clients}} for the MDS-I/O
        fallback).  This is correct but serializes all I/O for
        the codec-ignorant client through a single actor.
 
    3.  Route the client through a **translating proxy** that
        understands both the file's native codec and a codec
-       the client does support.  The MDS issues a layout with
+       the client does support.  The metadata server issues a layout with
        the proxy's data-server entry carrying
        FFV2_DS_FLAGS_PROXY and a coding_type the client does
        support (typically FFV2_ENCODING_MIRRORED for a minimal
        NFSv4.2 client, or FFV2_ENCODING_PASSTHROUGH / a flat
        NFSv3 surface for an NFSv3 client).  The proxy encodes
        and decodes on the fly
-       against the real DSes.  This preserves parallel I/O
+       against the real data servers.  This preserves parallel I/O
        for the codec-ignorant client that the MDS-I/O
        fallback loses.  The proxy registration, directive, and
        credential-forwarding rules are defined in the
@@ -3096,7 +3096,7 @@ distinct paths, as shown in {{fig-repair-topology}}.
      |  Repair     | ----(4)-> |                      |
      |  client     |  CHUNK_   |    Data servers      |
      |  (selected  |  LOCK_    |    (mirror set for   |
-     |   by MDS)   |  ADOPT,   |    affected ranges)  |
+     |   by metadata server)   |  ADOPT,   |    affected ranges)  |
      |             |  CHUNK_   |                      |
      |             |  WRITE_   +----------------------+
      |             |  REPAIR,
@@ -3108,9 +3108,9 @@ distinct paths, as shown in {{fig-repair-topology}}.
      |             |  REPAIRED
      +-------------+
 
-     (1) Reporter LAYOUTERRORs the MDS.
-     (2a) MDS selects a repair client (may be same as reporter).
-     (2b) MDS escrows the chunk lock and issues CB_CHUNK_REPAIR.
+     (1) Reporter LAYOUTERRORs the metadata server.
+     (2a) metadata server selects a repair client (may be same as reporter).
+     (2b) metadata server escrows the chunk lock and issues CB_CHUNK_REPAIR.
      (3)  Repair client adopts the lock and drives the repair.
      (4)  Repair client issues CHUNK_* ops against the mirror set.
 ~~~
@@ -3904,7 +3904,7 @@ A single-shard CHUNK_WRITE failure MAY also be handled without
 CHUNK_ROLLBACK by substituting the failing data server with an
 FFV2_DS_FLAGS_SPARE, per {{sec-spare-substitution}}.  This
 avoids engaging the metadata server's repair flow and is the
-preferred path on transient single-DS failures when the layout
+preferred path on transient single-data server failures when the layout
 exposes a suitable spare.
 
 In the multiple writer model, a write hole can also arise when two clients
@@ -3916,7 +3916,7 @@ metadata server to trigger repair.
 
 When substitution and CHUNK_ROLLBACK are both unavailable, and
 the payload cannot be reconstructed because too many shards have
-been lost (for example, a catastrophic multi-DS failure with no
+been lost (for example, a catastrophic multi-data server failure with no
 spares provisioned), the repair flow ultimately terminates with
 NFS4ERR_PAYLOAD_LOST; see
 {{sec-NFS4ERR_PAYLOAD_LOST}}.
@@ -3964,7 +3964,7 @@ In particular, the protocol does NOT exchange:
    or copy-on-write.
 
 This decoupling is deliberate.  It lets the protocol accommodate
-future smart-DS designs -- including designs that integrate more
+future smart-data server designs -- including designs that integrate more
 closely with storage back-ends that already provide atomic
 replace, multi-version concurrency, or internal erasure coding --
 without protocol revisions, provided the wire semantics are
@@ -4022,7 +4022,7 @@ concern and is transparent to clients and the metadata server.
 
 Each file is owned by exactly one metadata server at any given
 instant.  Ownership transfer between metadata servers (for
-example, during MDS failover) is implementation-defined and out
+example, during metadata server failover) is implementation-defined and out
 of scope for this document; see {{sec-system-model-consensus}}.
 
 ##  Failure Model {#sec-system-model-failures}
@@ -4057,7 +4057,7 @@ Network partitions:
    during the partition window.  A client partitioned from a
    data server recovers via LAYOUTERROR and may be issued a new
    layout (possibly against a spare, see
-   {{sec-spare-substitution}}).  An MDS partitioned from a data
+   {{sec-spare-substitution}}).  An metadata server partitioned from a data
    server eventually renews trust entries on reconnection; in
    the interim, the data server returns NFS4ERR_DELAY for
    affected stateids (see {{sec-tight-coupling-mds-crash}}).
@@ -4293,7 +4293,7 @@ Owner:
    that produced the PENDING).  This is the owning writer's
    stateid; it identifies the client and openowner/lockowner
    that the data server will release the PENDING to on
-   CHUNK_FINALIZE or CHUNK_COMMIT, and that the MDS will treat
+   CHUNK_FINALIZE or CHUNK_COMMIT, and that the metadata server will treat
    as the authoritative owner for purposes of
    {{sec-system-model-progress}}.
 
@@ -4432,7 +4432,7 @@ to be.  Its approach instead is:
 
 Designated coordinator:
 :  The metadata server is the
-   coordinator for a file.  Clients accept the MDS's authority
+   coordinator for a file.  Clients accept the metadata server's authority
    for layout grants, stateid registration, repair client
    selection, and revocation.  This assumption is the same one
    made by {{RFC8434}} and all pNFS layout types to date.
@@ -4488,7 +4488,7 @@ Byzantine fault tolerance:
 
 Metadata server high availability:
 :  Single-MDS-per-file
-   is the protocol model.  MDS HA, if deployed, is implemented
+   is the protocol model.  Metadata server HA, if deployed, is implemented
    below the wire protocol and transparent to clients.
 
 Cross-file atomicity:
@@ -4570,7 +4570,7 @@ when issued by the metadata server:
    MDS-level SETATTR(size) fan-out, synthetic uid/gid rotation
    for fencing, and mode-bit initialisation on runway assignment.
 -  CREATE ({{RFC8881}} Section 18.4): runway pool file creation.
--  REMOVE ({{RFC8881}} Section 18.25): cleanup on MDS file
+-  REMOVE ({{RFC8881}} Section 18.25): cleanup on metadata server file
    unlink.
 -  OPEN, CLOSE ({{RFC8881}} Sections 18.16, 18.2): used by the
    metadata server when it acts as a client to the data server
@@ -4650,7 +4650,7 @@ Attribute changes on data files MUST be reconciled with the
 metadata server's view and cannot be applied unilaterally by a
 client.  A client that wants to truncate, change the mode, change
 ownership, or otherwise modify attributes on a file MUST issue
-SETATTR to the metadata server for the file's MDS handle; the
+SETATTR to the metadata server for the file's metadata server handle; the
 metadata server fans the change out to the data files as a
 control-plane operation.
 
@@ -4740,7 +4740,7 @@ MUST return NFS4ERR_NOTSUPP:
    18.5, 18.6 and {{RFC7862}} Section 15.3).  Delegations are
    issued by the metadata server.
 -  Any operation whose purpose is to manipulate the file's
-   namespace: RENAME, LINK, SYMLINK, CREATE (at the file-creation use, not MDS runway creation), REMOVE.  Namespace
+   namespace: RENAME, LINK, SYMLINK, CREATE (at the file-creation use, not metadata server runway creation), REMOVE.  Namespace
    operations belong on the metadata server.
 -  Any ACL-scoped SETATTR or GETATTR bit (FATTR4_ACL,
    FATTR4_DACL, FATTR4_SACL).  Access control on data files is
@@ -4789,7 +4789,7 @@ client MUST NOT send the operation and the data server MUST reject
 it with NFS4ERR_NOTSUPP; "MAY" means the metadata server MAY use
 the operation as an implementation-defined control-plane action.
 
- | Operation                        | Client -> DS                | MDS -> DS          |
+ | Operation                        | Client -> data server                | metadata server -> data server          |
  | ---
  | SEQUENCE, PUTFH, GETFH, PUTROOTFH | required                   | required           |
  | EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION, BIND_CONN_TO_SESSION, DESTROY_CLIENTID | required | required  |
@@ -5661,20 +5661,20 @@ pNFS clients.
 
    | Operation              | Number | Target Server     | Description |
    | ---
-   | CHUNK_COMMIT           | 78     | DS (client)       | {{sec-CHUNK_COMMIT}} |
-   | CHUNK_ERROR            | 79     | DS (client)       | {{sec-CHUNK_ERROR}} |
-   | CHUNK_FINALIZE         | 80     | DS (client)       | {{sec-CHUNK_FINALIZE}} |
-   | CHUNK_HEADER_READ      | 81     | DS (client)       | {{sec-CHUNK_HEADER_READ}} |
-   | CHUNK_LOCK             | 82     | DS (client)       | {{sec-CHUNK_LOCK}} |
-   | CHUNK_READ             | 83     | DS (client)       | {{sec-CHUNK_READ}} |
-   | CHUNK_REPAIRED         | 84     | DS (client)       | {{sec-CHUNK_REPAIRED}} |
-   | CHUNK_ROLLBACK         | 85     | DS (client)       | {{sec-CHUNK_ROLLBACK}} |
-   | CHUNK_UNLOCK           | 86     | DS (client)       | {{sec-CHUNK_UNLOCK}} |
-   | CHUNK_WRITE            | 87     | DS (client)       | {{sec-CHUNK_WRITE}} |
-   | CHUNK_WRITE_REPAIR     | 88     | DS (client)       | {{sec-CHUNK_WRITE_REPAIR}} |
-   | TRUST_STATEID          | 90     | DS (MDS control)  | {{sec-TRUST_STATEID}} |
-   | REVOKE_STATEID         | 91     | DS (MDS control)  | {{sec-REVOKE_STATEID}} |
-   | BULK_REVOKE_STATEID    | 92     | DS (MDS control)  | {{sec-BULK_REVOKE_STATEID}} |
+   | CHUNK_COMMIT           | 78     | data server (client)       | {{sec-CHUNK_COMMIT}} |
+   | CHUNK_ERROR            | 79     | data server (client)       | {{sec-CHUNK_ERROR}} |
+   | CHUNK_FINALIZE         | 80     | data server (client)       | {{sec-CHUNK_FINALIZE}} |
+   | CHUNK_HEADER_READ      | 81     | data server (client)       | {{sec-CHUNK_HEADER_READ}} |
+   | CHUNK_LOCK             | 82     | data server (client)       | {{sec-CHUNK_LOCK}} |
+   | CHUNK_READ             | 83     | data server (client)       | {{sec-CHUNK_READ}} |
+   | CHUNK_REPAIRED         | 84     | data server (client)       | {{sec-CHUNK_REPAIRED}} |
+   | CHUNK_ROLLBACK         | 85     | data server (client)       | {{sec-CHUNK_ROLLBACK}} |
+   | CHUNK_UNLOCK           | 86     | data server (client)       | {{sec-CHUNK_UNLOCK}} |
+   | CHUNK_WRITE            | 87     | data server (client)       | {{sec-CHUNK_WRITE}} |
+   | CHUNK_WRITE_REPAIR     | 88     | data server (client)       | {{sec-CHUNK_WRITE_REPAIR}} |
+   | TRUST_STATEID          | 90     | data server (metadata server control)  | {{sec-TRUST_STATEID}} |
+   | REVOKE_STATEID         | 91     | data server (metadata server control)  | {{sec-REVOKE_STATEID}} |
+   | BULK_REVOKE_STATEID    | 92     | data server (metadata server control)  | {{sec-BULK_REVOKE_STATEID}} |
 {: #tbl-protocol-ops title="Protocol OPs"}
 
 ## Operation 78: CHUNK_COMMIT - Activate Cached Chunk Data {#sec-CHUNK_COMMIT}
@@ -7576,7 +7576,7 @@ at the time of writing.  The purpose, per {{RFC7942}}, is to help
 reviewers evaluate the protocol against running code and to document
 which parts have been validated end-to-end versus specified on paper.
 
-##  reffs (MDS and DS) and ec_demo (Client)
+##  reffs (metadata server and data server) and ec_demo (Client)
 {:numbered="false"}
 
 Organization:
@@ -7632,7 +7632,7 @@ Level of maturity:
    protocol and has produced the benchmark data summarised below.
    It is not production-ready; in particular, it does not yet
    implement the repair path required to tolerate concurrent-writer
-   races or multi-DS failure reconstruction.
+   races or multi-data server failure reconstruction.
 
 Contact:
 :  loghyr@gmail.com.
@@ -7678,7 +7678,7 @@ Reconstruction of a missing data shard is essentially free for systematic codecs
 :  Reed-Solomon and Mojette systematic
    add 1% to 6% to read latency in degraded-1 mode (one data shard
    missing, reconstructed from the remaining five).  A client that
-   discovers a failed DS at read time can reconstruct transparently
+   discovers a failed data server at read time can reconstruct transparently
    with no user-visible latency impact.
 
 At 8+2, systematic-codec reconstruction diverges:
@@ -7773,7 +7773,7 @@ codec geometry, integrity, or write-ordering tiebreakers.  An
 NFSv3 server cannot be extended; if a flexible file v2 layout deployment
 wanted an NFSv3 server to participate as a data server in an
 erasure-coded layout, the only place to put codec metadata was
-inside that opaque payload, prepended to the data bytes.  The DS
+inside that opaque payload, prepended to the data bytes.  The data server
 stored the entire opaque blob without interpreting it; the reader
 peeled the 16-byte prefix off and acted on it.
 
@@ -7805,7 +7805,7 @@ forced the smuggling disappeared: chunk metadata could be
 expressed as proper XDR fields in CHUNK_WRITE / CHUNK_READ /
 chunk_guard4, visible to every observer of the wire.
 
-##  Per-Client Swap Files with MDS MAPPING_RECALL
+##  Per-Client Swap Files with metadata server MAPPING_RECALL
 {:numbered="false"}
 
 One proposal split logical and physical chunk addressing: the
@@ -7874,7 +7874,7 @@ rejected because:
 Working-group feedback on this proposal was uniformly negative.
 The current design retains the option -- nothing in this
 specification prevents an implementation from running classical
-consensus internally among MDS replicas (see
+consensus internally among metadata server replicas (see
 {{sec-system-model-consensus}}) -- but does not require it per
 write.
 
@@ -7930,7 +7930,7 @@ layout-level counter would disambiguate successive placements
 of the same data.  This was rejected because:
 
 -  The use case is already covered.  CB_CHUNK_REPAIR (see
-   {{sec-CB_CHUNK_REPAIR}}) and the Data Mover / Proxy-DS
+   {{sec-CB_CHUNK_REPAIR}}) and the Data Mover / Proxy-data server
    mechanism (see the companion Data Mover design) together
    handle mid-layout remap without requiring a layout-level
    epoch on the wire.  CB_CHUNK_REPAIR reaches the specific
@@ -8062,7 +8062,7 @@ The Proxy Server (PS) role, defined in
 {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, is the storage
 boundary that Christoph and David asked for.
 
-A PS is a peer of the MDS and the data servers that:
+A proxy server is a peer of the metadata server and the data servers that:
 
 -  speaks the codec on behalf of clients that cannot;
 -  receives whole-stripe operations from a codec-ignorant client;
@@ -8075,39 +8075,39 @@ A PS is a peer of the MDS and the data servers that:
 Three properties follow:
 
 -  A legacy NFSv4.2 (or even NFSv3) client gets erasure-coded
-    durability without speaking erasure coding.  The PS is where
+    durability without speaking erasure coding.  The proxy server is where
     the codec lives; the client does not have to be upgraded when
     the codec is upgraded.
 
 -  Codec evolution is a server-side concern.  Adding a new entry
-    to {{fig-ffv2_coding_type4}} requires updating the PSes and DSes,
+    to {{fig-ffv2_coding_type4}} requires updating the proxy servers and data servers,
     not every client in the deployment.  This matches the operational
     pattern of every other distributed-storage protocol on the wire.
 
 -  The recovery machinery (PENDING -> FINALIZED -> COMMITTED, the
     chunk-state machine, partial-write detection via
-    {{sec-chunk_guard4}}) executes on the PS, not the client.  Clients
-    see ordinary NFSv4.2 semantics; the PS is responsible for
+    {{sec-chunk_guard4}}) executes on the proxy server, not the client.  Clients
+    see ordinary NFSv4.2 semantics; the proxy server is responsible for
     converting those semantics into the chunk state-machine the
-    DSes implement.
+    data servers implement.
 
 A codec-aware NFSv4.2 client is still permitted (and is the fast
 path: no proxy hop, no double bandwidth on the proxy's link).  The
-PS is the answer for clients that either cannot speak the codec
-or are too old to be upgraded.  In Christoph's framing, the PS is
+proxy server is the answer for clients that either cannot speak the codec
+or are too old to be upgraded.  In Christoph's framing, the proxy server is
 the inside of the storage boundary; codec-aware clients are
 implementations that have been admitted into that boundary by
 design.
 
-The PS does carry a data-plane cost: client bytes traverse the
-proxy on the way to the DSes, so the proxy's link sees roughly
-twice the bandwidth of a direct client-to-DS path, and the PS pays
+The proxy server does carry a data-plane cost: client bytes traverse the
+proxy on the way to the data servers, so the proxy's link sees roughly
+twice the bandwidth of a direct client-to-data server path, and the proxy server pays
 the encode/decode CPU.  This is the price of admission for clients
 that do not speak the codec; it is the same store-and-forward cost
 any storage gateway pays.  It does not affect codec-aware clients,
-which talk to the DSes directly.
+which talk to the data servers directly.
 
-# Working Group Concern: Coherent Multi-DS Writes Without Recall Storms {#sec-wg-concern-recall-storms}
+# Working Group Concern: Coherent Multi-data server Writes Without Recall Storms {#sec-wg-concern-recall-storms}
 {:numbered="false" removeInRFC="true"}
 
 ## Source
@@ -8141,21 +8141,21 @@ existing layout."
 
 Two coupled requirements:
 
-1.  The MDS must be able to mutate where data lives -- replace a
+1.  The metadata server must be able to mutate where data lives -- replace a
     failing data server, redirect to a spare, rebalance, repair --
     without serialising every layout-holding client through a
     CB_LAYOUTRECALL round-trip.  A recall is global with respect
     to the layout: every client holding it must drain in-flight I/O
-    and DELEGRETURN before the MDS can mutate.  In an erasure-coded
+    and DELEGRETURN before the metadata server can mutate.  In an erasure-coded
     workload with many concurrent clients, this turns a localised
-    DS hiccup into a global stall.
+    data server hiccup into a global stall.
 
 2.  The data servers must be smart enough to enforce per-client
     access on a finer grain than "the file is reachable from the
     network."  Anonymous-stateid I/O combined with synthetic-uid
     fencing is a coarse instrument: fencing one client's access
     to a file affects every client's access to that file.  The
-    only way to selectively revoke is to teach the DS who is
+    only way to selectively revoke is to teach the data server who is
     permitted, on which file, with which iomode -- which is the
     "smarter data server" Christoph was asking for.
 
@@ -8168,58 +8168,58 @@ Sections {{sec-TRUST_STATEID}}, {{sec-REVOKE_STATEID}}, and
 
 The mechanism:
 
--  At LAYOUTGET, the MDS issues a real layout stateid and fans out
-    TRUST_STATEID to each DS in the mirror set, registering
-    `(stateid.other, fh, clientid, iomode, expire)` in a per-DS
-    trust table.  CHUNK_WRITE and CHUNK_READ on the DS now validate
+-  At LAYOUTGET, the metadata server issues a real layout stateid and fans out
+    TRUST_STATEID to each data server in the mirror set, registering
+    `(stateid.other, fh, clientid, iomode, expire)` in a per-data server
+    trust table.  CHUNK_WRITE and CHUNK_READ on the data server now validate
     against the trust table; an unknown, expired, or revoked
     stateid yields NFS4ERR_BAD_STATEID.
 
--  When the MDS needs to mutate the layout for a particular client
-    -- because that client misbehaved, because a DS the layout
+-  When the metadata server needs to mutate the layout for a particular client
+    -- because that client misbehaved, because a data server the layout
     points at is being drained, because the file is being repaired
-    -- it issues REVOKE_STATEID to the affected DS.  Other clients'
+    -- it issues REVOKE_STATEID to the affected data server.  Other clients'
     trust entries on the same file are untouched.
 
--  When the MDS needs to mutate at client-scope (lease expiry,
+-  When the metadata server needs to mutate at client-scope (lease expiry,
     client eviction), it issues BULK_REVOKE_STATEID, which removes
-    every trust entry the named client has on the DS without
+    every trust entry the named client has on the data server without
     affecting other clients.
 
 The control-plane cost reshapes accordingly:
 
--  Layout mutation is no longer global.  The MDS reroutes data to a
-    spare DS, rebuilds shards from surviving copies, and revokes
+-  Layout mutation is no longer global.  The metadata server reroutes data to a
+    spare data server, rebuilds shards from surviving copies, and revokes
     only the trust entries that pointed at the failing location.
     The other clients holding the layout are not contacted.
 
 -  The revoked client only learns of the mutation lazily, on its
     next CHUNK_WRITE or CHUNK_READ to the affected stripe.  That
     operation returns NFS4ERR_BAD_STATEID; the client responds with
-    LAYOUTERROR; the MDS replies with a refreshed layout pointing
+    LAYOUTERROR; the metadata server replies with a refreshed layout pointing
     at the new location; the client re-trusts and resumes.  A
     client that never touches the affected stripe never pays the
     cost at all.
 
--  With warm spares known to the MDS, the entire repair can complete
-    before any client notices.  The MDS reconstructs onto a spare
+-  With warm spares known to the metadata server, the entire repair can complete
+    before any client notices.  The metadata server reconstructs onto a spare
     using server-to-server traffic, atomically swaps the layout slot
     in its in-memory state, and revokes only the trust entries on
-    the now-evacuated DS.  Reading clients see no interruption (any
+    the now-evacuated data server.  Reading clients see no interruption (any
     k of the surviving shards reconstructs); writing clients pay
     one round-trip to refresh the layout when they next write the
     affected stripe.
 
-The combination of TRUST_STATEID and a warm-spare DS pool is the
+The combination of TRUST_STATEID and a warm-spare data server pool is the
 "more efficient network operation that updates layouts" Christoph
 asked for.  It is not literally a layout update on the wire; it is
-a primitive that makes layout updates a local event the MDS can
+a primitive that makes layout updates a local event the metadata server can
 resolve before the client has to pay a recall round-trip.
 
 The chunk state machine (PENDING -> FINALIZED -> COMMITTED) and
 {{sec-chunk_guard4}} address the orthogonal concern of partial-write
-recovery, ensuring that even when the MDS reroutes mid-write the
-DSes can detect inconsistent stripes via per-chunk generation
+recovery, ensuring that even when the metadata server reroutes mid-write the
+data servers can detect inconsistent stripes via per-chunk generation
 checks rather than via a global wall-clock or consensus protocol.
 
 ## Combined Effect on the "Cluster Tax"
@@ -8229,8 +8229,8 @@ The Proxy Server addresses the codec-distribution cost; the trust
 stateid mechanism addresses the layout-mutation cost.  Together,
 they confine the residual cluster overhead to:
 
--  the store-and-forward bandwidth on the PS link, paid only by
-    clients that route through a PS rather than going DS-direct;
+-  the store-and-forward bandwidth on the proxy server link, paid only by
+    clients that route through a proxy server rather than going DS-direct;
     and
 
 -  one LAYOUTERROR/LAYOUTGET round-trip per client per affected
