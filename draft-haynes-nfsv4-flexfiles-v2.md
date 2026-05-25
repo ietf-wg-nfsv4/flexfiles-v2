@@ -1963,9 +1963,13 @@ The (data, parity) tuple is interpreted per encoding type:
    full, independent data carrier; mirroring carries no
    parity reconstruction.
 
--  erasure coding types registered in companion documents
-   (e.g., Reed-Solomon Vandermonde, Mojette systematic) use
-   fdp_data >= 2 and fdp_parity >= 1.
+-  Erasure coding types (FFV2_ENCODING_RS_VANDERMONDE,
+   FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, and any future types
+   subsequently registered in the IANA registry established by
+   this document) use fdp_data >= 2 and fdp_parity >= 1.
+
+## ffv2_stripes4
 
 ~~~ xdr
    /// enum ffv2_striping {
