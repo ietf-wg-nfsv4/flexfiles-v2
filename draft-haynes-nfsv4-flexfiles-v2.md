@@ -7450,58 +7450,218 @@ NFS4ERR_SERVERFAULT:
 
 ### DESCRIPTION
 
-CHUNK_WRITE is WRITE (see Section 18.32 of {{RFC8881}}) with
-additional semantics over the chunk_owner and the activation of
-blocks.  As such, all of the normal semantics of WRITE directly
-apply.
+The CHUNK_WRITE operation is based upon the NFSv4.1 WRITE
+operation (see Section 18.32 of {{RFC8881}}) and similarly
+writes data to the regular file identified by the current
+filehandle, with the difference that CHUNK_WRITE operates
+on the chunk coordinate system used by Flexible File
+Version 2 layouts rather than on the byte coordinate
+system.  Successful chunk writes initially enter the
+PENDING state in the chunk state machine
+({{fig-chunk-state-machine}}); a subsequent CHUNK_FINALIZE
+({{sec-CHUNK_FINALIZE}}) and CHUNK_COMMIT
+({{sec-CHUNK_COMMIT}}) (or the activation shortcut
+described below) progress them to COMMITTED.
 
-The main difference between the two operations is that CHUNK_WRITE
-works on blocks and not a raw data stream.  As such cwa_offset is
-the starting block offset in the file and not the byte offset in
-the file.  Some erasure coding types can have different block sizes
-depending on the block type.  Further, cwr_count is a count of
-written blocks and not written bytes.
+The client provides a cwa_offset of where the CHUNK_WRITE
+is to start and a payload consisting of one or more chunks
+packed into the cwa_chunks opaque field.  cwa_offset is
+the starting chunk index in the file (not a byte offset);
+each chunk occupies cwa_chunk_size bytes within cwa_chunks
+except the last, which MAY be shorter when the file size
+is not chunk-aligned or when the payload encodes a
+variable-size Mojette parity shard
+({{sec-mojette-encoding}}).  The number of chunks in the
+payload is ceil(len(cwa_chunks) / cwa_chunk_size).
 
-If cwa_stable is FILE_SYNC4, the data server MUST commit the written
-header and block data plus all file system metadata to stable storage
-before returning results.  This corresponds to the NFSv2 protocol
-semantics.  Any other behavior constitutes a protocol violation.
-If cwa_stable is DATA_SYNC4, then the data server MUST commit all
-of the header and block data to stable storage and enough of the
-metadata to retrieve the data before returning.  The data server
-implementer is free to implement DATA_SYNC4 in the same fashion as
-FILE_SYNC4, but with a possible performance drop.  If cwa_stable
-is UNSTABLE4, the data server is free to commit any part of the
-header and block data and the metadata to stable storage, including
-all or none, before returning a reply to the client.  There is no
-guarantee whether or when any uncommitted data will subsequently
-be committed to stable storage.  The only guarantees made by the
-data server are that it will not destroy any data without changing
-the value of writeverf and that it will not commit the data and
-metadata at a level less than that requested by the client.
+cwa_owner ({{fig-chunk_owner4}}) names the writer's
+chunk_owner4: cg_gen_id is the writer's per-chunk
+generation counter, cg_client_id is the writer's
+metadata-server-assigned client identifier (the reserved
+sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear in cwa_owner;
+see {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}),
+and co_id is the chunk-index identifier of the first
+chunk in the payload (redundant with cwa_offset for a
+single-chunk write; the data server MUST treat them as
+the same value and MAY reject a mismatch with
+NFS4ERR_INVAL).
 
-The activation of header and block data interacts with the co_activated
-for each of the written blocks.  If the data is not committed to
-stable storage then the co_activated field MUST NOT be set to true.
-Once the data is committed to stable storage, then the data server
-can set the block's co_activated if one of these conditions apply:
+cwa_payload_id is a writer-chosen identifier that lets a
+repair coordinator correlate chunks of the same logical
+write across data servers.
 
-*  it is the first write to that block and the
-CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY flag is set
+cwa_crc32s, when non-empty, MUST contain one CRC32 entry
+per chunk in the payload.  The data server validates each
+chunk's CRC32 at CHUNK_WRITE time and rejects mismatched
+chunks with NFS4ERR_IO in the corresponding
+cwr_block_status slot.  An empty cwa_crc32s array
+(cwa_crc32s_len == 0) indicates the client did not supply
+per-chunk CRCs; the data server still computes and
+persists per-chunk CRCs from the payload bytes for later
+integrity verification but cannot detect transport
+corruption at CHUNK_WRITE time without the client's
+reference values.
 
-*  the CHUNK_COMMIT is issued later for that block.
+cwa_flags carries CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY (see
+"Stability and Activation" below).
 
-There are subtle interactions with write holes caused by racing
-clients.  One client could win the race in each case, but because
-it used a cwa_stable of UNSTABLE4, the subsequent writes from the
-second client with a cwa_stable of FILE_SYNC4 can be awarded the
-co_activated being set to true for each of the blocks in the payload.
+cwa_guard ({{fig-write_chunk_guard4}}) controls the chunk-
+guard CAS check (see "Guarding the Write" below).
 
-Finally, the interaction of cwa_stable can cause a client to
-mistakenly believe that by the time it gets the response of
-co_activated of false, that the blocks are not activated.  A
-subsequent CHUNK_READ or HEADER_READ might show that the co_activated
-is true without any interaction by the client via CHUNK_COMMIT.
+A cwa_offset of zero starts writing at the first chunk of
+the file.  Unlike READ in {{RFC8881}}, a CHUNK_WRITE whose
+cwa_offset extends beyond the current end of the file is
+not an error: the data server extends the file's chunk
+store to cover the new chunks, with intervening offsets
+remaining EMPTY ({{sec-system-model-chunk-state}}) until
+they too are written.  If the cwa_chunks payload is empty
+(zero bytes), the CHUNK_WRITE succeeds and writes zero
+chunks (cwr_count == 0).
+
+In all situations the data server MAY choose to write
+fewer chunks than the client requested; the client must be
+prepared to handle a short write and reissue CHUNK_WRITE
+for the remaining chunks.
+
+The CHUNK_WRITE result includes per-chunk outcomes in
+cwr_block_status, cwr_block_activated, and cwr_owners, all
+co-indexed and one entry per chunk in the payload:
+
+cwr_count:
+:  the number of chunks the data server successfully
+   accepted.  Chunks that failed their guard check, CRC32
+   check, or any other local precondition do not
+   contribute to cwr_count.
+
+cwr_committed:
+:  the stable_how4 level the data server actually applied
+   for accepted chunks.  This MUST be at least as durable
+   as cwa_stable; see "Stability and Activation" below.
+
+cwr_writeverf:
+:  a verifier identifying the data server's incarnation.
+   A client uses cwr_writeverf to detect a data server
+   restart that lost UNSTABLE4 writes: if the client's
+   subsequent CHUNK_COMMIT returns a different writeverf
+   than was returned by an UNSTABLE4 CHUNK_WRITE earlier,
+   the chunks may have been lost and the client SHOULD
+   re-issue CHUNK_WRITE.  cwr_writeverf changes on every
+   data server restart that loses uncommitted state.
+
+cwr_block_status:
+:  per-chunk acceptance status; see "Per-Block Acceptance
+   Semantics" below.
+
+cwr_block_activated:
+:  per-chunk activation flag.  TRUE indicates that the
+   chunk is COMMITTED on return from CHUNK_WRITE -- the
+   activation shortcut described under "Stability and
+   Activation" below.  FALSE indicates that the chunk is
+   in the PENDING state and requires a subsequent
+   CHUNK_FINALIZE and CHUNK_COMMIT to become COMMITTED.
+
+cwr_owners:
+:  per-chunk chunk_owner4 the data server recorded.  In
+   normal operation this matches cwa_owner with cg_gen_id
+   incremented for each chunk; the field is reported
+   explicitly so a client that lost track of its
+   per-chunk gen counter can recover the data server's
+   view.
+
+Except when special stateids are used, cwa_stateid
+represents a layout stateid returned by a prior LAYOUTGET
+against the metadata server (see Section 18.43 of
+{{RFC8881}}) that authorizes write access to this file.
+Under trusted-stateid tight coupling
+({{sec-TRUST_STATEID}}), the data server additionally
+checks that the metadata server has registered the
+stateid via TRUST_STATEID; an unregistered stateid (other
+than a special stateid) returns NFS4ERR_BAD_STATEID.
+
+For a CHUNK_WRITE with a cwa_stateid value of all bits
+equal to zero, the data server MAY allow the CHUNK_WRITE
+to be serviced subject to any CHUNK_LOCK currently held
+on the target chunks.  For a CHUNK_WRITE with a
+cwa_stateid value of all bits equal to one, the data
+server MAY allow CHUNK_WRITE to bypass lock-state
+checking at the data server.  These special-stateid
+behaviours mirror the corresponding WRITE semantics in
+{{RFC8881}} adapted to the chunk-locking model
+({{sec-CHUNK_LOCK}}) rather than the byte-range locking
+model of {{RFC8881}} Section 12.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned.  If the current filehandle
+represents an object of type NF4DIR, NFS4ERR_ISDIR is
+returned.  If the current filehandle designates a
+symbolic link, NFS4ERR_SYMLINK is returned.  In all other
+cases of non-regular-file filehandles, NFS4ERR_WRONG_TYPE
+is returned.
+
+#### Stability and Activation
+
+The cwa_stable field controls the durability level the
+data server guarantees before returning:
+
+FILE_SYNC4:
+:  The data server MUST commit all written chunks plus
+   all chunk-store metadata to stable storage before
+   returning.
+
+DATA_SYNC4:
+:  The data server MUST commit all written chunk payloads
+   to stable storage and enough of the chunk-store
+   metadata to retrieve the data before returning.  An
+   implementation MAY treat DATA_SYNC4 identically to
+   FILE_SYNC4 at a possible performance cost.
+
+UNSTABLE4:
+:  The data server is free to commit any portion of the
+   chunk payload and metadata to stable storage before
+   returning, including all or none.  The data server
+   makes only two guarantees: it will not destroy any
+   chunk payload it accepted without changing
+   cwr_writeverf, and the durability level it ultimately
+   applies will not be less than that requested.
+
+The CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY flag in cwa_flags
+requests an activation shortcut for first-time writes: a
+chunk that was EMPTY before the CHUNK_WRITE and whose
+write reaches FILE_SYNC4 or DATA_SYNC4 durability MAY be
+transitioned directly to COMMITTED by the data server,
+with cwr_block_activated[i] set to TRUE in the response.
+Without the flag, or for chunks that were not EMPTY
+before the write, or for writes at UNSTABLE4 durability,
+the chunk enters the PENDING state and reaches COMMITTED
+only after a subsequent CHUNK_FINALIZE and CHUNK_COMMIT.
+
+The activation shortcut interacts with concurrent writers
+and unstable writes in subtle ways:
+
+-  A chunk written with cwa_stable == UNSTABLE4 cannot be
+   activated by CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY
+   because the payload has not been committed to stable
+   storage; the chunk enters the PENDING state regardless
+   of the flag.
+
+-  Two clients racing on a chunk in multiple-writer mode
+   each see chunk_guard4 contention.  One client wins the
+   per-chunk CAS; if its CHUNK_WRITE had
+   CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY set and stable was
+   FILE_SYNC4 or DATA_SYNC4, the winning chunk becomes
+   COMMITTED.  The losing client sees NFS4ERR_CHUNK_GUARDED
+   in the corresponding cwr_block_status slot.
+
+-  A client that issues an UNSTABLE4 CHUNK_WRITE and
+   observes cwr_block_activated[i] == FALSE in the
+   response MAY still find the chunk COMMITTED on a
+   subsequent CHUNK_READ -- another client could have
+   activated it via the shortcut after this one's
+   response was sent.  cwr_block_activated reflects the
+   state at the moment the CHUNK_WRITE result was
+   constructed, not a commitment to that state's
+   persistence.
 
 #### Guarding the Write
 
