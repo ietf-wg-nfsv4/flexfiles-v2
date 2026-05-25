@@ -2405,10 +2405,25 @@ tightly couple
 
 By pairing each ffv2fi_fh_vers with its own ffv2fi_stateid inside
 ffv2_file_info4, the flexible file v2 layout addresses a limitation
-in the flexible file v1 layout where a singleton stateid was shared
-across all filehandles.  Each open file on the storage device can
-now have its own stateid, eliminating an ambiguity present in the
-flexible file v1 layout.
+in the flexible file v1 layout where a single stateid was shared
+across all filehandles.
+
+Whether the ffv2fi_stateid values across an ffv2_file_info4 array
+are distinct depends on each entry's coupling mode per the rules
+above.  Loose-coupling and NFSv3 entries MUST carry the anonymous
+stateid; those entries are therefore byte-identical by mandate.
+Tight-coupling entries carry stateids the metadata server assigned
+and registered via TRUST_STATEID; the metadata server MAY assign
+these distinctly per filehandle version or MAY reuse the same
+stateid across entries.
+
+The client MUST treat each (ffv2fi_fh_vers, ffv2fi_stateid) pair as
+an opaque, independent authorization unit.  The client MUST NOT
+compare ffv2fi_stateid values across entries in the array and MUST
+NOT infer any relationship between two entries whose stateid values
+are byte-identical.  When the client selects an entry to use for
+I/O, it presents that entry's stateid with that entry's filehandle;
+other entries in the array are unused for that I/O.
 
 For loosely coupled storage devices, ffv2ds_user and ffv2ds_group
 provide the synthetic user and group to be used in the RPC credentials
