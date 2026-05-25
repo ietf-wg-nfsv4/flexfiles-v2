@@ -8614,65 +8614,98 @@ NFS4ERR_STALE:
 
 ### DESCRIPTION
 
-TRUST_STATEID registers a layout stateid with the data server so
-that subsequent CHUNK operations presenting that stateid can be
-validated against the data server's per-file trust table.  It is
-the mechanism by which tight coupling (see
-{{sec-tight-coupling-control}}) is established between the
-metadata server and the data server for a particular layout.
+TRUST_STATEID registers a layout stateid with the data
+server so that subsequent CHUNK_* operations presenting that
+stateid can be validated against the data server's per-file
+trust table.  It is the mechanism by which tight coupling
+(see {{sec-tight-coupling-control}}) is established between
+the metadata server and the data server for a particular
+layout.
 
-TRUST_STATEID operates on the current filehandle; a PUTFH naming
-the data server's file MUST precede it in the same compound.
+TRUST_STATEID has no analog in {{RFC8881}}: pNFS layouts in
+RFC 8881 do not register the layout stateid with data
+servers; data servers in the loose-coupling model trust the
+synthetic uid/gid the metadata server inserts on each I/O
+({{sec-Fencing-Clients}}).  TRUST_STATEID is the new MDS-
+to-DS control-plane operation that replaces synthetic-uid
+fencing with per-client stateid-table validation for
+deployments that opt into tight coupling.
 
-tsa_layout_stateid is the stateid the metadata server issued in
-the LAYOUTGET that produced this layout.  It MUST NOT be a special
-stateid (anonymous, invalid, read-bypass, or current).  The sole
-exception is the capability probe described in
-{{sec-tight-coupling-probe}}: when the metadata server sends
-TRUST_STATEID with tsa_layout_stateid set to the anonymous stateid
-against the root filehandle, the data server MUST reject the
-request with NFS4ERR_INVAL.  That rejection is the positive
-response to the probe.
+TRUST_STATEID is an MDS-to-DS operation; pNFS clients MUST
+NOT send it.  The data server MUST verify that the
+operation arrived on a session whose owning client presented
+EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID and reject any
+TRUST_STATEID received on a regular client session with
+NFS4ERR_PERM.  TRUST_STATEID operates on the current
+filehandle; a PUTFH naming the data server's file MUST
+precede it in the same compound (except in the capability
+probe case, where the current filehandle is the root).
 
-tsa_iomode is the iomode of the layout (LAYOUTIOMODE4_READ or
-LAYOUTIOMODE4_RW).  The data server MAY enforce this against the
-CHUNK operation presented: a READ-iomode trust entry does not
-authorize CHUNK_WRITE.
+The metadata server provides:
 
-tsa_expire is the absolute wall-clock time at which the trust
-entry becomes invalid if not renewed.  See
-{{sec-tight-coupling-lease}}.  The data server MUST reject a
-TRUST_STATEID whose tsa_expire has tv_nseconds >= 10^9 with
-NFS4ERR_INVAL.
+tsa_layout_stateid:
+:  the stateid the metadata server issued in the
+   LAYOUTGET that produced this layout.  MUST NOT be a
+   special stateid (anonymous, invalid, read-bypass, or
+   current).  The sole exception is the capability probe
+   described in {{sec-tight-coupling-probe}}: when the
+   metadata server sends TRUST_STATEID with
+   tsa_layout_stateid set to the anonymous stateid
+   against the root filehandle, the data server MUST
+   reject the request with NFS4ERR_INVAL -- that
+   rejection is the positive response to the probe.
 
-tsa_principal is the client's authenticated identity as verified
-by the metadata server at LAYOUTGET time.  For RPCSEC_GSS clients
-this is the GSS display name (e.g., "alice@REALM").  For AUTH_SYS
-and TLS clients, tsa_principal MUST be the empty string,
-indicating that no principal binding is enforced on subsequent
-CHUNK operations.  See {{sec-tight-coupling-principal}}.
+tsa_iomode:
+:  the iomode of the layout (LAYOUTIOMODE4_READ or
+   LAYOUTIOMODE4_RW).  The data server MAY enforce this
+   against the CHUNK_* operation presented later: a
+   READ-iomode trust entry does not authorize
+   CHUNK_WRITE.
 
-If the data server receives TRUST_STATEID on a session whose
-owning client did not present EXCHGID4_FLAG_USE_PNFS_MDS at
-EXCHANGE_ID, the data server MUST return NFS4ERR_PERM.  The data
-server MUST NOT process TRUST_STATEID on a regular client
-session.
+tsa_expire:
+:  the absolute wall-clock time at which the trust
+   entry becomes invalid if not renewed (see
+   {{sec-tight-coupling-lease}}).  The data server MUST
+   reject a TRUST_STATEID whose tsa_expire has
+   tv_nseconds >= 10^9 with NFS4ERR_INVAL.
 
-If a trust entry already exists for the same tsa_layout_stateid
-on the same current filehandle, TRUST_STATEID atomically updates
-tsa_expire and tsa_principal; this is the renewal path (see
+tsa_principal:
+:  the client's authenticated identity as verified by
+   the metadata server at LAYOUTGET time.  For
+   RPCSEC_GSS clients this is the GSS display name
+   (e.g., "alice@REALM").  For AUTH_SYS and TLS
+   clients, tsa_principal MUST be the empty string,
+   indicating that no principal binding is enforced on
+   subsequent CHUNK operations.  See
+   {{sec-tight-coupling-principal}}.
+
+If a trust entry already exists for the same
+tsa_layout_stateid on the same current filehandle,
+TRUST_STATEID atomically updates tsa_expire and
+tsa_principal; this is the renewal path (see
 {{sec-tight-coupling-lease}}).
 
-At registration time, the data server tags the new trust entry
-with the identity of the metadata server -- derived from the
-clientid of the owning client of the control session on which
-TRUST_STATEID arrived.  This tag is consulted by REVOKE_STATEID
-and BULK_REVOKE_STATEID to ensure that revocation only affects
-entries registered by the same metadata server (see
-{{sec-BULK_REVOKE_STATEID}}).  In a multi-metadata-server
-deployment sharing a single data server, each metadata server
-registers and revokes only its own entries; the tag is opaque to
-pNFS clients and is not carried on the wire.
+At registration time the data server tags the new trust
+entry with the identity of the metadata server, derived
+from the clientid of the owning client of the control
+session on which TRUST_STATEID arrived.  This tag is
+consulted by REVOKE_STATEID ({{sec-REVOKE_STATEID}}) and
+BULK_REVOKE_STATEID ({{sec-BULK_REVOKE_STATEID}}) so that
+revocation only affects entries registered by the same
+metadata server.  In a multi-metadata-server deployment
+sharing a single data server, each metadata server
+registers and revokes only its own entries; the tag is
+opaque to pNFS clients and is not carried on the wire.
+
+TRUST_STATEID returns only a top-level status; there is
+no result body beyond the nfsstat4 discriminant.
+
+If the current filehandle is not an ordinary file
+(except in the capability-probe case, where the current
+filehandle is the root and the operation is expected to
+be rejected with NFS4ERR_INVAL), an error MUST be
+returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
 
 ### RESPONSE CODES
 
