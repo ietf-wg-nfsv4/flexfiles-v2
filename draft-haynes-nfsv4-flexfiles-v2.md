@@ -400,6 +400,17 @@ client-side erasure coding:
 
 :  A file based integrity method where copies are maintained in parallel.
 
+compare-and-swap (CAS):
+
+:  an atomic primitive from concurrent programming in which an
+update is conditional on a prior observed value: the operation
+succeeds only if the current value matches an expected prior value,
+and otherwise fails so the caller can retry.  In this document, the
+chunk_guard4 mechanism (see {{sec-chunk_guard4}}) implements CAS at
+the chunk level; the "expected prior value" is the chunk_guard4 the
+writer observed at read time, and the "fail" outcome is
+NFS4ERR_CHUNK_GUARDED.
+
 (file) data:
 
 :  that part of the file system object that contains the data to be read
