@@ -3564,7 +3564,7 @@ erasure-coded stripe all carry the same chunk_guard4.  A reader that
 encounters chunks with different guard values knows the stripe is not
 yet atomic and MUST either retry or report NFS4ERR_PAYLOAD_NOT_ATOMIC.
 
-#### Repairing Multiple Writer Payloads
+#### Repairing Multiple Writer Payloads {#sec-repair-multi-writer}
 
 In multiple writer mode, non-atomic chunks can arise from two sources:
 a client failure leaving some chunks in PENDING state, or two clients
@@ -6603,8 +6603,91 @@ NFS4ERR_STALE:
 
 ### DESCRIPTION
 
-CHUNK_HEADER_READ differs from CHUNK_READ in that it only reads chunk
-headers in the desired data range.
+CHUNK_HEADER_READ returns the per-chunk metadata
+(chunk_owner4, lock state, and per-chunk status) for a
+range of chunks in the target data file without returning
+the chunk payloads.  The operation enables clients and
+repair coordinators to inspect chunk lifecycle and
+ownership cheaply, without the data-transfer cost of
+CHUNK_READ ({{sec-CHUNK_READ}}).
+
+The chra_offset and chra_count fields name the chunk range
+in the same coordinate system as CHUNK_READ: chra_offset is
+the starting chunk index in the file (not a byte offset),
+and chra_count is the number of chunks to inspect.  The
+response arrays chrr_status, chrr_locked, and chrr_chunks
+are co-indexed, one entry per chunk in the requested range
+in chunk-offset order from chra_offset.
+
+The operation has several uses:
+
+Whole-file repair scan:
+:  A repair client selected via CB_CHUNK_REPAIR
+   ({{sec-CB_CHUNK_REPAIR}}) walks the affected chunk
+   range and uses the per-chunk chunk_owner4 returned by
+   each mirror's data server to identify which chunks
+   carry an atomic stripe (all k data shards share the
+   same chunk_guard4) and which require reconstruction.
+   CHUNK_HEADER_READ is the discovery primitive that
+   drives the per-chunk decisions described in
+   {{sec-repair-multi-writer}}; without it, a repair
+   client would have to issue CHUNK_READ to retrieve the
+   full payload of every chunk merely to inspect its
+   guard.
+
+Client-side recovery from partial writes:
+:  After a network disruption or client restart, a writer
+   that holds the file's layout MAY issue
+   CHUNK_HEADER_READ to learn which of its prior
+   CHUNK_WRITEs reached the data server.  Chunks whose
+   chunk_owner4 reports the writer's own (cg_client_id,
+   cg_gen_id) pair are PENDING or FINALIZED and
+   recoverable; chunks absent from the response or
+   carrying another writer's owner are not.  The writer
+   can then re-issue CHUNK_WRITE for the missing chunks
+   or CHUNK_ROLLBACK for the abandoned ones without
+   reading payloads it has already committed locally.
+
+Read-side atomicity check:
+:  Before issuing a multi-chunk CHUNK_READ in
+   multiple-writer mode, a client MAY issue
+   CHUNK_HEADER_READ to verify that the chunks in the
+   target range share a common chunk_guard4 (the
+   cohort-atomicity property in
+   {{sec-system-model-consistency}}).  If the guards
+   diverge, the client knows the read will not be atomic
+   and can wait for a writer to commit, retry, or report
+   NFS4ERR_PAYLOAD_NOT_ATOMIC via LAYOUTERROR.  This is
+   a hint rather than a guarantee: a concurrent writer
+   MAY advance a chunk's state between the
+   CHUNK_HEADER_READ response and the subsequent
+   CHUNK_READ.
+
+Lock probe before write:
+:  A client MAY issue CHUNK_HEADER_READ and inspect the
+   chrr_locked array to discover whether any chunk in
+   the target range is currently held by a CHUNK_LOCK
+   ({{sec-CHUNK_LOCK}}) before attempting CHUNK_WRITE,
+   avoiding the round-trip cost of receiving
+   NFS4ERR_CHUNK_LOCKED.  As above, this is a hint; a
+   lock MAY be acquired between the header read and the
+   write.
+
+The per-chunk chrr_status field reports lifecycle state of
+each chunk encoded as an nfsstat4: NFS4_OK indicates that
+the chunk is COMMITTED and the chunk_owner4 in the
+corresponding chrr_chunks slot is the COMMITTED
+generation; NFS4ERR_PAYLOAD_NOT_ATOMIC indicates the chunk
+is PENDING or FINALIZED (a non-globally-visible generation
+in progress) and the chunk_owner4 names the writer of that
+in-progress generation; NFS4ERR_NOENT indicates the chunk
+is EMPTY and the chunk_owner4 is unspecified.
+CHUNK_HEADER_READ never returns NFS4ERR_CHUNK_LOCKED in
+chrr_status; lock state is reported orthogonally via
+chrr_locked so that locked chunks still surface their
+chunk_owner4 to the inspector.
+
+CHUNK_HEADER_READ does not change any chunk state.
 
 ### RESPONSE CODES
 
