@@ -1542,7 +1542,7 @@ consuming standards-track codepoints.  See
 {{iana-considerations}} for the range assignments and allocation
 policies.
 
-#### Heterogeneous Mirror Sets {#sec-heterogeneous-mirrors}
+### Heterogeneous Mirror Sets {#sec-heterogeneous-mirrors}
 
 A single flexible file v2 layout's `ffl_mirrors` array MAY carry mirror
 entries of different encoding types.  The protocol does not
