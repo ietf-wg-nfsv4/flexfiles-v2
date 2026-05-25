@@ -82,7 +82,7 @@ informative:
 
 Parallel NFS (pNFS) allows a separation between the metadata (onto a
 metadata server) and data (onto a storage device) for a file.  The
-Flexible File Layout Type Version 2 is defined in this document as
+Flexible File Version 2 Layout Type is defined in this document as
 an extension to pNFS that allows the use of storage devices that
 require only a limited degree of interaction with the metadata
 server and use already-existing protocols.  Data protection is also
@@ -146,7 +146,7 @@ the other instance locations.
 
 However, lacking integrity checks, silent corruptions are not able to
 be detected and the choice of what constitutes the good copy is
-difficult.  This document updates the Flexible File Layout Type to
+difficult.  This document updates the Flexible File Version 1 Layout Type to
 version 2 by providing error-detection integrity (CRC32) for erasure
 coding.  Data blocks are transformed into a header and a chunk.  This
 document also introduces new operations that allow the client to roll
@@ -158,9 +158,9 @@ top of the external data representation (XDR) {{RFC4506}} generated
 from {{RFC7863}}.
 
 This document defines `LAYOUT4_FLEX_FILES_V2`, a new and independent
-layout type that coexists with the Flexible File Layout Type version 1
+layout type that coexists with the Flexible File Version 1 Layout Type
 (`LAYOUT4_FLEX_FILES`, {{RFC8435}}).  The two layout types are NOT
-backward compatible: an FFv2 layout cannot be parsed as an FFv1 layout
+backward compatible: a flexible file v2 layout cannot be parsed as a flexible file v1 layout
 and vice versa.  A server MAY support both layout types simultaneously;
 a client selects the desired layout type in its LAYOUTGET request.
 
@@ -178,11 +178,11 @@ locally and fans out the resulting chunks to the data servers
 directly, keeping the metadata server in its coordinator role for
 metadata rather than making it a data-path funnel.
 
-Flex Files v1 ({{RFC8435}}) already places the replication
+Flexible file v1 layout ({{RFC8435}}) already places the replication
 transform at the client via client-side mirroring, but mirroring
 provides no integrity check: silent byte corruption is
 undetectable, and repairing a damaged mirror requires choosing a
-trusted copy essentially blind.  Flex Files v2 adds two integrity
+trusted copy essentially blind.  Flexible file v2 layout adds two integrity
 mechanisms -- a per-chunk CRC32 for on-wire and at-rest bit-flip
 detection, and the chunk_guard4 compare-and-swap primitive (see
 {{sec-chunk_guard4}}) for detecting concurrent-writer
@@ -202,7 +202,7 @@ clients do not have to negotiate codec support; repair never
 traverses the client; and the wire protocol stays minimal because
 no on-wire consistency primitives are needed.
 
-Flex Files v2 does not choose that path, for three reasons:
+Flexible file v2 layout does not choose that path, for three reasons:
 
 Scale bottleneck:
 :  The storage system becomes a scale
@@ -229,12 +229,12 @@ Benchmark evidence:
 
 The right answer for a given deployment is not universal;
 {{sec-rejected-alternatives}} records the alternatives considered
-and why each was not chosen for Flex Files v2's target workload
+and why each was not chosen for flexible file v2 layout's target workload
 classes.
 
 Client-side erasure coding turns write-hole recovery into a
 protocol-level concern rather than an implementer-internal one.
-In Flex Files v1, the replication transform produces independent
+In flexible file v1 layout, the replication transform produces independent
 full-copy mirrors, so a partial write is detected and repaired by
 resilvering from a surviving copy.  A single server-side
 coordinator has enough visibility to drive that repair without
@@ -250,7 +250,7 @@ COMMITTED state machine, the CHUNK_LOCK escrow mechanism, and
 CB_CHUNK_REPAIR together form that on-wire reconciliation
 protocol.
 
-Scope note: the consistency goal of Flex Files v2 is RAID
+Scope note: the consistency goal of flexible file v2 layout is RAID
 consistency across the shards that make up an encoded stripe, not
 POSIX write ordering across arbitrary application writes.  The
 protocol does not attempt to make overlapping application writes
@@ -268,7 +268,7 @@ primitives.
 
 The protocol is designed around three workload classes.  The
 percentages below reflect the expected deployment mix in
-installations that choose Flex Files v2 for its combination of
+installations that choose flexible file v2 layout for its combination of
 integrity and performance; individual deployments may diverge.
 
 Single writer, multiple readers (approximately 90% of expected
@@ -553,9 +553,9 @@ wsize:
 A server implementation may choose either a loosely coupled model or a
 tightly coupled model between the metadata server and the storage devices.
 {{RFC8434}} describes the general problems facing pNFS implementations.
-This document details how the new flexible file layout type addresses
+This document details how the new flexible file v2 layout addresses
 these issues.  To implement the tightly coupled model, a control protocol
-has to be defined.  As the flexible file layout imposes no special
+has to be defined.  As the flexible file v2 layout imposes no special
 requirements on the client, the control protocol will need to provide:
 
 1. management of both security and LAYOUTCOMMITs and
@@ -821,7 +821,7 @@ been revoked.
 When locking-related operations are requested, they are primarily dealt
 with by the metadata server, which generates the appropriate stateids.
 These stateids MUST be made known to the storage device using control
-protocol facilities.  For flex files v2 deployments in which the storage
+protocol facilities.  For flexible file v2 layout deployments in which the storage
 devices are NFSv4.2 servers, those facilities are provided by the
 TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID operations
 defined in {{sec-tight-coupling-control}}.
@@ -1075,7 +1075,7 @@ coupling, and re-issue the layout accordingly.
 
 ###  Principal Binding and the Kerberos Gap {#sec-tight-coupling-principal}
 
-Flex files v1 has a known gap: a client authenticated to the
+Flexible file v1 layout has a known gap: a client authenticated to the
 metadata server with Kerberos has no way to present the same
 authenticated identity to the storage device, because v1 layouts
 carry only ffds_user / ffds_group (POSIX uid/gid for AUTH_SYS).  A
@@ -1110,7 +1110,7 @@ metadata server MUST set tsa_principal to the empty string only
 for AUTH_SYS and TLS clients (for which there is no server-
 verified per-user identity).  Setting tsa_principal to the empty
 string for an RPCSEC_GSS client disables the principal check on
-the storage device and silently re-opens the flex files v1
+the storage device and silently re-opens the flexible file v1 layout
 Kerberos gap; it is a metadata server bug, not a protocol option.
 
 If tsa_principal is the empty string, no principal check applies.
@@ -1402,7 +1402,7 @@ stable_how != FILE_SYNC (see Section 3.3.7 of {{RFC1813}}).
 
 ##  Storage Device Multipathing
 
-The flexible file layout type supports multipathing to multiple
+The flexible file v2 layout supports multipathing to multiple
 storage device addresses.  Storage-device-level multipathing is used
 for bandwidth scaling via trunking and for higher availability of use
 in the event of a storage device failure.  Multipathing allows the
@@ -1511,13 +1511,13 @@ this otherwise opaque value, ffv2_layout4.
 {: #fig-ffv2_coding_type4 title="The coding type"}
 
 The ffv2_coding_type4 (see {{fig-ffv2_coding_type4}}) encompasses
-a new IANA registry for 'Flexible Files Version 2 Erasure Coding
+a new IANA registry for 'Flexible File Version 2 Layout Type Erasure Coding
 Type Registry'.  I.e., instead of defining a new Layout Type for
 each Erasure Coding, we define a new Erasure Coding Type.  The
 encoding types this document defines fall into two groups:
 
 -  FFV2_ENCODING_PASSTHROUGH is the non-chunked, non-integrity
-   on-ramp from FFv1.  It uses NFSv3 WRITE / READ directly
+   on-ramp from flexible file v1 layout.  It uses NFSv3 WRITE / READ directly
    against each replica's data server.  No CHUNK_WRITE, no
    CHUNK_READ, no per-chunk CRC.  See {{sec-encoding-passthrough}}.
 
@@ -1544,7 +1544,7 @@ policies.
 
 #### Heterogeneous Mirror Sets {#sec-heterogeneous-mirrors}
 
-A single FFv2 layout's `ffl_mirrors` array MAY carry mirror
+A single flexible file v2 layout's `ffl_mirrors` array MAY carry mirror
 entries of different encoding types.  The protocol does not
 require the entries to agree -- one mirror can be
 FFV2_ENCODING_PASSTHROUGH, another can be
@@ -1555,7 +1555,7 @@ layout type's vocabulary:
 
 Assimilate:
 :  A file that exists today as a plain copy on
-   storage outside FFv2 -- no chunk envelope, no per-chunk
+   storage outside flexible file v2 layout -- no chunk envelope, no per-chunk
    CRC -- enters the namespace as a PASSTHROUGH mirror against
    the source bytes as they are.  The metadata server then
    adds one or more encoded mirrors (MIRRORED, RS, Mojette) to
@@ -1592,8 +1592,8 @@ mirror beyond what the layout already states.
 
 ### FFV2_ENCODING_PASSTHROUGH {#sec-encoding-passthrough}
 
-FFV2_ENCODING_PASSTHROUGH is the on-ramp from FFv1 ({{RFC8435}})
-into the FFv2 layout type.  A PASSTHROUGH mirror points at the
+FFV2_ENCODING_PASSTHROUGH is the on-ramp from flexible file v1 layout ({{RFC8435}})
+into the flexible file v2 layout type.  A PASSTHROUGH mirror points at the
 file's bytes as they exist on the data server, without the
 chunk envelope, CRC32 header, or chunk_guard4 fields that the
 encoded types use.  Client I/O against a PASSTHROUGH mirror
@@ -1602,13 +1602,13 @@ uses NFSv3 WRITE / READ ({{RFC1813}}) or NFSv4 READ / WRITE
 
 PASSTHROUGH provides:
 
--  Replication of data across N data servers, exactly as FFv1
+-  Replication of data across N data servers, exactly as flexible file v1 layout
    does.  Clients write to every replica; clients read from any
    one.  N-way redundancy tolerates up to N-1 replica losses.
 -  Zero codec compute at the client and zero chunk-metadata
    overhead at the server.  The on-disk format is the file
    itself.
--  Compatibility with files that already exist outside FFv2.
+-  Compatibility with files that already exist outside flexible file v2 layout.
    A PASSTHROUGH mirror can be created over an existing
    file without rewriting it.
 
@@ -1626,7 +1626,7 @@ PASSTHROUGH does NOT provide:
 PASSTHROUGH is RECOMMENDED for the assimilation, migration, and
 heterogeneous-mirror use cases described in
 {{sec-heterogeneous-mirrors}}.  New deployments that do not
-need an FFv1 on-ramp SHOULD use FFV2_ENCODING_MIRRORED for
+need a flexible file v1 layout on-ramp SHOULD use FFV2_ENCODING_MIRRORED for
 the integrity guarantees described in
 {{sec-encoding-mirrored}}.
 
@@ -1808,7 +1808,7 @@ prevent collisions across concurrent writers.
 
 The ffv2_file_info4 is a new structure to help with the stateid
 issue discussed in Section 5.1 of {{RFC8435}}.  I.e., in version 1
-of the Flexible File Layout Type, there was the singleton ffv2ds_stateid
+of the Flexible File Version 2 Layout Type, there was the singleton ffv2ds_stateid
 combined with the ffv2ds_fh_vers array.  I.e., each NFSv4 version
 has its own stateid.  In {{fig-ffv2_file_info4}}, each NFSv4
 filehandle has a one-to-one correspondence to a stateid.
@@ -1919,11 +1919,11 @@ XDR at that time.
 
 The (data, parity) tuple is interpreted per encoding type:
 
--  FFV2_ENCODING_PASSTHROUGH preserves the FFv1-style notation
+-  FFV2_ENCODING_PASSTHROUGH preserves the flexible file v1 layout-style notation
    for backward compatibility: fdp_data is 1 and fdp_parity is
    the number of additional copies (e.g., fdp_parity=2 for
    3-way mirroring).  The "1" data carrier is the file as
-   stored; the fdp_parity additional copies are the FFv1
+   stored; the fdp_parity additional copies are the flexible file v1 layout
    mirror replicas.
 
 -  FFV2_ENCODING_MIRRORED uses the N+0 notation: fdp_data is
@@ -2206,7 +2206,7 @@ and (fdp_data=4, fdp_parity=2).  A server without erasure coding
 might return FFV2_ENCODING_MIRRORED with (fdp_data=3, fdp_parity=0)
 for 3-way mirroring with per-chunk integrity, or
 FFV2_ENCODING_PASSTHROUGH with (fdp_data=1, fdp_parity=2) for
-3-way FFv1-compatible mirroring without per-chunk integrity.
+3-way flexible file v1 layout-compatible mirroring without per-chunk integrity.
 
 ### Codec Negotiation {#sec-codec-negotiation}
 
@@ -2439,7 +2439,7 @@ data I/ O, most likely for performance reasons.
 
 ##  LAYOUTCOMMIT
 
-The flexible file layout does not use lou_body inside the
+The flexible file v2 layout does not use lou_body inside the
 loca_layoutupdate argument to LAYOUTCOMMIT.  If lou_type is
 LAYOUT4_FLEX_FILES, the lou_body field MUST have a zero length (see
 Section 18.42.1 of {{RFC8881}}).
@@ -2451,7 +2451,7 @@ multipathing and filehandles can result in either 0, 1, or N
 filehandles (see Section 13.3 of {{RFC8881}}).  Some rationales for
 this are clustered servers that share the same filehandle or allow
 for multiple read-only copies of the file on the same storage device.
-In the flexible file layout type, while there is an array of
+In the flexible file v2 layout, while there is an array of
 filehandles, they are independent of the multipathing being used.
 If the metadata server wants to provide multiple read-only copies
 of the same file on the same storage device, then it should provide
@@ -2488,7 +2488,7 @@ back to doing the I/O through the metadata server.
 
 #  Striping {#sec-striping}
 
-The flexible file layout type version 2 inherits the dense and
+The flexible file v2 layout version 2 inherits the dense and
 sparse striping dispositions defined by the file layout type in
 Section 13.4 of {{RFC8881}}.  The disposition for a given
 mirror is selected by the ffm_striping field (see
@@ -2579,7 +2579,7 @@ server if the error persists.
 
 ##  Client-Side Mirroring {#sec-CSM}
 
-The flexible file layout type has a simple model in place for the
+The flexible file v2 layout has a simple model in place for the
 mirroring of the file data constrained by a layout segment.  There
 is no assumption that each copy of the mirror is stored identically
 on the storage devices.  For example, one device might employ
@@ -3785,7 +3785,7 @@ inverse.  Implementations MAY instead use the geometry-driven
 inverse of {{NORMAND}}, which precomputes a recurrence over the
 sorted projection slopes and walks each line once: it eliminates
 the inner singleton search and runs substantially faster on the
-parameter ranges typical of FFv2 deployments (high redundancy,
+parameter ranges typical of flexible file v2 layout deployments (high redundancy,
 wide stripes), with no change to the shards or to the
 reconstructed plaintext.
 
@@ -4537,13 +4537,13 @@ General-purpose intent primitive:
 
 # NFSv4.2 Operations Allowed to Data Files
 
-In the Flex Files Version 1 Layout Type ({{RFC8435}}), the data path
+In the Flexible File Version 1 Layout Type ({{RFC8435}}), the data path
 between client and data server was NFSv3 ({{RFC1813}}); the
 operations a client sent to a data file were limited to READ,
 WRITE, and COMMIT, and the operations the metadata server sent on
 its control plane to the data server were limited to GETATTR,
 SETATTR, CREATE, and REMOVE.  An NFSv4.2 data server, as used by
-the Flex Files Version 2 Layout Type, exposes a much larger
+the Flexible File Version 2 Layout Type, exposes a much larger
 operation set.  This section defines which operations a client MAY
 send to a data file, which operations the metadata server MAY
 send, and which operations a data server MUST reject.
@@ -4599,12 +4599,12 @@ The metadata server MAY also use other NFSv4.2 operations on data
 files as implementation-defined control-plane actions (for
 example, COPY or CLONE to migrate a data file between data
 servers during a data mover operation).  The list above is the
-minimum set a Flex Files v2 data server MUST support for the
+minimum set a flexible file v2 layout data server MUST support for the
 metadata server's use.
 
 ##  Data Path: Client to Data Server {#sec-ops-client}
 
-A pNFS client with an active Flex Files v2 layout MUST restrict
+A pNFS client with an active flexible file v2 layout MUST restrict
 the operations it issues against data files to the operations
 defined below.  A data server MUST reject any other operation on
 a data file with NFS4ERR_NOTSUPP.
@@ -4670,7 +4670,7 @@ For a mirror whose ffm_coding_type_data is
 FFV2_ENCODING_PASSTHROUGH (see {{sec-encoding-passthrough}}),
 client operations on the data file follow the same pattern as
 the File Layout Type in {{RFC8881}} Section 13.6 and the
-Flex Files v1 Layout Type in {{RFC8435}}:
+Flexible File Version 1 Layout Type in {{RFC8435}}:
 
 Required:
 
@@ -4821,7 +4821,7 @@ the operation as an implementation-defined control-plane action.
 {: #tbl-ops-allowed title="NFSv4.2 operations allowed on data files"}
 
 
-#  Flexible File Layout Type Return {#sec-layouthint}
+#  Flexible File Version 2 Layout Type Return {#sec-layouthint}
 
 layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
 layout-type-specific information to the server.  It is defined in
@@ -5068,26 +5068,26 @@ ff_iostats4.  Each element in the array represents statistics for
 a particular byte range.  Byte ranges are not guaranteed to be
 disjoint and MAY repeat or intersect.
 
-#  Flexible File Layout Type LAYOUTERROR {#sec-LAYOUTERROR}
+#  Flexible File Version 2 Layout Type LAYOUTERROR {#sec-LAYOUTERROR}
 
 If the client is using NFSv4.2 to communicate with the metadata
 server, then instead of waiting for a LAYOUTRETURN to send error
 information to the metadata server (see {{sec-io-error}}), it MAY
 use LAYOUTERROR (see Section 15.6 of {{RFC7862}}) to communicate
-that information.  For the flexible file layout type, this means
+that information.  For the flexible file v2 layout, this means
 that LAYOUTERROR4args is treated the same as ff_ioerr4.
 
-#  Flexible File Layout Type LAYOUTSTATS
+#  Flexible File Version 2 Layout Type LAYOUTSTATS
 
 If the client is using NFSv4.2 to communicate with the metadata
 server, then instead of waiting for a LAYOUTRETURN to send I/O
 statistics to the metadata server (see {{sec-layout-stats}}), it
 MAY use LAYOUTSTATS (see Section 15.7 of {{RFC7862}}) to communicate
-that information.  For the flexible file layout type, this means
+that information.  For the flexible file v2 layout, this means
 that LAYOUTSTATS4args.lsa_layoutupdate is overloaded with the same
 contents as in ffis_layoutupdate.
 
-#  Flexible File Layout Type Creation Hint
+#  Flexible File Version 2 Layout Type Creation Hint
 
 The layouthint4 type is defined in the {{RFC8881}} as in
 {{fig-layouthint4-v1}}.
@@ -5124,7 +5124,7 @@ opaque value is defined by the ff_layouthint4 type.
 {: #fig-ff_layouthint4-v2 title="ff_layouthint4 (v1 compatibility)"}
 
 The ff_layouthint4 is retained for backwards compatibility with
-Flex Files v1 layouts.  For Flex Files v2 layouts, clients
+flexible file v1 layouts.  For flexible file v2 layouts, clients
 SHOULD use ffv2_layouthint4 ({{fig-ffv2_layouthint4}}) instead,
 which provides coding type selection and data protection geometry
 hints via ffv2_data_protection4 ({{fig-ffv2_data_protection4}}).
@@ -5132,7 +5132,7 @@ hints via ffv2_data_protection4 ({{fig-ffv2_data_protection4}}).
 #  Recalling a Layout
 
 While Section 12.5.5 of {{RFC8881}} discusses reasons independent
-of layout type for recalling a layout, the flexible file layout
+of layout type for recalling a layout, the flexible file v2 layout
 type metadata server should recall outstanding layouts in the
 following cases:
 
@@ -5174,8 +5174,8 @@ Typically, CB_RECALL_ANY will be used to recall client state when
 the server needs to reclaim resources.  The craa_type_mask bitmap
 specifies the type of resources that are recalled, and the
 craa_layouts_to_keep value specifies how many of the recalled
-flexible file layouts the client is allowed to keep.  The mask flags
-for the flexible file layout type are defined as in {{fig-mask-flags}}.
+flexible file v2 layouts the client is allowed to keep.  The mask flags
+for the flexible file v2 layout are defined as in {{fig-mask-flags}}.
 
 ~~~ xdr
    /// enum ffv2_cb_recall_any_mask {
@@ -7248,7 +7248,7 @@ entity accessing data via a client.  The pNFS feature partitions
 the NFSv4.1+ file system protocol into two parts: the control
 protocol and the data protocol.  As the control protocol in this
 document is NFS, the security properties are equivalent to the
-version of NFS being used.  The flexible file layout further divides
+version of NFS being used.  The flexible file v2 layout further divides
 the data protocol into metadata and data paths.  The security
 properties of the metadata path are equivalent to those of NFSv4.1x
 (see Sections 1.7.1 and 2.2.1 of {{RFC8881}}).  And the security
@@ -7327,7 +7327,7 @@ authentication model:
    essentially the pre-existing attack surface of NFSv3 writes:
    any host that can reach the data server with a valid uid can
    write nonsense to chunks that uid owns.  This is the Flex
-   Files v1 authorization model, which Flex Files v2 inherits
+   Files v1 authorization model, which flexible file v2 layout inherits
    without modification for this path.
 
 -  Under RPCSEC_GSS or TLS with mutual authentication, the
@@ -7339,7 +7339,7 @@ authentication model:
    relies on data integrity above the wire MUST apply
    application-level content validation.
 
-Flex Files v2 does not attempt to defend against this
+Flexible file v2 layout does not attempt to defend against this
 authenticated-but-malicious case.  The CRC32 mechanism is a
 transport-integrity check, not a content-integrity check; the
 system trust model assumes that an authenticated principal is
@@ -7510,7 +7510,7 @@ This partitioning prevents contention for small numbers in the
 Standards Track range and provides a clear signal to clients about
 what level of interoperability to expect.
 
-This document defines five encoding types: the FFv1-compatible
+This document defines five encoding types: the flexible file v1 layout-compatible
 PASSTHROUGH (see {{sec-encoding-passthrough}}), the chunked
 MIRRORED (see {{sec-encoding-mirrored}}), and three chunked
 erasure-coding types (see {{tbl-coding-types}}).
@@ -7537,14 +7537,14 @@ that updates or obsoletes this one.  Implementations MUST
 treat unknown bits as reserved and MUST NOT assign meaning to
 them locally.
 
-#  XDR Description of the Flexible File Layout Type
+#  XDR Description of the Flexible File Version 2 Layout Type
 
 This document contains the External Data Representation (XDR)
-{{RFC4506}} description of the flexible file layout type.  The XDR
+{{RFC4506}} description of the flexible file v2 layout.  The XDR
 description is embedded in this document in a way that makes it simple
 for the reader to extract into a ready-to-compile form.  The reader can
 feed this document into the shell script in {{fig-extract}} to produce
-the machine-readable XDR description of the flexible file layout type.
+the machine-readable XDR description of the flexible file v2 layout.
 
 ~~~ shell
 #!/bin/sh
@@ -7597,9 +7597,9 @@ Source:
 
 Implementation:
 :  `reffs` is an NFSv4.2 server written in C that acts as both a
-   metadata server (MDS) and a data server (DS) in a Flex Files v2
+   metadata server (MDS) and a data server (DS) in a flexible file v2 layout
    deployment.  `ec_demo` is a client-side library with a
-   demonstration driver that exercises the Flex Files v2 data path
+   demonstration driver that exercises the flexible file v2 layout data path
    over NFSv4.2 with all three erasure-coding types defined in this
    document.
 
@@ -7651,7 +7651,7 @@ Last update:
 {:numbered="false"}
 
 The reffs + ec_demo implementation has been benchmarked against
-itself (no second Flex Files v2 implementation is known to the
+itself (no second flexible file v2 layout implementation is known to the
 authors at the time of writing).  The benchmark suite exercises
 four I/O strategies -- plain mirroring, pure striping, Reed-Solomon
 Vandermonde, Mojette systematic, and Mojette non-systematic -- at
@@ -7758,7 +7758,7 @@ v2 write overhead measured above.
 # Design Rationale: Rejected Alternatives {#sec-rejected-alternatives}
 {:numbered="false"}
 
-The design of Flex Files v2 went through several iterations between
+The design of flexible file v2 layout went through several iterations between
 2024 and 2026 that are recorded here for the benefit of future
 reviewers and implementers.  Each alternative below was considered
 and rejected, with the specific concern that led to its rejection.
@@ -7775,7 +7775,7 @@ endianness of the writer's host.  The motivation was concrete:
 NFSv3 READ and WRITE arguments carry data as `opaque data<>` and
 provide no XDR room for per-write structured metadata such as
 codec geometry, integrity, or write-ordering tiebreakers.  An
-NFSv3 server cannot be extended; if a Flex Files deployment
+NFSv3 server cannot be extended; if a flexible file v2 layout deployment
 wanted an NFSv3 server to participate as a data server in an
 erasure-coded layout, the only place to put codec metadata was
 inside that opaque payload, prepended to the data bytes.  The DS
@@ -7804,7 +7804,7 @@ surface complaint; the structural objection -- that smuggling
 structured fields through an opaque type bypasses XDR's
 self-description -- was the deeper reason the working group
 declined the approach.  Once the design accepted that data
-servers in a Flex Files Version 2 deployment would speak
+servers in a flexible file v2 layout deployment would speak
 NFSv4.2 (with new ops in this document), the constraint that
 forced the smuggling disappeared: chunk metadata could be
 expressed as proper XDR fields in CHUNK_WRITE / CHUNK_READ /
@@ -7999,7 +7999,7 @@ mapping table.  This was rejected because:
    the hot-spot under concurrent writes.
 
 -  The mapping table becomes the single point of failure that
-   the rest of the Flex Files architecture works hard to avoid;
+   the rest of the flexible file v2 layout architecture works hard to avoid;
    replicating it with strong consistency requires a consensus
    protocol on the metadata server, which the current design
    deliberately does not require (see {{sec-system-model-consensus}}).
@@ -8119,7 +8119,7 @@ which talk to the DSes directly.
 {:numbered="false"}
 
 Christoph Hellwig, IETF 122, NFSv4 Working Group session, during
-the FFv2 erasure-coding discussion.
+the flexible file v2 layout erasure-coding discussion.
 
 ## The Question as Asked
 {:numbered="false"}
@@ -8264,7 +8264,7 @@ Version 2 Layout Type was applicable to more than the Mojette
 Transformation.
 
 David Black clarified at IETF 124 that the consistency goal of
-Flex Files v2 is RAID consistency across the shards of a stripe
+flexible file v2 layout is RAID consistency across the shards of a stripe
 rather than POSIX write ordering across application writes; that
 framing is reflected in {{sec-motivation}} and in the Non-Goals
 of {{sec-system-model-consistency}}.
