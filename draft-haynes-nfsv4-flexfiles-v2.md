@@ -204,20 +204,23 @@ no on-wire consistency primitives are needed.
 
 Flex Files v2 does not choose that path, for three reasons:
 
--  **Scale bottleneck.**  The storage system becomes a scale
+Scale bottleneck:
+:  The storage system becomes a scale
    bottleneck in exactly the way this section opens with:
    large-scale parallel workloads drive the aggregate
    erasure-coding compute beyond what a bounded storage tier can
    supply, while clients are the naturally horizontally scaling
    resource.
 
--  **Loss of per-file codec flexibility.**  A single
+Loss of per-file codec flexibility:
+:  A single
    server-fixed codec forecloses the option of picking different
    codecs for different files in the same namespace, which
    matters when files have different durability and performance
    requirements.
 
--  **Benchmark evidence.**  Measurements summarised in
+Benchmark evidence:
+:  Measurements summarised in
    {{sec-implementation-status}} show that client-side encoding
    with the overhead introduced here is competitive with
    server-side encoding on realistic workloads, and scales the
@@ -1548,7 +1551,8 @@ data range.  This combination is the structural primitive for
 three operations that motivate keeping PASSTHROUGH in the
 layout type's vocabulary:
 
--  **Assimilate.**  A file that exists today as a plain copy on
+Assimilate:
+:  A file that exists today as a plain copy on
    storage outside FFv2 -- no chunk envelope, no per-chunk
    CRC -- enters the namespace as a PASSTHROUGH mirror against
    the source bytes as they are.  The metadata server then
@@ -1559,14 +1563,16 @@ layout type's vocabulary:
    they are populated.  No "rewrite before serve" step is
    required.
 
--  **Copy / migrate between encodings.**  Changing a file from
+Copy / migrate between encodings:
+:  Changing a file from
    one encoding to another is "add a mirror in the target
    encoding to the same layout, let it sync from any healthy
    source mirror, retire the source mirror."  PASSTHROUGH is
    the special case where one endpoint of that migration is
    "no encoding."
 
--  **Repair across encodings.**  When an encoded mirror has a
+Repair across encodings:
+:  When an encoded mirror has a
    chunk whose CRC fails and whose parity cannot reconstruct,
    a PASSTHROUGH mirror in the same layout is an authoritative
    source: CHUNK_READ a peer encoded mirror or read the
@@ -4466,37 +4472,44 @@ requires nor precludes such an implementation.
 
 For clarity, the protocol explicitly does not provide:
 
--  **Byzantine fault tolerance.**  A data server that
+Byzantine fault tolerance:
+:  A data server that
    deliberately misreports its state, or a client that
    bypasses its own authentication, is outside the trust model.
    Deployments requiring Byzantine tolerance MUST add it in a
    layer above or below this protocol.
 
--  **Metadata server high availability.**  Single-MDS-per-file
+Metadata server high availability:
+:  Single-MDS-per-file
    is the protocol model.  MDS HA, if deployed, is implemented
    below the wire protocol and transparent to clients.
 
--  **Cross-file atomicity.**  Writes to multiple files are not
+Cross-file atomicity:
+:  Writes to multiple files are not
    atomic at the protocol level.  File-system-level transactions
    are not defined.
 
--  **Multi-chunk atomicity within a single file.**  COMMITs on
+Multi-chunk atomicity within a single file:
+:  COMMITs on
    distinct chunks are independent.  A reader may observe a
    partial write across chunks; applications must layer their
    own consistency if they need otherwise.
 
--  **Global linearizability across unrelated files.**  Each
+Global linearizability across unrelated files:
+:  Each
    file's COMMITTED state is linearizable in isolation; no
    total order is defined across files.
 
--  **Authenticated malicious client protection.**  An
+Authenticated malicious client protection:
+:  An
    authenticated client may write garbage into its own chunks
    with a correctly computed CRC32; see
    {{sec-security-crc32-scope}}.  The CRC32 check is a
    transport-integrity check, not an adversarial-integrity
    check.
 
--  **General-purpose intent primitive.**  Christoph Hellwig
+General-purpose intent primitive:
+:  Christoph Hellwig
    observed at IETF 121 (November 2024) that the intent-based
    pattern used here (CHUNK_WRITE -> CHUNK_FINALIZE ->
    CHUNK_COMMIT with CHUNK_ROLLBACK as the abort path) has
