@@ -112,6 +112,16 @@ the Flexible File Version 1 Layout Type used with file-based data
 servers that are accessed using the NFS protocols: NFSv3 {{RFC1813}},
 NFSv4.0 {{RFC7530}}, NFSv4.1 {{RFC8881}}, and NFSv4.2 {{RFC7862}}.
 
+A metadata server that supports the Flexible File Version 2 Layout
+Type MUST be an NFSv4.2 server.  The new operations defined by this
+document for the metadata server (the TRUST_STATEID family on the
+metadata server / storage device control session, and the
+CB_CHUNK_REPAIR back-channel callback to clients) are NFSv4.2
+operations and have no representation in NFSv4.1 or earlier minor
+versions.  Storage devices can speak NFSv3, NFSv4.1, or NFSv4.2, but
+some encoding types and coupling configurations narrow that choice;
+see {{sec-ff_device_addr4}} for the exact rules.
+
 To provide a global state model equivalent to that of the files
 layout type, a back-end control protocol might be implemented between
 the metadata server and NFSv4.1+ storage devices.  An implementation
@@ -1427,9 +1437,30 @@ specification defines the semantics for ffdv_versions 3 and 4.  If
 ffdv_version equals 3, then the server MUST set ffdv_minorversion to
 0 and ffdv_tightly_coupled to false.  The client MUST then access the
 storage device using the NFSv3 protocol {{RFC1813}}.  If ffdv_version
-equals 4, then the server MUST set ffdv_minorversion to one of the
-NFSv4 minor version numbers, and the client MUST access the storage
-device using NFSv4 with the specified minor version.
+equals 4, then the server MUST set ffdv_minorversion to 1 or 2, and
+the client MUST access the storage device using NFSv4 with the
+specified minor version.
+
+Two additional constraints narrow the valid set of
+(ffdv_version, ffdv_minorversion) tuples in specific cases:
+
+-  When a mirror's encoding type uses CHUNK_* operations (that
+   is, any FFV2_ENCODING_* value other than
+   FFV2_ENCODING_PASSTHROUGH), the corresponding storage device
+   MUST be advertised with ffdv_version = 4 and
+   ffdv_minorversion = 2.  CHUNK_* operations are NFSv4.2 ops
+   defined in this document; NFSv3 and NFSv4.1 storage devices
+   cannot serve a non-PASSTHROUGH mirror.
+
+-  When ffdv_tightly_coupled is true (indicating trusted-stateid
+   tight coupling), the storage device MUST be advertised with
+   ffdv_version = 4 and ffdv_minorversion = 2.  The TRUST_STATEID
+   family of operations is defined as NFSv4.2; NFSv4.1 storage
+   devices cannot participate in trusted-stateid tight coupling.
+
+PASSTHROUGH mirrors with loose coupling are the only configuration
+for which (3, 0) or (4, 1) remain valid; for all other
+configurations the storage device MUST be NFSv4.2.
 
 Note that while the client might determine that it cannot use any of
 the configured combinations of ffdv_version, ffdv_minorversion, and
