@@ -2333,15 +2333,23 @@ each ffv2_layout4 also describes a layout segment.  It is possible
 that the file is concatenated from more than one layout segment.
 Each layout segment MAY represent different striping parameters.
 
-The ffm_striping_unit_size field (inside each ffv2_mirror4) is the
-stripe unit size in use for that mirror.  The number of stripes is
-given by the number of elements in ffs_data_servers within each
-ffv2_stripes4.  If the number of stripes is one, then the value for
-ffm_striping_unit_size MUST default to zero.  The mapping scheme
+The ffm_striping_unit_size field (inside each ffv2_mirror4) is
+the stripe unit size in use for that mirror.  The number of
+stripes is given by the number of elements in ffs_data_servers
+within each ffv2_stripes4.  If the number of stripes is one,
+then ffm_striping_unit_size MUST be zero.  The mapping scheme
 (sparse or dense) is selected per mirror by ffm_striping and is
-detailed in {{sec-striping}}.  Note
-that there is an assumption here that both the stripe unit size and
-the number of stripes are the same across all mirrors.
+detailed in {{sec-striping}}.
+
+Stripe unit size and stripe count MAY differ between mirrors in
+the same layout segment.  In particular, mirrors of different
+encoding types (see {{sec-heterogeneous-mirrors}}) have stripe
+counts determined by their respective (fdp_data, fdp_parity)
+protection structures, and there is no requirement that those
+structures match across mirrors.  Each mirror is self-consistent
+internally; cross-mirror coherence is at the byte level (every
+mirror represents the same file bytes), not at the stripe-geometry
+level.
 
 The ffl_mirrors field represents an array of state information for
 each mirrored copy of the current layout segment.  Each element is
