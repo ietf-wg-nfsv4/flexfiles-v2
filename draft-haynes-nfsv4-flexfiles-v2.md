@@ -87,7 +87,7 @@ an extension to pNFS that allows the use of storage devices that
 require only a limited degree of interaction with the metadata
 server and use already-existing protocols.  Data protection is also
 added to provide integrity.  Both Client-side mirroring and the
-Erasure Coding algorithms are used for data protection.
+erasure coding algorithms are used for data protection.
 
 --- note_Note_to_Readers
 
@@ -238,7 +238,7 @@ In flexible file v1 layout, the replication transform produces independent
 full-copy mirrors, so a partial write is detected and repaired by
 resilvering from a surviving copy.  A single server-side
 coordinator has enough visibility to drive that repair without
-help from the client.  Under a (k, m) erasure code, in contrast,
+help from the client.  Under a (k, m) erasure coding, in contrast,
 a write transaction fans out across multiple data servers with no
 single server-side actor holding whole-transaction visibility:
 when the client fails mid-fan-out, the partial state across data
@@ -378,7 +378,7 @@ replication of data:
 :  Data replication is making and storing multiple copies of data in
 different locations.
 
-Erasure Coding:
+erasure coding:
 
 :  A data protection scheme where a stripe of data is encoded into
 shards (k data shards and m parity shards) so that the original
@@ -386,7 +386,7 @@ content can be reconstructed from any sufficient subset of the
 shards.  Shards are transmitted as the payload of CHUNK operations
 and stored on different data servers.
 
-Client Side Erasure Coding:
+client-side erasure coding:
 
 :  A file based integrity method where copies are maintained in parallel.
 
@@ -1513,7 +1513,7 @@ this otherwise opaque value, ffv2_layout4.
 The ffv2_coding_type4 (see {{fig-ffv2_coding_type4}}) encompasses
 a new IANA registry for 'Flexible File Version 2 Layout Type Erasure Coding
 Type Registry'.  I.e., instead of defining a new Layout Type for
-each Erasure Coding, we define a new Erasure Coding Type.  The
+each erasure coding, we define a new Erasure Coding Type.  The
 encoding types this document defines fall into two groups:
 
 -  FFV2_ENCODING_PASSTHROUGH is the non-chunked, non-integrity
@@ -1667,7 +1667,7 @@ of using CHUNK_WRITE and CHUNK_READ:
    resilvering is required.
 -  Per-chunk concurrent-writer disambiguation.  Mirrored
    writes carry the same chunk_guard4 ({{sec-chunk_guard4}})
-   the erasure-coded types do.  Two clients racing to write
+   the erasure coding types do.  Two clients racing to write
    the same offset of the same file fan out to every replica
    with a guard pair (generation, owning-client short-id) per
    chunk; the CHUNK_FINALIZE step resolves which writer's
@@ -1688,7 +1688,7 @@ pick whichever fits each file's profile.
 What FFV2_ENCODING_MIRRORED is not: a substitute for erasure
 coding when storage efficiency or multi-replica fault tolerance
 matters.  An N-way mirror tolerates up to N-1 replica losses
-but costs N x the payload; a (k, m) erasure code tolerates m
+but costs N x the payload; a (k, m) erasure coding tolerates m
 losses at (k+m)/k x the payload.  Both have per-chunk
 integrity under this document; the choice is the
 cost-vs-tolerance one.
@@ -1825,7 +1825,7 @@ filehandle has a one-to-one correspondence to a stateid.
 {: #fig-ffv2_ds_flags4 title="The ffv2_ds_flags4" }
 
 The ffv2_ds_flags4 (in {{fig-ffv2_ds_flags4}}) flags details the
-state of the data servers.  With Erasure Coding algorithms, there
+state of the data servers.  With erasure coding algorithms, there
 are both Systematic and Non-Systematic approaches.  In the Systematic,
 the bits for integrity are placed amongst the resulting transformed
 chunk.  Such an implementation would typically see FFV2_DS_FLAGS_ACTIVE
@@ -1932,7 +1932,7 @@ The (data, parity) tuple is interpreted per encoding type:
    full, independent data carrier; mirroring carries no
    parity reconstruction.
 
--  Erasure coding types registered in companion documents
+-  erasure coding types registered in companion documents
    (e.g., Reed-Solomon Vandermonde, Mojette systematic) use
    fdp_data >= 2 and fdp_parity >= 1.
 
@@ -2211,7 +2211,7 @@ FFV2_ENCODING_PASSTHROUGH with (fdp_data=1, fdp_parity=2) for
 ### Codec Negotiation {#sec-codec-negotiation}
 
 Because the coding-type registry is expected to grow over time
-(new erasure codes are added, older ones fall out of favour,
+(new erasure coding types are added, older ones fall out of favour,
 vendors register private codes; see {{iana-considerations}}),
 neither clients nor metadata servers are required to implement
 every registered codec.  The protocol uses ffv2_layouthint4 as
@@ -2740,7 +2740,7 @@ have to perform the I/O through the metadata server.
 
 ## Erasure Coding
 
-Erasure Coding takes a data block and transforms it to a payload
+Erasure coding takes a data block and transforms it to a payload
 to send to the data servers (see {{fig-encoding-data-block}}).  It
 generates a metadata header and transformed block per data server.
 The header is metadata information for the transformed block.  From
@@ -3480,8 +3480,8 @@ Multiple coding types can be present in a Flexible File Version 2
 Layout Type layout.  The ffv2_layout4 has an array of ffv2_mirror4,
 each of which has a ffv2_coding_type4.  The main reason to allow
 for this is to provide for either the assimilation of a non-erasure
-coded file to an erasure coded file or the exporting of an erasure
-coded file to a non-erasure coded file.
+coded file to an erasure-coded file or the exporting of an erasure
+coded file to a non-erasure-coded file.
 
 Consider a Reed-Solomon Vandermonde layout
 (FFV2_ENCODING_RS_VANDERMONDE) that needs 8 active chunks.  The
@@ -4079,7 +4079,7 @@ Network partitions:
    are detected by the majority because their guard values do
    not satisfy the CAS precondition, and those writes are
    discarded.  When reconciliation is impossible -- for example,
-   the erasure code has lost too many shards across both sides
+   the erasure coding has lost too many shards across both sides
    of the partition to reconstruct any single consistent
    generation -- the repair flow terminates with
    NFS4ERR_PAYLOAD_LOST (see {{sec-NFS4ERR_PAYLOAD_LOST}}),
@@ -4362,7 +4362,7 @@ Repair termination:
        succeeded), or
 
    2.  returns NFS4ERR_PAYLOAD_LOST for one or more ranges (the
-       erasure code lost too many shards to reconstruct; the
+       erasure coding lost too many shards to reconstruct; the
        data is permanently unrecoverable), or
 
    3.  fails to respond within the ccra_deadline, in which case
@@ -7513,7 +7513,7 @@ what level of interoperability to expect.
 This document defines five encoding types: the flexible file v1 layout-compatible
 PASSTHROUGH (see {{sec-encoding-passthrough}}), the chunked
 MIRRORED (see {{sec-encoding-mirrored}}), and three chunked
-erasure-coding types (see {{tbl-coding-types}}).
+erasure coding types (see {{tbl-coding-types}}).
 
  | Encoding Type Name | Value | RFC      | How | Minor Versions    |
  | ---
@@ -7600,7 +7600,7 @@ Implementation:
    metadata server (MDS) and a data server (DS) in a flexible file v2 layout
    deployment.  `ec_demo` is a client-side library with a
    demonstration driver that exercises the flexible file v2 layout data path
-   over NFSv4.2 with all three erasure-coding types defined in this
+   over NFSv4.2 with all three erasure coding types defined in this
    document.
 
 Coverage:
@@ -7668,7 +7668,7 @@ similar overhead ratios.
 Selected findings:
 
 Erasure-coded write overhead is modest at small and mid sizes:
-:  At 4 KB to 64 KB payloads, all three EC codecs add 14% to 21%
+:  At 4 KB to 64 KB payloads, all three codecs add 14% to 21%
    write latency relative to plain mirroring.  Above 64 KB the
    encoding cost begins to dominate; at 1 MB Reed-Solomon and Mojette
    systematic reach approximately +54%, Mojette non-systematic
@@ -7787,7 +7787,7 @@ peeled the 16-byte prefix off and acted on it.
 
 This was rejected because:
 
--  It embedded a specific erasure-coding type (Mojette) into the
+-  It embedded a specific erasure coding type (Mojette) into the
    generic replication-method framework, preventing alternate
    codings from reusing the same wire format.
 
