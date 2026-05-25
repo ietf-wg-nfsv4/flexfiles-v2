@@ -7815,17 +7815,74 @@ NFS4ERR_SERVERFAULT:
 
 ### DESCRIPTION
 
-CHUNK_UNLOCK releases the exclusive lock on the block range
-previously acquired by CHUNK_LOCK ({{sec-CHUNK_LOCK}}).  The
-cua_owner MUST match the owner that acquired the lock; otherwise
-the operation returns NFS4ERR_INVAL.
+CHUNK_UNLOCK releases the exclusive chunk-range lock
+previously acquired by CHUNK_LOCK ({{sec-CHUNK_LOCK}}).
+CHUNK_UNLOCK is loosely analogous to LOCKU ({{RFC8881}}
+Section 18.12) in that it releases an exclusive guard,
+but it operates on chunk-range coordinates and is
+matched against the chunk_owner4 that acquired the
+lock rather than against an open / lock stateid.
 
-If the blocks are not locked, the operation returns NFS4_OK
-(idempotent).
+The client provides:
 
-A client SHOULD release chunk locks promptly after completing
-its write or repair operation.  Chunk locks are also released
-implicitly when the client's lease expires.
+cua_stateid:
+:  the layout stateid the metadata server granted for
+   this file.  Under trusted-stateid tight coupling
+   ({{sec-TRUST_STATEID}}), this stateid MUST be in the
+   data server's trust table; otherwise the data server
+   rejects the operation with NFS4ERR_BAD_STATEID.
+
+cua_offset:
+:  starting chunk index of the range to unlock (not a
+   byte offset).
+
+cua_count:
+:  number of chunks the unlock range covers, starting at
+   cua_offset.  The range MUST match exactly the range
+   of an outstanding CHUNK_LOCK held by cua_owner;
+   partial-range unlock is not supported.
+
+cua_owner:
+:  the chunk_owner4 ({{fig-chunk_owner4}}) that holds
+   the lock.  The cg_client_id MUST match the
+   chunk_owner4 that was supplied on the CHUNK_LOCK that
+   acquired the lock (including the case of a lock
+   transferred via CHUNK_LOCK_FLAGS_ADOPT, in which the
+   adopter's chunk_owner4 is the current holder).  The
+   reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
+   cg_client_id of cua_owner; see
+   {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
+   In particular, a repair client releasing a lock it
+   adopted from the MDS-escrow owner uses its own
+   cg_client_id in cua_owner, not
+   CHUNK_GUARD_CLIENT_ID_MDS.
+
+The CHUNK_UNLOCK result returns a single top-level
+status; there is no per-chunk status array because the
+unlock either succeeds for the whole range or returns a
+top-level error.
+
+CHUNK_UNLOCK is idempotent in the sense that releasing
+chunks that are not currently locked returns NFS4_OK
+without effect.  Releasing chunks that are locked by a
+different cua_owner returns NFS4ERR_INVAL and leaves the
+lock in place.
+
+A client SHOULD issue CHUNK_UNLOCK promptly after
+completing the write, write-repair, or commit sequence
+that the lock guarded.  Locks not explicitly released
+are released implicitly when the holder's lease expires;
+if the metadata server has revoked the holder's stateid
+via REVOKE_STATEID ({{sec-REVOKE_STATEID}}) before the
+lease lapses, the lock transitions to the MDS-escrow
+owner per the lock-continuity invariant in
+{{sec-system-model-consistency}} rather than being
+released outright.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
 
 ### RESPONSE CODES
 
