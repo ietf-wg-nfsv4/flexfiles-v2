@@ -20,56 +20,97 @@ The reffs repo's XDR file is at
 reffs side not yet attempted; the rename is bigger and more
 hazardous than the original estimate -- see Hazard note below.**
 
+### Why this needs to happen
+
+The flexfiles-v2 draft normalized FFv2 struct field prefixes
+from the short RFC 8435-style names (`ffl_`, `ffm_`, etc.) to
+explicit `ffv2*_` forms so an FFv2 reader can tell at a glance
+that a field belongs to the new layout type.  The wire bits
+are unchanged; only field identifiers in the XDR and the C /
+Python source move.  reffs must follow because the wire field
+names are derived from the XDR identifiers and the XDR file
+in reffs is the canonical source the C and Python sides
+include.
+
 ### Hazard note (discovered 2026-05-25)
 
-The original estimate assumed the FFv1 reused structs were
-cited but not full struct definitions in the reffs XDR.  In
-fact reffs has its own full XDR definitions of all the FFv1
-structs (ff_layout4, ff_mirror4, ff_ioerr4, ff_io_latency4,
-ff_iostats4, ff_layoutreturn4, ff_layoutupdate4, etc.), and
-those FFv1 struct definitions use the SAME short prefixes
-(ffl_, ffm_, ffie_, ffil_, ffis_, fflr_) that the rename
-intends to move on the FFv2 side.
+The original estimate assumed reffs's XDR cited the FFv1
+reused structs but didn't define them.  In fact reffs has its
+own full XDR definitions of all the FFv1 structs (`ff_layout4`,
+`ff_mirror4`, `ff_ioerr4`, `ff_io_latency4`, `ff_iostats4`,
+`ff_layoutreturn4`, `ff_layoutupdate4`, `ff_data_server_wcc4`,
+`ff_mirror_wcc4`, `ff_layout_wcc4`, `ff_layouthint4`,
+`ff_mirrors_hint`) at `lib/xdr/nfsv42_xdr.x` lines roughly
+4657-4775.  Those FFv1 struct definitions use the SAME short
+prefixes (`ffl_`, `ffm_`, `ffie_`, `ffil_`, `ffis_`, `fflr_`)
+that the rename intends to move on the FFv2 side.
 
-Concretely, the FFv1 ff_layout4 and the FFv2 ffv2_layout4
-both have fields ffl_mirrors / ffl_flags / ffl_stats_collect_hint.
-A blanket s/ffl_/ffv2l_/g would silently break the FFv1 code
-path.
+Concretely, the FFv1 `ff_layout4` and the FFv2 `ffv2_layout4`
+both have fields `ffl_mirrors` / `ffl_flags` /
+`ffl_stats_collect_hint`.  A blanket
+`s/\bffl_/ffv2l_/g` would silently break the FFv1 code path.
 
-C code in lib/nfs4/server/layout.c and lib/nfs4/client/
-mds_layout.c handles BOTH wire formats and mixes the prefixes
-inside the same file (e.g. layoutget_build_v1 vs
-layoutget_build_v2 in layout.c).  The rename has to be
-function-aware, sometimes line-aware.
+C code in `lib/nfs4/server/layout.c` and `lib/nfs4/client/
+mds_layout.c` handles BOTH wire formats and mixes the prefixes
+inside the same file.  In `layout.c` specifically the FFv1 and
+FFv2 paths are in separate static functions
+(`layoutget_build_v1` at ~L466 vs `layoutget_build_v2` at
+~L577), which gives a usable per-function decision boundary.
 
-### What the rename actually requires
+### How to identify FFv1 vs FFv2 access in C
 
-1. XDR: rename only the FFv2 struct field declarations
-   (lines roughly 4790-4905 in nfsv42_xdr.x), leaving the
-   FFv1 struct field declarations untouched.
+The disambiguator is the C type of the object being accessed.
+Three reliable signals to look for in or near the line:
 
-2. C code: for each file that references the renamed
-   prefixes (lib/nfs4/server/layout.c ~45 hits, lib/nfs4/
-   client/mds_layout.c ~15 hits, plus ~3 hits across
-   lib/nfs4/ps/tests/ec_pipeline_stripe_test.c,
-   lib/nfs4/client/ec_client.h, lib/include/reffs/super_block.h),
-   read each usage and determine whether the typed object is
-   ff_layout4 (keep) or ffv2_layout4 (rename).  No reliable
-   automation; this is per-line inspection.
+1. **Explicit struct type in the declaration**: nearby code
+   like `ffv2_mirror4 *mirror = ...` (rename) or
+   `ff_mirror4 *mirror = ...` (keep).
 
-3. Generated XDR: regenerate.
+2. **sizeof() argument** in a recent calloc / malloc:
+   `calloc(1, sizeof(ffv2_mirror4))` (rename) vs
+   `calloc(1, sizeof(ff_mirror4))` (keep).
 
-4. Build verification via 'make -f Makefile.reffs ci-check'
-   in Docker, iterating on compile errors -- this is the only
-   safety net for the per-line judgments above.
+3. **Containing function name**: in `layout.c`,
+   `layoutget_build_v1` is FFv1, `layoutget_build_v2` is FFv2.
+   Other functions (LAYOUTCOMMIT, LAYOUTRETURN, LAYOUTERROR,
+   LAYOUT_WCC handlers) may dispatch on a runtime layout-type
+   field; inspect the surrounding switch / if chain.
 
-Estimated effort: a focused half-day with Docker build
-iteration.  Not appropriate for a fast-cadence spec-review
-session.
+If a single line is genuinely ambiguous after applying all
+three signals, fall back to the build: the Docker compile
+will surface the type mismatch on the next iteration.
 
-### Prefix mapping (for the eventual rename)
+### Scope inventory (as of 2026-05-25)
 
-Two categories of structs:
+Files containing one or more of the renamable prefixes
+(`ffl_`, `ffm_`, `ffie_`, `ffil_`, `ffis_`, `fflr_`, `fffi_`,
+`fflh_`, `ffs_data_servers`):
+
+| File | Hits | Notes |
+|------|------|-------|
+| `lib/xdr/nfsv42_xdr.x`                       | many | XDR source; rename only inside FFv2 struct defs (lines ~4790-4905) |
+| `lib/nfs4/server/layout.c`                   | ~45  | FFv1 path: `layoutget_build_v1`; FFv2 path: `layoutget_build_v2` + LAYOUT_WCC / LAYOUTSTATS handlers |
+| `lib/nfs4/client/mds_layout.c`               | ~15  | mixed v1 + v2 client-side layout handling |
+| `lib/nfs4/ps/tests/ec_pipeline_stripe_test.c`| ~1   | small |
+| `lib/nfs4/client/ec_client.h`                | ~2   | small |
+| `lib/include/reffs/super_block.h`            | ~1   | small |
+
+There are no `*.py` hits today (Python uses the generated
+`*_type.py` which will pick up the rename automatically from
+the regenerated XDR).  Check again before starting; the
+landscape may have changed.
+
+Recompute the hit count with:
+
+```
+cd /Volumes/Sensitive/reffs
+grep -rlE '\b(ffl_|ffm_|ffie_|ffil_|ffis_|fflr_|fffi_|fflh_|ffs_data_servers)' \
+    --include='*.c' --include='*.h' --include='*.x' \
+    --include='*.py' --include='*.py.in' \
+    lib/ src/ scripts/ tools/
+```
+
+### Prefix mapping
 
 **FFv1 structs reused from RFC 8435** -- prefixes stay as-is:
 
@@ -86,6 +127,9 @@ Two categories of structs:
 | `ff_layoutupdate4`    | `ffl_*`   | RFC 8435 (in reffs XDR; keep -- note: shares prefix with ff_layout4) |
 | `ff_layouthint4`      | `fflh_mirrors_hint` (only that field) | RFC 8435 |
 | `ff_mirrors_hint`     | `ffmc_*`  | RFC 8435 |
+| `ff_data_server_wcc4` | `ffdsw_*` | RFC 9766 |
+| `ff_mirror_wcc4`      | `ffmw_*`  | RFC 9766 |
+| `ff_layout_wcc4`      | `fflw_*`  | RFC 9766 |
 
 **FFv2 structs** -- field prefixes normalize to `ffv2*_`:
 
@@ -102,24 +146,74 @@ Two categories of structs:
 | `ffs_`     | `ffv2s_`   | `ffv2_stripes4`     |
 | `ffv2ds_`  | `ffv2ds_`  | `ffv2_data_server4` (already in v2 form) |
 
-### Sequence (when the rename is finally done)
+### Sequence for the rename
 
-1. Rename in `lib/xdr/nfsv42_xdr.x`, FFv2 struct definitions
-   only (lines ~4790-4905).
-2. Regenerate XDR code.
-3. Compile.  For each error, inspect the line's typed-object
-   context to decide whether the access is on an FFv1 struct
-   (revert) or FFv2 struct (rename).  Iterate until clean.
-4. Run `make check` and `make -f Makefile.reffs ci-check`.
-5. Commit on a topic branch (`ffv2-prefix-normalize`).  Review
-   and merge per reffs's normal workflow.
+1. **Branch.**  Following the reffs workflow rule against
+   direct commits to `main`, create a topic branch via
+   worktree:
+
+   ```
+   cd /Volumes/Sensitive/reffs
+   git worktree add ../reffs-ffv2-prefix -b ffv2-prefix-normalize
+   cd ../reffs-ffv2-prefix
+   ```
+
+2. **XDR.**  Rename in `lib/xdr/nfsv42_xdr.x`, FFv2 struct
+   definitions ONLY (currently lines ~4790-4905; recheck after
+   any intervening edits).  Use the prefix-mapping tables
+   above.  Do not touch the FFv1 struct definitions at lines
+   ~4657-4775.
+
+3. **C/Python rename.**  For each hit reported by the grep
+   above, apply the three-signal disambiguation from "How to
+   identify FFv1 vs FFv2 access" and rename only the FFv2
+   accesses.  Commit after each file (or each function inside
+   layout.c) to keep the topic-branch history bisectable if a
+   subtle regression appears.
+
+4. **Build verification.**  reffs does not build natively on
+   macOS hosts; use the Docker target:
+
+   ```
+   make -f Makefile.reffs ci-check
+   ```
+
+   `ci-check` regenerates the XDR (xdr-parser), compiles, runs
+   the unit tests, runs the integration tests (NFSv3 + NFSv4.2
+   git-clone, identity, TLS, krb5), and verifies SPDX headers
+   and clang-format style.
+
+   Iterate: each compile error names the file and line of an
+   access that still references the old prefix.  Apply the
+   three-signal disambiguation and rename.
+
+5. **Verify zero residual references on the FFv2 side.**
+   After the build is green, the residual-check is:
+
+   ```
+   # Should match only FFv1 struct definitions and FFv1
+   # access patterns.  Inspect each remaining hit by hand.
+   grep -rnE '\b(ffl_|ffm_|ffie_|ffil_|ffis_|fflr_)[a-z]' \
+       --include='*.c' --include='*.h' lib/ src/ tools/
+   ```
+
+6. **Update this document.**  Once `ci-check` is green, move
+   this entry to the Closed-entries trailer at the bottom of
+   the file with the topic-branch's final commit hash.
 
 ### Sanity checks during the rename
 
-- The `(MDS)` acronym in "Maximum Distance Separable (MDS) codes"
-  is unrelated and unaffected.
+- The `(MDS)` acronym in "Maximum Distance Separable (MDS)
+  codes" prose comments is unrelated and unaffected.
 - Constants like `FFV2_ENCODING_PASSTHROUGH` use `FFV2_` as an
   all-caps prefix; these are not field-prefix renames.
+- `ffv2ds_*` field names are already correct (FFv2 form).
+- `ffds_*` references in prose comments cite RFC 8435 FFv1
+  and stay unchanged.
+- The renamed FFv2 const block (`FFV2_FLAGS_*`,
+  `FFV2_DS_FLAGS_*`, `FFV2_ENCODING_*`,
+  `FFV2_PROTECTION_TYPE_*`, `FFV2_STRIPING_*`) is independent
+  of this rename; do not touch.
 
 ## Pending change 4 (deferred): MACHINE_ID_ANNOUNCE op
 
