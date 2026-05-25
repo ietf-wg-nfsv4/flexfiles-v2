@@ -5494,17 +5494,17 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
 
  | Operation          | Errors |
  | ---
- | CHUNK_COMMIT       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | CHUNK_ERROR        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
- | CHUNK_FINALIZE     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
- | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | CHUNK_REPAIRED     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
- | CHUNK_ROLLBACK     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
- | CHUNK_UNLOCK       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
- | CHUNK_WRITE        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_CHUNK_GUARDED, NFS4ERR_CHUNK_LOCKED, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | CHUNK_WRITE_REPAIR | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_COMMIT       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_ERROR        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_FINALIZE     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_REPAIRED     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_ROLLBACK     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_UNLOCK       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_WRITE        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_GUARDED, NFS4ERR_CHUNK_LOCKED, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_WRITE_REPAIR | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | TRUST_STATEID      | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
  | REVOKE_STATEID     | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
  | BULK_REVOKE_STATEID| NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
@@ -6028,6 +6028,11 @@ NFS4ERR_ACCESS:
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
+
 NFS4ERR_DELAY:
 :  the data server is temporarily unable to process
    the request.
@@ -6107,6 +6112,11 @@ NFS4ERR_ACCESS:
 
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
+
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
 
 NFS4ERR_INVAL:
 :  the reported chunk range or error code was not
@@ -6188,6 +6198,11 @@ NFS4ERR_ACCESS:
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
+
 NFS4ERR_DELAY:
 :  the data server is temporarily unable to process
    the request.
@@ -6267,6 +6282,11 @@ NFS4ERR_ACCESS:
 
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
+
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
 
 NFS4ERR_DELAY:
 :  the data server is temporarily unable to process
@@ -6413,6 +6433,11 @@ NFS4ERR_ACCESS:
 
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
+
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
 
 NFS4ERR_CHUNK_LOCKED:
 :  one or more chunks in the requested
@@ -6564,6 +6589,11 @@ NFS4ERR_ACCESS:
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
+
 NFS4ERR_DELAY:
 :  the data server is temporarily unable to process
    the request.
@@ -6643,6 +6673,11 @@ NFS4ERR_ACCESS:
 
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
+
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
 
 NFS4ERR_INVAL:
 :  the chunks named were not in an errored state,
@@ -6726,6 +6761,11 @@ NFS4ERR_ACCESS:
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
+
 NFS4ERR_INVAL:
 :  arguments named chunks not eligible for rollback
    or outside the file's mirror set.
@@ -6791,6 +6831,11 @@ NFS4ERR_ACCESS:
 
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
+
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
 
 NFS4ERR_INVAL:
 :  arguments named chunks not in a locked state
@@ -6994,6 +7039,11 @@ NFS4ERR_ACCESS:
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
+
 NFS4ERR_CHUNK_GUARDED:
 :  the chunk_guard4 condition supplied by
    the client did not match the persisted state.
@@ -7117,6 +7167,11 @@ NFS4ERR_ACCESS:
 
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
+
+NFS4ERR_BAD_STATEID:
+:  no active layout stateid for this file (or, in trusted-stateid
+   tight coupling, the stateid is not in the trust table).  See
+   {{sec-new-ops}}.
 
 NFS4ERR_DELAY:
 :  the data server is temporarily unable to process
