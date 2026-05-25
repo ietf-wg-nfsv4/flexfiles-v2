@@ -16,8 +16,8 @@ The reffs repo's XDR file is at
 
 ## Pending change 1: remove ffv2_key4 and ffm_key
 
-**Status: spec change applied (commit c080d06afe5c on
-flexfiles-v2).  reffs side not yet updated.**
+**Status: APPLIED.  reffs commit 10c31b98e8cc on branch
+xdr-op-renumber (worktree ../reffs-xdr-renumber).**
 
 `ffv2_key4` typedef and the `ffm_key` field in `ffv2_mirror4` were
 removed from the draft because the field had no protocol semantics
@@ -53,8 +53,58 @@ The diff is one line.  No semantic change.
 
 ## Pending change 2: normalize FFv2 field prefixes to ffv2*_
 
-**Status: spec change in progress on flexfiles-v2 (Option A from
-the prefix-consistency discussion).  reffs side not yet updated.**
+**Status: DEFERRED.  Spec change applied on flexfiles-v2.
+reffs side not yet attempted; the rename is bigger and more
+hazardous than the original estimate -- see Hazard note below.**
+
+### Hazard note (discovered 2026-05-25)
+
+The original estimate assumed the FFv1 reused structs were
+cited but not full struct definitions in the reffs XDR.  In
+fact reffs has its own full XDR definitions of all the FFv1
+structs (ff_layout4, ff_mirror4, ff_ioerr4, ff_io_latency4,
+ff_iostats4, ff_layoutreturn4, ff_layoutupdate4, etc.), and
+those FFv1 struct definitions use the SAME short prefixes
+(ffl_, ffm_, ffie_, ffil_, ffis_, fflr_) that the rename
+intends to move on the FFv2 side.
+
+Concretely, the FFv1 ff_layout4 and the FFv2 ffv2_layout4
+both have fields ffl_mirrors / ffl_flags / ffl_stats_collect_hint.
+A blanket s/ffl_/ffv2l_/g would silently break the FFv1 code
+path.
+
+C code in lib/nfs4/server/layout.c and lib/nfs4/client/
+mds_layout.c handles BOTH wire formats and mixes the prefixes
+inside the same file (e.g. layoutget_build_v1 vs
+layoutget_build_v2 in layout.c).  The rename has to be
+function-aware, sometimes line-aware.
+
+### What the rename actually requires
+
+1. XDR: rename only the FFv2 struct field declarations
+   (lines roughly 4790-4905 in nfsv42_xdr.x), leaving the
+   FFv1 struct field declarations untouched.
+
+2. C code: for each file that references the renamed
+   prefixes (lib/nfs4/server/layout.c ~45 hits, lib/nfs4/
+   client/mds_layout.c ~15 hits, plus ~3 hits across
+   lib/nfs4/ps/tests/ec_pipeline_stripe_test.c,
+   lib/nfs4/client/ec_client.h, lib/include/reffs/super_block.h),
+   read each usage and determine whether the typed object is
+   ff_layout4 (keep) or ffv2_layout4 (rename).  No reliable
+   automation; this is per-line inspection.
+
+3. Generated XDR: regenerate.
+
+4. Build verification via 'make -f Makefile.reffs ci-check'
+   in Docker, iterating on compile errors -- this is the only
+   safety net for the per-line judgments above.
+
+Estimated effort: a focused half-day with Docker build
+iteration.  Not appropriate for a fast-cadence spec-review
+session.
+
+### What reffs has today
 
 The draft inconsistently used the short `ff[a-z]+_` field prefix
 inherited from RFC 8435 (FFv1) for most FFv2 structs, with
@@ -161,8 +211,8 @@ NFSv4 client code, and the dstore vtables.
 
 ## Pending change 3: rename NFS4ERR_PAYLOAD_NOT_CONSISTENT -> NFS4ERR_PAYLOAD_NOT_ATOMIC
 
-**Status: spec change applied on flexfiles-v2.  reffs side not yet
-updated.**
+**Status: APPLIED.  reffs commit c0759f9ace76 on branch
+xdr-op-renumber (worktree ../reffs-xdr-renumber).**
 
 The "consistency" / "atomicity" terminology pass renamed the
 cohort property (all chunks in a payload share the same
@@ -206,8 +256,15 @@ zero residual.
 
 ## Pending change 5: add CHUNK_GUARD_CLIENT_ID_NONE reservation
 
-**Status: spec change applied on flexfiles-v2.  reffs side not yet
-updated.**
+**Status: APPLIED.  reffs commit e8c4ea8896d6 on branch
+xdr-op-renumber (worktree ../reffs-xdr-renumber).  Note: the
+reffs implementation now declares BOTH CHUNK_GUARD_CLIENT_ID_NONE
+and CHUNK_GUARD_CLIENT_ID_MDS in the XDR (neither was declared
+before this commit); the prior pending-change description said
+only the NONE const needed adding, but in fact the MDS const
+was also missing.  Both are now in nfsv42_xdr.x, and the DS-
+side rejection covers both reserved values in CHUNK_WRITE,
+CHUNK_FINALIZE, and CHUNK_COMMIT handlers.**
 
 The flexfiles-v2 draft reserves both ends of the cg_client_id
 value space:
