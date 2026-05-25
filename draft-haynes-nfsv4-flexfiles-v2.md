@@ -1230,16 +1230,27 @@ recovery path as the trust gap described above.
 
 ###  Storage Device Crash Recovery {#sec-tight-coupling-ds-crash}
 
-The trust table is volatile.  The storage device MUST NOT persist
-trust entries across restarts; a storage device restart therefore
-empties the trust table.
+A storage device MAY persist its trust table across restarts.  An
+implementation that does so MUST also persist its server-instance
+identity, returning the same eir_server_owner.so_minor_id on
+EXCHANGE_ID after the restart (per {{RFC8881}} S18.35), so that
+clients and the metadata server observe the device as
+continuously available and the persisted trust entries remain
+valid against the layout stateids that were issued before the
+restart.
 
-The client detects a storage device restart via NFS4ERR_BADSESSION
-or NFS4ERR_STALE_CLIENTID on its data server session.  The client
-returns the affected layout segment to the metadata server via
-LAYOUTRETURN and re-requests via LAYOUTGET.  The metadata server
-then fans out fresh TRUST_STATEID operations to the recovered
-storage device.
+A storage device that does NOT persist its trust table empties
+the table on restart and MUST present a new server instance
+(incremented so_minor_id) so that clients detect the restart.
+The remainder of this section describes the recovery path for
+the volatile case.
+
+The client detects a volatile storage device restart via
+NFS4ERR_BADSESSION or NFS4ERR_STALE_CLIENTID on its data server
+session.  The client returns the affected layout segment to the
+metadata server via LAYOUTRETURN and re-requests via LAYOUTGET.
+The metadata server then fans out fresh TRUST_STATEID operations
+to the recovered storage device.
 
 Planned storage device restarts (software upgrade, etc.) SHOULD
 drain in-flight CHUNK operations before shutting down.
