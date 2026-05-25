@@ -8924,57 +8924,90 @@ NFS4ERR_SERVERFAULT:
 
 ### DESCRIPTION
 
-BULK_REVOKE_STATEID removes every trust entry on the data server
-that was registered on behalf of the named client.  The data
-server applies this as a scan over its trust table.
+BULK_REVOKE_STATEID removes every trust entry on the data
+server that was registered on behalf of a single named
+client.  Unlike REVOKE_STATEID ({{sec-REVOKE_STATEID}}),
+which removes one entry identified by a (filehandle,
+stateid) pair, BULK_REVOKE_STATEID does not target a
+specific filehandle or stateid; it instructs the data
+server to scan its trust table and remove every entry
+whose owning pNFS client matches brsa_clientid (and whose
+issuing metadata server matches the calling MDS).
 
-The metadata server calls BULK_REVOKE_STATEID in any of the
-following situations:
+BULK_REVOKE_STATEID has no analog in {{RFC8881}}.  RFC 8881
+recall-all is expressed at the layout layer
+(CB_LAYOUTRECALL with LAYOUTRECALL4_ALL); the per-client
+trust-table sweep introduced here is the data-server-side
+complement, replacing the N per-file REVOKE_STATEID
+compounds that per-entry revocation would require with a
+single round-trip.
 
--  Client lease expiry: when a client's lease on the metadata
-   server expires, the metadata server revokes all of that
-   client's layouts.  A single BULK_REVOKE_STATEID replaces the N
-   per-file REVOKE_STATEID compounds that per-entry revocation
-   would require.
+BULK_REVOKE_STATEID is an MDS-to-DS operation; pNFS
+clients MUST NOT send it.  The data server MUST verify
+that the operation arrived on a session whose owning
+client presented EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
+and reject any BULK_REVOKE_STATEID received on a regular
+client session with NFS4ERR_PERM.  BULK_REVOKE_STATEID
+does not operate on the current filehandle; no PUTFH is
+required in the compound.
 
--  CB_LAYOUTRECALL with LAYOUTRECALL4_ALL: the metadata server is
-   recalling all layouts for a client.  BULK_REVOKE_STATEID is the
-   data-server-side complement.
+The metadata server provides:
 
--  Metadata server restart cleanup: after the metadata server
-   reconnects to a data server, it MAY issue
-   BULK_REVOKE_STATEID(brsa_clientid = all-zeros) to clear the
-   prior trust table before re-issuing TRUST_STATEID as clients
-   reclaim.  See {{sec-tight-coupling-mds-crash}}.
+brsa_clientid:
+:  the clientid of the pNFS client whose trust entries
+   are to be removed.  The special all-zeros value means
+   "remove every trust entry owned by the calling
+   metadata server, regardless of which pNFS client
+   registered it"; the data server MUST interpret this
+   value as a sweep of its own entries only, NOT as the
+   pNFS client whose clientid happens to be zero and NOT
+   as a global cross-MDS table clear.
 
-BULK_REVOKE_STATEID is scoped to the issuing metadata server's
-entries (see the tagging rule in {{sec-TRUST_STATEID}}).  The
-data server MUST NOT affect entries registered by a different
-metadata server.  Consequently, in a multi-metadata-server
-deployment sharing a single data server, one metadata server
-cannot clear another metadata server's entries via
+The metadata server calls BULK_REVOKE_STATEID in any of
+the following situations:
+
+-  Client lease expiry: when a client's lease on the
+   metadata server expires, the metadata server revokes
+   all of that client's layouts.  A single
+   BULK_REVOKE_STATEID with brsa_clientid set to the
+   expired client's clientid sweeps every per-file trust
+   entry the metadata server had registered for that
+   client.
+
+-  CB_LAYOUTRECALL with LAYOUTRECALL4_ALL: the metadata
+   server is recalling all layouts for a client.
+   BULK_REVOKE_STATEID is the data-server-side
+   complement.
+
+-  Metadata server restart cleanup: after the metadata
+   server reconnects to a data server, it MAY issue
+   BULK_REVOKE_STATEID with brsa_clientid set to
+   all-zeros to clear the prior trust table before
+   re-issuing TRUST_STATEID as clients reclaim.  See
+   {{sec-tight-coupling-mds-crash}}.
+
+BULK_REVOKE_STATEID is scoped to the issuing metadata
+server's entries (see the tagging rule in
+{{sec-TRUST_STATEID}}).  The data server MUST NOT affect
+entries registered by a different metadata server.
+Consequently, in a multi-metadata-server deployment
+sharing a single data server, one metadata server cannot
+clear another metadata server's entries via
 BULK_REVOKE_STATEID.
 
-The special value with all fields of brsa_clientid set to zero
-means "revoke every entry owned by the issuing metadata server,
-regardless of which pNFS client registered it".  The data server
-MUST interpret this value as a clear of the issuing metadata
-server's entries only, and MUST NOT treat it either as "the pNFS
-client whose clientid happens to be zero" or as a global table
-clear across metadata servers.
+Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent
+(no error is returned if there are no matching entries)
+and preserves chunk locks held under any revoked stateid
+by transferring them to the MDS-escrow owner (see
+{{sec-chunk_guard_mds}}), rather than dropping them.
+Subsequent CHUNK_* operations from the revoked client
+fail with NFS4ERR_BAD_STATEID; locks held under those
+revoked stateids remain until adopted by a repair
+client via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT
+({{sec-CHUNK_LOCK}}).
 
-BULK_REVOKE_STATEID does not operate on the current filehandle;
-no PUTFH is required in the compound.
-
-If the data server receives BULK_REVOKE_STATEID on a session
-whose owning client did not present EXCHGID4_FLAG_USE_PNFS_MDS at
-EXCHANGE_ID, the data server MUST return NFS4ERR_PERM.
-
-Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent (no error
-is returned if there are no matching entries) and preserves chunk
-locks held under any revoked stateid by transferring them to the
-MDS-escrow owner (see {{sec-chunk_guard_mds}}), rather than
-dropping them.
+BULK_REVOKE_STATEID returns only a top-level status;
+there is no result body beyond the nfsstat4 discriminant.
 
 ### RESPONSE CODES
 
