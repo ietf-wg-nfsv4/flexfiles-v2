@@ -4987,6 +4987,65 @@ Required for all protection modes:
 These operations are baseline NFSv4.2 session plumbing and are
 supported on data files as on any NFSv4.2 file.
 
+### Stateid Model on the Data Server {#sec-ds-stateid-model}
+
+The stateid presented on a CHUNK_* operation is a **layout
+stateid** returned by a prior LAYOUTGET against the metadata
+server (see Section 18.43 of {{RFC8881}}), NOT an open
+stateid, byte-range lock stateid, or delegation stateid.  A
+pNFS client does NOT issue OPEN against the data server.
+This is a meaningful departure from the stateid model in
+Section 18.32 of {{RFC8881}} (which states that the WRITE
+stateid "represents a value returned from a previous
+byte-range LOCK or OPEN request or the stateid associated
+with a delegation"), and clients implementing
+Flexible File Version 2 MUST NOT carry over those
+expectations to the data path.
+
+The three roles the RFC 8881 stateid plays on a regular
+NFSv4 server split apart in the Flexible File Version 2
+data-server model:
+
+Open and share-mode tracking:
+:  Lives at the metadata server, established by OPEN
+   ({{RFC8881}} Section 18.16) on the metadata-server
+   filehandle.  The metadata server's open stateid is NOT
+   exposed to data servers; share-mode conflicts are
+   resolved at the metadata server before LAYOUTGET grants
+   a layout.
+
+Byte-range lock tracking:
+:  Does not apply at the data server.  Locking on the data
+   path is chunk-range rather than byte-range, expressed
+   via CHUNK_LOCK ({{sec-CHUNK_LOCK}}), and the lock holder
+   is identified by chunk_owner4 (the {cg_client_id,
+   cg_gen_id} pair) rather than by a lock stateid.  A
+   client wanting byte-range locks on a file MUST acquire
+   them on the metadata-server filehandle, where standard
+   {{RFC8881}} Section 12 byte-range locking applies.
+
+I/O authorization on the data server:
+:  The layout stateid carried on CHUNK_* operations.  Under
+   tight coupling ({{sec-tight-coupling-control}}), the
+   metadata server registers each issued layout stateid
+   with the data server via TRUST_STATEID
+   ({{sec-TRUST_STATEID}}) and the data server validates
+   subsequent CHUNK_* stateids against the trust table.
+   Under loose coupling, the data server treats the layout
+   stateid as an opaque per-client token and authorizes by
+   the synthetic uid/gid the layout carries (see
+   {{sec-Fencing-Clients}}).
+
+Because the layout stateid does authorization but does not
+identify a per-open or per-lock owner, a single client may
+present the same layout stateid on many CHUNK_* operations
+across many parallel writers within the client, without any
+of the open-owner ordering constraints {{RFC8881}}
+Section 8.2.2 imposes on regular NFSv4 stateids.  Chunk-
+level write ordering and contention are resolved by the
+per-chunk chunk_guard4 CAS ({{sec-chunk_guard4}}) and the
+chunk-range CHUNK_LOCK, not by stateid-owner sequencing.
+
 ### GETATTR on a Data File
 
 GETATTR MAY be issued by a client against a data file.  The
