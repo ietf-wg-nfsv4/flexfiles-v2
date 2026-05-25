@@ -4423,45 +4423,49 @@ of the data server's chunk state table MUST admit these
 transitions and no others.
 
 ~~~
-                       CHUNK_WRITE
-                    (fresh cg_gen_id)
-      +---------+ ------------------> +-----------+
-      |  EMPTY  |                     |  PENDING  |
-      +---------+ <------------------ +-----------+
-           ^        CHUNK_ROLLBACK        |  ^
-           |       (discard PENDING)      |  | CHUNK_WRITE
-           |                              |  | (replace PENDING,
-           |                              |  |  same writer, same
-           |                              |  |  cg_gen_id)
-           |                              |  |
-           |             CHUNK_FINALIZE   v  |
-           |          (writer stops       |
-           |           further writes)    |
-           |                              v
-           |                       +-------------+
-           |        CHUNK_ROLLBACK |  FINALIZED  |
-           |       (discard        +-------------+
-           |        FINALIZED)           |
-           |                             | CHUNK_COMMIT
-           |                             |  (make durable and
-           |                             |   globally visible)
-           |                             v
-           |                       +-------------+
-           +-------------------- > |  COMMITTED  |
-                CHUNK_ROLLBACK     +-------------+
-             (only via repair;          |
-              replaces with a newer     | CHUNK_WRITE with a higher
-              COMMITTED generation      | cg_gen_id begins a new
-              or discards per the       | PENDING successor;
-              rollback invariant)       | the prior COMMITTED is
-                                        | retained until its
-                                        | successor is COMMITTED
-                                        | (see the rollback
-                                        v  invariant below)
-                                  (next PENDING
-                                   against same chunk)
+                            CHUNK_WRITE
+                         (fresh cg_gen_id)
+        +---------+ -------------------> +-------------+
+        |  EMPTY  |                      |   PENDING   |
+        +---------+ <------------------- +-------------+
+             ^         CHUNK_ROLLBACK            |
+             |        (discard PENDING)          |
+             |                                   | CHUNK_FINALIZE
+             |                                   |  (writer stops
+             |                                   |   further writes)
+             |                                   v
+             |                            +-------------+
+             |       CHUNK_ROLLBACK       |  FINALIZED  |
+             |      (discard FINALIZED)   +-------------+
+             |                                   |
+             |                                   | CHUNK_COMMIT
+             |                                   |  (make durable
+             |                                   |   and globally
+             |                                   |   visible)
+             |                                   v
+             |                            +-------------+
+             +--------------------------> |  COMMITTED  |
+                   CHUNK_ROLLBACK         +-------------+
+                (only via repair;                 |
+                 replaces with a newer            | CHUNK_WRITE with
+                 COMMITTED generation             | a higher cg_gen_id
+                 or discards per the              | begins a new
+                 rollback invariant)              | PENDING successor;
+                                                  | the prior COMMITTED
+                                                  | is retained until
+                                                  | its successor is
+                                                  | COMMITTED (see the
+                                                  v  rollback invariant
+                                            (next PENDING
+                                             against same chunk)
 ~~~
 {: #fig-chunk-state-machine title="Chunk lifecycle on the data server"}
+
+CHUNK_WRITE against a chunk already in PENDING from the same
+writer with the same cg_gen_id is a self-transition on PENDING:
+the data server replaces the PENDING payload in place and the
+state does not change.  This case is not drawn in
+{{fig-chunk-state-machine}} for clarity.
 
 States:
 
@@ -4494,6 +4498,53 @@ CHUNK_ROLLBACK against a COMMITTED chunk is used only on the
 repair path (see {{sec-CHUNK_ROLLBACK}}) and replaces the chunk
 with a newer COMMITTED generation chosen by the repair client,
 rather than returning the chunk to EMPTY.
+
+{{fig-chunk-state-machine}} covers the lifecycle of a chunk's
+payload but not the lock that may be held on it.  The lock has
+its own state machine, shown in {{fig-chunk-lock-machine}}.
+
+~~~
+                          CHUNK_LOCK
+                       (writer acquires)
+        +----------+ ----------------> +-------------------+
+        | UNLOCKED |                   | LOCKED by writer  |
+        +----------+ <---------------- +-------------------+
+             ^           CHUNK_UNLOCK            |
+             |          (writer releases)        |
+             |                                   | REVOKE_STATEID
+             |                                   |  (MDS invalidates
+             |                                   |   writer stateid;
+             |                                   |   lock transfers
+             |                                   |   to MDS escrow)
+             |                                   v
+             |        CHUNK_UNLOCK     +-------------------+
+             |       or CHUNK_REPAIRED |   LOCKED by MDS   |
+             |      (repair client     |       escrow      |
+             |       releases after    +-------------------+
+             |       repair completes)           |
+             |                                   | CHUNK_LOCK with
+             |                                   | CHUNK_LOCK_FLAGS_ADOPT
+             |                                   |  (repair client
+             |                                   |   adopts MDS-escrow
+             |                                   |   ownership per
+             |                                   |   CB_CHUNK_REPAIR)
+             |                                   v
+             |                         +-------------------+
+             +------------------------ | LOCKED by repair  |
+                                       +-------------------+
+~~~
+{: #fig-chunk-lock-machine title="Chunk lock ownership on the data server"}
+
+The lock state machine is orthogonal to the chunk lifecycle in
+{{fig-chunk-state-machine}}: a chunk in any of EMPTY, PENDING,
+FINALIZED, or COMMITTED MAY simultaneously be in any of the
+four lock states.  The errored bit (set by CHUNK_ERROR, cleared
+by CHUNK_REPAIRED) is a third orthogonal axis and is not drawn;
+CHUNK_ERROR may set the bit in any state, and CHUNK_REPAIRED
+clears it as part of completing a repair sequence.  A CHUNK_LOCK
+that arrives while the chunk is already LOCKED by a different
+owner returns NFS4ERR_CHUNK_LOCKED with the existing owner's
+chunk_owner4 in clr_owner ({{sec-CHUNK_LOCK}}).
 
 ##  Consistency Guarantees {#sec-system-model-consistency}
 
