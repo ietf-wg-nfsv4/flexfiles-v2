@@ -5189,37 +5189,59 @@ directly.
 
 ##  Summary Table
 
-{{tbl-ops-allowed}} lists each relevant NFSv4.2 operation and its
-applicability on a data file in each direction.  "required" means
-the data server MUST support the operation when received on the
-indicated path; "OPT" means the data server MAY support it and the
-client MUST tolerate the absence of support; "MUST NOT" means the
-client MUST NOT send the operation and the data server MUST reject
-it with NFS4ERR_NOTSUPP; "MAY" means the metadata server MAY use
-the operation as an implementation-defined control-plane action.
+The classification below adapts the operation taxonomy of
+{{RFC8881}} Section 17 (REQUIRED / RECOMMENDED / OPTIONAL /
+MUST NOT IMPLEMENT) to the two-direction per-operation view a
+Flexible File Version 2 data server requires.  Two of the four
+labels in the table below match {{RFC8881}} usage; the other
+two are extensions specific to this document.
+
+REQUIRED:
+:  The data server MUST support the operation on this path.
+   Matches {{RFC8881}} Section 17 REQ.
+
+OPTIONAL:
+:  The data server MAY support the operation; if it does, the
+   actor in this column MUST tolerate the absence of support.
+   Matches {{RFC8881}} Section 17 OPT.
+
+MUST NOT:
+:  The actor in this column MUST NOT send the operation, and
+   the data server MUST reject it with NFS4ERR_NOTSUPP.  This
+   per-direction prohibition extends {{RFC8881}} Section 17's
+   single-axis MUST NOT IMPLEMENT classification: an operation
+   may be forbidden on one path (client to data server) while
+   required on another (metadata server to data server).
+   SETATTR is the canonical example.
+
+MAY:
+:  The metadata server MAY use the operation as an
+   implementation-defined control-plane action.  Not in
+   {{RFC8881}} Section 17; specific to the metadata-server-to-
+   data-server path in this document.
 
  | Operation                        | Client -> data server                | metadata server -> data server          |
  | ---
- | SEQUENCE, PUTFH, GETFH, PUTROOTFH | required                   | required           |
- | EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION, BIND_CONN_TO_SESSION, DESTROY_CLIENTID | required | required  |
- | RECLAIM_COMPLETE                  | required                   | required           |
- | SECINFO, SECINFO_NO_NAME          | required                   | MAY                |
- | GETATTR                           | OPT (non-authoritative)    | required           |
- | SETATTR                           | MUST NOT                   | required           |
- | LOOKUP, CREATE, REMOVE            | MUST NOT                   | required           |
- | READ, WRITE, COMMIT               | required (mirrored); MUST NOT (erasure-coded) | MAY |
- | READ_PLUS, SEEK, ALLOCATE         | OPT (mirrored); MUST NOT (erasure-coded)      | MAY |
+ | SEQUENCE, PUTFH, GETFH, PUTROOTFH | REQUIRED                   | REQUIRED           |
+ | EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION, BIND_CONN_TO_SESSION, DESTROY_CLIENTID | REQUIRED | REQUIRED  |
+ | RECLAIM_COMPLETE                  | REQUIRED                   | REQUIRED           |
+ | SECINFO, SECINFO_NO_NAME          | REQUIRED                   | MAY                |
+ | GETATTR                           | OPTIONAL (non-authoritative) | REQUIRED         |
+ | SETATTR                           | MUST NOT                   | REQUIRED           |
+ | LOOKUP, CREATE, REMOVE            | MUST NOT                   | REQUIRED           |
+ | READ, WRITE, COMMIT               | REQUIRED (mirrored); MUST NOT (erasure-coded) | MAY |
+ | READ_PLUS, SEEK, ALLOCATE         | OPTIONAL (mirrored); MUST NOT (erasure-coded) | MAY |
  | DEALLOCATE                        | MUST NOT                   | MAY                |
- | CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_HEADER_READ, CHUNK_LOCK, CHUNK_UNLOCK, CHUNK_ROLLBACK | required (erasure-coded); MUST NOT (mirrored) | not used |
- | CHUNK_ERROR, CHUNK_REPAIRED, CHUNK_WRITE_REPAIR | required (erasure-coded repair clients); MUST NOT (mirrored) | not used |
- | OPEN, CLOSE, OPEN_DOWNGRADE, OPEN_CONFIRM | MUST NOT           | OPT (proxy I/O)    |
+ | CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_HEADER_READ, CHUNK_LOCK, CHUNK_UNLOCK, CHUNK_ROLLBACK | REQUIRED (erasure-coded); MUST NOT (mirrored) | not used |
+ | CHUNK_ERROR, CHUNK_REPAIRED, CHUNK_WRITE_REPAIR | REQUIRED (erasure-coded repair clients); MUST NOT (mirrored) | not used |
+ | OPEN, CLOSE, OPEN_DOWNGRADE, OPEN_CONFIRM | MUST NOT           | OPTIONAL (proxy I/O) |
  | LOCK, LOCKU, LOCKT, RELEASE_LOCKOWNER | MUST NOT               | MUST NOT           |
  | DELEGPURGE, DELEGRETURN, WANT_DELEGATION | MUST NOT            | MUST NOT           |
  | RENAME, LINK, SYMLINK             | MUST NOT                   | MUST NOT           |
  | CLONE, COPY, COPY_NOTIFY, OFFLOAD_CANCEL, OFFLOAD_STATUS | MUST NOT | MAY (data migration) |
  | LAYOUTGET, LAYOUTCOMMIT, LAYOUTRETURN, LAYOUTSTATS, LAYOUTERROR, GETDEVICEINFO, GETDEVICELIST | MUST NOT | MUST NOT |
  | ACL-scoped GETATTR/SETATTR bits   | MUST NOT                   | MAY                |
- | TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID | MUST NOT  | required (tight coupling) |
+ | TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID | MUST NOT  | REQUIRED (tight coupling) |
 {: #tbl-ops-allowed title="NFSv4.2 operations allowed on data files"}
 
 
