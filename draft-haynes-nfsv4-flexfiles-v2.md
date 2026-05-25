@@ -541,7 +541,21 @@ tight coupling:
 :  an arrangement in which the control protocol is one designed
 specifically for control communication.  It may be either a proprietary
 protocol adapted specifically to a particular metadata server or a
-protocol based on a Standards Track document.
+protocol based on a Standards Track document.  The specific
+tight-coupling variant defined by this document, in which the
+control protocol is the TRUST_STATEID family, is referred to as
+trusted-stateid tight coupling (see {{sec-tight-coupling-control}}).
+
+trusted-stateid tight coupling:
+
+:  the specific tight-coupling control protocol defined in this
+document, consisting of the operations TRUST_STATEID, REVOKE_STATEID,
+and BULK_REVOKE_STATEID.  Within the scope of this document,
+unqualified references to "tight coupling" or "tightly coupled" refer
+to trusted-stateid tight coupling unless the context explicitly
+discusses the general concept.  Other tight-coupling control
+protocols (proprietary or future Standards Track) may exist but
+are not covered by this specification.
 
 uid:
 
@@ -943,13 +957,26 @@ control protocol that:
     client's authorization -- for example, on CB_LAYOUTRECALL
     timeout, lease expiry, or layout return after error.
 
-This specification defines that control protocol as three new
-NFSv4.2 operations: TRUST_STATEID ({{sec-TRUST_STATEID}}),
-REVOKE_STATEID ({{sec-REVOKE_STATEID}}), and BULK_REVOKE_STATEID
+This specification defines one such control protocol, designated
+*trusted-stateid tight coupling*, as three new NFSv4.2 operations:
+TRUST_STATEID ({{sec-TRUST_STATEID}}), REVOKE_STATEID
+({{sec-REVOKE_STATEID}}), and BULK_REVOKE_STATEID
 ({{sec-BULK_REVOKE_STATEID}}).  These operations are sent by the
 metadata server to each storage device over a dedicated control
 session (see {{sec-tight-coupling-control-session}}) and MUST NOT
 be sent by pNFS clients.
+
+Other tight-coupling control protocols may be defined elsewhere
+(proprietary or future Standards Track work).  Their interoperability
+with trusted-stateid tight coupling is outside the scope of this
+document.  A storage device that does not implement TRUST_STATEID
+is treated as not supporting trusted-stateid tight coupling
+specifically; the capability probe in {{sec-tight-coupling-probe}}
+detects this and the metadata server falls back to loose coupling
+({{sec-tight-coupling-compat}}).  Within the remainder of
+{{sec-tight-coupling-control}} and its subsections, unqualified
+references to "tight coupling" or "tightly coupled" refer to the
+trusted-stateid variant defined here.
 
 The receiver of these operations is any server the metadata
 server delegates client-I/O admission to.  In this document that
