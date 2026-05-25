@@ -6507,21 +6507,78 @@ NFS4ERR_STALE:
 
 ### DESCRIPTION
 
-CHUNK_ERROR allows a client to report that one or more chunks at
-the specified block range are in error.  The cea_offset is the
-starting block offset and cea_count is the number of blocks
-affected.  The cea_error indicates the type of error detected
-(e.g., NFS4ERR_PAYLOAD_NOT_ATOMIC for a CRC mismatch).
+CHUNK_ERROR allows a client that has detected corruption or
+inconsistency in a chunk to report the condition to the data
+server, so that the data server can mark the affected chunks
+as errored.  Errored chunks are excluded from subsequent
+CHUNK_READ responses until they are repaired via
+CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) and the
+repair is confirmed via CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}).
 
-The data server records the error state for the affected blocks.
-Once marked as errored, the blocks are not returned by CHUNK_READ
-until they are repaired via CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}})
-and the repair is confirmed via CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}).
+CHUNK_ERROR has no direct analog in {{RFC8881}}.  The closest
+parallel is LAYOUTERROR ({{RFC7862}} Section 15.6), which
+reports layout-level errors to the metadata server.
+CHUNK_ERROR is the data-path counterpart: it reports a
+chunk-level integrity finding directly to the data server so
+that the corrupted chunks are quarantined before the
+metadata server has had time to coordinate repair.  A client
+SHOULD issue CHUNK_ERROR to the data server holding the bad
+chunks before issuing LAYOUTERROR to the metadata server.
 
-The client SHOULD report errors via CHUNK_ERROR before reporting
-them to the metadata server via LAYOUTERROR.  This allows the data
-server to prevent other clients from reading corrupt data while
-the metadata server coordinates repair.
+The client provides:
+
+cea_stateid:
+:  the layout stateid the metadata server granted for
+   this file.  Under trusted-stateid tight coupling
+   ({{sec-TRUST_STATEID}}), this stateid MUST be in the
+   data server's trust table; otherwise the data server
+   rejects the operation with NFS4ERR_BAD_STATEID.
+
+cea_offset:
+:  starting chunk index of the affected range (not a byte
+   offset).
+
+cea_count:
+:  number of chunks the affected range covers, starting at
+   cea_offset.
+
+cea_error:
+:  the nfsstat4 error code that describes the integrity
+   finding.  Typical values include
+   NFS4ERR_PAYLOAD_NOT_ATOMIC (the chunk's persisted CRC32
+   or guard did not match the value the client expected),
+   NFS4ERR_IO (the client's CHUNK_READ returned an I/O
+   error from this data server), and NFS4ERR_INVAL (the
+   chunk's chunk_owner4 did not match the expected
+   generation across mirrors).  The data server MAY record
+   the supplied error code in operator logs but does not
+   otherwise interpret it; the chunk-level effect (mark
+   errored) is the same for any cea_error value.
+
+cea_owner:
+:  the chunk_owner4 ({{fig-chunk_owner4}}) the client read
+   when it observed the error, so the data server can
+   record which (cg_gen_id, cg_client_id) generation was
+   reported as corrupted.  The reserved sentinels
+   CHUNK_GUARD_CLIENT_ID_NONE and
+   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear in
+   cea_owner; see {{sec-chunk_guard_none}} and
+   {{sec-chunk_guard_mds}}.
+
+CHUNK_ERROR returns a single top-level status in cer_status;
+there is no per-chunk status array because the data server
+either accepts the report for the whole range or returns a
+top-level error.  Once a CHUNK_ERROR has been accepted, the
+affected chunks transition into the errored state described
+in {{sec-system-model-chunk-state}}; subsequent CHUNK_READ
+operations against those chunks return
+NFS4ERR_PAYLOAD_NOT_ATOMIC in the per-chunk cr_status slot
+until a successful CHUNK_REPAIRED sequence clears the
+errored flag.
+
+If the current filehandle is not an ordinary file, an
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).
 
 ### RESPONSE CODES
 
