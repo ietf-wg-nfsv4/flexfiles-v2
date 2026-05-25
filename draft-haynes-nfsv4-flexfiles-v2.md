@@ -3213,42 +3213,35 @@ The repair topology involves three actors communicating along
 distinct paths, as shown in {{fig-repair-topology}}.
 
 ~~~
-     +------------+              +----------------+
-     | Reporting  |              |                |
-     | client     | ----(1)----> |    Metadata    |
-     | (detects   | LAYOUTERROR  |    server      |
-     |  error)    |              |                |
-     +------------+              +----------------+
-                                   |        ^  ^
-                                   | (2a)   |  |
-                                   |        |  |
-                           +-------+--+  (2b) (3)
-                           |          |  |   |
-                 CB_CHUNK_REPAIR      |   |  |
-                 (RACE or SCRUB)      |   |  |
-                                   |   |   |  |
-                                   v   |   |  |
-     +-------------+           +--------+-------------+
-     |  Repair     | ----(4)-> |                      |
-     |  client     |  CHUNK_   |    Data servers      |
-     |  (selected  |  LOCK_    |    (mirror set for   |
-     |   by metadata server)   |  ADOPT,   |    affected ranges)  |
-     |             |  CHUNK_   |                      |
-     |             |  WRITE_   +----------------------+
-     |             |  REPAIR,
-     |             |  CHUNK_
-     |             |  FINALIZE,
-     |             |  CHUNK_
-     |             |  COMMIT,
-     |             |  CHUNK_
-     |             |  REPAIRED
-     +-------------+
+     +-------------+      (1)         +-----------------+
+     |  Reporting  | ---------------> |                 |
+     |  client     |   LAYOUTERROR    |       MDS       |
+     |  (detects   |                  |                 |
+     |  error)     |                  |                 |
+     +-------------+                  +--------+--------+
+                                               |
+                                               | (2b)
+                                               | CB_CHUNK_REPAIR
+                                               | (RACE or SCRUB)
+                                               v
+     +-------------+      (4)         +-----------------+
+     |  Repair     | ---------------> |      DSes       |
+     |  client     |    CHUNK_*       |  (mirror set    |
+     |  (selected  |                  |  for affected   |
+     |  per (2a),  |                  |  ranges)        |
+     |  adopts     |                  |                 |
+     |  lock (3))  |                  |                 |
+     +-------------+                  +-----------------+
 
-     (1) Reporter LAYOUTERRORs the metadata server.
-     (2a) metadata server selects a repair client (may be same as reporter).
-     (2b) metadata server escrows the chunk lock and issues CB_CHUNK_REPAIR.
-     (3)  Repair client adopts the lock and drives the repair.
-     (4)  Repair client issues CHUNK_* ops against the mirror set.
+     (1)   Reporting client LAYOUTERRORs the metadata server.
+     (2a)  Metadata server selects a repair client (may be same
+           as the reporting client).
+     (2b)  Metadata server escrows the chunk lock and issues
+           CB_CHUNK_REPAIR to the selected repair client.
+     (3)   Repair client adopts the lock and drives the repair.
+     (4)   Repair client issues CHUNK_LOCK_ADOPT, CHUNK_WRITE_REPAIR,
+           CHUNK_FINALIZE, CHUNK_COMMIT, and CHUNK_REPAIRED against
+           the mirror set.
 ~~~
 {: #fig-repair-topology title="Repair topology"}
 
