@@ -200,8 +200,8 @@ non-atomicity -- while preserving the client-side compute model.
 The chunk_guard4 per-chunk header is 8 bytes total (a 32-bit
 generation id and a 32-bit owning-client short-id); this keeps
 the metadata-server overhead for maintaining erasure-coding
-atomicity to the smallest value that still admits a CAS
-tiebreaker.
+atomicity to the smallest value that still admits a
+compare-and-swap (CAS) tiebreaker.
 
 An alternative to client-side erasure coding is to keep the
 erasure-coding transform inside the storage system -- that is, on
@@ -2908,7 +2908,7 @@ Integrity:
    application.
 
 The separation matters because the two checks detect different
-failure modes.  Consistency detects protocol-level failures (racing
+failure modes.  Atomicity detects protocol-level failures (racing
 writers, partial writes, rollback windows); the CRC32 detects
 byte-level corruption (network errors, media errors, software bugs
 in the erasure transform).  Neither subsumes the other.
@@ -2917,10 +2917,10 @@ The two-level integrity model also reflects a deeper property of
 distributed writes: **last-writer-wins does not apply to a payload
 spread across independent data servers.**  The ordering of writes
 arriving at one data server may differ from the ordering arriving
-at another; the "last" write on DSa may well be the "first" on
-DSc.  The chunk_guard4 CAS primitive (see {{sec-chunk_guard4}})
-resolves this by serializing concurrent writers per chunk rather
-than by imposing a global order.
+at another; the "last" write on one data server may well be the
+"first" on another.  The chunk_guard4 CAS primitive (see
+{{sec-chunk_guard4}}) resolves this by serializing concurrent
+writers per chunk rather than by imposing a global order.
 
 The erasure coding algorithm itself might not be sufficient to
 detect all byte-level errors in the chunks.  The CRC32 checks
