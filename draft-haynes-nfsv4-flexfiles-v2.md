@@ -9496,6 +9496,168 @@ is used as the security mechanism, then the storage device could
 use a control protocol to validate the RPC credentials to the
 metadata server.
 
+##  Trusted Stateids {#sec-security-trust-stateid}
+
+The TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID
+operations ({{sec-TRUST_STATEID}}, {{sec-REVOKE_STATEID}},
+{{sec-BULK_REVOKE_STATEID}}) introduce a per-stateid
+authorization channel between the metadata server and the
+data server.  The security implications of that channel are
+distinct from those of the loosely coupled synthetic-uid
+model ({{sec-Fencing-Clients}}) and warrant their own
+treatment.
+
+###  Interaction with Kerberos and RPCSEC_GSS
+
+Trusted stateids decouple the credential the data server
+uses to authorize I/O from the credential the client uses
+to authenticate to the data server.  Under loose coupling
+({{sec-Fencing-Clients}}), the metadata server inserts a
+synthetic uid/gid into the layout and the client presents
+that synthetic credential on every data-server RPC; the
+data server has no independent verification of the
+client's identity, and a client that learns another
+client's synthetic uid/gid can impersonate it on the data
+path.  Tight coupling via TRUST_STATEID changes this in
+three ways:
+
+-  The metadata server records the client's authenticated
+   principal in the trust entry via tsa_principal at
+   TRUST_STATEID time ({{sec-TRUST_STATEID}}).  Under
+   RPCSEC_GSS (typically Kerberos V5 GSS-API per
+   {{RFC4121}}), tsa_principal is the GSS display name
+   (for example, "alice@REALM"); under AUTH_SYS and TLS,
+   tsa_principal is the empty string.
+
+-  The client presents its own RPCSEC_GSS context on each
+   CHUNK_* operation against the data server.  Under
+   tight coupling with GSS, the data server MUST verify
+   that the principal carried in the inbound RPC's
+   RPCSEC_GSS context matches the tsa_principal recorded
+   for the stateid in its trust table; a mismatch returns
+   NFS4ERR_ACCESS.  A client that learned another
+   client's layout stateid (from a log file, a packet
+   capture of cleartext RPC, or any other leak) cannot
+   use it because their own GSS principal would not
+   match.
+
+-  The data server does NOT need its own Kerberos keytab
+   to validate each client principal individually.  In a
+   loose-coupling Kerberos deployment the data server
+   would have to be a service principal in every realm
+   it serves clients from; under tight coupling the data
+   server's keytab is only required for its session with
+   the metadata server (the control session,
+   {{sec-tight-coupling-control}}).  Operational
+   complexity of Kerberos deployment is meaningfully
+   reduced.
+
+The mechanism does not authenticate the metadata server
+to the client; it authenticates the client to the data
+server using credentials the metadata server vouched for
+at LAYOUTGET time.  Compromise of the metadata server
+allows an attacker to register arbitrary trust entries;
+the metadata server is the trust anchor for the layout
+grant, unchanged from the existing pNFS layout-issuance
+model.
+
+###  Attack Surfaces and Mitigations
+
+Compromised metadata server:
+:  An attacker controlling the metadata server can issue
+   TRUST_STATEID for any (layout stateid, principal)
+   pair.  This is the same trust assumption pNFS already
+   makes -- the metadata server grants layouts and the
+   data servers honour them.  Deployment defence is the
+   same: restrict administrative access to the metadata
+   server, require RPCSEC_GSS or RPC-over-TLS
+   ({{RFC9289}}) with mutual authentication on the
+   control session ({{sec-tight-coupling-control}}), and
+   monitor for anomalous TRUST_STATEID volume.
+
+Compromised data server:
+:  A compromised data server sees plaintext chunk
+   payloads at rest and on the wire (subject to whatever
+   the deployment uses for at-rest encryption and
+   transport security).  It can return arbitrary content
+   on CHUNK_READ with a correctly computed CRC32; the
+   CRC32 protects against transport corruption, not
+   adversarial content ({{sec-security-crc32-scope}}).
+   This is the same as the RAID-stripe trust model:
+   each shard host can lie about its shard.  Deployment
+   defences are encryption at rest, an integrity-
+   protected transport (RPCSEC_GSS_KRB5I or TLS), and
+   physical or logical isolation of data servers.
+
+Stateid leak from client to attacker:
+:  Under tight coupling with RPCSEC_GSS, a leaked
+   stateid is not exploitable: the attacker's own RPC
+   principal will not match tsa_principal in the trust
+   table, and the data server returns NFS4ERR_ACCESS.
+   Under tight coupling with AUTH_SYS over TLS (where
+   tsa_principal is empty), a leaked stateid is
+   exploitable by any attacker who can also forge the
+   source-address binding the data server's TLS session
+   expects; this is the standard AUTH_SYS-over-TLS
+   trust model, unchanged.
+
+Replay of revoked stateid:
+:  After REVOKE_STATEID or BULK_REVOKE_STATEID the data
+   server removes the trust entry and subsequent CHUNK_*
+   operations presenting the revoked stateid fail with
+   NFS4ERR_BAD_STATEID ({{sec-REVOKE_STATEID}}).  An
+   in-flight CHUNK_* operation that arrived before the
+   revoke completed MAY be allowed to finish; the
+   chunk_guard4 CAS ({{sec-chunk_guard4}}) bounds the
+   worst-case damage from such in-flight I/O to the
+   chunks already PENDING at revocation time, and the
+   lock-transfer-to-MDS-escrow rule
+   ({{sec-chunk_guard_mds}}) prevents a write hole from
+   opening during revocation.
+
+Compromised control session:
+:  An attacker who controls the metadata-server-to-data-
+   server control session can register or revoke
+   arbitrary trust entries.  The control session is the
+   most security-sensitive surface introduced by tight
+   coupling.  Deployment MUST protect it with RPCSEC_GSS
+   ({{RFC7861}}) using a service principal both sides
+   trust, or with RPC-over-TLS ({{RFC9289}}) using
+   mutual authentication and allowlisted certificates.
+   The data server enforces that TRUST_STATEID,
+   REVOKE_STATEID, and BULK_REVOKE_STATEID only arrive
+   on sessions whose owning client presented
+   EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
+   ({{sec-TRUST_STATEID}}), but that flag alone does not
+   authenticate the metadata server.
+
+Resource exhaustion via trust-table flood:
+:  A misbehaving metadata server could register an
+   unbounded number of TRUST_STATEID entries to exhaust
+   the data server's trust-table memory.  The mechanism
+   defending against this is the tsa_expire lease on
+   each entry: trust entries that are not renewed
+   before expiry are reaped by the data server.  A data
+   server under memory pressure MAY also return
+   NFS4ERR_DELAY on new TRUST_STATEID requests, forcing
+   the metadata server to back off.
+
+Cross-metadata-server isolation:
+:  In a deployment where two metadata servers share a
+   single data server, the per-entry metadata-server
+   tag (derived from the control session's owning
+   client; see {{sec-TRUST_STATEID}}) ensures that
+   REVOKE_STATEID and BULK_REVOKE_STATEID from one
+   metadata server cannot remove entries registered by
+   the other.  A compromised metadata server can,
+   however, register entries against any filehandle the
+   data server exposes to it.  Deployments concerned
+   about cross-metadata-server isolation MUST partition
+   the data server's filesystem namespace into
+   per-metadata-server exports at the data server,
+   rather than rely on the trust table alone to enforce
+   file-level boundaries between metadata servers.
+
 #  IANA Considerations {#iana-considerations}
 
 {{RFC8881}} introduced the "pNFS Layout Types Registry"; new layout
