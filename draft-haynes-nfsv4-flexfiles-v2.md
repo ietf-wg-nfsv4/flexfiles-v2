@@ -5358,7 +5358,7 @@ operations.
 {: #fig-ff_io_latency4 title="ff_io_latency4"}
 
 Both operation counts and bytes transferred are kept in the
-ff_io_latency4 (see {{fig-ff_io_latency4}}.  As seen in ff_layoutupdate4
+ff_io_latency4 (see {{fig-ff_io_latency4}}).  As seen in ff_layoutupdate4
 (see {{sec-ff_layoutupdate4}}), READ and WRITE operations are
 aggregated separately.  READ operations are used for the ff_io_latency4
 ffv2l_read.  Both WRITE and COMMIT operations are used for the
@@ -9267,7 +9267,7 @@ device.
 
 The metadata server enforces the file access control policy at
 LAYOUTGET time.  The client MUST use RPC authorization credentials
-for getting the layout for the requested iomode ((LAYOUTIOMODE4_READ
+for getting the layout for the requested iomode (LAYOUTIOMODE4_READ
 or LAYOUTIOMODE4_RW), and the server verifies the permissions and
 ACL for these credentials, possibly returning NFS4ERR_ACCESS if the
 client is not allowed the requested iomode.  If the LAYOUTGET
