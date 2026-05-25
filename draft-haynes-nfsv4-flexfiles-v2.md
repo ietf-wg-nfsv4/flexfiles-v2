@@ -5007,7 +5007,7 @@ lifetime or during a proxy server transition.  A client that uses a
 data-server GETATTR result to determine the file's visible size
 will observe inconsistencies.
 
-### SETATTR on a Data File
+### SETATTR on a Data File {#sec-setattr-on-data-file}
 
 Clients MUST NOT issue SETATTR against a data file.  A data server
 MUST reject a client SETATTR with NFS4ERR_NOTSUPP.
@@ -5021,9 +5021,48 @@ metadata server fans the change out to the data files as a
 control-plane operation.
 
 This rule explicitly covers truncate (SETATTR with size in the
-bitmap): a client MUST NOT truncate a data file directly.
-Similarly, a client MUST NOT issue DEALLOCATE against a data
-file; see the next subsection.
+bitmap): a client MUST NOT truncate a data file directly.  See
+{{sec-mds-truncate-ec}} for how the metadata server handles
+truncate on erasure-coded files.  Similarly, a client MUST NOT
+issue DEALLOCATE against a data file; see the next subsection.
+
+### MDS-Driven Truncate on Erasure-Coded Files {#sec-mds-truncate-ec}
+
+A client that wants to truncate an erasure-coded file MUST
+issue SETATTR(FATTR4_SIZE) to the metadata-server filehandle
+(see {{sec-setattr-on-data-file}}).  The metadata server
+translates the logical truncate into per-shard size changes
+across the data servers in each mirror.
+
+Stripe-aligned truncate:
+:  When the new size lies on a stripe boundary (including
+   zero), no chunk re-encoding is required.  The metadata
+   server computes per-shard sizes from the codec geometry it
+   issued in the layout (k, m, and the projection parameters
+   for Mojette; see {{sec-mojette-encoding}}) and issues
+   per-data-server SETATTR(FATTR4_SIZE) with the computed
+   per-shard size.  Geometry parameters are sufficient
+   arithmetic; no codec implementation is required at the
+   metadata server.
+
+Non-stripe-aligned truncate:
+:  When the new size falls within a stripe, the data shards
+   covering the partial stripe must be truncated and the
+   parity shards re-encoded from the truncated data.  Because
+   re-encoding requires running the erasure transform, the
+   metadata server MUST delegate this case to a codec-aware
+   actor: either a Proxy Server
+   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) for
+   proxy-mediated truncate, or a codec-aware client selected
+   per {{sec-repair-selection}} via CB_CHUNK_REPAIR with the
+   affected partial-stripe chunks as the repair target.  If
+   neither path is available, the metadata server MUST return
+   NFS4ERR_NOTSUPP to the originating SETATTR.
+
+The metadata server knows codec geometry from the layout but
+is not required to include a codec implementation.  The
+delegation rule above accommodates a metadata server that has
+geometry knowledge only.
 
 ### PASSTHROUGH Data Files (FFV2_ENCODING_PASSTHROUGH)
 
@@ -5087,6 +5126,10 @@ Clients MUST NOT send:
    mirror's ffv2m_coding_type_data before issuing I/O.
 -  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against an erasure-coded data file.  Chunk-level allocation is a
    metadata-server responsibility.
+-  SETATTR against an erasure-coded data file (the general
+   prohibition in {{sec-setattr-on-data-file}} applies to all
+   data files; truncate in particular is handled by the
+   metadata server per {{sec-mds-truncate-ec}}).
 
 ### Operations That MUST NOT Be Sent to a Data File
 
