@@ -204,6 +204,68 @@ unchanged.  Only source-code identifiers move.  Mechanical
 replace with a careful grep for the old name to confirm
 zero residual.
 
+## Pending change 5: add CHUNK_GUARD_CLIENT_ID_NONE reservation
+
+**Status: spec change applied on flexfiles-v2.  reffs side not yet
+updated.**
+
+The flexfiles-v2 draft reserves both ends of the cg_client_id
+value space:
+
+- `CHUNK_GUARD_CLIENT_ID_NONE` (0x00000000) -- new, reserves the
+  zero value so an uninitialized field cannot pass as a real
+  client and so the deterministic tiebreaker (numerically lowest
+  wins) does not encode an implicit priority via assignment of 0.
+- `CHUNK_GUARD_CLIENT_ID_MDS` (0xFFFFFFFF) -- already present,
+  reserves the all-ones value for the MDS escrow identity used
+  during in-flight repair.
+
+### What reffs has today
+
+`CHUNK_GUARD_CLIENT_ID_MDS = 0xFFFFFFFF` is defined in
+`lib/xdr/nfsv42_xdr.x`.  `CHUNK_GUARD_CLIENT_ID_NONE` is not yet
+defined.  The MDS at present does not assign `cg_client_id = 0`
+to any client (it allocates from a per-file counter that starts
+above 0), but the rule is not enforced and the constant is not
+named.
+
+### What reffs needs to change
+
+1. **XDR**: add the constant at `lib/xdr/nfsv42_xdr.x` adjacent
+   to the existing `CHUNK_GUARD_CLIENT_ID_MDS`:
+
+   ```
+   const CHUNK_GUARD_CLIENT_ID_NONE = 0x00000000;
+   const CHUNK_GUARD_CLIENT_ID_MDS  = 0xFFFFFFFF;
+   ```
+
+2. **Regenerate XDR**: rerun `xdr-parser` to update the generated
+   C and Python headers.
+
+3. **MDS-side assignment enforcement**: in the MDS's per-file
+   cg_client_id allocator (likely in `lib/nfs4/server/layout.c`
+   or wherever `ffv2m_client_id` is populated), assert that the
+   assigned value is in the open interval (0, 0xFFFFFFFF) -- i.e.,
+   != NONE and != MDS.  If the allocator's natural range already
+   excludes both, the assert documents the invariant; if the
+   allocator could produce 0, fix the allocator to skip 0.
+
+4. **DS-side rejection**: in CHUNK_WRITE / CHUNK_LOCK / any path
+   that inspects an inbound `chunk_guard4` or `chunk_owner4`,
+   reject with `NFS4ERR_INVAL` if `cg_client_id` is either
+   `CHUNK_GUARD_CLIENT_ID_NONE` or `CHUNK_GUARD_CLIENT_ID_MDS`.
+   The MDS-sentinel check likely exists; add the NONE check
+   alongside it.  Likely paths: `lib/nfs4/server/chunk.c`.
+
+5. **Tests**: add unit tests asserting (a) MDS allocator never
+   produces 0, (b) DS rejects inbound 0 with NFS4ERR_INVAL.
+
+6. **Build verification**: `make -f Makefile.reffs ci-check`.
+
+Mechanical change with two narrow on-wire guards.  No deployed
+on-disk format is affected (the change rejects values that
+should never have been on the wire).
+
 ## Pending change 4 (deferred): MACHINE_ID_ANNOUNCE op
 
 **Status: spec discussion recorded in `layout-affinity.md`; not

@@ -5842,6 +5842,7 @@ chunks.
 ## chunk_guard4 {#sec-chunk_guard4}
 
 ~~~ xdr
+   /// const CHUNK_GUARD_CLIENT_ID_NONE = 0x00000000;
    /// const CHUNK_GUARD_CLIENT_ID_MDS  = 0xFFFFFFFF;
    ///
    /// struct chunk_guard4 {
@@ -5948,6 +5949,13 @@ populating ffv2m_client_id at layout-grant time):
    that holds only a read layout need not be assigned a
    distinct value.
 
+-  The reserved sentinel CHUNK_GUARD_CLIENT_ID_NONE (0x00000000)
+   MUST NOT be assigned to any client.  Reserving 0 prevents an
+   uninitialized cg_client_id field from passing as a real
+   client and ensures the deterministic tiebreaker (numerically
+   lowest wins) does not encode an implicit priority via
+   assignment of 0.
+
 -  The reserved sentinel CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF)
    MUST NOT be assigned to any client.
 
@@ -5993,6 +6001,20 @@ contract locally:
    rejected.  Unknown cg_client_id values are treated as stale
    layouts; the data server returns the error specified in
    {{sec-tight-coupling-control}} for unknown stateids.
+
+### Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_NONE {#sec-chunk_guard_none}
+
+The value `CHUNK_GUARD_CLIENT_ID_NONE` (0x00000000) is reserved.
+It does not denote any client.  Reserving 0 prevents an
+uninitialized cg_client_id field from passing as a real client
+and ensures the deterministic tiebreaker (numerically lowest
+wins, see {{sec-chunk_guard4}}) does not encode an implicit
+priority via assignment of 0.
+
+Clients MUST NOT present CHUNK_GUARD_CLIENT_ID_NONE as the
+cg_client_id of any client-originated chunk_guard4 or
+chunk_owner4.  A data server that receives such a value from
+a client MUST reject the operation with NFS4ERR_INVAL.
 
 ### Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS {#sec-chunk_guard_mds}
 
