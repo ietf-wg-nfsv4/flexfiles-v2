@@ -4896,21 +4896,6 @@ Authenticated malicious client protection:
    transport-integrity check, not an adversarial-integrity
    check.
 
-General-purpose intent primitive:
-:  Christoph Hellwig
-   observed at IETF 121 (November 2024) that the intent-based
-   pattern used here (CHUNK_WRITE -> CHUNK_FINALIZE ->
-   CHUNK_COMMIT with CHUNK_ROLLBACK as the abort path) has
-   potential applicability beyond erasure coding -- for
-   example, as a general multi-target atomic-ish write
-   primitive.  This document scopes the mechanism to erasure
-   coding: the on-wire operations carry erasure-coding-specific
-   semantics (chunk_guard4, mirror-set repair, per-codec
-   geometry), and generalising the primitive is explicit
-   future work.  Protocol extensions that reuse the
-   intent / finalize / commit pattern in other contexts are
-   not precluded by this document but are not defined by it.
-
 # NFSv4.2 Operations Allowed to Data Files
 
 In the Flexible File Version 1 Layout Type ({{RFC8435}}), the data path
@@ -8586,7 +8571,7 @@ disambiguator across clients.  See {{sec-chunk_guard4}}.
 ##  Layout-Level Generation Counter
 {:numbered="false"}
 
-Christoph Hellwig proposed at IETF 122 (March 2025) adding a
+An alternative raised at IETF 122 (March 2025) was adding a
 generation counter to the layout itself, transmitted to the
 data servers alongside each I/O, so that the metadata server
 could redirect writes to new data servers without issuing a
@@ -8628,8 +8613,8 @@ epoch.
 ##  Declustered RAID with Dynamic Parity Mapping
 {:numbered="false"}
 
-Christoph Hellwig raised at IETF 121 (November 2024) the
-possibility of borrowing from declustered RAID designs: the
+An alternative raised at IETF 121 (November 2024) was
+borrowing from declustered RAID designs: the
 metadata server maintains, for every fixed-size region of each
 file, a mapping from logical address to the specific data
 servers that currently hold that region's data and parity
