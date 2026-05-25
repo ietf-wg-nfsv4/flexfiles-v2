@@ -286,7 +286,7 @@ Multiple writers without sustained contention:
    locking cover this case without penalizing the common
    single-writer path.
 
-Multiple writers with high-frequency contention, no overwrite:
+Multiple writers, disjoint regions:
 :  Approximately 1% of expected deployments.  High-performance
    computing (HPC) checkpoint workloads, in which many ranks write
    disjoint regions of the same file in lockstep.  The protocol
