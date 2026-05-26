@@ -3222,11 +3222,12 @@ the CHUNK_WRITEargs.
 ~~~
 {: #fig-example-chunk-write-res title="Example of CHUNK_WRITE_res" }
 
-#### Worked Example: CRC32 Calculation and Checking
+#### Worked Example: Calculating the CRC32
 
-The examples in this subsection illustrate checksum
-computation and verification using CHECKSUM_ALG_CRC32 as
-the worked algorithm.  Other registered checksum algorithms
+The examples in this section and in
+{{sec-checking-crc32}} illustrate checksum computation
+and verification using CHECKSUM_ALG_CRC32 as the worked
+algorithm.  Other registered checksum algorithms
 (CHECKSUM_ALG_CRC32C, CHECKSUM_ALG_FLETCHER4,
 CHECKSUM_ALG_SHA256, CHECKSUM_ALG_SHA512,
 CHECKSUM_ALG_BLAKE3; see {{sec-checksum4}}) follow the same
@@ -3234,8 +3235,6 @@ pattern -- the algorithm names a function over the header
 and chunk bytes, the writer fills cs_value with the
 computed output, and the reader recomputes and compares.
 Only the algorithm and the cs_value length differ.
-
-##### Calculating the CRC32
 
 ~~~
   +--------------------+
@@ -3319,7 +3318,7 @@ the data.  The handling and repair are out of the scope of this
 document and MUST be addressed in the document describing each
 erasure coding type.
 
-##### Checking the CRC32
+#### Worked Example: Checking the CRC32 {#sec-checking-crc32}
 
 ~~~
   +------------------------------------+
@@ -8570,7 +8569,8 @@ requests an activation shortcut for first-time writes: a
 chunk that was EMPTY before the CHUNK_WRITE and whose
 write reaches FILE_SYNC4 or DATA_SYNC4 durability MAY be
 transitioned directly to COMMITTED by the data server,
-with cwr_block_activated[i] set to TRUE in the response.
+with the corresponding cwr_block_activated entry set to
+TRUE in the response.
 Without the flag, or for chunks that were not EMPTY
 before the write, or for writes at UNSTABLE4 durability,
 the chunk enters the PENDING state and reaches COMMITTED
@@ -8594,8 +8594,8 @@ and unstable writes in subtle ways:
    in the corresponding cwr_block_status slot.
 
 -  A client that issues an UNSTABLE4 CHUNK_WRITE and
-   observes cwr_block_activated[i] == FALSE in the
-   response MAY still find the chunk COMMITTED on a
+   observes a FALSE entry in cwr_block_activated for a
+   chunk MAY still find that chunk COMMITTED on a
    subsequent CHUNK_READ -- another client could have
    activated it via the shortcut after this one's
    response was sent.  cwr_block_activated reflects the
