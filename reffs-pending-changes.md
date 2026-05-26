@@ -215,6 +215,173 @@ grep -rlE '\b(ffl_|ffm_|ffie_|ffil_|ffis_|fflr_|fffi_|fflh_|ffs_data_servers)' \
   `FFV2_PROTECTION_TYPE_*`, `FFV2_STRIPING_*`) is independent
   of this rename; do not touch.
 
+## Pending change 6: replace hardcoded CRC32 with tagged checksum4
+
+**Status: spec change applied on flexfiles-v2 (tigran-5a
+through tigran-5h, commits 4f9792d6bbe4 through 5ae60839a625
+on 2026-05-25).  reffs side not yet updated.**
+
+### Why this needs to happen
+
+The draft now treats per-chunk integrity as a tagged
+`checksum4` carrying an algorithm identifier and an
+opaque value, rather than a hardcoded 4-byte CRC32.  A
+per-mirror algorithm field selects which algorithm a given
+file uses, with a defined error path
+(NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED) if the client does
+not implement the named algorithm.  Three reviewers (Tigran
+Mkrtchyan, Christoph Hellwig, Rick Macklem) converged
+independently on this change in the -04 review.
+
+Wire-incompatible: pre-tigran-5 implementations parsing the
+older fixed-4-byte CRC32 layout will not interoperate.  No
+deployed on-disk format exists, so no migration code is
+needed on the storage side; the client and server XDR + I/O
+paths need lock-step updates.
+
+### What reffs has today
+
+- `lib/xdr/nfsv42_xdr.x` carries `cr_crc` (uint32_t) in
+  `read_chunk4`, `cwa_crc32s<>` (uint32_t<>) in
+  `CHUNK_WRITE4args`, `cwra_crc32s<>` (uint32_t<>) in
+  `CHUNK_WRITE_REPAIR4args`.
+- Server code in `lib/nfs4/server/chunk.c` computes a CRC32
+  via the system `crc32` function (zlib) on every
+  CHUNK_WRITE and stores it; CHUNK_READ recomputes and
+  returns it.
+- Client code in `lib/nfs4/ps/chunk_io.c` and
+  `lib/nfs4/client/chunk_io.c` does the same on the
+  client side.
+- `ffv2_mirror4` has no `ffv2m_checksum_algorithm` field.
+- No `NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED` declared.
+
+### What reffs needs to change
+
+1. **XDR additions** in `lib/xdr/nfsv42_xdr.x`:
+
+   ```
+   typedef uint32_t   checksum_algorithm4;
+
+   const CHECKSUM_ALG_NONE      = 0;
+   const CHECKSUM_ALG_CRC32     = 1;
+   const CHECKSUM_ALG_CRC32C    = 2;
+   const CHECKSUM_ALG_FLETCHER4 = 3;
+   const CHECKSUM_ALG_SHA256    = 4;
+   const CHECKSUM_ALG_SHA512    = 5;
+   const CHECKSUM_ALG_BLAKE3    = 6;
+
+   struct checksum4 {
+       checksum_algorithm4   cs_algorithm;
+       opaque                cs_value<>;
+   };
+
+   const NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED = 10102;
+   ```
+
+2. **XDR field renames** in `lib/xdr/nfsv42_xdr.x`:
+
+   - `read_chunk4`: `uint32_t cr_crc` -> `checksum4 cr_checksum`.
+   - `CHUNK_WRITE4args`: `uint32_t cwa_crc32s<>` ->
+     `checksum4 cwa_checksums<>`.
+   - `CHUNK_WRITE_REPAIR4args`: `uint32_t cwra_crc32s<>` ->
+     `checksum4 cwra_checksums<>`.
+
+3. **ffv2_mirror4 addition** in `lib/xdr/nfsv42_xdr.x`:
+
+   ```
+   struct ffv2_mirror4 {
+       ffv2_coding_type_data4  ffv2m_coding_type_data;
+       ffv2_striping           ffv2m_striping;
+       uint32_t                ffv2m_striping_unit_size;
+       uint32_t                ffv2m_client_id;
+       checksum_algorithm4     ffv2m_checksum_algorithm;
+       ffv2_stripes4           ffv2m_stripes<>;
+   };
+   ```
+
+4. **Regenerate XDR** (xdr-parser): updates
+   `nfsv42_xdr_const.py`, `nfsv42_xdr_type.py`,
+   `nfsv42_xdr_pack.py`, `nfsv42_xdr.h`, `nfsv42_xdr.c`.
+
+5. **Algorithm dispatch** at server and client sites:
+
+   - Replace the direct `crc32()` calls with a dispatch
+     based on `cs_algorithm`.  At minimum implement
+     CHECKSUM_ALG_CRC32C (recommended default) and
+     CHECKSUM_ALG_CRC32 (preserves current reffs
+     interoperability with itself).
+   - CHECKSUM_ALG_NONE is a no-op (skip computation,
+     zero-length cs_value).
+   - SHA256 / SHA512 / BLAKE3 / FLETCHER4 are optional
+     in the initial reffs implementation; they can return
+     NFS4ERR_NOTSUPP until a deployment needs them.
+   - The dispatch should be a small table keyed by
+     `checksum_algorithm4` in
+     `lib/nfs4/server/chunk.c` (and the same on the
+     client side).  OpenSSL provides SHA-2 family;
+     CRC32C is in the Linux kernel's `crc32c` user
+     library or can be reimplemented with the SSE 4.2
+     `_mm_crc32_*` intrinsics.
+
+6. **MDS algorithm selection**: the metadata server picks
+   `ffv2m_checksum_algorithm` at LAYOUTGET time, per file
+   or per mirror, from a per-export or global config.
+   Reasonable default: CHECKSUM_ALG_CRC32C.
+
+7. **Client check** at LAYOUTGET response time: validate
+   each mirror's `ffv2m_checksum_algorithm` against the
+   client's supported-algorithms set; if any mirror's
+   algorithm is unsupported, issue LAYOUTRETURN with
+   `NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED`.
+
+8. **Server-side rejection**: on inbound CHUNK_WRITE /
+   CHUNK_WRITE_REPAIR, reject with `NFS4ERR_INVAL` if any
+   `cs_algorithm` does not match the file's mirror's
+   `ffv2m_checksum_algorithm`, or if `cs_value` length
+   does not match the registered length for the
+   algorithm.
+
+9. **Per-chunk-store persistence**: the chunk store
+   currently persists a 4-byte CRC32 per block.  Replace
+   with a variable-length checksum field carrying both
+   `cs_algorithm` and `cs_value`.  No deployed persistent
+   storage exists, so this is a fresh on-disk format
+   change with no migration code needed; bump the chunk
+   store version field.
+
+10. **Tests**: add unit tests for each algorithm's
+    encode/decode roundtrip; add a test that a layout with
+    an unsupported algorithm causes LAYOUTRETURN with the
+    new error code; add a wire-format roundtrip test
+    covering all initial algorithms.
+
+11. **Build verification**: `make -f Makefile.reffs ci-check`.
+
+### Sequence
+
+1. Branch (`checksum-agility`) via worktree.
+2. XDR const + struct additions + field renames.
+3. Regenerate XDR.
+4. Compile.  Mechanical fix of every reported error to use
+   the new field names and types.
+5. Wire algorithm dispatch tables (start with CRC32 +
+   CRC32C; others return NOTSUPP initially).
+6. MDS-side ffv2m_checksum_algorithm assignment policy.
+7. Client-side LAYOUTGET-time check + LAYOUTRETURN
+   on unsupported.
+8. Server-side inbound CHUNK_* rejection on algorithm or
+   length mismatch.
+9. Chunk store persistence format update.
+10. Unit tests.
+11. `make -f Makefile.reffs ci-check`.
+
+### Estimated scope
+
+Larger than tigran-1 through tigran-4 combined: wire format
+change, persistence format change, algorithm dispatch on
+both sides, error code, capability negotiation.  Budget a
+focused day-or-two with Docker build iteration.
+
 ## Pending change 4 (deferred): MACHINE_ID_ANNOUNCE op
 
 **Status: spec discussion recorded in `layout-affinity.md`; not
