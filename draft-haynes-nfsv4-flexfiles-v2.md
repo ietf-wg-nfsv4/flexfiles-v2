@@ -52,6 +52,7 @@ informative:
   RFC1813:
   RFC4519:
   RFC7942:
+  RFC8126:
   PARREIN:
     title: "Multiple Description Coding Using Exact Discrete Radon Transform"
     author:
@@ -9991,6 +9992,84 @@ erasure coding types (see {{tbl-coding-types}}).
  | FFV2_ENCODING_RS_VANDERMONDE         | 4     | RFCTBD10 | L   | 2        |
  | FFV2_ENCODING_MIRRORED               | 5     | RFCTBD10 | L   | 2        |
 {: #tbl-coding-types title="Flexible File Version 2 Layout Type Encoding Type Assignments"}
+
+##  Checksum Algorithm Registry {#iana-checksum-algorithms}
+
+This document introduces the "Flexible File Version 2
+Layout Type Checksum Algorithm Registry".  Values in this
+registry name the checksum_algorithm4
+({{sec-checksum4}}) carried in checksum4 on the wire and
+selected per-mirror via ffv2m_checksum_algorithm
+({{sec-ffv2-mirror4}}).
+
+The registry uses a 32-bit value space.  Registration
+policy is Specification Required {{RFC8126}}; the Designated
+Expert reviews each request for:
+
+-  a complete and publicly available specification of the
+   algorithm sufficient for independent interoperable
+   implementations;
+
+-  the exact length of the cs_value field for this
+   algorithm (a single registered length per algorithm;
+   variable-length variants register separately);
+
+-  collision risk against existing registrations (the
+   Expert MAY decline to register an algorithm whose
+   output overlaps substantially with an existing
+   registration).
+
+Initial registrations are listed in
+{{tbl-checksum-algorithms}}.
+
+ | Name | Value | cs_value bytes | Class | RFC |
+ | ---
+ | CHECKSUM_ALG_NONE      | 0 | 0  | none           | RFCTBD10 |
+ | CHECKSUM_ALG_CRC32     | 1 | 4  | bit-flip       | RFCTBD10 |
+ | CHECKSUM_ALG_CRC32C    | 2 | 4  | bit-flip       | RFCTBD10 |
+ | CHECKSUM_ALG_FLETCHER4 | 3 | 32 | bit-flip       | RFCTBD10 |
+ | CHECKSUM_ALG_SHA256    | 4 | 32 | cryptographic  | RFCTBD10 |
+ | CHECKSUM_ALG_SHA512    | 5 | 64 | cryptographic  | RFCTBD10 |
+ | CHECKSUM_ALG_BLAKE3    | 6 | 32 | cryptographic  | RFCTBD10 |
+{: #tbl-checksum-algorithms title="Initial Checksum Algorithm Registrations"}
+
+CHECKSUM_ALG_NONE (value 0) indicates that no
+protocol-level checksum is computed.  The deployment relies
+on transport-layer integrity (RPC-over-TLS, RPCSEC_GSS_KRB5I)
+or storage-layer integrity instead; see
+{{sec-security-checksum-scope}}.
+
+CHECKSUM_ALG_CRC32 (value 1) is the CRC32 algorithm used
+in this draft's predecessor revisions.  It is registered
+for backward conceptual compatibility; deployments
+SHOULD prefer CHECKSUM_ALG_CRC32C for new files since
+CRC32C is hardware-accelerated on every modern CPU.
+
+CHECKSUM_ALG_CRC32C (value 2) is the CRC32 with the
+Castagnoli polynomial (0x1EDC6F41), as used in iSCSI,
+SCTP, and the SSE4.2 / ARMv8 / RISC-V hardware-acceleration
+instructions.
+
+CHECKSUM_ALG_FLETCHER4 (value 3) is the Fletcher's
+checksum variant used in ZFS, comprising four 64-bit
+accumulators concatenated to produce a 32-byte output.
+Other Fletcher4 implementations that truncate to a
+shorter output register separately.
+
+CHECKSUM_ALG_SHA256 (value 4), CHECKSUM_ALG_SHA512 (value
+5), and CHECKSUM_ALG_BLAKE3 (value 6) are cryptographic
+hashes with standard outputs at the lengths listed.
+BLAKE3 is registered at its standard 32-byte output;
+extended-output BLAKE3 (the algorithm's XOF mode at other
+lengths) registers separately.
+
+A checksum4 whose cs_value length does not match the
+registered cs_value bytes for its cs_algorithm MUST be
+rejected with NFS4ERR_INVAL.
+
+The "Class" column in {{tbl-checksum-algorithms}} is
+informational and indicates the threat model the algorithm
+supports; see {{sec-security-checksum-scope}}.
 
 #  XDR Description of the Flexible File Version 2 Layout Type
 
