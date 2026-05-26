@@ -6184,6 +6184,77 @@ The co_guard is like the change attribute (see Section 5.8.1.4 of
 an unique co_guard.  I.e., it can be determined which transaction
 across all data files that a chunk corresponds.
 
+## checksum4 {#sec-checksum4}
+
+~~~ xdr
+   /// typedef uint32_t   checksum_algorithm4;
+   ///
+   /// const CHECKSUM_ALG_NONE      = 0;
+   /// const CHECKSUM_ALG_CRC32     = 1;
+   /// const CHECKSUM_ALG_CRC32C    = 2;
+   /// const CHECKSUM_ALG_FLETCHER4 = 3;
+   /// const CHECKSUM_ALG_SHA256    = 4;
+   /// const CHECKSUM_ALG_SHA512    = 5;
+   /// const CHECKSUM_ALG_BLAKE3    = 6;
+   /// /* Additional values registered with IANA;
+   ///    see Section "Checksum Algorithm Registry" in
+   ///    the IANA Considerations. */
+   ///
+   /// struct checksum4 {
+   ///     checksum_algorithm4   cs_algorithm;
+   ///     opaque                cs_value<>;
+   /// };
+~~~
+{: #fig-checksum4 title="XDR for checksum4" }
+
+The checksum4 (see {{fig-checksum4}}) is a tagged
+checksum value used to detect transport corruption and
+on-disk bit rot of chunk payloads.  Every chunk on the
+wire and at rest carries a checksum4 alongside its
+chunk_owner4.
+
+cs_algorithm:
+:  identifies the checksum algorithm.  The values
+   listed above are registered by this document; additional
+   values are managed by the IANA registry (see
+   "Checksum Algorithm Registry" in the IANA
+   Considerations section).  CHECKSUM_ALG_NONE indicates
+   the deployment relies on transport-layer (TLS, IPsec)
+   or storage-layer integrity instead of a protocol-level
+   per-chunk checksum.
+
+cs_value:
+:  the checksum bytes.  The length is fixed per registered
+   algorithm:
+
+   *  CHECKSUM_ALG_NONE: 0 bytes.
+
+   *  CHECKSUM_ALG_CRC32: 4 bytes.
+
+   *  CHECKSUM_ALG_CRC32C: 4 bytes.
+
+   *  CHECKSUM_ALG_FLETCHER4: 32 bytes (four 64-bit
+      accumulators, matching the ZFS Fletcher4 layout).
+
+   *  CHECKSUM_ALG_SHA256: 32 bytes.
+
+   *  CHECKSUM_ALG_SHA512: 64 bytes.
+
+   *  CHECKSUM_ALG_BLAKE3: 32 bytes (BLAKE3 standard
+      output length).
+
+   A checksum4 whose cs_value length does not match the
+   registered length for cs_algorithm MUST be rejected
+   with NFS4ERR_INVAL.
+
+The checksum algorithm for a given file is selected by
+the metadata server at LAYOUTGET time and carried in
+the layout (see {{sec-ffv2-mirror4}}).  A client that
+does not implement the algorithm a layout names returns
+the layout with NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED;
+the metadata server may then offer a layout with a
+different algorithm.
+
 # New NFSv4.2 Operations {#sec-new-ops}
 
 ~~~ xdr
@@ -7388,7 +7459,7 @@ NFS4ERR_SERVERFAULT:
 
 ~~~ xdr
    /// struct read_chunk4 {
-   ///     uint32_t        cr_crc;
+   ///     checksum4       cr_checksum;
    ///     uint32_t        cr_effective_len;
    ///     chunk_owner4    cr_owner;
    ///     uint32_t        cr_payload_id;
@@ -8125,7 +8196,7 @@ NFS4ERR_SERVERFAULT:
    ///     uint32_t           cwa_flags;
    ///     write_chunk_guard4 cwa_guard;
    ///     uint32_t           cwa_chunk_size;
-   ///     uint32_t           cwa_crc32s<>;
+   ///     checksum4          cwa_checksums<>;
    ///     opaque             cwa_chunks<>;
    /// };
 ~~~
@@ -8498,7 +8569,7 @@ NFS4ERR_STALE:
    ///     chunk_owner4       cwra_owner;
    ///     uint32_t           cwra_payload_id;
    ///     uint32_t           cwra_chunk_size;
-   ///     uint32_t           cwra_crc32s<>;
+   ///     checksum4          cwra_checksums<>;
    ///     opaque             cwra_chunks<>;
    /// };
 ~~~
