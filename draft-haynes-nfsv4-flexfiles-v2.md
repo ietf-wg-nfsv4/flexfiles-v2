@@ -5995,8 +5995,9 @@ chunks.
 ~~~
 {: #fig-chunk_guard4 title="XDR for chunk_guard4" }
 
-On the wire, a single CHUNK_WRITE carries the 8-byte header
-followed by the opaque payload, as shown in
+On the wire, a single CHUNK_WRITE carries the 8-byte
+chunk_guard4 header followed by the tagged checksum4 and
+then the opaque payload, as shown in
 {{fig-chunk-wire-layout}}.  The payload length is carried
 separately in the CHUNK_WRITE4args cwa_chunks<> slot; the
 diagram shows the per-chunk framing only.
@@ -6009,15 +6010,27 @@ diagram shows the per-chunk framing only.
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                         cg_client_id                          |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                           cr_crc                              |
+   |                       cs_algorithm                            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        cs_value_len                           |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    cs_value ... (variable)                    |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                    opaque payload ...                         |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-   Bytes 0-3:   cg_gen_id      (per-chunk generation counter)
-   Bytes 4-7:   cg_client_id   (owning-client short id)
-   Bytes 8-11:  cr_crc         (CRC32 over the opaque payload)
-   Bytes 12-N:  opaque payload (encoded shard; variable length)
+   Bytes 0-3:    cg_gen_id      (per-chunk generation counter)
+   Bytes 4-7:    cg_client_id   (owning-client short id)
+   Bytes 8-11:   cs_algorithm   (checksum_algorithm4)
+   Bytes 12-15:  cs_value_len   (XDR opaque length prefix)
+   Bytes 16-N:   cs_value       (checksum bytes; length per
+                                 cs_algorithm's registered output)
+   Bytes N+1-M:  opaque payload (encoded shard; variable length)
+
+   The checksum block (cs_algorithm + cs_value_len + cs_value)
+   is the XDR encoding of one checksum4 ({{fig-checksum4}}).
+   For CHECKSUM_ALG_NONE the cs_value_len is zero and the
+   payload follows immediately after byte 15.
 ~~~
 {: #fig-chunk-wire-layout title="Per-chunk wire layout"}
 
