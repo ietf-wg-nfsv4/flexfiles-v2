@@ -3176,7 +3176,7 @@ is in {{fig-example-chunk-write-args}}.
   |                cg_gen_id   : 3     |
   |                cg_client_id: 6     |
   | cwa_chunk_size  :  1048            |
-  | cwa_checksums:                        |
+  | cwa_checksums:                     |
   |         [0]:  0x32ef89             |
   |         [1]:  0x56fa89             |
   |         [2]:  0x7693af             |
@@ -3273,7 +3273,7 @@ be 0x21de8.  The resulting CHUNK_WRITE is shown in {{fig-calc-crc-after}}.
   |                cg_gen_id   : 7     |
   |                cg_client_id: 6     |
   | cwa_chunk_size  :  1048            |
-  | cwa_checksums:                        |
+  | cwa_checksums:                     |
   |         [0]:  0x21de8              |
   | cwa_chunks  :  ......              |
   +------------------------------------+
@@ -3326,7 +3326,7 @@ erasure coding type.
   +------------------------------------+
   | crr_eof: false                     |
   | crr_chunks[0]:                     |
-  |        cr_checksum: 0x21de8             |
+  |        cr_checksum: 0x21de8        |
   |        cr_owner:                   |
   |            co_guard:               |
   |                cg_gen_id   : 7     |
@@ -7816,7 +7816,7 @@ synthetic zero-filled payload.
   +--------------------------------+
   | crr_eof: true                  |
   | crr_chunks[0]:                 |
-  |     cr_checksum: 0x3faddace         |
+  |     cr_checksum: 0x3faddace    |
   |     cr_owner:                  |
   |         co_chunk_id: 2         |
   |         co_guard:              |
@@ -7825,7 +7825,7 @@ synthetic zero-filled payload.
   |     cr_payload_id: 1           |
   |     cr_chunk: ....             |
   | crr_chunks[0]:                 |
-  |     cr_checksum: 0xdeade4e5         |
+  |     cr_checksum: 0xdeade4e5    |
   |     cr_owner:                  |
   |         co_chunk_id: 3         |
   |         co_guard:              |
@@ -7834,7 +7834,7 @@ synthetic zero-filled payload.
   |     cr_payload_id: 1           |
   |     cr_chunk: 0000...00000     |
   | crr_chunks[0]:                 |
-  |     cr_checksum: 0x7778abcd         |
+  |     cr_checksum: 0x7778abcd    |
   |     cr_owner:                  |
   |         co_chunk_id: 4         |
   |         co_guard:              |
