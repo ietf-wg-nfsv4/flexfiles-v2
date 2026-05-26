@@ -4989,9 +4989,10 @@ Authenticated malicious client protection:
 :  An
    authenticated client may write garbage into its own chunks
    with a correctly computed checksum; see
-   {{sec-security-crc32-scope}}.  The CRC32 check is a
-   transport-integrity check, not an adversarial-integrity
-   check.
+   {{sec-security-checksum-scope}}.  A bit-flip-class checksum
+   is a transport-integrity check, not an adversarial-integrity
+   check; cryptographic-class checksums detect adversarial
+   modification by anyone other than the authenticated writer.
 
 # NFSv4.2 Operations Allowed to Data Files
 
@@ -7610,7 +7611,7 @@ cr_checksum:
    time and persisted with the chunk metadata.  The client
    uses cr_checksum to detect transport corruption between the
    data server and the client; see
-   {{sec-security-crc32-scope}} for the scope and limits
+   {{sec-security-checksum-scope}} for the scope and limits
    of checksum protection.
 
 cr_effective_len:
@@ -9580,18 +9581,49 @@ access control metadata.  Recalling the layouts in this case is
 intended to prevent clients from getting an error on I/Os done after
 the client was fenced off.
 
-##  CRC32 Integrity Scope {#sec-security-crc32-scope}
+##  Checksum Integrity Scope {#sec-security-checksum-scope}
 
-The checksum values carried in CHUNK_WRITE and returned from CHUNK_READ
-are intended to detect accidental data corruption during storage or
-transmission -- for example, bit flips in storage media or network
-errors.  checksum is not a cryptographic hash and does not protect
-against intentional modification: an adversary with access to the
-network path could replace a chunk and recompute a valid checksum to
-match.  The "data integrity" provided by the checksum mechanism in this
-document refers to error detection, not protection against an active
-attacker.  Deployments requiring protection against active attackers
-SHOULD use RPC-over-TLS (see {{sec-tls}}) or RPCSEC_GSS.
+The checksum values carried in CHUNK_WRITE and returned from
+CHUNK_READ defend against accidental data corruption during
+storage or transmission -- bit flips on storage media, network
+errors, software bugs in the erasure transform.  The threat
+model an individual deployment achieves depends on which
+checksum_algorithm4 ({{sec-checksum4}}) the metadata server
+selects for the file's mirrors via ffv2m_checksum_algorithm
+({{sec-ffv2-mirror4}}):
+
+Bit-flip-class algorithms (CRC32, CRC32C, Fletcher4):
+:  Detect accidental bit-level corruption with high
+   probability.  Do NOT defend against an adversary who can
+   modify the payload and recompute a valid checksum, because
+   these algorithms are not cryptographic and the algorithm
+   identifier and parameters are public.  Suitable when the
+   threat model excludes adversaries on the wire and at rest.
+
+Cryptographic algorithms (SHA-256, SHA-512, BLAKE3):
+:  Detect accidental corruption AND defend against adversarial
+   modification, provided that (a) the algorithm choice itself
+   is communicated over a trusted channel (typically the
+   layout from the MDS) and (b) the integrity-protected
+   recomputation happens at trust boundaries the deployment
+   controls.  Suitable when chunks may be at rest on storage
+   the deployment does not fully control, or when transit may
+   cross hostile network segments.
+
+CHECKSUM_ALG_NONE:
+:  No protocol-level integrity check.  The deployment is
+   relying on transport-layer integrity (RPC-over-TLS
+   {{RFC9289}}, RPCSEC_GSS_KRB5I) or storage-layer integrity
+   (filesystem checksums on the data server, RAID-level
+   integrity) instead.  Suitable when those other layers are
+   reliably present end-to-end and the per-chunk wire
+   protection would be redundant.
+
+Deployments requiring protection against active attackers
+SHOULD select one of the cryptographic algorithms, OR use
+CHECKSUM_ALG_NONE in conjunction with RPC-over-TLS
+({{sec-tls}}) or RPCSEC_GSS, whichever fits the deployment's
+existing security architecture.
 
 An authenticated client is in the "active attacker" role with
 respect to its own chunks, in a restricted sense.  The data
@@ -9796,7 +9828,7 @@ Compromised data server:
    transport security).  It can return arbitrary content
    on CHUNK_READ with a correctly computed checksum; the
    checksum protects against transport corruption, not
-   adversarial content ({{sec-security-crc32-scope}}).
+   adversarial content ({{sec-security-checksum-scope}}).
    This is the same as the RAID-stripe trust model:
    each shard host can lie about its shard.  Deployment
    defences are encryption at rest, an integrity-
@@ -10043,7 +10075,7 @@ Coverage:
   implemented on both the client and the data server.
 
 - Per-chunk checksum integrity checking (see
-  {{sec-security-crc32-scope}}) is implemented end-to-end.
+  {{sec-security-checksum-scope}}) is implemented end-to-end.
 
 - Per-inode persistent storage of chunk state (PENDING / FINALIZED
   / COMMITTED) is implemented using write-temp / fdatasync / rename
