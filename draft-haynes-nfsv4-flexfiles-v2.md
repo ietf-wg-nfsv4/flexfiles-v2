@@ -175,6 +175,172 @@ backward compatible: a flexible file v2 layout cannot be parsed as a flexible fi
 and vice versa.  A server MAY support both layout types simultaneously;
 a client selects the desired layout type in its LAYOUTGET request.
 
+# Reading Guide {#sec-reading-guide}
+
+A reader who has time only for one section of this draft
+should read this one.  It is a one-page mental model for
+the protocol the rest of the draft specifies.  Each
+subsection closes with a pointer to the section that
+develops the topic in depth.
+
+## What This Document Specifies (And What It Does Not)
+
+This document specifies the wire format and the server
+obligations of a pNFS layout type.  It does not specify how
+an implementation satisfies those obligations.  In
+particular, this document does not require:
+
+-  A particular backend on the data server (POSIX
+   filesystem, object store, key-value store, or other are
+   all conformant provided the server obligations are met;
+   see {{sec-state-locking}}).
+
+-  A particular control protocol between the metadata
+   server and the data server.  This document defines
+   TRUST_STATEID as one such control protocol in
+   {{sec-tight-coupling-control}}; storage devices with
+   their own established control protocols are conformant
+   without implementing TRUST_STATEID.
+
+-  A particular checksum algorithm.  This document defines
+   a tagged checksum4 with per-mirror algorithm selection in
+   {{sec-checksum4}}; the algorithm is chosen by the
+   metadata server, not pinned by the protocol.
+
+-  A particular file-attribute representation on the data
+   server.  A data server that does not expose POSIX
+   uid/gid semantics MUST operate in tight coupling but is
+   otherwise conformant; see {{sec-state-locking}}.
+
+A reader encountering wording that appears to pin an
+implementation choice -- mode bits, ACL replication, a
+specific clientid4 bit layout, a specific control-protocol
+mechanism -- should read it as describing one valid
+implementation among others, unless the spec explicitly
+labels it normative (MUST, REQUIRED).  The
+protocol-versus-implementation boundary is a deliberate
+design choice carried through every section.
+
+## The CHUNK_* Operation Set in One Page
+
+The data path is organised around chunks: the unit of
+erasure coding for an erasure-coded mirror.  Each CHUNK_*
+operation does one well-scoped job in the chunk lifecycle
+({{fig-chunk-state-machine}}):
+
+Lifecycle operations (the common path):
+:  CHUNK_WRITE places PENDING content into a chunk.
+   CHUNK_FINALIZE locks the writer's intent (the writer will
+   not issue further writes against this generation).
+   CHUNK_COMMIT promotes FINALIZED to COMMITTED -- the chunk
+   is now durable and globally visible.  CHUNK_READ
+   retrieves COMMITTED content.  CHUNK_HEADER_READ retrieves
+   the per-chunk metadata (chunk_owner4, lock state,
+   lifecycle status) without the payload bytes -- the fast
+   probe.
+
+Repair operations (the partial-failure path):
+:  CHUNK_LOCK acquires an exclusive chunk-range lock used
+   during repair coordination.  CHUNK_ERROR reports a
+   chunk-integrity finding to the data server (it marks the
+   range errored, excluding it from reads).  CHUNK_REPAIRED
+   clears that errored state once the range has been
+   reconstructed.  CHUNK_WRITE_REPAIR writes the
+   reconstructed shard.  CHUNK_ROLLBACK undoes a PENDING or
+   FINALIZED generation (and, on the repair path, restores
+   a prior COMMITTED generation).  CHUNK_UNLOCK releases
+   the lock.
+
+Each CHUNK_* operation is one of these eleven primitives
+doing one job.  The complexity is in the state machine
+those primitives drive; the operation set itself is small
+and focused.  See {{sec-system-model-chunk-state}}.
+
+## Concurrent-Writer Collision Detection and Repair
+
+Two writers on the same file can race for the same chunk.
+The protocol detects the collision and recovers from it
+through two primitives:
+
+chunk_guard4 (compare-and-swap):
+:  Every CHUNK_WRITE carries a chunk_guard4 = {cg_gen_id,
+   cg_client_id}.  The data server performs an atomic CAS
+   per chunk: if the chunk already has a PENDING or
+   FINALIZED generation from a different writer, the loser
+   receives NFS4ERR_CHUNK_GUARDED in the corresponding
+   cwr_block_status slot and the chunk's state is unchanged.
+   Independent conflicts on different chunks resolve
+   independently; there is no file-wide lock and no global
+   ordering.  See {{sec-chunk_guard4}}.
+
+CB_CHUNK_REPAIR (repair orchestration):
+:  When the metadata server discovers a non-atomic payload
+   (some shards landed under writer A's generation, others
+   under writer B's; or a writer crashed mid-payload), the
+   metadata server selects a repair client via
+   CB_CHUNK_REPAIR (a callback) and that client drives
+   reconstruction.  The repair client acquires CHUNK_LOCK
+   on the affected chunks (adopting any escrow lock the MDS
+   may hold via REVOKE_STATEID), reads the surviving
+   shards, decodes through the erasure transform, writes
+   the reconstructed shards via CHUNK_WRITE_REPAIR, and
+   clears the errored state via CHUNK_REPAIRED.  See
+   {{sec-CB_CHUNK_REPAIR}} and {{sec-repair-selection}}.
+
+Collision is detected on each CHUNK_WRITE without any
+cross-data-server coordination.  Repair is orchestrated by
+exactly one actor (the repair client) holding a chunk-range
+lock; the data servers do not coordinate among themselves.
+
+## Why Heterogeneous Layouts (Multiple Encodings Per File)
+
+A file's storage shape is not always homogeneous.  Real
+deployments span encodings during transitions, and one
+common encoding cannot cover every deployment requirement.
+This document allows a single file's layout to mix encodings
+to support four use cases:
+
+Assimilation and migration:
+:  A file enters the namespace from a non-erasure-coded
+   source (ingest, restore) and acquires an erasure-coded
+   representation in parallel for storage cost.  A petabyte
+   file migrating between codecs (Reed-Solomon to Mojette
+   systematic for a read-pattern change) takes hours to
+   days; the file is readable throughout because both
+   representations are in its mirror set.
+
+Cross-encoding recovery:
+:  A single encoding's failure modes are correlated: a
+   codec implementation bug, a memory-corruption pattern,
+   or a power-loss recovery race can affect every shard
+   encoded under that codec.  A second mirror in a
+   different encoding has independent failure modes; at
+   the data-loss boundary it is the only recovery path.
+   Scientific instrumentation pipelines producing
+   irreplaceable data is the canonical case.
+
+Client-capability routing:
+:  A Proxy Server fleet
+   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) sees
+   the file's full mirror set and chooses an encoding the
+   legacy client can speak.  Without per-file multi-
+   encoding, the proxy server has no choice -- the file
+   is locked to one encoding.
+
+Online re-encoding without recall:
+:  A training-checkpoint file written hot as 3-way
+   replication is recoded online to RS(8,3) while an
+   inference job needs to read it for warm restart midway
+   through.  Both representations are present in the
+   layout; the inference job reads from whichever is
+   healthy.  Recall-and-reacquire is workable for small
+   files but painful at petabyte scale.
+
+Steady-state files are usually single-encoding; the
+multi-encoding capability is for the transition window
+and the cross-encoding-recovery boundary.  See
+{{sec-use-cases}}.
+
 # Requirements Language
 
 {::boilerplate bcp14-tagged}
