@@ -2169,6 +2169,7 @@ ffv2s_data_servers.
    ///         ffv2_striping           ffv2m_striping;
    ///         uint32_t                ffv2m_striping_unit_size;
    ///         uint32_t                ffv2m_client_id;
+   ///         checksum_algorithm4     ffv2m_checksum_algorithm;
    ///         ffv2_stripes4           ffv2m_stripes<>;
    /// };
 ~~~
@@ -2176,6 +2177,25 @@ ffv2s_data_servers.
 
 The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) describes the Flexible
 File Layout Version 2 specific fields.
+
+The ffv2m_checksum_algorithm field names the checksum
+algorithm the client MUST use when computing
+cwa_checksums on CHUNK_WRITE and cwra_checksums on
+CHUNK_WRITE_REPAIR, and the algorithm the client MUST
+expect in cr_checksum on CHUNK_READ responses, for chunks
+in this mirror.  The metadata server picks the algorithm
+at LAYOUTGET time; the value is one of the registered
+checksum_algorithm4 codes (see {{sec-checksum4}}).
+Different mirrors of the same file MAY name different
+checksum algorithms, supporting transition cases where one
+mirror is being migrated to a stronger algorithm while
+others retain the previous algorithm.
+
+A client that does not implement the algorithm named in
+ffv2m_checksum_algorithm MUST return the layout with
+NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED; the metadata
+server may then issue a new layout naming a different
+algorithm the client supports, or deny the layout request.
 
 The ffv2m_client_id is a 32-bit value, assigned by the metadata
 server at layout-grant time, that the client MUST use as the
