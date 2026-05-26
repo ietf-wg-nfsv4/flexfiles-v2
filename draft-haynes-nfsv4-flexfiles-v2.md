@@ -7607,13 +7607,17 @@ starting from cra_offset.  Within each read_chunk4
 ({{fig-read_chunk4}}):
 
 cr_checksum:
-:  the checksum the data server computed over the chunk
-   payload (cr_chunk) at CHUNK_FINALIZE or CHUNK_COMMIT
-   time and persisted with the chunk metadata.  The client
-   uses cr_checksum to detect transport corruption between the
+:  the checksum4 ({{sec-checksum4}}) the data server
+   computed over the chunk payload (cr_chunk) at
+   CHUNK_FINALIZE or CHUNK_COMMIT time and persisted with
+   the chunk metadata.  The cs_algorithm field matches the
+   layout's ffv2m_checksum_algorithm ({{sec-ffv2-mirror4}});
+   the cs_value carries the computed bytes at the length
+   registered for that algorithm.  The client uses
+   cr_checksum to detect transport corruption between the
    data server and the client; see
    {{sec-security-checksum-scope}} for the scope and limits
-   of checksum protection.
+   of checksum protection per algorithm class.
 
 cr_effective_len:
 :  the byte length of cr_chunk.  This may be smaller than
@@ -8776,8 +8780,11 @@ cwra_chunk_size:
    in bytes.
 
 cwra_checksums:
-:  per-chunk checksum array.  Semantics match cwa_checksums in
-   CHUNK_WRITE.
+:  per-chunk checksum4 ({{sec-checksum4}}) array.  Semantics
+   match cwa_checksums in CHUNK_WRITE: each entry's
+   cs_algorithm MUST match ffv2m_checksum_algorithm of the
+   mirror named in the layout
+   ({{sec-ffv2-mirror4}}), with NFS4ERR_INVAL on mismatch.
 
 cwra_chunks:
 :  the reconstructed chunk payload as an opaque blob,
