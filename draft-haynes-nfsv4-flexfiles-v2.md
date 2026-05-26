@@ -5829,11 +5829,12 @@ Mixed:
    ///
    /// /* Erasure Coding error constants; added to nfsstat4 enum */
    ///
-   /// const NFS4ERR_CODING_NOT_SUPPORTED   = 10097;
-   /// const NFS4ERR_PAYLOAD_NOT_ATOMIC = 10098;
-   /// const NFS4ERR_CHUNK_LOCKED           = 10099;
-   /// const NFS4ERR_CHUNK_GUARDED          = 10100;
-   /// const NFS4ERR_PAYLOAD_LOST           = 10101;
+   /// const NFS4ERR_CODING_NOT_SUPPORTED         = 10097;
+   /// const NFS4ERR_PAYLOAD_NOT_ATOMIC           = 10098;
+   /// const NFS4ERR_CHUNK_LOCKED                 = 10099;
+   /// const NFS4ERR_CHUNK_GUARDED                = 10100;
+   /// const NFS4ERR_PAYLOAD_LOST                 = 10101;
+   /// const NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED = 10102;
    ///
 ~~~
 {: #fig-errors-xdr title="Errors XDR" }
@@ -5849,6 +5850,7 @@ The new error codes are shown in {{fig-errors-xdr}}.
  | NFS4ERR_CHUNK_LOCKED | 10099  | {{sec-NFS4ERR_CHUNK_LOCKED}} |
  | NFS4ERR_CHUNK_GUARDED | 10100  | {{sec-NFS4ERR_CHUNK_GUARDED}} |
  | NFS4ERR_PAYLOAD_LOST | 10101  | {{sec-NFS4ERR_PAYLOAD_LOST}} |
+ | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | 10102 | {{sec-NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED}} |
 {: #tbl-protocol-errors title="Error Definitions"}
 
 ### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
@@ -5903,6 +5905,33 @@ NFS4ERR_PAYLOAD_LOST is distinct from NFS4ERR_DELAY (transient;
 metadata server MAY extend the deadline or re-select) and from
 NFS4ERR_IO (per-operation failure; metadata server MAY retry or
 re-select).  Only NFS4ERR_PAYLOAD_LOST is terminal.
+
+### NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED (Error Code 10102) {#sec-NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED}
+
+Returned by the client on LAYOUTRETURN to indicate that the
+layout's ffv2m_checksum_algorithm
+({{sec-ffv2-mirror4}}) names a checksum_algorithm4
+({{sec-checksum4}}) that the client does not implement.
+The client returns the layout with this error code rather
+than attempting CHUNK_* operations it cannot validate.
+
+On receipt, the metadata server MAY:
+
+-  issue a new layout for the same file naming a different
+   checksum_algorithm4 that the client supports (if the
+   file's policy permits any of the algorithms the client
+   does support); or
+
+-  deny the layout request, in which case the client MUST
+   either fall back to MDS-mediated I/O or report an I/O
+   error to the application.
+
+NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED is distinct from
+NFS4ERR_BADLAYOUT (generic "this layout shape is unusable"):
+the explicit per-checksum-algorithm signal lets the metadata
+server discriminate "client can't read this layout because
+of the checksum algorithm" from "client can't read this
+layout for some other reason" and respond accordingly.
 
 ## Operations and Their Valid Errors
 
@@ -6297,8 +6326,9 @@ The checksum algorithm for a given file is selected by
 the metadata server at LAYOUTGET time and carried in
 the layout (see {{sec-ffv2-mirror4}}).  A client that
 does not implement the algorithm a layout names returns
-the layout with NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED;
-the metadata server may then offer a layout with a
+the layout with NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED
+({{sec-NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED}}); the
+metadata server may then offer a layout with a
 different algorithm.
 
 # New NFSv4.2 Operations {#sec-new-ops}
