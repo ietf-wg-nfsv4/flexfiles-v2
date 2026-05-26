@@ -3241,7 +3241,7 @@ Table of Contents
      |                cg_gen_id   : 3     |
      |                cg_client_id: 6     |
      | cwa_chunk_size  :  1048            |
-     | cwa_checksums:                        |
+     | cwa_checksums:                     |
      |         [0]:  0x32ef89             |
      |         [1]:  0x56fa89             |
      |         [2]:  0x7693af             |
@@ -3286,19 +3286,17 @@ Table of Contents
 
                    Figure 24: Example of CHUNK_WRITE_res
 
-11.2.1.1.  Worked Example: CRC32 Calculation and Checking
+11.2.1.1.  Worked Example: Calculating the CRC32
 
-   The examples in this subsection illustrate checksum computation and
-   verification using CHECKSUM_ALG_CRC32 as the worked algorithm.  Other
-   registered checksum algorithms (CHECKSUM_ALG_CRC32C,
-   CHECKSUM_ALG_FLETCHER4, CHECKSUM_ALG_SHA256, CHECKSUM_ALG_SHA512,
-   CHECKSUM_ALG_BLAKE3; see Section 24.3) follow the same pattern -- the
-   algorithm names a function over the header and chunk bytes, the
-   writer fills cs_value with the computed output, and the reader
-   recomputes and compares.  Only the algorithm and the cs_value length
-   differ.
-
-11.2.1.1.1.  Calculating the CRC32
+   The examples in this section and in Section 11.2.2.1 illustrate
+   checksum computation and verification using CHECKSUM_ALG_CRC32 as the
+   worked algorithm.  Other registered checksum algorithms
+   (CHECKSUM_ALG_CRC32C, CHECKSUM_ALG_FLETCHER4, CHECKSUM_ALG_SHA256,
+   CHECKSUM_ALG_SHA512, CHECKSUM_ALG_BLAKE3; see Section 24.3) follow
+   the same pattern -- the algorithm names a function over the header
+   and chunk bytes, the writer fills cs_value with the computed output,
+   and the reader recomputes and compares.  Only the algorithm and the
+   cs_value length differ.
 
      +--------------------+
      | HEADER             |
@@ -3335,7 +3333,7 @@ Table of Contents
      |                cg_gen_id   : 7     |
      |                cg_client_id: 6     |
      | cwa_chunk_size  :  1048            |
-     | cwa_checksums:                        |
+     | cwa_checksums:                     |
      |         [0]:  0x21de8              |
      | cwa_chunks  :  ......              |
      +------------------------------------+
@@ -3379,14 +3377,14 @@ Table of Contents
    and MUST be addressed in the document describing each erasure coding
    type.
 
-11.2.2.1.  Checking the CRC32
+11.2.2.1.  Worked Example: Checking the CRC32
 
      +------------------------------------+
      | CHUNK_READresok                    |
      +------------------------------------+
      | crr_eof: false                     |
      | crr_chunks[0]:                     |
-     |        cr_checksum: 0x21de8             |
+     |        cr_checksum: 0x21de8        |
      |        cr_owner:                   |
      |            co_guard:               |
      |                cg_gen_id   : 7     |
@@ -7718,7 +7716,7 @@ Table of Contents
      +--------------------------------+
      | crr_eof: true                  |
      | crr_chunks[0]:                 |
-     |     cr_checksum: 0x3faddace         |
+     |     cr_checksum: 0x3faddace    |
      |     cr_owner:                  |
      |         co_chunk_id: 2         |
      |         co_guard:              |
@@ -7727,7 +7725,7 @@ Table of Contents
      |     cr_payload_id: 1           |
      |     cr_chunk: ....             |
      | crr_chunks[0]:                 |
-     |     cr_checksum: 0xdeade4e5         |
+     |     cr_checksum: 0xdeade4e5    |
      |     cr_owner:                  |
      |         co_chunk_id: 3         |
      |         co_guard:              |
@@ -7736,7 +7734,7 @@ Table of Contents
      |     cr_payload_id: 1           |
      |     cr_chunk: 0000...00000     |
      | crr_chunks[0]:                 |
-     |     cr_checksum: 0x7778abcd         |
+     |     cr_checksum: 0x7778abcd    |
      |     cr_owner:                  |
      |         co_chunk_id: 4         |
      |         co_guard:              |
@@ -8344,11 +8342,11 @@ Table of Contents
    activation shortcut for first-time writes: a chunk that was EMPTY
    before the CHUNK_WRITE and whose write reaches FILE_SYNC4 or
    DATA_SYNC4 durability MAY be transitioned directly to COMMITTED by
-   the data server, with cwr_block_activated[i] set to TRUE in the
-   response.  Without the flag, or for chunks that were not EMPTY before
-   the write, or for writes at UNSTABLE4 durability, the chunk enters
-   the PENDING state and reaches COMMITTED only after a subsequent
-   CHUNK_FINALIZE and CHUNK_COMMIT.
+   the data server, with the corresponding cwr_block_activated entry set
+   to TRUE in the response.  Without the flag, or for chunks that were
+   not EMPTY before the write, or for writes at UNSTABLE4 durability,
+   the chunk enters the PENDING state and reaches COMMITTED only after a
+   subsequent CHUNK_FINALIZE and CHUNK_COMMIT.
 
    The activation shortcut interacts with concurrent writers and
    unstable writes in subtle ways:
@@ -8365,11 +8363,11 @@ Table of Contents
       COMMITTED.  The losing client sees NFS4ERR_CHUNK_GUARDED in the
       corresponding cwr_block_status slot.
 
-   *  A client that issues an UNSTABLE4 CHUNK_WRITE and observes
-      cwr_block_activated[i] == FALSE in the response MAY still find the
-      chunk COMMITTED on a subsequent CHUNK_READ -- another client could
-      have activated it via the shortcut after this one's response was
-      sent.  cwr_block_activated reflects the state at the moment the
+   *  A client that issues an UNSTABLE4 CHUNK_WRITE and observes a FALSE
+      entry in cwr_block_activated for a chunk MAY still find that chunk
+      COMMITTED on a subsequent CHUNK_READ -- another client could have
+      activated it via the shortcut after this one's response was sent.
+      cwr_block_activated reflects the state at the moment the
       CHUNK_WRITE result was constructed, not a commitment to that
       state's persistence.
 
@@ -9852,9 +9850,9 @@ Table of Contents
    [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]
               Haynes, T., "Proxy-Driven Server for Flexible Files
               Version 2", Work in Progress, Internet-Draft, draft-
-              haynes-nfsv4-flexfiles-v2-proxy-server-01, 22 May 2026,
+              haynes-nfsv4-flexfiles-v2-proxy-server-02, 25 May 2026,
               <https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-
-              flexfiles-v2-proxy-server-01>.
+              flexfiles-v2-proxy-server-02>.
 
    [IANA-PEN] IANA, "Private Enterprise Numbers",
               <https://www.iana.org/assignments/enterprise-numbers/>.
