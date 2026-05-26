@@ -239,7 +239,7 @@ that closes off the simpler implementations the protocol
 should accommodate.  Instead, this draft uses two
 narrowly-scoped primitives that together provide just
 enough on-wire reconciliation: the chunk_guard4
-compare-and-swap and the CB_CHUNK_REPAIR callback.
+compare-and-swap (CAS) and the CB_CHUNK_REPAIR callback.
 
 Every CHUNK_WRITE carries a chunk_guard4 -- a 32-bit
 per-chunk generation counter and a 32-bit owning-client
@@ -297,11 +297,9 @@ CHUNK_REPAIRED, CHUNK_WRITE_REPAIR, and CHUNK_ROLLBACK
 together drive the repair flow.  Each operation does one
 well-scoped job; the complexity is in the state machine
 the operations drive, not in the operation set itself.
-None of these primitives have been added for convenience
-or for any single implementer's need; each closes a
-specific gap in the lifecycle or the repair path.  The
-detailed treatment of the operation set is in
-{{sec-new-ops}}.
+Each of these primitives closes a specific gap in the
+lifecycle or the repair path.  The detailed treatment of
+the operation set is in {{sec-new-ops}}.
 
 The same design discipline shapes the rest of the
 specification.  The protocol describes wire format and
