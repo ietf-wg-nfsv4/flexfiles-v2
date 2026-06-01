@@ -1050,11 +1050,11 @@ svg {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">Flex File Layout v2</td>
-<td class="right">May 2026</td>
+<td class="right">June 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">Haynes</td>
-<td class="center">Expires 27 November 2026</td>
+<td class="center">Expires 3 December 2026</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1067,12 +1067,12 @@ svg {
 <dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-05-26" class="published">26 May 2026</time>
+<time datetime="2026-06-01" class="published">1 June 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2026-11-27">27 November 2026</time></dd>
+<dd class="expires"><time datetime="2026-12-03">3 December 2026</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1125,7 +1125,7 @@ code and issues list for this draft can be found at
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 27 November 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 3 December 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1373,6 +1373,11 @@ code and issues list for this draft can be found at
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.3">
                 <p id="section-toc.1-1.11.2.3.1"><a href="#section-11.3" class="auto internal xref">11.3</a>.  <a href="#name-mixing-of-coding-types" class="internal xref">Mixing of Coding Types</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.3.2.1">
+                    <p id="section-toc.1-1.11.2.3.2.1.1"><a href="#section-11.3.1" class="auto internal xref">11.3.1</a>.  <a href="#name-steady-state-heterogeneous-" class="internal xref">Steady-state heterogeneous mirrors</a></p>
+</li>
+                </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.4">
                 <p id="section-toc.1-1.11.2.4.1"><a href="#section-11.4" class="auto internal xref">11.4</a>.  <a href="#name-reed-solomon-vandermonde-en" class="internal xref">Reed-Solomon Vandermonde Encoding (FFV2_ENCODING_RS_VANDERMONDE)</a></p>
@@ -4060,6 +4065,18 @@ the same file are two independent recovery paths.<a href="#section-8.1.1-2.6.1" 
 a heterogeneous mirror set in sync; the protocol does not
 require client awareness of which encoding produced which
 mirror beyond what the layout already states.<a href="#section-8.1.1-3" class="pilcrow">¶</a></p>
+<p id="section-8.1.1-4">The wire-level coordination that makes a heterogeneous mirror
+set safe to operate -- in particular, the rule that a client
+arriving during a transition sees a single layout naming the
+proxy server rather than two layouts naming the source and
+destination encodings, and the rule that the metadata server's
+commit of a transition is a single transaction -- is specified
+in the proxy-server draft
+(<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span>), in the
+sections "Layout Shape During a Proxy Operation" and "Atomic
+commit on PROXY_DONE".  This document specifies the per-mirror
+codec naming primitive; the proxy-server document specifies
+the transactional machinery that uses it.<a href="#section-8.1.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-encoding-passthrough">
@@ -6628,6 +6645,72 @@ the file, the WRITE call and CHUNK_WRITE call would have data
 sent to all of the data servers.  Finally, if the client reads
 back a section which had been modified earlier, both the READ
 and CHUNK_READ calls would return data.<a href="#section-11.3-8" class="pilcrow">¶</a></p>
+<p id="section-11.3-9">The two-mirror layout shown in <a href="#fig-example_mixing" class="auto internal xref">Figure 31</a> is the
+file's full mirror set as known to the metadata server.  A
+client that arrives during the assimilation or migration window
+above does not necessarily receive that layout; per the
+proxy-server draft
+(<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span>), the client
+gets a single layout naming the proxy server as a single
+endpoint, and the proxy server selects which of the file's
+mirrors to read from or write to on the client's behalf.  The
+two-mirror view in this section describes the metadata server's
+bookkeeping during the transition; the client's I/O surface is
+one endpoint.<a href="#section-11.3-9" class="pilcrow">¶</a></p>
+<div id="sec-steady-state-heterogeneous">
+<section id="section-11.3.1">
+          <h4 id="name-steady-state-heterogeneous-">
+<a href="#section-11.3.1" class="section-number selfRef">11.3.1. </a><a href="#name-steady-state-heterogeneous-" class="section-name selfRef">Steady-state heterogeneous mirrors</a>
+          </h4>
+<p id="section-11.3.1-1">The transition-window patterns above (assimilation, migration,
+repair) are the most visible motivations for heterogeneous
+mirror sets, but they are not the only ones.  A file's mirror
+set <span class="bcp14">MAY</span> be heterogeneous in steady state -- where no transition
+is in progress and no transition is planned -- when the
+deployment's storage pools have different codec capabilities
+and the file is too large to fit in any single pool.<a href="#section-11.3.1-1" class="pilcrow">¶</a></p>
+<p id="section-11.3.1-2">Consider an operator with three 100-TB storage pools.  Pool A
+is a Flexible File v1 export speaking only NFSv3 (capable of
+FFV2_ENCODING_PASSTHROUGH only); Pool B is a Flexible File v2
+deployment whose data servers have implemented only
+FFV2_ENCODING_RS_VANDERMONDE; Pool C similarly has data
+servers that have implemented only FFV2_ENCODING_MOJETTE_SYSTEMATIC.
+A 250-TB file cannot fit in any single pool.  Striping the
+file across all three pools is forced by capacity arithmetic:
+250 &gt; 100.  And because each pool's data servers can only
+respond to the chunk operations of its own codec, the layout
+for this file <span class="bcp14">MUST</span> name a different <code>ffv2_coding_type4</code> per
+mirror covering each stripe segment.  The heterogeneity is
+not a transition window; it is the permanent structural
+consequence of striping across heterogeneous capability pools.<a href="#section-11.3.1-2" class="pilcrow">¶</a></p>
+<p id="section-11.3.1-3">In this steady-state case, no proxy-server-mediated transition
+machinery is involved.  The client receives a layout
+enumerating the mirrors at different <code>ffv2m_coding</code> values and
+routes chunk operations to the appropriate data server per
+segment (or, if the client cannot speak one of the codecs,
+requests proxy mediation per the proxy-server draft's section
+"Codec Translation for Codec-Ignorant Clients").  The layout
+machinery that supports this case is exactly the per-mirror
+codec naming primitive described above; no additional protocol
+elements are required to express it.<a href="#section-11.3.1-3" class="pilcrow">¶</a></p>
+<p id="section-11.3.1-4">The transient case (one file moving between encodings) and the
+steady-state case (one file permanently striped across
+heterogeneous pools) share a single wire primitive: an
+<code>ffv2l_mirrors</code> array that admits mixed <code>ffv2_coding_type4</code>
+values.  Removing that primitive would foreclose both cases
+and would force one of three workarounds: (a) split the
+250-TB file into three independently-named files (loses
+single-namespace semantics), (b) require every pool to
+implement every codec (forces a single-vendor or
+single-implementation procurement story), or (c) require an
+always-on transcoding proxy in front of every read and write
+(re-introduces the centralized data-plane that the
+proxy-server role is scoped to avoid in steady state).  None
+of these alternatives address the steady-state case while
+preserving the transition-window flexibility this document
+specifies.<a href="#section-11.3.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="sec-rs-encoding">
