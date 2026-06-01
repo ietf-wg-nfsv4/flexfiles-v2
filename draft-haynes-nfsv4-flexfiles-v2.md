@@ -1868,6 +1868,19 @@ a heterogeneous mirror set in sync; the protocol does not
 require client awareness of which encoding produced which
 mirror beyond what the layout already states.
 
+The wire-level coordination that makes a heterogeneous mirror
+set safe to operate -- in particular, the rule that a client
+arriving during a transition sees a single layout naming the
+proxy server rather than two layouts naming the source and
+destination encodings, and the rule that the metadata server's
+commit of a transition is a single transaction -- is specified
+in the proxy-server draft
+({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), in the
+sections "Layout Shape During a Proxy Operation" and "Atomic
+commit on PROXY_DONE".  This document specifies the per-mirror
+codec naming primitive; the proxy-server document specifies
+the transactional machinery that uses it.
+
 ### FFV2_ENCODING_PASSTHROUGH {#sec-encoding-passthrough}
 
 FFV2_ENCODING_PASSTHROUGH is the on-ramp from flexible file v1 layout ({{RFC8435}})
@@ -3968,6 +3981,72 @@ the file, the WRITE call and CHUNK_WRITE call would have data
 sent to all of the data servers.  Finally, if the client reads
 back a section which had been modified earlier, both the READ
 and CHUNK_READ calls would return data.
+
+The two-mirror layout shown in {{fig-example_mixing}} is the
+file's full mirror set as known to the metadata server.  A
+client that arrives during the assimilation or migration window
+above does not necessarily receive that layout; per the
+proxy-server draft
+({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), the client
+gets a single layout naming the proxy server as a single
+endpoint, and the proxy server selects which of the file's
+mirrors to read from or write to on the client's behalf.  The
+two-mirror view in this section describes the metadata server's
+bookkeeping during the transition; the client's I/O surface is
+one endpoint.
+
+### Steady-state heterogeneous mirrors {#sec-steady-state-heterogeneous}
+
+The transition-window patterns above (assimilation, migration,
+repair) are the most visible motivations for heterogeneous
+mirror sets, but they are not the only ones.  A file's mirror
+set MAY be heterogeneous in steady state -- where no transition
+is in progress and no transition is planned -- when the
+deployment's storage pools have different codec capabilities
+and the file is too large to fit in any single pool.
+
+Consider an operator with three 100-TB storage pools.  Pool A
+is a Flexible File v1 export speaking only NFSv3 (capable of
+FFV2_ENCODING_PASSTHROUGH only); Pool B is a Flexible File v2
+deployment whose data servers have implemented only
+FFV2_ENCODING_RS_VANDERMONDE; Pool C similarly has data
+servers that have implemented only FFV2_ENCODING_MOJETTE_SYSTEMATIC.
+A 250-TB file cannot fit in any single pool.  Striping the
+file across all three pools is forced by capacity arithmetic:
+250 > 100.  And because each pool's data servers can only
+respond to the chunk operations of its own codec, the layout
+for this file MUST name a different `ffv2_coding_type4` per
+mirror covering each stripe segment.  The heterogeneity is
+not a transition window; it is the permanent structural
+consequence of striping across heterogeneous capability pools.
+
+In this steady-state case, no proxy-server-mediated transition
+machinery is involved.  The client receives a layout
+enumerating the mirrors at different `ffv2m_coding` values and
+routes chunk operations to the appropriate data server per
+segment (or, if the client cannot speak one of the codecs,
+requests proxy mediation per the proxy-server draft's section
+"Codec Translation for Codec-Ignorant Clients").  The layout
+machinery that supports this case is exactly the per-mirror
+codec naming primitive described above; no additional protocol
+elements are required to express it.
+
+The transient case (one file moving between encodings) and the
+steady-state case (one file permanently striped across
+heterogeneous pools) share a single wire primitive: an
+`ffv2l_mirrors` array that admits mixed `ffv2_coding_type4`
+values.  Removing that primitive would foreclose both cases
+and would force one of three workarounds: (a) split the
+250-TB file into three independently-named files (loses
+single-namespace semantics), (b) require every pool to
+implement every codec (forces a single-vendor or
+single-implementation procurement story), or (c) require an
+always-on transcoding proxy in front of every read and write
+(re-introduces the centralized data-plane that the
+proxy-server role is scoped to avoid in steady state).  None
+of these alternatives address the steady-state case while
+preserving the transition-window flexibility this document
+specifies.
 
 ## Reed-Solomon Vandermonde Encoding (FFV2_ENCODING_RS_VANDERMONDE) {#sec-rs-encoding}
 
