@@ -9,7 +9,7 @@ Working draft source:
 [`draft-haynes-nfsv4-flexfiles-v2-data-mover.md`](https://github.com/ietf-wg-nfsv4/flexfiles-v2-data-mover/blob/main/draft-haynes-nfsv4-flexfiles-v2-data-mover.md)
 
 The whole-file / migration / repair mechanisms, the proxy
-role, codec translation for codec-ignorant clients (including
+role, encoding translation for encoding-ignorant clients (including
 NFSv3), credential-forwarding security rules, and the
 PROXY_* operation surface all live in that repository.
 

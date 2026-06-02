@@ -325,7 +325,7 @@ the client is that the layout must be able to describe a
 file's storage shape over its full lifetime -- including
 the transition windows when the file is being assimilated
 from a non-erasure-coded source, re-encoded from one
-codec to another, or recovered from a correlated codec
+encoding to another, or recovered from a correlated encoding
 failure through a mirror under a different encoding.
 This draft allows a single file's layout to contain
 mirrors under different encodings.  The
@@ -402,11 +402,11 @@ performs, is presented to the application as one or more blocks.
 
 shard:
 
-:  the codec's view.  A shard is a single piece of an encoded stripe
+:  the encoding's view.  A shard is a single piece of an encoded stripe
 produced by an erasure-coding (or replication) transformation.  A
-stripe of k data shards plus m parity shards is the unit a codec
+stripe of k data shards plus m parity shards is the unit an encoding
 encodes and decodes.  The word "shard" only has meaning while the
-codec is reasoning about a stripe; once a shard is at rest on a data
+encoding is reasoning about a stripe; once a shard is at rest on a data
 server it is, by virtue of having been transmitted, the payload of a
 chunk.
 
@@ -430,7 +430,7 @@ load-bearing role each envelope property plays in the protocol's
 consistency story.
 
 The three terms describe the same data at three different layers and
-should be used accordingly.  The codec transforms blocks into shards;
+should be used accordingly.  The encoding transforms blocks into shards;
 the wire protocol transmits shards as chunk payloads; the data server
 persists chunks.  On read the path reverses.
 
@@ -607,7 +607,7 @@ proxy server (PS):
 :  a peer of the metadata server, defined in
 {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, that admits client
 I/O on the metadata server's behalf -- either as a translator for
-clients that cannot speak the file's native codec, or as a
+clients that cannot speak the file's native encoding, or as a
 proxy-mediated data path during whole-file move and repair
 operations.  A proxy server may additionally act as a data server.
 
@@ -1814,7 +1814,7 @@ encoding types this document defines fall into two groups:
 The 32-bit ffv2_coding_type4 value space is partitioned by
 intended scope -- Standards Track, Experimental, Vendor (open),
 and Private / proprietary -- with different allocation policies
-per range, so that vendors can assign codec values without
+per range, so that vendors can assign encoding values without
 consuming standards-track codepoints.  See
 {{tbl-coding-ranges}} and the accompanying prose in
 {{iana-considerations}} for the range assignments and allocation
@@ -1878,7 +1878,7 @@ in the proxy-server draft
 ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), in the
 sections "Layout Shape During a Proxy Operation" and "Atomic
 commit on PROXY_DONE".  This document specifies the per-mirror
-codec naming primitive; the proxy-server document specifies
+encoding naming primitive; the proxy-server document specifies
 the transactional machinery that uses it.
 
 ### FFV2_ENCODING_PASSTHROUGH {#sec-encoding-passthrough}
@@ -1896,7 +1896,7 @@ PASSTHROUGH provides:
 -  Replication of data across N data servers, exactly as flexible file v1 layout
    does.  Clients write to every replica; clients read from any
    one.  N-way redundancy tolerates up to N-1 replica losses.
--  Zero codec compute at the client and zero chunk-metadata
+-  Zero encoding compute at the client and zero chunk-metadata
    overhead at the server.  The on-disk format is the file
    itself.
 -  Compatibility with files that already exist outside flexible file v2 layout.
@@ -1932,7 +1932,7 @@ property the encoded coding types carry.
 
 What FFV2_ENCODING_MIRRORED keeps from the mirror model:
 
--  Zero codec compute at the client.  Each replica's chunk is
+-  Zero encoding compute at the client.  Each replica's chunk is
    the input bytes; there is no transform to apply on write and
    nothing to decode on read.
 -  Storage cost of N x payload, where N is the replica count.
@@ -2513,50 +2513,50 @@ for 3-way mirroring with per-chunk integrity, or
 FFV2_ENCODING_PASSTHROUGH with (fdp_data=1, fdp_parity=2) for
 3-way flexible file v1 layout-compatible mirroring without per-chunk integrity.
 
-### Codec Negotiation {#sec-codec-negotiation}
+### Encoding Negotiation {#sec-encoding-negotiation}
 
 Because the coding-type registry is expected to grow over time
 (new erasure coding types are added, older ones fall out of favour,
 vendors register private codes; see {{iana-considerations}}),
 neither clients nor metadata servers are required to implement
-every registered codec.  The protocol uses ffv2_layouthint4 as
+every registered encoding.  The protocol uses ffv2_layouthint4 as
 the negotiation surface:
 
 Client-side advertisement:
-:  A client that wishes to influence codec selection SHOULD
-   send the set of codecs it actually implements in
+:  A client that wishes to influence encoding selection SHOULD
+   send the set of encodings it actually implements in
    ffv2lh_supported_types.  A client MUST NOT claim support for
-   a codec it cannot encode or decode: a false advertisement
+   an encoding it cannot encode or decode: a false advertisement
    produces silent data unavailability when the resulting layout
    is issued.
 
 Metadata-server selection:
-:  The metadata server SHOULD select a codec from the client's
+:  The metadata server SHOULD select an encoding from the client's
    ffv2lh_supported_types list when the server's policy permits.
    The server MAY override the hint when its policy dictates a
-   specific codec (for example, per-export objectives); in that
+   specific encoding (for example, per-export objectives); in that
    case the server issues a layout with the policy-dictated
-   codec and the client MUST either honour it or fail its I/O
+   encoding and the client MUST either honour it or fail its I/O
    with NFS4ERR_CODING_NOT_SUPPORTED.
 
 Fallback when no overlap exists:
-:  If the server's policy cannot be satisfied by any codec the
+:  If the server's policy cannot be satisfied by any encoding the
    client supports, the metadata server has three options:
 
    1.  Return NFS4ERR_CODING_NOT_SUPPORTED on the LAYOUTGET.
        The client MAY retry with a different (possibly empty)
-       ffv2lh_supported_types list to learn the server's codec
+       ffv2lh_supported_types list to learn the server's encoding
        repertoire through the errors returned.
 
    2.  Fall back to I/O via the metadata server itself, so the
        client's reads and writes are satisfied by the metadata server
-       translating to the underlying data server codec on the client's
+       translating to the underlying data server encoding on the client's
        behalf (see {{sec-Fencing-Clients}} for the MDS-I/O
        fallback).  This is correct but serializes all I/O for
-       the codec-ignorant client through a single actor.
+       the encoding-ignorant client through a single actor.
 
    3.  Route the client through a **translating proxy** that
-       understands both the file's native codec and a codec
+       understands both the file's native encoding and an encoding
        the client does support.  The metadata server issues a layout with
        the proxy's data-server entry carrying
        FFV2_DS_FLAGS_PROXY and a coding_type the client does
@@ -2565,7 +2565,7 @@ Fallback when no overlap exists:
        NFSv3 surface for an NFSv3 client).  The proxy encodes
        and decodes on the fly
        against the real data servers.  This preserves parallel I/O
-       for the codec-ignorant client that the MDS-I/O
+       for the encoding-ignorant client that the MDS-I/O
        fallback loses.  The proxy registration, directive, and
        credential-forwarding rules are defined in the
        {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}; this draft defines only
@@ -2577,24 +2577,24 @@ Fallback when no overlap exists:
    given deployment MAY implement any combination.  A
    deployment that supports (3) covers all the clients that
    (1) and (2) would cover and additionally preserves parallel
-   I/O for codec-ignorant clients.
+   I/O for encoding-ignorant clients.
 
-Runtime codec change:
-:  If a metadata server changes its codec policy after layouts
+Runtime encoding change:
+:  If a metadata server changes its encoding policy after layouts
    have been issued (for example, a deployment upgrade that
-   retires an older codec), the metadata server MUST recall the
+   retires an older encoding), the metadata server MUST recall the
    affected layouts via CB_LAYOUTRECALL and may re-issue new
-   layouts with the new codec.  Clients that do not support the
-   new codec LAYOUTRETURN with NFS4ERR_CODING_NOT_SUPPORTED,
-   and the server either grants a layout using a mutually-supported codec or the client falls back to I/O via the
+   layouts with the new encoding.  Clients that do not support the
+   new encoding LAYOUTRETURN with NFS4ERR_CODING_NOT_SUPPORTED,
+   and the server either grants a layout using a mutually-supported encoding or the client falls back to I/O via the
    metadata server.
 
 This mechanism deliberately avoids a separate capability-bit
 handshake at EXCHANGE_ID.  ffv2_layouthint4 already provides
 per-request negotiation surface; adding a session-level
-capability set would duplicate it and would complicate codec
+capability set would duplicate it and would complicate encoding
 upgrades without additional value, because a client that
-genuinely upgrades its codec set at runtime can simply update
+genuinely upgrades its encoding set at runtime can simply update
 the ffv2lh_supported_types on its next LAYOUTGET.
 
 Note: In {{fig-ffv2_layout4}} ffv2_coding_type_data4 is an enumerated
@@ -3881,12 +3881,12 @@ single file's mirror set addresses several use cases:
 
 - Online migration between encodings, for example from a
   Reed-Solomon Vandermonde encoding to a Mojette systematic
-  encoding when a read-access-pattern change makes the new codec
+  encoding when a read-access-pattern change makes the new encoding
   a better fit.  Both representations remain addressable through
   the layout throughout the transition.
 
 - Cross-encoding recovery: when one encoding loses data to a
-  correlated failure mode (a codec implementation bug, a
+  correlated failure mode (an encoding implementation bug, a
   memory-corruption pattern that affects parity shards
   identically), a second mirror in a different encoding provides
   an independent recovery surface.
@@ -3894,7 +3894,7 @@ single file's mirror set addresses several use cases:
 - Client-capability routing: a Proxy Server
   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) sees the full
   mirror set and chooses between encodings on behalf of clients
-  that do not implement every codec the file is represented in.
+  that do not implement every encoding the file is represented in.
 
 Consider a layout that exposes a file in two encodings
 simultaneously: a PASSTHROUGH mirror over the original byte
@@ -3905,7 +3905,7 @@ file might appear as in {{fig-example_mixing}}.  Both
 representations are active and addressable through the layout
 simultaneously.  This is the transition-window pattern: a file
 may transiently span encodings while it is being assimilated
-from a non-FFv2 source or migrated between codecs.  Steady
+from a non-FFv2 source or migrated between encodings.  Steady
 state is homogeneous; the multi-encoding window is what the
 protocol must accommodate.
 
@@ -4002,7 +4002,7 @@ repair) are the most visible motivations for heterogeneous
 mirror sets, but they are not the only ones.  A file's mirror
 set MAY be heterogeneous in steady state -- where no transition
 is in progress and no transition is planned -- when the
-deployment's storage pools have different codec capabilities
+deployment's storage pools have different encoding capabilities
 and the file is too large to fit in any single pool.
 
 Consider an operator with three 100-TB storage pools.  Pool A
@@ -4014,7 +4014,7 @@ servers that have implemented only FFV2_ENCODING_MOJETTE_SYSTEMATIC.
 A 250-TB file cannot fit in any single pool.  Striping the
 file across all three pools is forced by capacity arithmetic:
 250 > 100.  And because each pool's data servers can only
-respond to the chunk operations of its own codec, the layout
+respond to the chunk operations of its own encoding, the layout
 for this file MUST name a different `ffv2_coding_type4` per
 mirror covering each stripe segment.  The heterogeneity is
 not a transition window; it is the permanent structural
@@ -4024,11 +4024,11 @@ In this steady-state case, no proxy-server-mediated transition
 machinery is involved.  The client receives a layout
 enumerating the mirrors at different `ffv2m_coding` values and
 routes chunk operations to the appropriate data server per
-segment (or, if the client cannot speak one of the codecs,
+segment (or, if the client cannot speak one of the encodings,
 requests proxy mediation per the proxy-server draft's section
-"Codec Translation for Codec-Ignorant Clients").  The layout
+"Encoding Translation for Encoding-Ignorant Clients").  The layout
 machinery that supports this case is exactly the per-mirror
-codec naming primitive described above; no additional protocol
+encoding naming primitive described above; no additional protocol
 elements are required to express it.
 
 The transient case (one file moving between encodings) and the
@@ -4039,7 +4039,7 @@ values.  Removing that primitive would foreclose both cases
 and would force one of three workarounds: (a) split the
 250-TB file into three independently-named files (loses
 single-namespace semantics), (b) require every pool to
-implement every codec (forces a single-vendor or
+implement every encoding (forces a single-vendor or
 single-implementation procurement story), or (c) require an
 always-on transcoding proxy in front of every read and write
 (re-introduces the centralized data-plane that the
@@ -4583,12 +4583,12 @@ the operation, not by the requester's IP address or principal.
 A data server MAY likewise act as a client of another data
 server -- for example, when selected as the repair client by an
 MDS-directed CB_CHUNK_REPAIR.  Independent of the actor role,
-any entity may operate as codec-aware (issuing CHUNK_*
-operations directly against data servers) or codec-unaware
+any entity may operate as encoding-aware (issuing CHUNK_*
+operations directly against data servers) or encoding-unaware
 (operating through the proxy-server-mediated READ / WRITE path
 described in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).
-Proxy-server registration carries the codec capability
-explicitly; direct pNFS clients reveal their codec posture
+Proxy-server registration carries the encoding capability
+explicitly; direct pNFS clients reveal their encoding posture
 implicitly through the operations they issue.
 
 The protocol does NOT mandate how a data server implements the
@@ -5350,12 +5350,12 @@ across the data servers in each mirror.
 Stripe-aligned truncate:
 :  When the new size lies on a stripe boundary (including
    zero), no chunk re-encoding is required.  The metadata
-   server computes per-shard sizes from the codec geometry it
+   server computes per-shard sizes from the encoding geometry it
    issued in the layout (k, m, and the projection parameters
    for Mojette; see {{sec-mojette-encoding}}) and issues
    per-data-server SETATTR(FATTR4_SIZE) with the computed
    per-shard size.  Geometry parameters are sufficient
-   arithmetic; no codec implementation is required at the
+   arithmetic; no encoding implementation is required at the
    metadata server.
 
 Non-stripe-aligned truncate:
@@ -5363,17 +5363,17 @@ Non-stripe-aligned truncate:
    covering the partial stripe must be truncated and the
    parity shards re-encoded from the truncated data.  Because
    re-encoding requires running the erasure transform, the
-   metadata server MUST delegate this case to a codec-aware
+   metadata server MUST delegate this case to an encoding-aware
    actor: either a Proxy Server
    ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) for
-   proxy-mediated truncate, or a codec-aware client selected
+   proxy-mediated truncate, or an encoding-aware client selected
    per {{sec-repair-selection}} via CB_CHUNK_REPAIR with the
    affected partial-stripe chunks as the repair target.  If
    neither path is available, the metadata server MUST return
    NFS4ERR_NOTSUPP to the originating SETATTR.
 
-The metadata server knows codec geometry from the layout but
-is not required to include a codec implementation.  The
+The metadata server knows encoding geometry from the layout but
+is not required to include an encoding implementation.  The
 delegation rule above accommodates a metadata server that has
 geometry knowledge only.
 
@@ -7734,10 +7734,10 @@ The client provides a cra_offset of where the CHUNK_READ is
 to start and a cra_count of how many chunks are to be read.
 cra_offset is the starting chunk index in the file (not a
 byte offset); the chunk at index N occupies the bytes
-[N * chunk_size, (N + 1) * chunk_size) for codecs with a
+[N * chunk_size, (N + 1) * chunk_size) for encodings with a
 uniform chunk size, where chunk_size is taken from
 ffv2m_striping_unit_size in the file's layout
-({{sec-ffv2-mirror4}}).  For codecs whose parity shards
+({{sec-ffv2-mirror4}}).  For encodings whose parity shards
 have variable sizes (the Mojette family), the parity-shard
 chunks on a given data server may use a smaller per-shard
 chunk size; see {{sec-mojette-encoding}}.  cra_count is a
@@ -10132,7 +10132,7 @@ accidental codepoint collisions between independent vendors,
 implementations SHOULD derive the low-order 15 bits of any value
 in this range from that vendor's Private Enterprise Number
 {{IANA-PEN}} (for example, by hashing the PEN into the 15-bit
-space and reserving one well-known offset per codec).  The
+space and reserving one well-known offset per encoding).  The
 encoding type name SHOULD include an organizational identifier
 (e.g., FFV2_ENCODING_ACME_FOOBAR).  A client that encounters a
 value in this range from an unrecognized server SHOULD treat
@@ -10309,7 +10309,7 @@ Coverage:
 
 - CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, and CHUNK_COMMIT (the
   happy-path data-plane operations) are implemented end-to-end and
-  have been exercised against the three codec families (Reed-Solomon
+  have been exercised against the three encoding families (Reed-Solomon
   Vandermonde, Mojette systematic, Mojette non-systematic).
 
 - The chunk_guard4 CAS primitive, including the conflict-detection
@@ -10370,7 +10370,7 @@ similar overhead ratios.
 Selected findings:
 
 Erasure-coded write overhead is modest at small and mid sizes:
-:  At 4 KB to 64 KB payloads, all three codecs add 14% to 21%
+:  At 4 KB to 64 KB payloads, all three encodings add 14% to 21%
    write latency relative to plain mirroring.  Above 64 KB the
    encoding cost begins to dominate; at 1 MB Reed-Solomon and Mojette
    systematic reach approximately +54%, Mojette non-systematic
@@ -10383,14 +10383,14 @@ The dominant write cost is encoding, not fan-out:
    Reed-Solomon penalty, only 7 ms comes from parallel fan-out; the
    remaining 32 ms is encoding plus two additional parity RPCs.
 
-Reconstruction of a missing data shard is essentially free for systematic codecs at 4+2:
+Reconstruction of a missing data shard is essentially free for systematic encodings at 4+2:
 :  Reed-Solomon and Mojette systematic
    add 1% to 6% to read latency in degraded-1 mode (one data shard
    missing, reconstructed from the remaining five).  A client that
    discovers a failed data server at read time can reconstruct transparently
    with no user-visible latency impact.
 
-At 8+2, systematic-codec reconstruction diverges:
+At 8+2, systematic-encoding reconstruction diverges:
 :  Mojette
    systematic reconstruction overhead stays at approximately +4% at
    1 MB, while Reed-Solomon grows to approximately +54% due to the
@@ -10409,22 +10409,22 @@ Mojette non-systematic applies a full inverse transform on every read:
 Results are platform-independent:
 :  The largest absolute
    latency delta between macOS M4 and Fedora 43 at 1 MB is 20 ms
-   on writes.  Codec ordering, overhead percentages, and
+   on writes.  Encoding ordering, overhead percentages, and
    qualitative scaling behavior are reproducible across operating
    systems and Docker implementations.
 
 The benchmarks confirm that the protocol's central design claims
 hold in practice: client-side erasure coding is affordable at
-typical payload sizes; systematic codecs reconstruct missing
-shards cheaply; and the scaling properties of the three codec
+typical payload sizes; systematic encodings reconstruct missing
+shards cheaply; and the scaling properties of the three encoding
 families follow directly from their published algorithmic
 complexities.
 
-The benchmarks quantify the algorithmic trade-offs each codec
+The benchmarks quantify the algorithmic trade-offs each encoding
 family makes: Mojette non-systematic's constant decode cost comes
 at a higher baseline read cost, and Reed-Solomon's matrix-
 inversion reconstruction grows as O(k^2) at wider geometries.
-The choice of default codec and geometry in a given deployment
+The choice of default encoding and geometry in a given deployment
 follows from these properties applied to the workload's read /
 write mix, fault-tolerance target, and acceptable encoding cost.
 
@@ -10436,7 +10436,7 @@ platform comparison is available alongside the source code.
 
 The headline question every storage audience asks of an
 erasure-coding protocol is: "what does it cost when something goes
-wrong?"  At the systematic-codec operating points measured
+wrong?"  At the systematic-encoding operating points measured
 (Mojette systematic at 4+2 and 8+2), the benchmark answer is
 **essentially zero**.  Mojette systematic at 4+2 reconstructs a
 missing data shard with read-latency overhead within run-to-run
@@ -10444,7 +10444,7 @@ noise of healthy operation.  Mojette systematic at 8+2 holds at
 approximately +4%.
 
 This shifts the deployment conversation away from "is erasure
-coding cheap enough to enable" and toward "which codec and
+coding cheap enough to enable" and toward "which encoding and
 geometry minimise the compromise."  The compromise that remains is
 not the cost of fault tolerance; it is the cost of write-time
 encoding, which is bounded (under 60% at 1 MB, under 25% at 64 KB),
@@ -10458,7 +10458,7 @@ group's review of this work are addressed in
 the original Mojette-specific projection header has been replaced
 with XDR-encoded chunk metadata (see {{sec-chunk_guard4}}), so the
 remaining wire-format cost is the XDR-encoded chunk header itself,
-which is identical for every codec and is part of the +7% to +22%
+which is identical for every encoding and is part of the +7% to +22%
 v2 write overhead measured above.
 
 # Design Rationale: Rejected Alternatives {#sec-rejected-alternatives}
@@ -10487,10 +10487,10 @@ the start of the READ/WRITE opaque payload, interpreted in the
 endianness of the writer's host.  The motivation was concrete:
 NFSv3 READ and WRITE arguments carry data as `opaque data<>` and
 provide no XDR room for per-write structured metadata such as
-codec geometry, integrity, or write-ordering tiebreakers.  An
+encoding geometry, integrity, or write-ordering tiebreakers.  An
 NFSv3 server cannot be extended; if a flexible file v2 layout deployment
 wanted an NFSv3 server to participate as a data server in an
-erasure-coded layout, the only place to put codec metadata was
+erasure-coded layout, the only place to put encoding metadata was
 inside that opaque payload, prepended to the data bytes.  The data server
 stored the entire opaque blob without interpreting it; the reader
 peeled the 16-byte prefix off and acted on it.
@@ -10722,7 +10722,7 @@ at LAYOUTGET time plus chunk_guard4 CAS for writes, which
 localises consistency decisions to the chunks being written
 rather than to a global mapping table.
 
-# Working Group Concern: Codec on Every Client {#sec-wg-concern-codec-on-client}
+# Working Group Concern: Encoding on Every Client {#sec-wg-concern-encoding-on-client}
 {:numbered="false" removeInRFC="true"}
 
 This appendix captures a working-group concern raised
@@ -10747,7 +10747,7 @@ Christoph stated that he was "very scared of the implications of
 having every client be a full participant in a distributed storage
 system."  He pointed out that any erasure-coding or replication
 protocol that runs at the client requires every client implementation
-to understand the codec, and that codecs evolve over time as new
+to understand the encoding, and that encodings evolve over time as new
 algorithms appear in the storage research literature.  He observed
 that the same problem appears with replication ("simple two-, three-,
 four-way replication"): a client power-failure event mid-write leaves
@@ -10764,9 +10764,9 @@ boundary of what you think the storage system is than outside."
 
 Two coupled requirements:
 
-1.  Codec correctness and codec evolution must not be a per-client
+1.  Encoding correctness and encoding evolution must not be a per-client
     burden.  An ecosystem in which every client must ship and update
-    every supported codec does not interoperate at scale: an
+    every supported encoding does not interoperate at scale: an
     organisation cannot upgrade its storage system's encoding without
     coordinating an upgrade across every client.
 
@@ -10790,22 +10790,22 @@ boundary that Christoph and David asked for.
 
 A proxy server is a peer of the metadata server and the data servers that:
 
--  speaks the codec on behalf of clients that cannot;
--  receives whole-stripe operations from a codec-ignorant client;
+-  speaks the encoding on behalf of clients that cannot;
+-  receives whole-stripe operations from an encoding-ignorant client;
 -  encodes (or decodes) using whatever the layout's
     {{fig-ffv2_coding_type4}} demands;
 -  drives the CHUNK operations to the participating data servers;
 -  carries the partial-write / FINALIZE / COMMIT recovery machinery
-    that the codec requires.
+    that the encoding requires.
 
 Three properties follow:
 
 -  A legacy NFSv4.2 (or even NFSv3) client gets erasure-coded
     durability without speaking erasure coding.  The proxy server is where
-    the codec lives; the client does not have to be upgraded when
-    the codec is upgraded.
+    the encoding lives; the client does not have to be upgraded when
+    the encoding is upgraded.
 
--  Codec evolution is a server-side concern.  Adding a new entry
+-  Encoding evolution is a server-side concern.  Adding a new entry
     to {{fig-ffv2_coding_type4}} requires updating the proxy servers and data servers,
     not every client in the deployment.  This matches the operational
     pattern of every other distributed-storage protocol on the wire.
@@ -10817,11 +10817,11 @@ Three properties follow:
     converting those semantics into the chunk state-machine the
     data servers implement.
 
-A codec-aware NFSv4.2 client is still permitted (and is the fast
+An encoding-aware NFSv4.2 client is still permitted (and is the fast
 path: no proxy hop, no double bandwidth on the proxy's link).  The
-proxy server is the answer for clients that either cannot speak the codec
+proxy server is the answer for clients that either cannot speak the encoding
 or are too old to be upgraded.  In Christoph's framing, the proxy server is
-the inside of the storage boundary; codec-aware clients are
+the inside of the storage boundary; encoding-aware clients are
 implementations that have been admitted into that boundary by
 design.
 
@@ -10829,8 +10829,8 @@ The proxy server does carry a data-plane cost: client bytes traverse the
 proxy on the way to the data servers, so the proxy's link sees roughly
 twice the bandwidth of a direct client-to-data server path, and the proxy server pays
 the encode/decode CPU.  This is the price of admission for clients
-that do not speak the codec; it is the same store-and-forward cost
-any storage gateway pays.  It does not affect codec-aware clients,
+that do not speak the encoding; it is the same store-and-forward cost
+any storage gateway pays.  It does not affect encoding-aware clients,
 which talk to the data servers directly.
 
 # Working Group Concern: Coherent Multi-data server Writes Without Recall Storms {#sec-wg-concern-recall-storms}
@@ -10959,7 +10959,7 @@ checks rather than via a global wall-clock or consensus protocol.
 ## Combined Effect on the "Cluster Tax"
 {:numbered="false"}
 
-The Proxy Server addresses the codec-distribution cost; the trust
+The Proxy Server addresses the encoding-distribution cost; the trust
 stateid mechanism addresses the layout-mutation cost.  Together,
 they confine the residual cluster overhead to:
 
