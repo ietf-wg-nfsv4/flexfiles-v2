@@ -2466,6 +2466,8 @@ The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
    /// struct ffv2_layouthint4 {
    ///     ffv2_coding_type4       ffv2lh_supported_types<>;
    ///     ffv2_data_protection4   ffv2lh_preferred_protection;
+   ///     uint32_t                ffv2lh_stripe_unit;
+   ///     uint64_t                ffv2lh_expected_file_size;
    /// };
 ~~~
 {: #fig-ffv2_layouthint4 title="The ffv2_layouthint4" }
@@ -2474,7 +2476,9 @@ The ffv2_layouthint4 (in {{fig-ffv2_layouthint4}}) describes the
 layout_hint (see Section 5.12.4 of {{RFC8881}}) that the client can
 provide to the metadata server.
 
-The client provides two hints:
+The client provides four hints.  All four are advisory; the
+metadata server MAY honour any subset and MAY override any of
+them per administrative policy.
 
 ffv2lh_supported_types
 
@@ -2494,8 +2498,41 @@ data protection via administrative policy (e.g., per-directory or
 per-export objectives) will typically ignore this hint and return the
 geometry dictated by policy.
 
+ffv2lh_stripe_unit
+
+:  The client's preferred stripe unit size in bytes.  A value of
+zero means "no hint" -- the metadata server selects a stripe unit
+from policy or from file history.  When the value is non-zero,
+the metadata server SHOULD use it as the per-mirror stripe unit
+when policy permits.  The metadata server MAY round to a
+server-supported alignment.  The metadata server MAY return
+NFS4ERR_INVAL when a non-zero value is below an
+implementation-defined floor or above an implementation-defined
+ceiling.  The hint SHOULD be a power of two.
+
+ffv2lh_expected_file_size
+
+:  The client's hint at the file's eventual size in bytes.  A
+value of zero means "no hint."  When the value is non-zero, the
+metadata server MAY use it to decide whether to issue a striped
+layout (typically for files large enough that striping pays for
+itself) versus a non-striped layout (typically for files
+expected to remain small).  The hint applies to the layout
+being requested and has no retroactive effect on layouts
+already issued.  The hint is never required to be accurate; a
+file is free to grow beyond its hint without protocol penalty,
+and the metadata server is free to ignore the hint.
+
+The stripe_unit and expected_file_size hints are most useful at
+the LAYOUTGET that follows file creation, when the file is at
+size zero and the metadata server has no usage history to drive
+its own striping decision.  On a LAYOUTGET against an
+already-grown file, the metadata server SHOULD ignore both
+hints and use the file's actual size and access history.
+
 For example, a client that prefers Mojette systematic with 8+2
-protection would send:
+protection, 1 MiB stripe units, and is creating a file expected
+to grow to 16 GiB would send:
 
 ~~~
 ffv2lh_supported_types = { FFV2_ENCODING_PASSTHROUGH,
@@ -2503,15 +2540,28 @@ ffv2lh_supported_types = { FFV2_ENCODING_PASSTHROUGH,
                          FFV2_ENCODING_MOJETTE_SYSTEMATIC,
                          FFV2_ENCODING_RS_VANDERMONDE }
 ffv2lh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
+ffv2lh_stripe_unit          = 1048576
+ffv2lh_expected_file_size   = 17179869184
 ~~~
 
 A server with a policy of RS 4+2 for this directory would ignore
-both hints and return a layout with FFV2_ENCODING_RS_VANDERMONDE
-and (fdp_data=4, fdp_parity=2).  A server without erasure coding
-might return FFV2_ENCODING_MIRRORED with (fdp_data=3, fdp_parity=0)
-for 3-way mirroring with per-chunk integrity, or
-FFV2_ENCODING_PASSTHROUGH with (fdp_data=1, fdp_parity=2) for
-3-way flexible file v1 layout-compatible mirroring without per-chunk integrity.
+both codec hints and return a layout with
+FFV2_ENCODING_RS_VANDERMONDE and (fdp_data=4, fdp_parity=2).  A
+server without erasure coding might return FFV2_ENCODING_MIRRORED
+with (fdp_data=3, fdp_parity=0) for 3-way mirroring with
+per-chunk integrity, or FFV2_ENCODING_PASSTHROUGH with
+(fdp_data=1, fdp_parity=2) for 3-way flexible file v1 layout-
+compatible mirroring without per-chunk integrity.
+
+A server may also use ffv2lh_expected_file_size as a striping
+gate: a deployment that wants to avoid the runway and bookkeeping
+overhead of striping small files (which dominate file-count even
+when they do not dominate byte count) can use a single-mirror
+non-striped layout for any LAYOUTGET whose hint is below a
+configured threshold, and a striped layout above it.  Without
+the hint the metadata server must either always stripe, never
+stripe, or rely on observing the file's growth -- which is
+exactly the friction the hint exists to remove.
 
 ### Codec Negotiation {#sec-codec-negotiation}
 
