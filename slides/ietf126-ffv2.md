@@ -133,7 +133,7 @@ Lesson 1 and 4 are core problems.  Lessons 2 and 3 motivate the EC capability.
 | `REVOKE_STATEID` | Layout returned, recalled, or reissued | Clear the stateid from each DS's table.  Next write from that client **fails closed**. |
 | `BULK_REVOKE_STATEID` | Client lease expires | One per affected DS; clears every entry for that client at once. |
 
-Replaces v1's synthetic uid/gid fencing.  No consensus protocol, no DLM &mdash; the MDS remains the single state authority; DSes are admission gates.
+Replaces v1's synthetic uid/gid fencing.  No consensus protocol, no Distributed Lock Manager (DLM) &mdash; the MDS remains the single state authority; DSes are admission gates.
 
 ---
 
@@ -519,6 +519,62 @@ Under either option, trust-stateid, the chunk substrate, and mirror-side write-h
 3. **Who will implement** &mdash; client, DS, or PS side &mdash; and on what horizon?  Who will review deeply?
 
 **Document structure follows from the answers** &mdash; not the other way around.
+
+---
+
+<!-- Slide role: SEPARATOR (Adoption) -->
+<!-- _class: big -->
+# Call for Adoption
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Five reasons this wasn't ready before.  Each closed since.
+     The "Why now" slide mirrors these bullets in order so the room
+     sees each gap answered.  Don't apologize for the wait; frame it
+     as work that had to happen. -->
+# Why not before
+
+- Draft was not yet complete
+- Use cases underspecified
+- Requirements not framed
+- No implementation experience
+- No legacy-client story
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Same order as "Why not before" so the room sees each gap
+     closed.  End with the concrete procedural ask: Call for
+     Adoption at this meeting.  Don't hedge - the room already saw
+     the substance in Parts A/B/C. -->
+# Why now
+
+- Draft is complete (-07 stable; -08 planned after WG feedback)
+- Use cases identified (&sect;2, &sect;3) and grounded in operator workloads
+- Requirements framed &mdash; workload-driven, not speculative
+- Implementation experience: reffs (see slide 22)
+- Legacy-client story: PS draft (`draft-haynes-nfsv4-flexfiles-v2-proxy-server`)
+
+Comments from IETF 122&ndash;124 addressed through revisions -04..-07.
+**Requesting Call for Adoption at this meeting.**
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Two drafts today because that's how they were authored.
+     Whether they stay two or fold into one is the structure
+     question the WG will answer (slides 24-27).  Adoption does not
+     lock the shape. -->
+# Time to adopt
+
+Two drafts today &mdash; folding into one is the **structure question above**.  Adoption does not lock the shape.
+
+- [`draft-haynes-nfsv4-flexfiles-v2`](https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2/)
+- [`draft-haynes-nfsv4-flexfiles-v2-proxy-server`](https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2-proxy-server/)
 
 ---
 
