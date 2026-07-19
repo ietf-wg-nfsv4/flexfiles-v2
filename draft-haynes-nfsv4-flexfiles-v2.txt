@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                            10 June 2026
-Expires: 12 December 2026
+Intended status: Standards Track                            19 July 2026
+Expires: 20 January 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -48,7 +48,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 12 December 2026.
+   This Internet-Draft will expire on 20 January 2027.
 
 Copyright Notice
 
