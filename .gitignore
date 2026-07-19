@@ -29,3 +29,5 @@ tmp.*
 *.patch
 *.mbox
 *.x
+slides/.*.build.md
+slides/*.pptx
