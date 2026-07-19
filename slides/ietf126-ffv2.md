@@ -54,7 +54,7 @@ Tom Haynes &mdash; @@DATE@@
 |---|---|---|
 | **A. A modernized Flex Files core** | revoke-now admission control, heterogeneous mirror sets, PASSTHROUGH, better error/stats reporting | **every** Flex Files deployment, mirror-only included |
 | **B. An erasure-coding capability** | client-side EC over a chunk model with defined crash semantics | PB-scale + multi-rack deployments |
-| **C. A Proxy Server companion** | repair offload + translation for encoding-ignorant clients | unmodified kernel clients; operators |
+| **C. A Proxy Server (PS) companion** | repair offload + translation for encoding-ignorant clients | unmodified kernel clients; operators |
 
 Then: implementation status (reffs) &rarr; the document-structure question &rarr; what we ask of the WG.
 
@@ -339,7 +339,7 @@ One `struct ec_encoding` interface; three encodings implemented and benchmarked:
 
 **Patent posture:** pre-2000 textbook sources cited in headers (Reed & Solomon 1960, Berlekamp 1968, Peterson & Weldon 1972); Jerasure/GF-Complete/ISA-L internals avoided.  Scalar arithmetic: slower, correct, reproducible from the literature.
 
-**Open question we want answered in this room:** the draft defines a encoding **registry** but no **mandatory-to-implement** encoding.  Two conforming implementations could share none.  Proposal on the table: **RS-Vandermonde as MTI** for encoding-capable implementations; everything else optional.  WG input sought.
+**Open question we want answered in this room:** the draft defines a encoding **registry** but no **mandatory-to-implement** encoding.  Two conforming implementations could share none.  Proposal on the table: **RS-Vandermonde as Minimum To Implement (MTI)** for encoding-capable implementations; everything else optional.  WG input sought.
 
 <!-- Presenter note: surfacing the MTI gap ourselves converts the
      sharpest interop objection into an agenda item we control. -->
