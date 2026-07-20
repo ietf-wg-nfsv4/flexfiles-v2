@@ -13,6 +13,7 @@ style: |
   section.shrink85 pre code { font-size: inherit !important; }
   section.dense table { font-size: 0.72em; }
   section.tight { font-size: 21px; }
+  section table { margin-inline: auto; }
 ---
 
 <!-- _footer: "" -->
@@ -114,32 +115,14 @@ Lesson 1 and 4 are core problems.  Lessons 2 and 3 motivate the EC capability.
      CB_CHUNK_REPAIR + encoding negotiation + repair orchestration
      in EC.  MDS deliberately does NOT originate CHUNK ops - it
      coordinates via callback + escrow (chunk_guard4 sentinel). -->
-<!-- _class: dense -->
+<!-- _class: "tight dense" -->
 # v1 &rarr; v2 at a glance: what it costs
 
-| Actor | FFv1 (RFC 8435) | FFv2 core (A) | + EC capability (B) |
-|---|---|---|---|
-| **DS requirements** | **unmodified NFS server** | **+3 ops** (trust-stateid family) + admission table | **+11 CHUNK ops** + per-block state machine + ~40 B/block durable metadata |
-| **MDS requirements** | **pNFS MDS** | **issues +3 ops** + admission coordination | **+ `CB_CHUNK_REPAIR`** + encoding negotiation + repair delegation |
-| Client requirements | mirror writes | unchanged for mirror use | encode/decode + chunk lifecycle (or use the PS) |
-
----
-
-<!-- Slide role: CONTENT
-     Must-deliver:
-     The takeaway before pivoting to Part B.  Core is modest for
-     both DS and MDS.  EC is where both actors step further out -
-     DS with the chunk machinery, MDS with repair orchestration.
-     We claim the capability earns the cost; Part B (measurements)
-     makes that case. -->
-<!-- _class: big -->
-# v1 &rarr; v2
-
-**The core** asks modest new work of the DS and MDS.
-
-**The EC capability** is where the DS stops being an unmodified server, and where the MDS gains a repair-orchestration role.
-
-**We think the capability earns it.**  Part B makes that case with measurements.
+| Actor | FFv1 (RFC 8435) | FFv2 core (A) | + EC capability (B) | Role |
+|---|---|---|---|---|
+| **DS** | **unmodified NFS server** | **+3 ops** (trust-stateid family) + admission table | **+11 CHUNK ops** + per-block state machine + ~40 B/block durable metadata | Modified Server |
+| **MDS** | **pNFS MDS** | **issues +3 ops** + admission coordination | **+ `CB_CHUNK_REPAIR`** + encoding negotiation + repair delegation | Repair Orchestrator |
+| **Client** | mirror writes | unchanged for mirror use | encode/decode + chunk lifecycle (or use the PS) | Encoding-Capable |
 
 ---
 
@@ -216,7 +199,6 @@ This mechanism is valuable to **mirror-only** deployments.  It does not depend o
 
 - **PASSTHROUGH encoding** &mdash; a pool of plain NFSv3/NFSv4 servers participates as-is; the v1 deployment story is preserved inside v2.
 - **Heterogeneous mirror sets** &mdash; mirror instances of one file may live on pools with different capabilities; enables live migration between pool generations.
-- **Refreshed error + stats reporting** &mdash; ffv2_ioerr / ffv2_iostats carry what operators asked for.
 - **Tight-coupling control protocol** (draft &sect;6.4) &mdash; capability discovery, control sessions, crash recovery on both sides.
 
 ---
@@ -274,7 +256,7 @@ This mechanism is valuable to **mirror-only** deployments.  It does not depend o
      DS.  Unmodified clients aren't left behind; they use the PS.
      If asked "nobody does this" - answer "correct, that's why
      sec 12/24/25 and reffs exist." -->
-# Why *client-side* EC &mdash; and what it costs
+# The *client-side* EC tradeoff
 
 **The case:**
 - Client writes k+m shards **directly to DSes** &mdash; server-side EC bottlenecks on one server's bandwidth
@@ -386,10 +368,11 @@ Caveat we state before you do: rows move different byte counts (RS 4+2 = 1.5x pa
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Three encodings implemented today.  Registry exists.  MTI does
-     NOT.  That's the open item.  Propose RS-Vandermonde as MTI for
-     encoding-capable implementations; everything else optional.
-     WG input sought. -->
+     Three encodings implemented today, one interface, one registry.
+     RS-Vandermonde interop parameters pinned in the draft.  Patent
+     posture stays clean (pre-2000 textbook sources; Jerasure /
+     GF-Complete / ISA-L internals avoided).  MTI gap is called out
+     on the follow-up slide. -->
 # Encodings: three today, a registry forever
 
 One `struct ec_encoding` interface; three encodings implemented and benchmarked:
@@ -399,10 +382,24 @@ One `struct ec_encoding` interface; three encodings implemented and benchmarked:
 
 **Patent posture:** pre-2000 textbook sources cited in headers (Reed & Solomon 1960, Berlekamp 1968, Peterson & Weldon 1972); Jerasure/GF-Complete/ISA-L internals avoided.  Scalar arithmetic: slower, correct, reproducible from the literature.
 
-**Open question we want answered in this room:** the draft defines a encoding **registry** but no **mandatory-to-implement** encoding.  Two conforming implementations could share none.  Proposal on the table: **RS-Vandermonde as Minimum To Implement (MTI)** for encoding-capable implementations; everything else optional.  WG input sought.
+---
 
-<!-- Presenter note: surfacing the MTI gap ourselves converts the
-     sharpest interop objection into an agenda item we control. -->
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Surfacing the MTI gap ourselves converts the sharpest interop
+     objection into an agenda item we control.  The draft has a
+     registry but no MTI - two conforming implementations could
+     share zero encodings.  Proposal: RS-Vandermonde as MTI for
+     encoding-capable implementations; everything else optional.
+     Also carried as item 1 on "What remains to settle". -->
+# Encodings: the MTI gap
+
+- The draft defines a encoding **registry**
+- The draft defines **no mandatory-to-implement** encoding
+- Two conforming implementations could share **zero encodings**
+- **Proposal:** RS-Vandermonde as MTI for encoding-capable implementations
+- Everything else optional
+- WG input sought
 
 ---
 
@@ -462,28 +459,45 @@ One `struct ec_encoding` interface; three encodings implemented and benchmarked:
      Must-deliver:
      Second implementation, independent of Linux kernel server.
      User-space, prototyping not production.  Two backends on ONE
-     wire format - the protocol doesn't dictate fragmentation.
+     wire format - the protocol doesn't dictate on-disk layout.
      Shipped: repair, PS role.  Missing: a kernel client - that's
      an explicit ask. -->
+<!-- _class: "tight dense" -->
 # Implementation status: reffs
 
 A second implementation, independent of the Linux kernel server, built to answer *"did the design survive contact with code?"*
 
-- **What it is:**
-  - User-space C
-  - Linux + macOS
-  - **Prototyping, not production**
-- **What it covers:**
-  - MDS + DS roles
-  - FFv1 + FFv2 layouts
-  - All CHUNK + trust-stateid ops
-  - PS role
-  - `ec_demo` userspace client
-- **Two storage backends on one wire format** (POSIX+XFS sidecar files; RocksDB LSM) &mdash; the protocol does not force a fragmentation regime
+| **What it is** | **What it covers** |
+|---|---|
+| User-space C | MDS + DS roles |
+| Linux + FreeBSD + macOS | FFv1 + FFv2 layouts |
+| **Prototyping, not production** | All CHUNK + trust-stateid ops |
+|  | PS role |
+|  | `ec_demo` userspace client |
+
 - **Shipped:** wire-level single-shard reconstruction (`CHUNK_WRITE_REPAIR` + `CHUNK_REPAIRED`, 80-cell bench)
 - **In progress:** PS-driven repair autopilot; cross-PS coherence for NFSv3 clients (known gap, fix shape documented)
 
 **What does not yet exist:** a kernel client; an implementation outside the reffs/ec_demo family.  We are explicit about this &mdash; it is one of the asks.
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Two very different on-disk layouts against the SAME wire
+     protocol.  POSIX + XFS keeps chunks in sidecar files per inode;
+     RocksDB LSM keeps them as keys in a log-structured store.  The
+     claim: the protocol does not dictate on-disk layout - operators
+     can pick the store that fits their media.  Full backend detail
+     is in the backup slide. -->
+# Two storage backends on one wire format
+
+- **POSIX + XFS** &mdash; sidecar files per inode
+- **RocksDB LSM** &mdash; chunks as keys in a log-structured store
+- Same wire protocol on both
+- **The claim:** the protocol does not dictate on-disk layout
+
+*(full backend detail: backup)*
 
 ---
 
@@ -495,79 +509,65 @@ A second implementation, independent of the Linux kernel server, built to answer
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     The TWO-layout-type variant is OFF the table under either option.
-     Both options keep one layout type + one registry + chunk /
-     MIRRORED / PASSTHROUGH in the core.  What IS contested: where do
-     encoding SPECS live. -->
-# The structure question, framed precisely
+     216 pages is on the large side for IESG review; usual expectation
+     is <=120 per document.  231 is the raw count; 216 after stripping
+     non-published WG-concern sections.  PS is already split at 62
+     pages.  This slide is the NUMERICAL case for going multi-doc -
+     independent of any philosophical position on Option A vs B. -->
+# Page-count reality
 
-**Not on the table (under either position): a second layout type.**  Per-segment and per-mirror-instance encoding live *inside* one layout type's XDR.  Single-file heterogeneity &mdash; a file mid-migration holding instances in two encodings, or spanning pools of unlike capability &mdash; requires exactly that.  Both options below keep **one layout type, one `ffv2_coding_type4` registry, and the chunk substrate + MIRRORED + PASSTHROUGH in the core document.**
-
-**What is genuinely contested: where encoding *specifications* live.**
-
-| | Option A &mdash; one document | Option B &mdash; core + scheme documents |
-|---|---|---|
-| RS-Vandermonde | in-document (&sect;11.4) | short companion document, proposed **MTI**, advances with core |
-| Mojette | in-document (&sect;11.5) | independent scheme document, arriving via the registry |
-| Registry's role | entry path for *future* encodings | entry path for **every** encoding beyond the core |
-
-The next two slides give each option's case at full strength.
-
-<!-- Presenter note: this framing deliberately retires the two-layout-type
-     variant up front so the room argues about the real question. Neither
-     option slide is the chairs' position; the questions slide is. -->
+|  | Current | IESG-review target |
+|---|---:|---:|
+| **FFv2 draft** | **216 pages** (231 raw &minus; non-published sections) | &le; 120 / doc |
+| PS draft (already split) | 62 pages | &le; 120 / doc |
 
 ---
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     One-document case: reviewed as a whole, no reference web,
-     ships complete today, "later" has a base rate of never.
-     Precedent: RFC 5664 objects, RFC 8435 FFv1. -->
-# Option A &mdash; one document: the case
+     Seven documents, none over ~90 pages.  Doc 4 (chunk substrate) is
+     the anchor - ~4300 md lines of system model + chunk data
+     structures + 11 CHUNK ops is where the page count lives.  Docs 6
+     and 7 kept separate on purpose: encoding review goes where the
+     expertise lives (FECFRAME reviewers, coding-theory folks) and any
+     IPR clarification on a specific encoding does NOT block the
+     framework or other encodings.  Doc 5 is the entry point for future
+     encodings through the registry. -->
+<!-- _class: "tight dense" -->
+# Proposed multi-document breakdown
 
-- **Reviewed as a whole.**  Encoding behavior interacts with guards, shard sizing, repair selection, and the &sect;12 correctness model.  One document puts the complete machine in front of every reviewer &mdash; no interface seam to specify wrong, no gap for cross-document drift.
-- **Specified once, no reference web.**  This WG's live experience with a coordinated document cluster shows cross-document normative coupling is where its scarce coordination effort goes.  One document: one WGLC, one IESG action, one IANA moment, zero placeholder dependencies.
-- **Ships complete.**  RS and Mojette are implemented, benchmarked, and interoperability-pinned *today*; in-document text converts that maturity into day-one normative coverage.
-- **"Later" has a base rate.**  In a backlogged WG, a deferred scheme document carries real risk of becoming a never-published one; embedding is the delivery vehicle with a known clock.
-- **Precedent:** the pNFS objects layout (RFC 5664) carried its RAID algorithms in-document; Flex Files v1 (RFC 8435) carried all of its data-protection machinery in one document.
+| # | Document | Est. pages |
+|---|---|---:|
+| 1 | Requirements & rationale | ~17 |
+| 2 | Trusted-stateid control protocol | ~31 |
+| 3 | FFv2 layout type | ~60 |
+| 4 | **Chunk substrate & CHUNK operations** | **~90** |
+| 5 | Encoding framework & registry | ~8 |
+| 6 | RS-Vandermonde encoding | ~5 |
+| 7 | Mojette encoding | ~5 |
+| 8 | Proxy Server (already split) | 62 |
 
----
+**Doc 4 is the anchor** &mdash; ~4300 md lines of chunk-substrate machinery is where the page count actually lives.  Extracting it drops Doc 3 (FFv2 layout) to ~60 pages.
 
-<!-- Slide role: CONTENT
-     Must-deliver:
-     Split case: agnosticism becomes TESTABLE (an independent encoding
-     arriving via the registry proves it).  Scheme docs version on
-     their natural clocks.  Review routes to the right expertise.
-     Precedent: pNFS block/SCSI/NVMe chain and the FECFRAME family. -->
-<!-- _class: tight -->
-# Option B &mdash; core + scheme documents: the case
-
-- **The agnosticism claim becomes testable.**  An interface proven only by encodings co-designed alongside it is asserted, not demonstrated.  A encoding arriving *independently* through the registry &mdash; without reopening the core &mdash; is the only available proof that FFv2 is encoding-method agnostic.  Under Option B, Mojette's arrival **is** that proof event.
-- **Layers version on their natural clocks.**  Coding theory moves on a research clock (LRC 2012, Clay 2018, ...); NFS wire semantics move on a decade clock.  Scheme documents let encodings evolve without reopening &mdash; or waiting on &mdash; the core.
-- **Review goes where the expertise lives.**  GF(2^8) arithmetic and projection geometry can be routed to coding-theory-competent reviewers (the FECFRAME/RMT community); stateid machinery to pNFS reviewers.  A stalled encoding review stalls nothing else.
-- **Precedent, twice:** pNFS's own lineage added flavors against a stable substrate &mdash; block (RFC 5663) &rarr; SCSI (RFC 8154) &rarr; NVMe (**RFC 9561, nine pages, 2024**); and **FECFRAME (RFC 6363)**, the IETF's one prior erasure-coding standardization, used a framework plus per-scheme documents (Raptor 5053, LDPC 5170, **Reed-Solomon 5510**, RaptorQ 6330) accreting for years without the framework reopening.
-- **Coordination topology matters:** framework&rarr;scheme is a one-way reference plus a registry &mdash; a benign shape, distinct from bidirectional coupling between co-developed documents.
+Docs 6 and 7 kept separate: encoding review goes where the expertise lives; any IPR clarification on a specific encoding does not block the others.
 
 ---
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Four inputs the chairs need: composition generality, MTI question,
-     energy mapping, registry policy (if Option B).  The structure
-     decision follows these answers - not the other way around. -->
-# What would settle it &mdash; input the chairs need
+     Three items remain after the page-count argument settles the
+     one-vs-many-documents decision.  (1) MTI: RS-Vandermonde as
+     mandatory to implement for encoding-capable implementations
+     closes the interop gap.  (2) Energy mapping: who codes / who
+     reviews the core, RS, Mojette; on what clock.  (3) Registry
+     policy: authors propose Specification Required with Designated
+     Expert per RFC 8126.  Items 1 and 2 are questions; item 3 is
+     a stated position ready to be defended. -->
+# What remains to settle
 
-1. **Composition generality.**  Who runs deployments needing single-file cross-encoding states &mdash; static (a file spanning unlike pools) or transitional (mid-migration, lazy encoding)?  This is why both options keep one layout type, and it weights Option A's reviewed-as-a-whole argument.
-2. **MTI.**  Should RS-Vandermonde be mandatory-to-implement for encoding-capable implementations?  (Closes the encoding interop gap under *either* option.)
-3. **Energy mapping.**  Who will implement &mdash; and who will *review* &mdash; the core, RS, and Mojette respectively, on what clock?  Option B's value scales with independent encoding energy; Option A's with unified review energy.
-4. **If Option B:** registry policy (Specification Required with Designated Expert?) and whether the RS companion advances jointly with the core.
-
-Under either option, trust-stateid, the chunk substrate, and mirror-side write-hole protection ship on the same clock.  **The structure decision follows these answers &mdash; not the other way around.**
-
-<!-- Presenter note: if pressed for the chairs' view, the answer is that
-     the chairs are collecting exactly these four inputs and will not
-     pre-decide structure from the front of the room. -->
+1. **MTI.**  Should RS-Vandermonde be mandatory-to-implement for encoding-capable implementations?
+2. **Energy mapping.**  Who will implement &mdash; and who will *review* &mdash; the core, RS, and Mojette respectively, on what clock?
+3. **Registry policy.**  Specification Required with Designated Expert.
 
 ---
 
@@ -633,16 +633,20 @@ Comments from IETF 122&ndash;124 addressed through revisions -04..-06.
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Two drafts today because that's how they were authored.
-     Whether they stay two or fold into one is the structure
-     question the WG will answer (slides 24-27).  Adoption does not
-     lock the shape. -->
+     The concrete ask: adoption of both drafts.  The sequencing
+     question the room needs to weigh: adopt-then-split preserves
+     momentum but leaves the split as post-adoption work; split-
+     then-adopt commits to the multi-doc shape before adoption.
+     Authors don't push a preference on order; the room's view is
+     the load-bearing signal. -->
 # Time to adopt
-
-Two drafts today &mdash; folding into one is the **structure question above**.  Adoption does not lock the shape.
 
 - [`draft-haynes-nfsv4-flexfiles-v2`](https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2/)
 - [`draft-haynes-nfsv4-flexfiles-v2-proxy-server`](https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2-proxy-server/)
+
+**Do we want to adopt and then split?**
+
+**Or do we split and then adopt?**
 
 ---
 
@@ -832,3 +836,78 @@ This table is the compact form of the sharing argument &mdash; it is also, read 
 Per-inode metadata cost: 256 blocks &times; 40 B = ~10 KB per 1 MB file at 4 KB chunks.  One `chunk_store` per inode **regardless of writer count** &mdash; overhead scales with files, not with concurrent writers.
 
 A superblock is a migration unit: `tar` the `sb_<id>/` directory and move it.
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     The TWO-layout-type variant is OFF the table under either option.
+     Both options keep one layout type + one registry + chunk /
+     MIRRORED / PASSTHROUGH in the core.  What IS contested (under the
+     old A/B framing): where do encoding SPECS live.  Superseded in
+     the main flow by the page-count argument; kept as backup for
+     the "why not just a second layout type" mic question. -->
+# Backup: structure question, framed precisely
+
+**Not on the table (under either position): a second layout type.**  Per-segment and per-mirror-instance encoding live *inside* one layout type's XDR.  Single-file heterogeneity &mdash; a file mid-migration holding instances in two encodings, or spanning pools of unlike capability &mdash; requires exactly that.  Both options below keep **one layout type, one `ffv2_coding_type4` registry, and the chunk substrate + MIRRORED + PASSTHROUGH in the core document.**
+
+**What is genuinely contested: where encoding *specifications* live.**
+
+| | Option A &mdash; one document | Option B &mdash; core + scheme documents |
+|---|---|---|
+| RS-Vandermonde | in-document (&sect;11.4) | short companion document, proposed **MTI**, advances with core |
+| Mojette | in-document (&sect;11.5) | independent scheme document, arriving via the registry |
+| Registry's role | entry path for *future* encodings | entry path for **every** encoding beyond the core |
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     One-document case: reviewed as a whole, no reference web,
+     ships complete today, "later" has a base rate of never.
+     Precedent: RFC 5664 objects, RFC 8435 FFv1.  Kept as backup;
+     superseded in the main flow by the page-count argument. -->
+# Backup: Option A &mdash; one document (the case)
+
+- **Reviewed as a whole.**  Encoding behavior interacts with guards, shard sizing, repair selection, and the &sect;12 correctness model.  One document puts the complete machine in front of every reviewer &mdash; no interface seam to specify wrong, no gap for cross-document drift.
+- **Specified once, no reference web.**  This WG's live experience with a coordinated document cluster shows cross-document normative coupling is where its scarce coordination effort goes.  One document: one WGLC, one IESG action, one IANA moment, zero placeholder dependencies.
+- **Ships complete.**  RS and Mojette are implemented, benchmarked, and interoperability-pinned *today*; in-document text converts that maturity into day-one normative coverage.
+- **"Later" has a base rate.**  In a backlogged WG, a deferred scheme document carries real risk of becoming a never-published one; embedding is the delivery vehicle with a known clock.
+- **Precedent:** the pNFS objects layout (RFC 5664) carried its RAID algorithms in-document; Flex Files v1 (RFC 8435) carried all of its data-protection machinery in one document.
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Split case: agnosticism becomes TESTABLE (an independent encoding
+     arriving via the registry proves it).  Scheme docs version on
+     their natural clocks.  Review routes to the right expertise.
+     Precedent: pNFS block/SCSI/NVMe chain and the FECFRAME family.
+     Kept as backup; the main flow now presents the split via the
+     page-count argument, which subsumes this. -->
+<!-- _class: tight -->
+# Backup: Option B &mdash; core + scheme documents (the case)
+
+- **The agnosticism claim becomes testable.**  An interface proven only by encodings co-designed alongside it is asserted, not demonstrated.  A encoding arriving *independently* through the registry &mdash; without reopening the core &mdash; is the only available proof that FFv2 is encoding-method agnostic.  Under Option B, Mojette's arrival **is** that proof event.
+- **Layers version on their natural clocks.**  Coding theory moves on a research clock (LRC 2012, Clay 2018, ...); NFS wire semantics move on a decade clock.  Scheme documents let encodings evolve without reopening &mdash; or waiting on &mdash; the core.
+- **Review goes where the expertise lives.**  GF(2^8) arithmetic and projection geometry can be routed to coding-theory-competent reviewers (the FECFRAME/RMT community); stateid machinery to pNFS reviewers.  A stalled encoding review stalls nothing else.
+- **Precedent, twice:** pNFS's own lineage added flavors against a stable substrate &mdash; block (RFC 5663) &rarr; SCSI (RFC 8154) &rarr; NVMe (**RFC 9561, nine pages, 2024**); and **FECFRAME (RFC 6363)**, the IETF's one prior erasure-coding standardization, used a framework plus per-scheme documents (Raptor 5053, LDPC 5170, **Reed-Solomon 5510**, RaptorQ 6330) accreting for years without the framework reopening.
+- **Coordination topology matters:** framework&rarr;scheme is a one-way reference plus a registry &mdash; a benign shape, distinct from bidirectional coupling between co-developed documents.
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Earlier framing of what the chairs need.  Preserved for
+     completeness: the composition-generality question is answered by
+     the "one layout type" fact preserved across all splits; MTI +
+     energy mapping + registry policy carry forward as the three items
+     on the main-flow "What remains to settle" slide. -->
+# Backup: earlier framing &mdash; four inputs the chairs need
+
+1. **Composition generality.**  Who runs deployments needing single-file cross-encoding states &mdash; static (a file spanning unlike pools) or transitional (mid-migration, lazy encoding)?  This is why both options keep one layout type, and it weights Option A's reviewed-as-a-whole argument.
+2. **MTI.**  Should RS-Vandermonde be mandatory-to-implement for encoding-capable implementations?  (Closes the encoding interop gap under *either* option.)
+3. **Energy mapping.**  Who will implement &mdash; and who will *review* &mdash; the core, RS, and Mojette respectively, on what clock?  Option B's value scales with independent encoding energy; Option A's with unified review energy.
+4. **If Option B:** registry policy (Specification Required with Designated Expert?) and whether the RS companion advances jointly with the core.
+
+Under either option, trust-stateid, the chunk substrate, and mirror-side write-hole protection ship on the same clock.  **The structure decision follows these answers &mdash; not the other way around.**
