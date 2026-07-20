@@ -88,12 +88,13 @@ Lesson 1 and 4 are core problems.  Lessons 2 and 3 motivate the EC capability.
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     The core asks MODEST new work of the DS (3 ops + admission table).
-     The +11 CHUNK ops are the EC price, NOT the core price.  Point at
-     the DS-requirements row when saying it.  Never claim "DS stays
-     just NFS." -->
+     Behavioural differences across four axes: fencing model,
+     data-protection surface, writer-death semantics, error/stats
+     richness.  Each row: what FFv1 did, what the FFv2 core does
+     differently, what EC adds on top.  Save the cost story for
+     the next slide. -->
 <!-- _class: dense -->
-# v1 &rarr; v2 at a glance
+# v1 &rarr; v2 at a glance: what changes
 
 | Dimension | FFv1 (RFC 8435) | FFv2 core (A) | + EC capability (B) |
 |---|---|---|---|
@@ -101,14 +102,44 @@ Lesson 1 and 4 are core problems.  Lessons 2 and 3 motivate the EC capability.
 | Data protection | client-side mirroring only | mirroring + heterogeneous mirror sets + PASSTHROUGH | + RS / Mojette erasure coding |
 | Writer-death semantics | fencing races; torn mirrors possible | revocation window bounded by fan-out RTT | + chunk rollback: **no mixed stripes, ever** |
 | Error / stats reporting | ff_ioerr / ff_iostats | richer ffv2 variants | + per-block CRC32 |
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     The cost slide.  Preempt two mic questions:
+     (1) "DS stays just NFS" - it doesn't.  Core adds 3 ops +
+     admission table; EC adds +11 CHUNK ops.  Point at the DS row.
+     (2) "Where's the MDS work?" - +3 ops issued in core;
+     CB_CHUNK_REPAIR + encoding negotiation + repair orchestration
+     in EC.  MDS deliberately does NOT originate CHUNK ops - it
+     coordinates via callback + escrow (chunk_guard4 sentinel). -->
+<!-- _class: dense -->
+# v1 &rarr; v2 at a glance: what it costs
+
+| Actor | FFv1 (RFC 8435) | FFv2 core (A) | + EC capability (B) |
+|---|---|---|---|
 | **DS requirements** | **unmodified NFS server** | **+3 ops** (trust-stateid family) + admission table | **+11 CHUNK ops** + per-block state machine + ~40 B/block durable metadata |
+| **MDS requirements** | **pNFS MDS** | **issues +3 ops** + admission coordination | **+ `CB_CHUNK_REPAIR`** + encoding negotiation + repair delegation |
 | Client requirements | mirror writes | unchanged for mirror use | encode/decode + chunk lifecycle (or use the PS) |
 
-**Stated plainly:** the core asks modest new work of the DS.  The EC capability is where the DS stops being an unmodified server.  We think the capability earns it &mdash; Part B makes that case with measurements.
+---
 
-<!-- Presenter note: owning the DS-cost row up front removes the single
-     most damaging mic question ("the deck says DS stays just NFS, but
-     the draft adds 14 ops"). Never claim "DS stays just NFS." -->
+<!-- Slide role: CONTENT
+     Must-deliver:
+     The takeaway before pivoting to Part B.  Core is modest for
+     both DS and MDS.  EC is where both actors step further out -
+     DS with the chunk machinery, MDS with repair orchestration.
+     We claim the capability earns the cost; Part B (measurements)
+     makes that case. -->
+<!-- _class: big -->
+# v1 &rarr; v2
+
+**The core** asks modest new work of the DS and MDS.
+
+**The EC capability** is where the DS stops being an unmodified server, and where the MDS gains a repair-orchestration role.
+
+**We think the capability earns it.**  Part B makes that case with measurements.
 
 ---
 
@@ -124,7 +155,8 @@ Lesson 1 and 4 are core problems.  Lessons 2 and 3 motivate the EC capability.
      Must-deliver:
      Three ops replace v1's synthetic uid/gid fencing.  Every DS in a
      layout holds an admission-table entry per stateid.  MDS remains
-     the single state authority; no consensus, no distrbuted lock manager - distrbuted lock manager - DLM. -->
+     the single state authority; no consensus, no Distributed Lock
+     Manager (DLM).  Follow-up slide draws the structural conclusion. -->
 # Trust-stateid: the revoke-now mechanism
 
 | Op | When the MDS sends it | What it does |
@@ -133,7 +165,23 @@ Lesson 1 and 4 are core problems.  Lessons 2 and 3 motivate the EC capability.
 | `REVOKE_STATEID` | Layout returned, recalled, or reissued | Clear the stateid from each DS's table.  Next write from that client **fails closed**. |
 | `BULK_REVOKE_STATEID` | Client lease expires | One per affected DS; clears every entry for that client at once. |
 
-Replaces v1's synthetic uid/gid fencing.  No consensus protocol, no Distributed Lock Manager (DLM) &mdash; the MDS remains the single state authority; DSes are admission gates.
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Preempt the "why isn't this a DLM problem?" mic question.  MDS
+     stays the single state authority; DSes are admission gates,
+     not state holders.  No consensus protocol - the MDS's
+     unilateral REVOKE + parallel fan-out (prior slide) is the
+     coordination primitive.  This is the structural claim behind
+     Part A. -->
+# Trust-stateid: no DLM required
+
+- Replaces v1's synthetic uid/gid fencing
+- No consensus protocol
+- No Distributed Lock Manager (DLM)
+  - MDS remains the single state authority
+  - DSes are admission gates, not state holders
 
 ---
 
@@ -171,11 +219,22 @@ This mechanism is valuable to **mirror-only** deployments.  It does not depend o
 - **Refreshed error + stats reporting** &mdash; ffv2_ioerr / ffv2_iostats carry what operators asked for.
 - **Tight-coupling control protocol** (draft &sect;6.4) &mdash; capability discovery, control sessions, crash recovery on both sides.
 
-**What the core costs:** 3 new DS operations + an admission table.  A new layout type to parse.  No chunk machinery, no encoding logic, no per-block metadata.
+---
 
-<!-- Presenter note: if pressed "could Part A progress on its own?" the
-     answer is yes-technically; whether it SHOULD is the structure
-     question at the end of the deck.  Don't pre-answer it. -->
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Part A cost in one line: 3 ops + admission table + new layout
+     type.  No chunk machinery, no encoding logic, no per-block
+     metadata.  If pressed "could Part A progress on its own?" -
+     yes-technically; whether it SHOULD is the structure question
+     at the end of the deck.  Don't pre-answer that here. -->
+# What the core costs:
+
+- 3 new DS operations
+- An admission table
+- A new layout type to parse
+- No chunk machinery or encoding logic
+- No per-block metadata
 
 ---
 
@@ -224,7 +283,8 @@ This mechanism is valuable to **mirror-only** deployments.  It does not depend o
 
 **The cost:**
 - The DS gains the CHUNK machinery: 11 operations, a per-block state machine, ~40 B/block durable metadata, per-block CRC32
-- Encoding-capable clients gain encode/decode + chunk lifecycle; **unmodified clients use the Proxy Server path (Part C) &mdash; at a measured cost we show there**
+- Encoding-capable clients gain encode/decode + chunk lifecycle
+- **Unmodified clients use the Proxy Server path (Part C)** &mdash; at a measured cost we show there
 
 **No shipping network filesystem does client-side EC with overwrite at the protocol level.**  That is why the draft now carries a formal system model (&sect;12) and why reffs exists: the novel part is specified, not asserted.
 
@@ -409,11 +469,19 @@ One `struct ec_encoding` interface; three encodings implemented and benchmarked:
 
 A second implementation, independent of the Linux kernel server, built to answer *"did the design survive contact with code?"*
 
-- User-space C; Linux + macOS; **prototyping, not production**
-- MDS + DS roles; FFv1 + FFv2 layouts; all CHUNK + trust-stateid ops; PS role; `ec_demo` userspace client
+- **What it is:**
+  - User-space C
+  - Linux + macOS
+  - **Prototyping, not production**
+- **What it covers:**
+  - MDS + DS roles
+  - FFv1 + FFv2 layouts
+  - All CHUNK + trust-stateid ops
+  - PS role
+  - `ec_demo` userspace client
 - **Two storage backends on one wire format** (POSIX+XFS sidecar files; RocksDB LSM) &mdash; the protocol does not force a fragmentation regime
-- Shipped: wire-level single-shard reconstruction (`CHUNK_WRITE_REPAIR` + `CHUNK_REPAIRED`, 80-cell bench)
-- In progress: PS-driven repair autopilot; cross-PS coherence for NFSv3 clients (known gap, fix shape documented)
+- **Shipped:** wire-level single-shard reconstruction (`CHUNK_WRITE_REPAIR` + `CHUNK_REPAIRED`, 80-cell bench)
+- **In progress:** PS-driven repair autopilot; cross-PS coherence for NFSv3 clients (known gap, fix shape documented)
 
 **What does not yet exist:** a kernel client; an implementation outside the reffs/ec_demo family.  We are explicit about this &mdash; it is one of the asks.
 
