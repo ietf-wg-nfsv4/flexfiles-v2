@@ -1,32 +1,38 @@
 MARP   ?= marp
-SRC    := ietf126-ffv2.md
-PDF    := ietf126-ffv2.pdf
-HTML   := ietf126-ffv2.html
-PPTX   := ietf126-ffv2.pptx
-BUILD  := .ietf126-ffv2.build.md
 # Presentation date pinned to the IETF 126 slot.
 DATE   := 2026-07-24
 FOOTER := Tom Haynes, $(DATE) - IETF 126 - flexfiles-v2 + proxy-server
+
+# Every .md source in this dir gets built to PDF/HTML/PPTX by the
+# pattern rules below.  Add a new deck by dropping its .md file next
+# to this Makefile - no Makefile edit needed.
+SOURCES := $(wildcard *.md)
+BUILDS  := $(patsubst %.md,.%.build.md,$(SOURCES))
+PDFS    := $(SOURCES:%.md=%.pdf)
+HTMLS   := $(SOURCES:%.md=%.html)
+PPTXS   := $(SOURCES:%.md=%.pptx)
 
 .PHONY: all pdf html pptx clean
 
 all: pdf
 
-pdf: $(PDF)
+pdf:  $(PDFS)
+html: $(HTMLS)
+pptx: $(PPTXS)
 
-$(BUILD): $(SRC)
+.%.build.md: %.md
 	sed -e 's/@@DATE@@/$(DATE)/g' \
 	    -e 's#@@FOOTER@@#$(FOOTER)#g' \
-	    $(SRC) > $(BUILD)
+	    $< > $@
 
-$(PDF): $(BUILD)
-	$(MARP) $(BUILD) -o $(PDF) --allow-local-files
+%.pdf: .%.build.md
+	$(MARP) $< -o $@ --allow-local-files
 
-html: $(BUILD)
-	$(MARP) $(BUILD) --html -o $(HTML)
+%.html: .%.build.md
+	$(MARP) $< --html -o $@
 
-pptx: $(BUILD)
-	$(MARP) $(BUILD) -o $(PPTX)
+%.pptx: .%.build.md
+	$(MARP) $< -o $@
 
 clean:
-	rm -f $(PDF) $(HTML) $(PPTX) $(BUILD)
+	rm -f $(PDFS) $(HTMLS) $(PPTXS) $(BUILDS)
