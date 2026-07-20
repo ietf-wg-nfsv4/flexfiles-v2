@@ -73,7 +73,7 @@ Then: implementation status (reffs) &rarr; the document-structure question &rarr
      that IS Part A. -->
 # Where v1 stands (RFC 8435) &mdash; and what the field taught
 
-**Flex Files v1 won deployment for one reason:** data servers are plain NFS servers.  Loose coupling; any NFSv3/v4 filer participates.
+**Flex Files v1 won deployment for one reason:** data servers are plain NFS servers.  Loose coupling; any NFSv3/v4 server participates.
 
 **Four lessons from a decade in the field:**
 
@@ -552,13 +552,13 @@ Under either option, trust-stateid, the chunk substrate, and mirror-side write-h
      the substance in Parts A/B/C. -->
 # Why now
 
-- Draft is complete (-07 stable; -08 planned after WG feedback)
+- Draft is complete (-06 current; -07 planned after WG feedback)
 - Use cases identified (&sect;2, &sect;3) and grounded in operator workloads
 - Requirements framed &mdash; workload-driven, not speculative
 - Implementation experience: reffs (see slide 22)
 - Legacy-client story: PS draft (`draft-haynes-nfsv4-flexfiles-v2-proxy-server`)
 
-Comments from IETF 122&ndash;124 addressed through revisions -04..-07.
+Comments from IETF 122&ndash;124 addressed through revisions -04..-06.
 **Requesting Call for Adoption at this meeting.**
 
 ---
