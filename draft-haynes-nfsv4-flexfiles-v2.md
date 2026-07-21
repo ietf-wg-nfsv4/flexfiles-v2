@@ -4386,16 +4386,25 @@ projections of a 2D grid along selected directions.  Given enough
 projections, the original grid can be reconstructed exactly.
 
 The transform operates on fixed-width words combined with bitwise
-XOR -- the additive group of GF(2)^W where W is the element width
-in bits.  Encoders and decoders MUST use XOR; modular integer
-addition is not equivalent and is not interoperable.  XOR has no
-carry chain, is its own inverse (so the residual subtraction in
-reconstruction is identical to the forward accumulation), and
-scales straightforwardly to wider SIMD lanes (NEON, SSE, AVX, AVX-512)
-without requiring multiplicative Galois field operations.  The
-element width W is an implementation choice; 64-bit elements are
-the conventional choice and align well with NEON, SSE2, and AVX2
-vector widths.
+XOR -- the additive group of `(GF(2))^(W*8)` where W is the
+element width in bytes.  Encoders and decoders MUST use XOR;
+modular integer addition is not equivalent and is not
+interoperable.  XOR has no carry chain, is its own inverse (so
+the residual subtraction in reconstruction is identical to the
+forward accumulation), and scales straightforwardly to wider
+SIMD lanes (NEON, SSE, AVX, AVX-512) without requiring
+multiplicative Galois field operations.
+
+For interoperability, this specification pins the element width
+to `W = 8` bytes (64 bits) for both
+FFV2_ENCODING_MOJETTE_SYSTEMATIC and
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC in this revision.  All
+implementations MUST use W = 8; a future revision (or a distinct
+registered encoding type) may lift the fixed width, at which
+point it becomes a wire-visible parameter.  Fixing W now
+removes the interop hazard the review flagged (the same shard
+input, XOR'd at W = 4 vs W = 8, produces different bin values
+that appear "close but wrong" to a mismatched decoder).
 
 ### Grid Structure
 
@@ -4410,13 +4419,44 @@ Q = k           (rows = data shards)
 
 ### Directions
 
-A direction is a pair of coprime integers (p_i, q_i).  Implementations
-SHOULD use q_i = 1 for all directions {{PARREIN}}.  For n = k + m total
-shards, n directions are generated with non-zero p values symmetric
-around zero:
+A direction is a pair of coprime integers (p_i, q_i).  This
+specification pins all directions to q_i = 1 for both Mojette
+encoding types (systematic and non-systematic) in this
+revision.  Non-unity q_i values may be introduced by a future
+distinct registered encoding type.
 
-- For n = 4: p = {-2, -1, 1, 2}
-- For n = 6: p = {-3, -2, -1, 1, 2, 3}
+For n = k + m total shards (Mojette non-systematic) or m parity
+shards (Mojette systematic), the direction set is determined by
+the following mandatory algorithm on the shard count N (N = n for
+non-systematic, N = m for systematic):
+
+~~~
+If N is even (N = 2t):
+    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t} }
+    // Symmetric around zero; |directions| = 2t = N.
+If N is odd (N = 2t + 1):
+    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t, t+1} }
+    // Asymmetric by including one additional positive magnitude
+    // to make |directions| = 2t + 1 = N.
+~~~
+
+Direction slots are then sorted by `p_i` ascending (most-negative
+p first, most-positive p last) to give the canonical direction
+order.  The direction in slot i is used to compute the projection
+for shard slot (k + i) in systematic form, or for shard slot i in
+non-systematic form.  Examples:
+
+- N = 4 (even): p = {-2, -1, 1, 2}
+- N = 6 (even): p = {-3, -2, -1, 1, 2, 3}
+- N = 3 (odd):  p = {-1, 1, 2}
+- N = 5 (odd):  p = {-2, -1, 1, 2, 3}
+
+Two implementations that follow this algorithm on the same N
+generate identical direction sets in identical slot order and
+therefore identical shard layouts.  Implementations MUST NOT
+diverge from this algorithm (e.g., by using a different
+tie-breaking rule for odd N) without registering a distinct
+encoding type.
 
 ### Forward Transform (Encoding)
 
@@ -4459,14 +4499,49 @@ The byte size of the projection is B * W.
 
 ### Katz Reconstruction Criterion
 
-Reconstruction is possible if and only if the Katz criterion
-{{KATZ}} holds:
+Reconstruction from a set of `n` projections is possible if and
+only if the Katz criterion {{KATZ}} holds over those `n`
+projections:
 
 ~~~
 SUM(i=1..n) |q_i| >= Q    OR    SUM(i=1..n) |p_i| >= P
 ~~~
 
-When all q_i = 1, the q-sum simplifies to n >= Q.
+With q_i = 1 pinned for every direction (see the Directions
+subsection above), the q-sum simplifies to n >= Q.
+
+For the non-systematic form, `n = k + m` and every direction
+counts toward the criterion.  The criterion holds for the
+initial encoding (design-time check on the direction set) and
+must continue to hold after any losses; the surviving
+projections must satisfy Katz over the same grid dimensions
+(P, Q).
+
+For the systematic form, the raw data rows act as
+"projections at direction (p=0, q=1)": row `r` is `Grid[r]` and
+contributes `q = 1` toward the q-sum of the Katz criterion.
+For an arbitrary loss pattern with `r` data-row losses and `s`
+parity-projection losses (with `r + s <= m`), the surviving set
+comprises `k - r` data rows (each `q_i = 1`) and `m - s` parity
+projections.  Decoding proceeds by:
+
+1. Subtracting the contributions of the `k - r` surviving data
+   rows from the `m - s` surviving parity projections (the
+   "residual").
+2. Applying the corner-peeling algorithm over the residual to
+   recover the `r` missing rows.
+
+Step 2 succeeds if and only if the Katz criterion holds over
+the `m - s` residual projections against the `r x P` unknown
+sub-grid.  Substituting: the criterion reduces to
+`m - s >= r` (q-sum, since q_i = 1 for every parity direction
+and the unknown-grid Q is r) OR the analogous p-sum condition
+over the residual.  Because the mandatory direction algorithm
+above generates `m` projections with distinct nonzero p values,
+the p-sum condition also holds for any loss pattern with
+`r + s <= m`; the systematic form therefore achieves MDS-like
+recovery up to `m` combined data-row and parity-projection
+losses.
 
 ### Inverse Transform (Decoding)
 
@@ -4514,11 +4589,33 @@ all k + m shards are projections.  Every read requires the full
 inverse transform.  This provides constant performance regardless of
 failure count, but at higher baseline read cost than systematic.
 
-### Mojette Shard Sizes
+### Mojette Shard Sizes and Layout
 
-Unlike RS, Mojette parity shard sizes vary by direction:
+**Slot-to-direction mapping.**  The canonical shard layout for
+Mojette is:
 
-| Direction (p, q) | Bins (B) for P=512, Q=4 | Size (bytes, 64-bit elements) |
+- Systematic (FFV2_ENCODING_MOJETTE_SYSTEMATIC): shard slots
+  `0..k-1` carry the k data rows (row r in slot r); shard
+  slots `k..k+m-1` carry the m parity projections in the
+  canonical direction order defined in the Directions
+  subsection above (direction slot i occupies shard slot
+  `k + i`).
+- Non-systematic (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC): shard
+  slots `0..k+m-1` carry the n = k + m parity projections in
+  the canonical direction order (direction slot i occupies
+  shard slot i).
+
+**Bin ordering within a projection.**  Within a projection
+shard the bins are serialized in ascending bin-index order
+(bin 0 first, bin B-1 last), with no gap or header.  Each bin
+value is `W = 8` bytes wide; the W-byte element is serialized
+in big-endian byte order (the same order the data-row shards
+present their W-byte grid elements in).
+
+**Projection sizes.**  Unlike RS, Mojette parity shard sizes
+vary by direction:
+
+| Direction (p, q) | Bins (B) for P=512, Q=4 | Size (bytes, W=8) |
 |---
 | (-3, 1) | 521 | 4168 |
 | (-2, 1) | 518 | 4144 |
@@ -4526,10 +4623,32 @@ Unlike RS, Mojette parity shard sizes vary by direction:
 | (1, 1) | 515 | 4120 |
 | (2, 1) | 518 | 4144 |
 | (3, 1) | 521 | 4168 |
-{: #tbl-mojette-proj-sizes title="Mojette projection sizes for 4+2, 4KB shards, 64-bit elements"}
+{: #tbl-mojette-proj-sizes title="Mojette projection sizes for 4+2, 4KB shards, W=8"}
 
-When using CHUNK operations, the chunk_size is a nominal stride; the
-last chunk in a parity shard MAY be shorter than the stride.
+**Chunk sizing for variable-length projections.**  When a
+projection shard is written via `CHUNK_WRITE` /
+`CHUNK_FINALIZE` / `CHUNK_COMMIT`, the shard is divided into
+chunks by the following mapping.  Let `shard_bytes = B * W` be
+the projection shard's total byte size (where B is the number
+of bins per the B formula above ({{tbl-mojette-proj-sizes}} uses it) applied to the shard's
+direction (p, q) and the grid dimensions (P, Q)):
+
+- `num_chunks = ceil(shard_bytes / chunk_size)`
+- Chunk `j` (for j = 0..num_chunks-1) covers the shard byte
+  range `[j * chunk_size, min((j+1) * chunk_size, shard_bytes))`.
+- The final chunk (chunk `num_chunks - 1`) MAY be shorter than
+  `chunk_size` if `shard_bytes` is not a multiple of
+  `chunk_size`; all other chunks are exactly `chunk_size`
+  bytes.
+
+The `chunk_size` value is a per-mirror parameter and does not
+vary across the parity projections of a single file, even
+though the shard sizes vary.  For a file with parity
+projections of sizes `S_i = B_i * W`, the number of chunks per
+shard is `ceil(S_i / chunk_size)` per shard; a reader that
+requests chunk offset `>= S_i` on shard i receives
+`NFS4ERR_PAYLOAD_LOST` (per {{sec-NFS4ERR_PAYLOAD_LOST}}) with a
+short read reporting the shard's true byte length.
 
 ## Comparison of Encoding Types
 
