@@ -5702,9 +5702,14 @@ metadata server.
 
 ## New NFSv4.2 Operation Assignments
 
-IANA is requested to assign the following new operation values
-in the "NFSv4 Operations" registry (extending the assignments of
-{{RFC8881}}):
+NFSv4 operation numbers are governed by the publishing
+standards-track document, not by an IANA registry (there is no
+"NFSv4 Operations" IANA registry that assigns opcodes; see
+{{RFC8881}}, whose operation numbers were similarly assigned by
+the publishing document rather than by IANA action).  This
+document therefore assigns -- rather than requests IANA to assign
+-- the following new NFSv4.2 operation numbers, extending the
+assignments of {{RFC8881}}:
 
 - Value 78: CHUNK_COMMIT
 - Value 79: CHUNK_ERROR
@@ -5718,16 +5723,19 @@ in the "NFSv4 Operations" registry (extending the assignments of
 - Value 87: CHUNK_WRITE
 - Value 88: CHUNK_WRITE_REPAIR
 
-The reference for each is this document.
+The reference for each is this document.  No IANA action is
+required for this section.
 
 ## New NFSv4.2 Callback Operation Assignment
 
-IANA is requested to assign the following new callback
-operation value in the "NFSv4 Callback Operations" registry:
+NFSv4 callback operation numbers are governed by the publishing
+standards-track document; there is no IANA "NFSv4 Callback
+Operations" registry.  This document assigns:
 
 - Value 16: CB_CHUNK_REPAIR
 
-The reference is this document.
+The reference is this document.  No IANA action is required for
+this section.
 
 ##  Checksum Algorithm Registry {#iana-checksum-algorithms}
 

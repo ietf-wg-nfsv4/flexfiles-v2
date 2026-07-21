@@ -1710,15 +1710,21 @@ Cross-metadata-server isolation:
 
 # IANA Considerations
 
-IANA is requested to assign the following new operation values
-in the "NFSv4 Operations" registry (extending the assignments
-of {{RFC8881}}):
+NFSv4 operation numbers are governed by the publishing
+standards-track document, not by an IANA registry (there is no
+"NFSv4 Operations" IANA registry that assigns opcodes; see
+{{RFC8881}}, whose operation numbers were similarly assigned by
+the publishing document rather than by IANA action).  This
+document therefore assigns -- rather than requests IANA to assign
+-- the following new NFSv4.2 operation numbers, extending the
+assignments of {{RFC8881}}:
 
 - Value 89: TRUST_STATEID
 - Value 90: REVOKE_STATEID
 - Value 91: BULK_REVOKE_STATEID
 
-The reference for each is this document.
+The reference for each is this document.  No IANA action is
+required for this section.
 
 # Acknowledgments
 {:numbered="false"}
