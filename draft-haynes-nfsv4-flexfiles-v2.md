@@ -485,7 +485,16 @@ and stored on different data servers.
 
 client-side erasure coding:
 
-:  A file based integrity method where copies are maintained in parallel.
+:  Erasure coding in which the encode and decode transforms are
+   performed on the pNFS client, and encoded shards are written
+   directly to the data servers (rather than being computed at
+   a server-side coordinator).  This is the deployment shape
+   Flexible File Version 2 Layout Type is designed for; the
+   chunk substrate and CHUNK_* operations that make it safe are
+   specified in {{sec-system-model}} and {{sec-new-ops}}.
+   Contrast: server-side erasure coding, where a coordinator
+   holds the entire stripe and produces parity, is out of scope
+   for this document.
 
 compare-and-swap (CAS):
 
@@ -2111,6 +2120,7 @@ filehandle has a one-to-one correspondence to a stateid.
    /// const FFV2_DS_FLAGS_SPARE         = 0x00000002;
    /// const FFV2_DS_FLAGS_PARITY        = 0x00000004;
    /// const FFV2_DS_FLAGS_REPAIR        = 0x00000008;
+   /// const FFV2_DS_FLAGS_PROXY         = 0x00000010;
    /// typedef uint32_t            ffv2_ds_flags4;
 ~~~
 {: #fig-ffv2_ds_flags4 title="The ffv2_ds_flags4" }
@@ -2123,7 +2133,7 @@ chunk.  Such an implementation would typically see FFV2_DS_FLAGS_ACTIVE
 and FFV2_DS_FLAGS_SPARE data servers.  The FFV2_DS_FLAGS_SPARE ones
 allow the client to repair a payload without engaging the metadata
 server.  I.e., if one of the FFV2_DS_FLAGS_ACTIVE did not respond
-to a WRITE_BLOCK, the client could fail the chunk to the
+to a CHUNK_WRITE, the client could fail the chunk to the
 FFV2_DS_FLAGS_SPARE data server.
 
 With the Non-Systematic approach, the data and integrity live on
@@ -2162,6 +2172,19 @@ metadata server has accepted the reconstructed content as
 authoritative and the fail-over is complete); the metadata
 server reflects the current flag set in the next layout it
 returns.
+
+The FFV2_DS_FLAGS_PROXY flag identifies a data-server entry
+that names a Proxy Server rather than a real storage device.
+A client whose local encoding capabilities cannot cover the
+file's mirror set receives a layout in which one or more
+mirror entries have FFV2_DS_FLAGS_PROXY set on their
+ffv2_data_server4; the client directs I/O for that mirror
+to the proxy, which translates on behalf of the client.  The
+Proxy Server protocol itself is specified in
+{{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}; this
+document defines only the layout-flag surface (this bit) that
+lets the metadata server mark a data-server entry as
+proxy-mediated.
 
 ## ffv2_data_server4
 
@@ -2666,12 +2689,17 @@ that the file is concatenated from more than one layout segment.
 Each layout segment MAY represent different striping parameters.
 
 The ffv2m_striping_unit_size field (inside each ffv2_mirror4) is
-the stripe unit size in use for that mirror.  The number of
-stripes is given by the number of elements in ffv2s_data_servers
-within each ffv2_stripes4.  If the number of stripes is one,
-then ffv2m_striping_unit_size MUST be zero.  The mapping scheme
-(sparse or dense) is selected per mirror by ffv2m_striping and is
-detailed in {{sec-striping}}.
+the stripe unit size in use for that mirror.  The stripe width
+W is given by the number of elements in ffv2s_data_servers
+within each ffv2_stripes4 (the count of data servers over which
+each stripe is spread).  If ffv2m_striping is FFV2_STRIPING_NONE
+the mirror is unstriped and ffv2m_striping_unit_size MUST be 1
+(matching the FFV2_STRIPING_NONE rule in {{sec-ffv2-mirror4}}
+and {{sec-striping}}); when ffv2m_striping is
+FFV2_STRIPING_SPARSE or FFV2_STRIPING_DENSE the field carries
+the stripe unit size in bytes with a minimum of 64.  The
+mapping scheme (sparse or dense) is selected per mirror by
+ffv2m_striping and is detailed in {{sec-striping}}.
 
 Stripe unit size and stripe count MAY differ between mirrors in
 the same layout segment.  In particular, mirrors of different
@@ -2816,7 +2844,7 @@ data I/ O, most likely for performance reasons.
 
 The flexible file v2 layout does not use lou_body inside the
 loca_layoutupdate argument to LAYOUTCOMMIT.  If lou_type is
-LAYOUT4_FLEX_FILES, the lou_body field MUST have a zero length (see
+LAYOUT4_FLEX_FILES_V2, the lou_body field MUST have a zero length (see
 Section 18.42.1 of {{RFC8881}}).
 
 ##  Interactions between Devices and Layouts
@@ -2925,7 +2953,7 @@ FFV2_STRIPING_DENSE:
 
 The pNFS client may encounter errors when directly accessing the
 storage devices.  However, it is the responsibility of the metadata
-server to recover from the I/O errors.  When the LAYOUT4_FLEX_FILES
+server to recover from the I/O errors.  When the LAYOUT4_FLEX_FILES_V2
 layout type is used, the client MUST report the I/O errors to the
 server at LAYOUTRETURN time using the ffv2_ioerr4 structure (see
 {{sec-ffv2_ioerr4}}).
@@ -4140,14 +4168,29 @@ which covers certain SIMD-based GF multiplication techniques.
 The encoding process uses a (k+m) x k Vandermonde matrix, normalized
 so that its top k rows form the identity matrix:
 
-1. Construct a (k+m) x k Vandermonde matrix V where V\[i\]\[j\] = j^i
-   in GF(2^8).
+1. Assign each of the k+m shards a distinct non-zero evaluation
+   point in GF(2^8): shard i (for i = 0, 1, ..., k+m-1) is assigned
+   the point alpha_i = i + 1.  This gives evaluation points
+   1, 2, ..., k+m, all non-zero and distinct.  The value k+m MUST
+   NOT exceed 255 so that all points fit in GF(2^8) \ {0}.
 
-2. Extract the top k x k sub-matrix T from V.
+2. Construct a (k+m) x k Vandermonde matrix V where the row for
+   shard i is the geometric progression of alpha_i:
 
-3. Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).
+       V\[i\]\[j\] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
 
-4. Multiply: E = V * T_inv.  The result has an identity block on top
+   Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  Any k
+   distinct rows form a k x k Vandermonde matrix on k distinct
+   non-zero evaluation points, which is invertible over GF(2^8);
+   this is the property that gives the code its Maximum Distance
+   Separable (any k of k+m shards recover the data) guarantee.
+
+3. Extract the top k x k sub-matrix T from V.  T is the Vandermonde
+   on evaluation points alpha_0 = 1, alpha_1 = 2, ..., alpha_(k-1) = k.
+
+4. Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).
+
+5. Multiply: E = V * T_inv.  The result has an identity block on top
    (rows 0 through k-1) and the parity generation matrix P on the
    bottom (rows k through k+m-1).
 
@@ -4198,11 +4241,17 @@ data unrecoverable by a different implementation.
 
 - Irreducible polynomial: x^8 + x^4 + x^3 + x^2 + 1 (0x11d)
 - Primitive element: g = 2
-- Vandermonde evaluation points: V\[i\]\[j\] = j^i in GF(2^8)
-- Matrix normalization: E = V * (V\[0..k-1\])^(-1)
+- Evaluation points: shard i (i = 0, 1, ..., k+m-1) uses
+  alpha_i = i + 1 in GF(2^8) (values 1 through k+m, all
+  non-zero and distinct)
+- Vandermonde entries: V\[i\]\[j\] = alpha_i^j = (i+1)^j in GF(2^8)
+  for i = 0..k+m-1, j = 0..k-1
+- Matrix normalization: E = V * T^(-1) where T is the top k x k
+  sub-matrix (rows for shards 0..k-1)
+- Parameter bound: k + m MUST NOT exceed 255
 
-These four parameters fully determine the encoding matrix for any
-(k, m) configuration.
+These parameters fully determine the encoding matrix for any
+(k, m) configuration in the permitted range.
 
 ### RS Shard Sizes
 
@@ -5651,7 +5700,7 @@ Section 18.44.1 of {{RFC8881}} (also shown in {{fig-LAYOUTRETURN}}).
 ~~~
 {: #fig-LAYOUTRETURN title="Layout Return XDR"}
 
-If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
+If the lora_layout_type layout type is LAYOUT4_FLEX_FILES_V2 and the
 lr_returntype is LAYOUTRETURN4_FILE, then the lrf_body opaque value
 is defined by ffv2_layoutreturn4 (see {{sec-ffv2_layoutreturn4}}).  This
 allows the client to report I/O error information or layout usage
@@ -5892,7 +5941,10 @@ The layouthint4 type is defined in the {{RFC8881}} as in
 The layouthint4 structure is used by the client to pass a hint about
 the type of layout it would like created for a particular file.  If
 the loh_type layout type is LAYOUT4_FLEX_FILES, then the loh_body
-opaque value is defined by the ff_layouthint4 type.
+opaque value is defined by the ff_layouthint4 type (v1
+compatibility).  If the loh_type layout type is
+LAYOUT4_FLEX_FILES_V2, then the loh_body opaque value is defined
+by the ffv2_layouthint4 type (see {{sec-ffv2-layouthint}}).
 
 #  ff_layouthint4
 
@@ -9814,15 +9866,23 @@ Bit-flip-class algorithms (CRC32, CRC32C, Fletcher4):
    identifier and parameters are public.  Suitable when the
    threat model excludes adversaries on the wire and at rest.
 
-Cryptographic algorithms (SHA-256, SHA-512, BLAKE3):
-:  Detect accidental corruption AND defend against adversarial
-   modification, provided that (a) the algorithm choice itself
-   is communicated over a trusted channel (typically the
-   layout from the MDS) and (b) the integrity-protected
-   recomputation happens at trust boundaries the deployment
-   controls.  Suitable when chunks may be at rest on storage
-   the deployment does not fully control, or when transit may
-   cross hostile network segments.
+Cryptographic-strength algorithms (SHA-256, SHA-512, BLAKE3):
+:  Detect accidental corruption with cryptographic-strength
+   collision resistance.  These are UNKEYED hashes carried
+   alongside the payload on the wire, so they do NOT by
+   themselves defend against an adversary who can modify a
+   chunk and recompute a valid hash: the attacker knows the
+   algorithm and can substitute a matching digest.  Content
+   authentication against active adversaries requires a keyed
+   MAC or signature scheme (e.g., RPCSEC_GSS_KRB5I,
+   RPC-over-TLS with mutual authentication, or an
+   application-layer signed manifest) applied at the trust
+   boundary; the checksum mechanism defined here provides
+   corruption detection, not content authentication.
+   Suitable when chunks may be at rest on storage the
+   deployment does not fully control and the deployment
+   layers cryptographic transport or storage integrity on
+   top of the checksum for adversarial protection.
 
 CHECKSUM_ALG_NONE:
 :  No protocol-level integrity check.  The deployment is
@@ -10148,12 +10208,22 @@ encoding type (see {{tbl-coding-ranges}}).
 
  | Range | Purpose | Allocation Policy |
  | ---
- | 0x0000-0x00FF | Standards Track | IETF Review                |
- | 0x0100-0x0FFF | Experimental | Expert Review |
- | 0x1000-0x7FFF | Vendor (open) | First Come First Served |
- | 0x8000-0xFFFE | Private/proprietary | No registration required |
- | 0xFFFF | Reserved | -- |
-{: #tbl-coding-ranges title="Erasure Coding Type Value Ranges"}
+ | 0x0000                | Reserved (uninitialised) | -- |
+ | 0x0001-0x00FF         | Standards Track | IETF Review |
+ | 0x0100-0x0FFF         | Experimental | Expert Review |
+ | 0x1000-0x7FFF         | Vendor (open) | First Come First Served |
+ | 0x8000-0xFFFE         | Private/proprietary | No registration required |
+ | 0xFFFF                | Reserved | -- |
+ | 0x00010000-0xFFFFFFFF | Reserved (upper range) | Reserved for future partition |
+{: #tbl-coding-ranges title="Erasure Coding Type Value Ranges (32-bit space)"}
+
+The upper 16 bits of the 32-bit value space (0x00010000 through
+0xFFFFFFFF) are reserved for future range extensions.  A receiver
+that observes an `ffv2_coding_type4` value in the reserved
+region MUST treat it as an unsupported encoding type
+(NFS4ERR_CODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
+uninitialised-field sentinel and MUST NOT be allocated to an
+encoding.
 
 Standards Track (0x0000-0x00FF):
 :  Encoding types intended for broad interoperability.  The
