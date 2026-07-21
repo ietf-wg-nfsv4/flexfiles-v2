@@ -2331,7 +2331,7 @@ The (data, parity) tuple is interpreted per encoding type:
 ## ffv2_stripes4
 
 ~~~ xdr
-   /// enum ffv2_striping {
+   /// enum ffv2_striping4 {
    ///     FFV2_STRIPING_NONE = 0,
    ///     FFV2_STRIPING_SPARSE = 1,
    ///     FFV2_STRIPING_DENSE = 2
@@ -2356,7 +2356,7 @@ ffv2s_data_servers.
 ~~~ xdr
    /// struct ffv2_mirror4 {
    ///         ffv2_coding_type_data4  ffv2m_coding_type_data;
-   ///         ffv2_striping           ffv2m_striping;
+   ///         ffv2_striping4           ffv2m_striping;
    ///         uint32_t                ffv2m_striping_unit_size;
    ///         uint32_t                ffv2m_client_id;
    ///         checksum_algorithm4     ffv2m_checksum_algorithm;
@@ -4220,11 +4220,19 @@ so that its top k rows form the identity matrix:
 
        V\[i\]\[j\] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
 
-   Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  Any k
-   distinct rows form a k x k Vandermonde matrix on k distinct
-   non-zero evaluation points, which is invertible over GF(2^8);
-   this is the property that gives the code its Maximum Distance
-   Separable (any k of k+m shards recover the data) guarantee.
+   Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  The
+   exponent zero is defined as `x^0 = 1` for all `x` in GF(2^8),
+   including x = 0 (this is the standard combinatorial
+   convention; here `alpha_i` is never zero by step 1's
+   construction, but the convention makes the V\[0\]\[0\] cell
+   unambiguous).  Any k distinct rows form a k x k Vandermonde
+   matrix on k distinct non-zero evaluation points, which is
+   invertible over GF(2^8); this is the property that gives the
+   code its Maximum Distance Separable (any k of k+m shards
+   recover the data) guarantee.  The minimum useful geometry
+   is `k >= 1` and `m >= 1` (`k = 0` gives no data and `m = 0`
+   gives no redundancy); the maximum is bounded by `k + m <= 255`
+   as stated in step 1.
 
 3. Extract the top k x k sub-matrix T from V.  T is the Vandermonde
    on evaluation points alpha_0 = 1, alpha_1 = 2, ..., alpha_(k-1) = k.
@@ -4271,7 +4279,7 @@ by matrix inversion:
    re-encoding from the recovered data shards.
 
 The reconstruction cost is dominated by the matrix inversion, which
-is O(k^2) in GF(2^8) multiplications.
+is O(k^3) in GF(2^8) multiplications.
 
 ### RS Interoperability Requirements
 
@@ -4293,6 +4301,66 @@ data unrecoverable by a different implementation.
 
 These parameters fully determine the encoding matrix for any
 (k, m) configuration in the permitted range.
+
+### RS Interoperability Test Vector
+
+The following worked example pins the encoding matrix and one
+end-to-end encoding for the smallest useful geometry (k=2, m=1).
+An implementation whose encoded output matches this example is
+using the same GF(2^8) representation, the same evaluation-point
+assignment, and the same matrix normalization as required by the
+interoperability parameters above.
+
+Evaluation points: `alpha_0 = 1`, `alpha_1 = 2`, `alpha_2 = 3`
+(values 1, 2, 3 in GF(2^8)).
+
+Vandermonde matrix V (3 rows x 2 columns):
+
+~~~
+V = [ [1, 1],    // row 0: (1^0, 1^1) = (1, 1)
+      [1, 2],    // row 1: (2^0, 2^1) = (1, 2)
+      [1, 3] ]   // row 2: (3^0, 3^1) = (1, 3)
+~~~
+
+Top k x k sub-matrix T = [[1, 1], [1, 2]] has determinant
+`det(T) = 1*2 XOR 1*1 = 3` in GF(2^8).  The inverse of 3 in
+GF(2^8) with irreducible polynomial `0x11d` is
+`3^-1 = 0xF4` (verifiable: `(x+1) * (x^7+x^6+x^5+x^4+x^2) mod
+(x^8+x^4+x^3+x^2+1) = 1`).  Applying `T_inv = (1/det) *
+[[T[1][1], T[0][1]], [T[1][0], T[0][0]]]` (characteristic 2, so
+no sign changes):
+
+~~~
+T_inv = [ [0xF5, 0xF4],
+          [0xF4, 0xF4] ]
+~~~
+
+Systematic-normalized encoding matrix `E = V * T_inv`:
+
+~~~
+E = [ [0x01, 0x00],    // identity block for data shard 0
+      [0x00, 0x01],    // identity block for data shard 1
+      [0xF4, 0xF5] ]   // parity generator P = E[2]
+~~~
+
+For k=2, m=1 the parity generator is `P = [0xF4, 0xF5]`; the
+parity shard is computed byte-wise as
+`parity[j] = 0xF4 * data[0][j] XOR 0xF5 * data[1][j]` where the
+multiplication is in GF(2^8) with polynomial `0x11d`.
+
+Concrete byte-level test vector with `shard_len = 1`:
+
+| data[0] | data[1] | parity  | Notes |
+|---|---|---|---|
+| `0x00`  | `0x00`  | `0x00`  | zero input                                                   |
+| `0x01`  | `0x00`  | `0xF4`  | 0xF4 * 0x01 XOR 0xF5 * 0x00 = 0xF4                          |
+| `0x00`  | `0x01`  | `0xF5`  | 0xF4 * 0x00 XOR 0xF5 * 0x01 = 0xF5                          |
+| `0x01`  | `0x01`  | `0x01`  | 0xF4 XOR 0xF5 = 0x01 (the polynomial diff of adjacent bytes) |
+{: #tbl-rs-test-vector title="RS Vandermonde test vector: k=2, m=1, single-byte shards"}
+
+Implementations that produce different values for any row of
+{{tbl-rs-test-vector}} disagree with this specification and will
+not interoperate.
 
 ### RS Shard Sizes
 
@@ -4469,7 +4537,7 @@ last chunk in a parity shard MAY be shorter than the stride.
 |---
 | MDS guarantee | Yes | Yes (Katz) | Yes (Katz) |
 | Shard sizes | Uniform | Variable | Variable |
-| Reconstruction cost | O(k^2) | O(m * k) | O(m * k) |
+| Reconstruction cost | O(k^3) shard ops<br>(matrix inversion) | O(m*k*P*Q) grid ops (peeling) | O(m*k*P*Q) grid ops (peeling) |
 | Healthy read cost | Zero | Zero | Full decode |
 | GF operations | Yes (GF(2^8)) | No | No |
 {: #tbl-encoding-comparison title="Comparison of erasure encoding types"}
@@ -4477,7 +4545,7 @@ last chunk in a parity shard MAY be shorter than the stride.
 Reed-Solomon uses uniform shard sizes and GF(2^8) operations.
 Mojette systematic provides zero-cost healthy reads with variable
 parity shard sizes; reconstruction cost scales as O(m * k) rather
-than O(k^2).  Mojette non-systematic encodes all k + m shards as
+than O(k^3).  Mojette non-systematic encodes all k + m shards as
 projections, providing constant decode cost regardless of failure
 count at a higher baseline read cost than systematic.  The choice
 among these is a deployment decision driven by workload
@@ -6577,7 +6645,7 @@ across all data files that a chunk corresponds.
    ///
    /// struct checksum4 {
    ///     checksum_algorithm4   cs_algorithm;
-   ///     opaque                cs_value<>;
+   ///     opaque                cs_value<64>;
    /// };
 ~~~
 {: #fig-checksum4 title="XDR for checksum4" }
@@ -10242,6 +10310,20 @@ RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
  | RCA4_TYPE_MASK_FF2_LAYOUT_MAX | 21    | RFCTBD10 |L  | 1        |
 {: #tbl_recallables title="Recallable Object Type Assignments"}
 
+This document also requests IANA to register a new bit in the
+"EXCHGID4_FLAG_*" flag space for the ExchangeID operation from
+{{RFC8881}} Section 18.35.3.  The requested value is
+`0x00100000`, outside the existing MASK_PNFS block (0x00070000);
+IANA MAY assign a different value at its discretion, in which
+case the numeric value in {{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}
+and its uses throughout the document are updated to match the
+assignment.
+
+ | Flag Name                     | Value      | RFC      | Reference                                        |
+ |---
+ | EXCHGID4_FLAG_USE_ERASURE_DS  | 0x00100000 | RFCTBD10 | {{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}, this doc  |
+{: #tbl_exchgid_flags title="EXCHGID4 Flag Assignments"}
+
 This document introduces the 'Flexible File Version 2 Layout Type
 Erasure Coding Type Registry'.  The registry uses a 32-bit value
 space partitioned into ranges based on the intended scope of the
@@ -10288,16 +10370,14 @@ First Served.
 Private/proprietary (0x8000-0xFFFE):
 :  Encoding types for use within a single vendor's ecosystem.
 No IANA registration is required.  Interoperability with other
-implementations is not expected.  To reduce the likelihood of
-accidental codepoint collisions between independent vendors,
-implementations SHOULD derive the low-order 15 bits of any value
-in this range from that vendor's Private Enterprise Number
-{{IANA-PEN}} (for example, by hashing the PEN into the 15-bit
-space and reserving one well-known offset per encoding).  The
-encoding type name SHOULD include an organizational identifier
-(e.g., FFV2_ENCODING_ACME_FOOBAR).  A client that encounters a
+implementations is not expected; accidental codepoint collisions
+between independent vendors are possible and are managed
+operationally rather than by protocol mechanism.  The encoding
+type name SHOULD include an organizational identifier (e.g.,
+`FFV2_ENCODING_ACME_FOOBAR`).  A client that encounters a
 value in this range from an unrecognized server SHOULD treat
-it as an unsupported encoding type.
+it as an unsupported encoding type
+(`NFS4ERR_CODING_NOT_SUPPORTED`).
 
 This partitioning prevents contention for small numbers in the
 Standards Track range and provides a clear signal to clients about
@@ -10593,7 +10673,7 @@ At 8+2, systematic-encoding reconstruction diverges:
 :  Mojette
    systematic reconstruction overhead stays at approximately +4% at
    1 MB, while Reed-Solomon grows to approximately +54% due to the
-   O(k^2) cost of inverting a k x k matrix in GF(2^8).  Mojette
+   O(k^3) cost of inverting a k x k matrix in GF(2^8).  Mojette
    systematic's back-projection algorithm scales with m (parity
    count) rather than k (data count), so its reconstruction
    overhead does not exhibit the same growth at wider geometries.
@@ -10622,7 +10702,7 @@ complexities.
 The benchmarks quantify the algorithmic trade-offs each encoding
 family makes: Mojette non-systematic's constant decode cost comes
 at a higher baseline read cost, and Reed-Solomon's matrix-
-inversion reconstruction grows as O(k^2) at wider geometries.
+inversion reconstruction grows as O(k^3) at wider geometries.
 The choice of default encoding and geometry in a given deployment
 follows from these properties applied to the workload's read /
 write mix, fault-tolerance target, and acceptable encoding cost.
