@@ -137,8 +137,8 @@ requirements on the client, the control protocol will need to provide:
 When implementing the loosely coupled model, the only control protocol
 will be a version of NFS, with no ability to provide a global stateid
 model or to prevent clients from using layouts inappropriately.  To enable
-client use in that environment, this document will specify how security,
-state, and locking are to be managed.
+client use in that environment, this document specifies how security,
+state, and locking are managed.
 
 The loosely and tightly coupled locking models defined in Section 2.3
 of {{RFC8435}} apply equally to this layout type, including the use of

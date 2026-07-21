@@ -152,7 +152,7 @@ elsewhere.  A server-side coordinator that holds the whole
 stripe -- the flexible file v1 case -- can resilver from a
 surviving copy without any client involvement.  In the v2
 case there is no such coordinator, and the on-wire
-protocol must specify how the partial state is reconciled.
+protocol specifies how the partial state is reconciled.
 This is the load-bearing constraint that shapes the rest
 of the design.
 
@@ -163,7 +163,7 @@ Distributed consensus is operationally expensive,
 introduces a synchronisation cost on every write, and
 makes the data servers themselves stateful peers in a way
 that closes off the simpler implementations the protocol
-should accommodate.  Instead, this draft uses two
+is designed to accommodate.  Instead, this draft uses two
 narrowly-scoped primitives that together provide just
 enough on-wire reconciliation: the chunk_guard4
 compare-and-swap (CAS) and the CB_CHUNK_REPAIR callback.
@@ -248,7 +248,7 @@ expose a POSIX file namespace satisfy the tight-coupling
 requirements without materialising POSIX uid/gid bits.
 
 A protocol-level consequence of placing erasure coding at
-the client is that the layout must be able to describe a
+the client is that the layout is able to describe a
 file's storage shape over its full lifetime -- including
 the transition windows when the file is being assimilated
 from a non-erasure-coded source, re-encoded from one

@@ -967,7 +967,7 @@ striping or the ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
 then the length of ffv2m_stripes MUST be 1.  Under
 FFV2_ENCODING_MIRRORED the file MAY be striped within each
 replica; the constraint that ffv2s_data_servers length is 1
-still applies, but ffv2m_stripes may carry multiple stripes.
+still applies, but ffv2m_stripes can carry multiple stripes.
 
 ## ffv2_layout4
 
