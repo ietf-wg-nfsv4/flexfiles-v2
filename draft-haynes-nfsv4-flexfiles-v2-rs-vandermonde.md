@@ -239,7 +239,7 @@ shard size for all mirrors.
 # IANA Considerations
 
 This document registers the following value in the "Flexible
-File Version 2 Layout Type Encoding Type Registry" established
+File Version 2 Layout Type Erasure Coding Type Registry" established
 by {{I-D.haynes-nfsv4-flexfiles-v2-encoding-registry}}:
 
 | Encoding Type Name | Value | RFC | How | Minor Versions |
