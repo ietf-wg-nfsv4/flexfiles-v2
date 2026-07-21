@@ -5454,15 +5454,23 @@ Bit-flip-class algorithms (CRC32, CRC32C, Fletcher4):
    identifier and parameters are public.  Suitable when the
    threat model excludes adversaries on the wire and at rest.
 
-Cryptographic algorithms (SHA-256, SHA-512, BLAKE3):
-:  Detect accidental corruption AND defend against adversarial
-   modification, provided that (a) the algorithm choice itself
-   is communicated over a trusted channel (typically the
-   layout from the MDS) and (b) the integrity-protected
-   recomputation happens at trust boundaries the deployment
-   controls.  Suitable when chunks may be at rest on storage
-   the deployment does not fully control, or when transit may
-   cross hostile network segments.
+Cryptographic-strength algorithms (SHA-256, SHA-512, BLAKE3):
+:  Detect accidental corruption with cryptographic-strength
+   collision resistance.  These are UNKEYED hashes carried
+   alongside the payload on the wire, so they do NOT by
+   themselves defend against an adversary who can modify a
+   chunk and recompute a valid hash: the attacker knows the
+   algorithm and can substitute a matching digest.  Content
+   authentication against active adversaries requires a keyed
+   MAC or signature scheme (e.g., RPCSEC_GSS_KRB5I,
+   RPC-over-TLS with mutual authentication, or an
+   application-layer signed manifest) applied at the trust
+   boundary; the checksum mechanism defined here provides
+   corruption detection, not content authentication.
+   Suitable when chunks may be at rest on storage the
+   deployment does not fully control and the deployment
+   layers cryptographic transport or storage integrity on
+   top of the checksum for adversarial protection.
 
 CHECKSUM_ALG_NONE:
 :  No protocol-level integrity check.  The deployment is

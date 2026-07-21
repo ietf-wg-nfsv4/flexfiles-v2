@@ -671,6 +671,7 @@ filehandle has a one-to-one correspondence to a stateid.
    /// const FFV2_DS_FLAGS_SPARE         = 0x00000002;
    /// const FFV2_DS_FLAGS_PARITY        = 0x00000004;
    /// const FFV2_DS_FLAGS_REPAIR        = 0x00000008;
+   /// const FFV2_DS_FLAGS_PROXY         = 0x00000010;
    /// typedef uint32_t            ffv2_ds_flags4;
 ~~~
 {: #fig-ffv2_ds_flags4 title="The ffv2_ds_flags4" }
@@ -683,7 +684,7 @@ chunk.  Such an implementation would typically see FFV2_DS_FLAGS_ACTIVE
 and FFV2_DS_FLAGS_SPARE data servers.  The FFV2_DS_FLAGS_SPARE ones
 allow the client to repair a payload without engaging the metadata
 server.  I.e., if one of the FFV2_DS_FLAGS_ACTIVE did not respond
-to a WRITE_BLOCK, the client could fail the chunk to the
+to a CHUNK_WRITE, the client could fail the chunk to the
 FFV2_DS_FLAGS_SPARE data server.
 
 With the Non-Systematic approach, the data and integrity live on
@@ -722,6 +723,19 @@ metadata server has accepted the reconstructed content as
 authoritative and the fail-over is complete); the metadata
 server reflects the current flag set in the next layout it
 returns.
+
+The FFV2_DS_FLAGS_PROXY flag identifies a data-server entry
+that names a Proxy Server rather than a real storage device.
+A client whose local encoding capabilities cannot cover the
+file's mirror set receives a layout in which one or more
+mirror entries have FFV2_DS_FLAGS_PROXY set on their
+ffv2_data_server4; the client directs I/O for that mirror
+to the proxy, which translates on behalf of the client.  The
+Proxy Server protocol itself is specified in
+{{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}; this
+document defines only the layout-flag surface (this bit) that
+lets the metadata server mark a data-server entry as
+proxy-mediated.
 
 ## ffv2_data_server4
 
@@ -1231,12 +1245,17 @@ that the file is concatenated from more than one layout segment.
 Each layout segment MAY represent different striping parameters.
 
 The ffv2m_striping_unit_size field (inside each ffv2_mirror4) is
-the stripe unit size in use for that mirror.  The number of
-stripes is given by the number of elements in ffv2s_data_servers
-within each ffv2_stripes4.  If the number of stripes is one,
-then ffv2m_striping_unit_size MUST be zero.  The mapping scheme
-(sparse or dense) is selected per mirror by ffv2m_striping and is
-detailed in {{sec-striping}}.
+the stripe unit size in use for that mirror.  The stripe width
+W is given by the number of elements in ffv2s_data_servers
+within each ffv2_stripes4 (the count of data servers over which
+each stripe is spread).  If ffv2m_striping is FFV2_STRIPING_NONE
+the mirror is unstriped and ffv2m_striping_unit_size MUST be 1
+(matching the FFV2_STRIPING_NONE rule in {{sec-ffv2-mirror4}}
+and {{sec-striping}}); when ffv2m_striping is
+FFV2_STRIPING_SPARSE or FFV2_STRIPING_DENSE the field carries
+the stripe unit size in bytes with a minimum of 64.  The
+mapping scheme (sparse or dense) is selected per mirror by
+ffv2m_striping and is detailed in {{sec-striping}}.
 
 Stripe unit size and stripe count MAY differ between mirrors in
 the same layout segment.  In particular, mirrors of different
@@ -1381,7 +1400,7 @@ data I/ O, most likely for performance reasons.
 
 The flexible file v2 layout does not use lou_body inside the
 loca_layoutupdate argument to LAYOUTCOMMIT.  If lou_type is
-LAYOUT4_FLEX_FILES, the lou_body field MUST have a zero length (see
+LAYOUT4_FLEX_FILES_V2, the lou_body field MUST have a zero length (see
 Section 18.42.1 of {{RFC8881}}).
 
 ##  Interactions between Devices and Layouts
@@ -1490,7 +1509,7 @@ FFV2_STRIPING_DENSE:
 
 The pNFS client may encounter errors when directly accessing the
 storage devices.  However, it is the responsibility of the metadata
-server to recover from the I/O errors.  When the LAYOUT4_FLEX_FILES
+server to recover from the I/O errors.  When the LAYOUT4_FLEX_FILES_V2
 layout type is used, the client MUST report the I/O errors to the
 server at LAYOUTRETURN time using the ffv2_ioerr4 structure (see
 {{sec-ffv2_ioerr4}}).
@@ -1739,7 +1758,7 @@ Section 18.44.1 of {{RFC8881}} (also shown in {{fig-LAYOUTRETURN}}).
 ~~~
 {: #fig-LAYOUTRETURN title="Layout Return XDR"}
 
-If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
+If the lora_layout_type layout type is LAYOUT4_FLEX_FILES_V2 and the
 lr_returntype is LAYOUTRETURN4_FILE, then the lrf_body opaque value
 is defined by ffv2_layoutreturn4 (see {{sec-ffv2_layoutreturn4}}).  This
 allows the client to report I/O error information or layout usage
@@ -1980,7 +1999,10 @@ The layouthint4 type is defined in the {{RFC8881}} as in
 The layouthint4 structure is used by the client to pass a hint about
 the type of layout it would like created for a particular file.  If
 the loh_type layout type is LAYOUT4_FLEX_FILES, then the loh_body
-opaque value is defined by the ff_layouthint4 type.
+opaque value is defined by the ff_layouthint4 type (v1
+compatibility).  If the loh_type layout type is
+LAYOUT4_FLEX_FILES_V2, then the loh_body opaque value is defined
+by the ffv2_layouthint4 type (see {{sec-ffv2-layouthint}}).
 
 #  ff_layouthint4
 

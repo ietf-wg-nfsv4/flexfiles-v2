@@ -158,14 +158,29 @@ which covers certain SIMD-based GF multiplication techniques.
 The encoding process uses a (k+m) x k Vandermonde matrix, normalized
 so that its top k rows form the identity matrix:
 
-1. Construct a (k+m) x k Vandermonde matrix V where V\[i\]\[j\] = j^i
-   in GF(2^8).
+1. Assign each of the k+m shards a distinct non-zero evaluation
+   point in GF(2^8): shard i (for i = 0, 1, ..., k+m-1) is assigned
+   the point alpha_i = i + 1.  This gives evaluation points
+   1, 2, ..., k+m, all non-zero and distinct.  The value k+m MUST
+   NOT exceed 255 so that all points fit in GF(2^8) \ {0}.
 
-2. Extract the top k x k sub-matrix T from V.
+2. Construct a (k+m) x k Vandermonde matrix V where the row for
+   shard i is the geometric progression of alpha_i:
 
-3. Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).
+       V\[i\]\[j\] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
 
-4. Multiply: E = V * T_inv.  The result has an identity block on top
+   Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  Any k
+   distinct rows form a k x k Vandermonde matrix on k distinct
+   non-zero evaluation points, which is invertible over GF(2^8);
+   this is the property that gives the code its Maximum Distance
+   Separable (any k of k+m shards recover the data) guarantee.
+
+3. Extract the top k x k sub-matrix T from V.  T is the Vandermonde
+   on evaluation points alpha_0 = 1, alpha_1 = 2, ..., alpha_(k-1) = k.
+
+4. Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).
+
+5. Multiply: E = V * T_inv.  The result has an identity block on top
    (rows 0 through k-1) and the parity generation matrix P on the
    bottom (rows k through k+m-1).
 
@@ -216,11 +231,17 @@ data unrecoverable by a different implementation.
 
 - Irreducible polynomial: x^8 + x^4 + x^3 + x^2 + 1 (0x11d)
 - Primitive element: g = 2
-- Vandermonde evaluation points: V\[i\]\[j\] = j^i in GF(2^8)
-- Matrix normalization: E = V * (V\[0..k-1\])^(-1)
+- Evaluation points: shard i (i = 0, 1, ..., k+m-1) uses
+  alpha_i = i + 1 in GF(2^8) (values 1 through k+m, all
+  non-zero and distinct)
+- Vandermonde entries: V\[i\]\[j\] = alpha_i^j = (i+1)^j in GF(2^8)
+  for i = 0..k+m-1, j = 0..k-1
+- Matrix normalization: E = V * T^(-1) where T is the top k x k
+  sub-matrix (rows for shards 0..k-1)
+- Parameter bound: k + m MUST NOT exceed 255
 
-These four parameters fully determine the encoding matrix for any
-(k, m) configuration.
+These parameters fully determine the encoding matrix for any
+(k, m) configuration in the permitted range.
 
 ## RS Shard Sizes
 

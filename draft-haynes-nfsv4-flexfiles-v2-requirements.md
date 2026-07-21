@@ -397,7 +397,16 @@ and stored on different data servers.
 
 client-side erasure coding:
 
-:  A file based integrity method where copies are maintained in parallel.
+:  Erasure coding in which the encode and decode transforms are
+   performed on the pNFS client, and encoded shards are written
+   directly to the data servers (rather than being computed at
+   a server-side coordinator).  This is the deployment shape
+   Flexible File Version 2 Layout Type is designed for; the
+   chunk substrate and CHUNK_* operations that make it safe are
+   specified in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.
+   Contrast: server-side erasure coding, where a coordinator
+   holds the entire stripe and produces parity, is out of scope
+   for this family.
 
 compare-and-swap (CAS):
 
