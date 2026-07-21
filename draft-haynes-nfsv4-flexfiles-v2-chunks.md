@@ -114,7 +114,7 @@ The following terms are used with meanings defined in
 - data server (DS), metadata server (MDS)
 - encoding, stripe, shard, mirror, layout
 - k (number of data shards), m (number of parity shards)
-- `ffv2_layout4`, `ffv2_mirror4`, `ffv2_coding_type4` — the
+- `ffv2_layout4`, `ffv2_mirror4`, `ffv2_coding_type4` -- the
   layout XDR types defined in {{I-D.haynes-nfsv4-flexfiles-v2-layout}}
 
 Local terms defined in this document:

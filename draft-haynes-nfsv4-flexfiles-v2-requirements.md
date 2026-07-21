@@ -340,35 +340,20 @@ chunk.
 chunk:
 
 :  the protocol's unit of file data on the wire, carrying an
-envelope that distinguishes it from a block: a compare-and-swap
-guard (chunk_guard4 -- atomicity, see {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}), a
-checksum (per-chunk integrity), a provenance identifier
-(chunk_owner4, see {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}), a lifecycle state
-(PENDING / FINALIZED / COMMITTED via the chunk state machine,
-see {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}), and per-chunk locking that
-survives stateid revocation through lock escrow.  A chunk is the
-addressable unit named in the CHUNK_* operations defined in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}
-document and durably persisted by a data server.  A chunk's
-payload may be a block (mirrored layout) or a shard
+envelope of guard, checksum, provenance, and lifecycle state.
+Full definition (including chunk_guard4, chunk_owner4, the
+PENDING / FINALIZED / COMMITTED chunk state machine, lock
+escrow, and the CHUNK_* operations) lives in
+{{I-D.haynes-nfsv4-flexfiles-v2-chunks}}, which is authoritative.
+A chunk's payload may be a block (mirrored layout) or a shard
 (erasure-coded layout); the wire protocol does not distinguish.
 The chunk size MAY differ from the size of the block or shard it
-carries.  See {{I-D.haynes-nfsv4-flexfiles-v2-chunks}} for the
-load-bearing role each envelope property plays in the protocol's
-consistency story.
+carries.
 
-The three terms describe the same data at three different layers and
-should be used accordingly.  The encoding transforms blocks into shards;
-the wire protocol transmits shards as chunk payloads; the data server
-persists chunks.  On read the path reverses.
-
-A protocol-internal note: the chunk state machine
-({{I-D.haynes-nfsv4-flexfiles-v2-chunks}}) and several CHUNK_* operations
-refer to the per-chunk-offset state records as "blocks" (PENDING /
-FINALIZED / COMMITTED / errored).  This is a finer-grained use of
-the word, internal to the data server's chunk metadata, and should
-not be confused with the application-layer "block" defined above.
-Where ambiguity matters, this document writes "chunk-state block"
-or relies on context (operation names, state names) to disambiguate.
+The three terms block / shard / chunk describe the same data at
+three different layers.  The encoding transforms blocks into
+shards; the wire protocol transmits shards as chunk payloads;
+the data server persists chunks.  On read the path reverses.
 
 control communication requirements:
 
@@ -417,13 +402,10 @@ client-side erasure coding:
 compare-and-swap (CAS):
 
 :  an atomic primitive from concurrent programming in which an
-update is conditional on a prior observed value: the operation
-succeeds only if the current value matches an expected prior value,
-and otherwise fails so the caller can retry.  In this document, the
-chunk_guard4 mechanism (see {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}) implements CAS at
-the chunk level; the "expected prior value" is the chunk_guard4 the
-writer observed at read time, and the "fail" outcome is
-NFS4ERR_CHUNK_GUARDED.
+update is conditional on a prior observed value.  The FFv2
+family's chunk-level CAS mechanism (chunk_guard4 +
+NFS4ERR_CHUNK_GUARDED) is defined in
+{{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.
 
 (file) data:
 
@@ -438,20 +420,12 @@ object is accessed over a file-based protocol.
 
 escrow (lock escrow, MDS-escrow):
 
-:  a state in which a chunk lock is held by the metadata server on
-behalf of an as-yet-unselected future owner.  When the metadata
-server revokes a client's stateid while the client still holds
-chunk locks, the locks are not dropped (which would expose the
-chunks to concurrent writers) but are transferred to the metadata
-server itself, marked by the reserved cg_client_id value
-CHUNK_GUARD_CLIENT_ID_MDS (see {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}).  The
-metadata server holds the locks in escrow until a repair client
-adopts them via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT (driven by
-CB_CHUNK_REPAIR).  An "MDS-escrow owner" is the metadata server
-acting in this placeholder role; "in escrow" describes a lock in
-this state.  Escrow preserves the lock-continuity invariant
-across stateid revocation: at no point during the revocation
-sequence is a chunk simultaneously locked and unowned.
+:  a state in which a chunk lock is held by the metadata server
+on behalf of an as-yet-unselected future owner, preserving
+lock-continuity across stateid revocation.  Full mechanics
+(CHUNK_GUARD_CLIENT_ID_MDS, CHUNK_LOCK_FLAGS_ADOPT,
+CB_CHUNK_REPAIR) are defined in
+{{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.
 
 fencing:
 
@@ -614,9 +588,11 @@ uid:
 
 write hole:
 
-:  A write hole is a data corruption scenario where either two clients
-are trying to write to the same chunk or one client is overwriting an
-existing chunk of data.
+:  a data corruption scenario in erasure-coded systems where a
+partial-stripe write leaves the stripe in a non-atomic state
+(mixed old and new shards).  The FFv2 family's write-hole
+handling (chunk state machine, guard rejection, repair flow)
+is defined in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.
 
 wsize:
 
@@ -692,8 +668,7 @@ Implementation:
    metadata server (MDS) and a data server (DS) in a flexible file v2 layout
    deployment.  `ec_demo` is a client-side library with a
    demonstration driver that exercises the flexible file v2 layout data path
-   over NFSv4.2 with all three erasure coding types defined in this
-   document.
+   over NFSv4.2 with all three erasure coding types defined in the family.
 
 Coverage:
 

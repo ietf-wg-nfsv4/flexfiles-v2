@@ -1696,7 +1696,7 @@ count at a higher baseline read cost than systematic.  The choice
 among these is a deployment decision driven by workload
 characteristics and operational priorities.
 
-#  Flexible File Version 2 Layout Type Return {#sec-layouthint}
+#  Flexible File Version 2 Layout Type Return
 
 layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
 layout-type-specific information to the server.  It is defined in
