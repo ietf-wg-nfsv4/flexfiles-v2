@@ -333,7 +333,7 @@ is in {{fig-example-chunk-write-args}}.
 
 This describes a 3 block write of data from an offset of 1 block
 in the file.  As each block shares the cwa_owner, it is only presented
-once.  I.e., the data server will be able to construct the header
+once.  The data server can construct the header
 for the i'th chunk from the cwa_chunks from the cwa_payload_id, the
 cwa_owner, and the i'th checksum from the cwa_checksums.  The cwa_chunks
 are sent together as a byte stream to increase performance.
