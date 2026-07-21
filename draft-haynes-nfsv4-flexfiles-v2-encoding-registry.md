@@ -229,12 +229,22 @@ based on the intended scope of the encoding type:
 
  | Range | Purpose | Allocation Policy |
  | ---
- | 0x0000-0x00FF | Standards Track | IETF Review |
- | 0x0100-0x0FFF | Experimental | Expert Review |
- | 0x1000-0x7FFF | Vendor (open) | First Come First Served |
- | 0x8000-0xFFFE | Private/proprietary | No registration required |
- | 0xFFFF | Reserved | -- |
-{: title="Erasure Coding Type Value Ranges"}
+ | 0x0000                | Reserved (uninitialised) | -- |
+ | 0x0001-0x00FF         | Standards Track | IETF Review |
+ | 0x0100-0x0FFF         | Experimental | Expert Review |
+ | 0x1000-0x7FFF         | Vendor (open) | First Come First Served |
+ | 0x8000-0xFFFE         | Private/proprietary | No registration required |
+ | 0xFFFF                | Reserved | -- |
+ | 0x00010000-0xFFFFFFFF | Reserved (upper range) | Reserved for future partition |
+{: title="Erasure Coding Type Value Ranges (32-bit space)"}
+
+The upper 16 bits of the 32-bit value space (0x00010000 through
+0xFFFFFFFF) are reserved for future range extensions.  A receiver
+that observes an `ffv2_coding_type4` value in the reserved region
+MUST treat it as an unsupported encoding type
+(NFS4ERR_CODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
+uninitialised-field sentinel and MUST NOT be allocated to an
+encoding.
 
 Standards Track (0x0000-0x00FF):
 :  Encoding types intended for broad interoperability.  The
