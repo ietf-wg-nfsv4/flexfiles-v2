@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                            20 July 2026
-Expires: 21 January 2027
+Intended status: Standards Track                            21 July 2026
+Expires: 22 January 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -48,7 +48,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 21 January 2027.
+   This Internet-Draft will expire on 22 January 2027.
 
 Copyright Notice
 
@@ -103,15 +103,15 @@ Table of Contents
      8.3.  ffv2_file_info4
      8.4.  ffv2_ds_flags4
      8.5.  ffv2_data_server4
-     8.6.  ffv2_coding_type_data4
-     8.7.  ffv2_stripes4
-     8.8.  ffv2_mirror4
-     8.9.  ffv2_layout4
-     8.10. ffv2_data_protection4
+     8.6.  ffv2_data_protection4
+     8.7.  ffv2_coding_type_data4
+     8.8.  ffv2_stripes4
+     8.9.  ffv2_mirror4
+     8.10. ffv2_layout4
      8.11. ffv2_layouthint4
-       8.11.1.  Codec Negotiation
+       8.11.1.  Encoding Negotiation
        8.11.2.  Error Codes from LAYOUTGET
-       8.11.3.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
+       8.11.3.  Client Interactions with FFV2_FLAGS_NO_IO_THRU_MDS
      8.12. LAYOUTCOMMIT
      8.13. Interactions between Devices and Layouts
      8.14. Handling Version Errors
@@ -141,7 +141,8 @@ Table of Contents
        11.4.4.  Encoding
        11.4.5.  Decoding
        11.4.6.  RS Interoperability Requirements
-       11.4.7.  RS Shard Sizes
+       11.4.7.  RS Interoperability Test Vector
+       11.4.8.  RS Shard Sizes
      11.5.  Mojette Transform Encoding
             (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
             FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC)
@@ -153,7 +154,7 @@ Table of Contents
        11.5.6.  Inverse Transform (Decoding)
        11.5.7.  Systematic Mojette
        11.5.8.  Non-Systematic Mojette
-       11.5.9.  Mojette Shard Sizes
+       11.5.9.  Mojette Shard Sizes and Layout
      11.6.  Comparison of Encoding Types
      11.7.  First-Line Substitution to a Spare
      11.8.  Handling write holes
@@ -338,7 +339,7 @@ Table of Contents
      Global Clock or Wall-Clock-Based Generation Counter
      Layout-Level Generation Counter
      Declustered RAID with Dynamic Parity Mapping
-   Working Group Concern: Codec on Every Client
+   Working Group Concern: Encoding on Every Client
      Source
      The Question as Asked
      What We Believe Is Being Asked
@@ -474,19 +475,20 @@ Table of Contents
    elsewhere.  A server-side coordinator that holds the whole stripe --
    the flexible file v1 case -- can resilver from a surviving copy
    without any client involvement.  In the v2 case there is no such
-   coordinator, and the on-wire protocol must specify how the partial
-   state is reconciled.  This is the load-bearing constraint that shapes
-   the rest of the design.
+   coordinator, and the on-wire protocol specifies how the partial state
+   is reconciled.  This is the load-bearing constraint that shapes the
+   rest of the design.
 
    A natural-looking answer is to add a distributed-consensus protocol
    between the data servers and have them agree on which write
    committed.  That answer is rejected here.  Distributed consensus is
    operationally expensive, introduces a synchronisation cost on every
    write, and makes the data servers themselves stateful peers in a way
-   that closes off the simpler implementations the protocol should
-   accommodate.  Instead, this draft uses two narrowly-scoped primitives
-   that together provide just enough on-wire reconciliation: the
-   chunk_guard4 compare-and-swap (CAS) and the CB_CHUNK_REPAIR callback.
+   that closes off the simpler implementations the protocol is designed
+   to accommodate.  Instead, this draft uses two narrowly-scoped
+   primitives that together provide just enough on-wire reconciliation:
+   the chunk_guard4 compare-and-swap (CAS) and the CB_CHUNK_REPAIR
+   callback.
 
    Every CHUNK_WRITE carries a chunk_guard4 -- a 32-bit per-chunk
    generation counter and a 32-bit owning-client short-id -- and the
@@ -496,7 +498,7 @@ Table of Contents
    loser intended to write are left unchanged.  No data server needs to
    consult its peers; the CAS is local.  The cost on the metadata server
    is bounded by the 8-byte chunk_guard4 header per chunk plus a 32-bit
-   per-layout client identifier (Section 24.1, Section 8.8).
+   per-layout client identifier (Section 24.1, Section 8.9).
    Independent collisions on different chunks resolve independently;
    there is no file-wide lock and no global ordering across writes.
 
@@ -554,10 +556,10 @@ Table of Contents
    materialising POSIX uid/gid bits.
 
    A protocol-level consequence of placing erasure coding at the client
-   is that the layout must be able to describe a file's storage shape
-   over its full lifetime -- including the transition windows when the
-   file is being assimilated from a non-erasure-coded source, re-encoded
-   from one codec to another, or recovered from a correlated codec
+   is that the layout is able to describe a file's storage shape over
+   its full lifetime -- including the transition windows when the file
+   is being assimilated from a non-erasure-coded source, re-encoded from
+   one encoding to another, or recovered from a correlated encoding
    failure through a mirror under a different encoding.  This draft
    allows a single file's layout to contain mirrors under different
    encodings.  The heterogeneous-mirror capability is not a steady-state
@@ -623,12 +625,12 @@ Table of Contents
       client performs, is presented to the application as one or more
       blocks.
 
-   shard:  the codec's view.  A shard is a single piece of an encoded
+   shard:  the encoding's view.  A shard is a single piece of an encoded
       stripe produced by an erasure-coding (or replication)
       transformation.  A stripe of k data shards plus m parity shards is
-      the unit a codec encodes and decodes.  The word "shard" only has
-      meaning while the codec is reasoning about a stripe; once a shard
-      is at rest on a data server it is, by virtue of having been
+      the unit an encoding encodes and decodes.  The word "shard" only
+      has meaning while the encoding is reasoning about a stripe; once a
+      shard is at rest on a data server it is, by virtue of having been
       transmitted, the payload of a chunk.
 
    chunk:  the protocol's unit of file data on the wire, carrying an
@@ -647,9 +649,9 @@ Table of Contents
       property plays in the protocol's consistency story.
 
    The three terms describe the same data at three different layers and
-   should be used accordingly.  The codec transforms blocks into shards;
-   the wire protocol transmits shards as chunk payloads; the data server
-   persists chunks.  On read the path reverses.
+   should be used accordingly.  The encoding transforms blocks into
+   shards; the wire protocol transmits shards as chunk payloads; the
+   data server persists chunks.  On read the path reverses.
 
    A protocol-internal note: the chunk state machine (Section 12.5) and
    several CHUNK_* operations refer to the per-chunk-offset state
@@ -690,8 +692,15 @@ Table of Contents
       subset of the shards.  Shards are transmitted as the payload of
       CHUNK operations and stored on different data servers.
 
-   client-side erasure coding:  A file based integrity method where
-      copies are maintained in parallel.
+   client-side erasure coding:  Erasure coding in which the encode and
+      decode transforms are performed on the pNFS client, and encoded
+      shards are written directly to the data servers (rather than being
+      computed at a server-side coordinator).  This is the deployment
+      shape Flexible File Version 2 Layout Type is designed for; the
+      chunk substrate and CHUNK_* operations that make it safe are
+      specified in Section 12 and Section 25.  Contrast: server-side
+      erasure coding, where a coordinator holds the entire stripe and
+      produces parity, is out of scope for this document.
 
    compare-and-swap (CAS):  an atomic primitive from concurrent
       programming in which an update is conditional on a prior observed
@@ -784,9 +793,9 @@ Table of Contents
    proxy server (PS):  a peer of the metadata server, defined in
       [I-D.haynes-nfsv4-flexfiles-v2-proxy-server], that admits client
       I/O on the metadata server's behalf -- either as a translator for
-      clients that cannot speak the file's native codec, or as a proxy-
-      mediated data path during whole-file move and repair operations.
-      A proxy server may additionally act as a data server.
+      clients that cannot speak the file's native encoding, or as a
+      proxy-mediated data path during whole-file move and repair
+      operations.  A proxy server may additionally act as a data server.
 
    recalling a layout:  a graceful recall, via a callback, of a specific
       layout by the metadata server to the client.  Graceful here means
@@ -873,8 +882,7 @@ Table of Contents
    protocol will be a version of NFS, with no ability to provide a
    global stateid model or to prevent clients from using layouts
    inappropriately.  To enable client use in that environment, this
-   document will specify how security, state, and locking are to be
-   managed.
+   document specifies how security, state, and locking are managed.
 
    The loosely and tightly coupled locking models defined in Section 2.3
    of [RFC8435] apply equally to this layout type, including the use of
@@ -1488,7 +1496,7 @@ Table of Contents
       together constitute the authorization.  In a tightly coupled
       deployment the data file's owner/group need not match the metadata
       file's, since ffv2ds_user and ffv2ds_group are ignored (see
-      Section 8.8).
+      Section 8.9).
 
    *  TLS clients have transport-layer authentication via mutual TLS
       ([RFC9289]).  The TLS layer authenticates the client machine; the
@@ -1569,6 +1577,23 @@ Table of Contents
    expressed as an nfstime4.  The metadata server MUST set tsa_expire to
    the current wall-clock time plus the metadata server's client lease
    period.
+
+   Clock-synchronization assumption: the metadata server and each
+   storage device MUST maintain wall-clock synchronization within one
+   lease period, e.g., via NTP [RFC5905] or an equivalent mechanism.
+   Under this assumption, a tsa_expire computed by the metadata server
+   and evaluated by the storage device is interpreted consistently
+   within the storage device's local clock.  Deployments unable to
+   guarantee sub-lease-period clock synchronization MUST either (a)
+   shorten the effective TRUST_STATEID lease so it exceeds the worst-
+   case skew by at least 2x, or (b) use the metadata-server-inband
+   fallback path (no tight-coupling control session, no TRUST_STATEID)
+   so lease enforcement stays on the metadata server's clock alone.  A
+   storage device that detects sustained clock divergence from the
+   metadata server (e.g., via periodic wall-clock exchange as part of
+   its tight-coupling control-session heartbeats) SHOULD log the
+   divergence and MAY refuse further TRUST_STATEID entries with
+   NFS4ERR_DELAY until the divergence is corrected.
 
    The metadata server MUST re-issue TRUST_STATEID for an entry before
    tsa_expire while the corresponding layout is outstanding.  The
@@ -1938,8 +1963,8 @@ Table of Contents
    The 32-bit ffv2_coding_type4 value space is partitioned by intended
    scope -- Standards Track, Experimental, Vendor (open), and Private /
    proprietary -- with different allocation policies per range, so that
-   vendors can assign codec values without consuming standards-track
-   codepoints.  See Table 13 and the accompanying prose in Section 28
+   vendors can assign encoding values without consuming standards-track
+   codepoints.  See Table 15 and the accompanying prose in Section 28
    for the range assignments and allocation policies.
 
 8.1.1.  Heterogeneous Mirror Sets
@@ -1992,7 +2017,7 @@ Table of Contents
    single transaction -- is specified in the proxy-server draft
    ([I-D.haynes-nfsv4-flexfiles-v2-proxy-server]), in the sections
    "Layout Shape During a Proxy Operation" and "Atomic commit on
-   PROXY_DONE".  This document specifies the per-mirror codec naming
+   PROXY_DONE".  This document specifies the per-mirror encoding naming
    primitive; the proxy-server document specifies the transactional
    machinery that uses it.
 
@@ -2013,8 +2038,8 @@ Table of Contents
       from any one.  N-way redundancy tolerates up to N-1 replica
       losses.
 
-   *  Zero codec compute at the client and zero chunk-metadata overhead
-      at the server.  The on-disk format is the file itself.
+   *  Zero encoding compute at the client and zero chunk-metadata
+      overhead at the server.  The on-disk format is the file itself.
 
    *  Compatibility with files that already exist outside flexible file
       v2 layout.  A PASSTHROUGH mirror can be created over an existing
@@ -2050,7 +2075,7 @@ Table of Contents
 
    What FFV2_ENCODING_MIRRORED keeps from the mirror model:
 
-   *  Zero codec compute at the client.  Each replica's chunk is the
+   *  Zero encoding compute at the client.  Each replica's chunk is the
       input bytes; there is no transform to apply on write and nothing
       to decode on read.
 
@@ -2217,6 +2242,7 @@ Table of Contents
       /// const FFV2_DS_FLAGS_SPARE         = 0x00000002;
       /// const FFV2_DS_FLAGS_PARITY        = 0x00000004;
       /// const FFV2_DS_FLAGS_REPAIR        = 0x00000008;
+      /// const FFV2_DS_FLAGS_PROXY         = 0x00000010;
       /// typedef uint32_t            ffv2_ds_flags4;
 
                        Figure 12: The ffv2_ds_flags4
@@ -2229,7 +2255,7 @@ Table of Contents
    FFV2_DS_FLAGS_SPARE data servers.  The FFV2_DS_FLAGS_SPARE ones allow
    the client to repair a payload without engaging the metadata server.
    I.e., if one of the FFV2_DS_FLAGS_ACTIVE did not respond to a
-   WRITE_BLOCK, the client could fail the chunk to the
+   CHUNK_WRITE, the client could fail the chunk to the
    FFV2_DS_FLAGS_SPARE data server.
 
    With the Non-Systematic approach, the data and integrity live on
@@ -2267,6 +2293,17 @@ Table of Contents
    authoritative and the fail-over is complete); the metadata server
    reflects the current flag set in the next layout it returns.
 
+   The FFV2_DS_FLAGS_PROXY flag identifies a data-server entry that
+   names a Proxy Server rather than a real storage device.  A client
+   whose local encoding capabilities cannot cover the file's mirror set
+   receives a layout in which one or more mirror entries have
+   FFV2_DS_FLAGS_PROXY set on their ffv2_data_server4; the client
+   directs I/O for that mirror to the proxy, which translates on behalf
+   of the client.  The Proxy Server protocol itself is specified in
+   [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]; this document defines
+   only the layout-flag surface (this bit) that lets the metadata server
+   mark a data-server entry as proxy-mediated.
+
 8.5.  ffv2_data_server4
 
       /// struct ffv2_data_server4 {
@@ -2283,7 +2320,52 @@ Table of Contents
    The ffv2_data_server4 (in Figure 13) describes a data file and how to
    access it via the different NFS protocols.
 
-8.6.  ffv2_coding_type_data4
+8.6.  ffv2_data_protection4
+
+      /// struct ffv2_data_protection4 {
+      ///     uint32_t fdp_data;    /* data shards (k) */
+      ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
+      /// };
+
+                    Figure 14: The ffv2_data_protection4
+
+   The ffv2_data_protection4 (in Figure 14) describes the data
+   protection geometry as a pair of counts: the number of data shards
+   (fdp_data, also known as k) and the number of parity or redundancy
+   shards (fdp_parity, also known as m).  This structure is used in both
+   layout hints and layout responses, and applies uniformly to all
+   coding types:
+
+    +=================+==========+============+=======+===============+
+    | Protection Mode | fdp_data | fdp_parity | Total | Description   |
+    |                 |          |            | DSes  |               |
+    +=================+==========+============+=======+===============+
+    | Mirroring       | 1        | 2          | 3     | 3 copies, no  |
+    | (3-way)         |          |            |       | encoding      |
+    +-----------------+----------+------------+-------+---------------+
+    | Striping        | 6        | 0          | 6     | Parallel I/O, |
+    | (6-way)         |          |            |       | no redundancy |
+    +-----------------+----------+------------+-------+---------------+
+    | RS Vandermonde  | 4        | 2          | 6     | Tolerates 2   |
+    | 4+2             |          |            |       | DS failures   |
+    +-----------------+----------+------------+-------+---------------+
+    | Mojette-sys 8+2 | 8        | 2          | 10    | Tolerates 2   |
+    |                 |          |            |       | DS failures   |
+    +-----------------+----------+------------+-------+---------------+
+
+              Table 1: Example data protection configurations
+
+   By expressing all protection modes as (fdp_data, fdp_parity) pairs, a
+   single structure serves mirroring, striping, and all erasure coding
+   types.  The coding type (Figure 9) determines how the shards are
+   encoded; the protection structure determines how many shards there
+   are.
+
+   The total number of data servers required is fdp_data + fdp_parity.
+   The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2, 25%
+   for 8+2).
+
+8.7.  ffv2_coding_type_data4
 
       /// union ffv2_coding_type_data4 switch
       ///         (ffv2_coding_type4 fctd_coding) {
@@ -2295,11 +2377,11 @@ Table of Contents
       ///         ffv2_data_protection4   fctd_protection;
       /// };
 
-                   Figure 14: The ffv2_coding_type_data4
+                   Figure 15: The ffv2_coding_type_data4
 
-   The ffv2_coding_type_data4 (in Figure 14) describes the data
+   The ffv2_coding_type_data4 (in Figure 15) describes the data
    protection geometry for the layout.  All coding types carry an
-   ffv2_data_protection4 (Figure 19) specifying the number of data and
+   ffv2_data_protection4 (Figure 14) specifying the number of data and
    parity shards.  The coding type enum determines how the shards are
    encoded; the protection structure determines how many shards there
    are.
@@ -2329,9 +2411,9 @@ Table of Contents
       subsequently registered in the IANA registry established by this
       document) use fdp_data >= 2 and fdp_parity >= 1.
 
-8.7.  ffv2_stripes4
+8.8.  ffv2_stripes4
 
-      /// enum ffv2_striping {
+      /// enum ffv2_striping4 {
       ///     FFV2_STRIPING_NONE = 0,
       ///     FFV2_STRIPING_SPARSE = 1,
       ///     FFV2_STRIPING_DENSE = 2
@@ -2341,7 +2423,7 @@ Table of Contents
       ///         ffv2_data_server4       ffv2s_data_servers<>;
       /// };
 
-                   Figure 15: The ffv2_stripes4 structure
+                   Figure 16: The ffv2_stripes4 structure
 
    Each stripe contains a set of data servers in ffv2s_data_servers.  If
    the stripe is part of a ffv2_coding_type_data4 of
@@ -2351,20 +2433,20 @@ Table of Contents
    multiplicity expressed in ffv2l_mirrors rather than in
    ffv2s_data_servers.
 
-8.8.  ffv2_mirror4
+8.9.  ffv2_mirror4
 
       /// struct ffv2_mirror4 {
       ///         ffv2_coding_type_data4  ffv2m_coding_type_data;
-      ///         ffv2_striping           ffv2m_striping;
+      ///         ffv2_striping4           ffv2m_striping;
       ///         uint32_t                ffv2m_striping_unit_size;
       ///         uint32_t                ffv2m_client_id;
       ///         checksum_algorithm4     ffv2m_checksum_algorithm;
       ///         ffv2_stripes4           ffv2m_stripes<>;
       /// };
 
-                        Figure 16: The ffv2_mirror4
+                        Figure 17: The ffv2_mirror4
 
-   The ffv2_mirror4 (in Figure 16) describes the Flexible File Layout
+   The ffv2_mirror4 (in Figure 17) describes the Flexible File Layout
    Version 2 specific fields.
 
    The ffv2m_checksum_algorithm field names the checksum algorithm the
@@ -2446,10 +2528,10 @@ Table of Contents
    ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH, then the length
    of ffv2m_stripes MUST be 1.  Under FFV2_ENCODING_MIRRORED the file
    MAY be striped within each replica; the constraint that
-   ffv2s_data_servers length is 1 still applies, but ffv2m_stripes may
+   ffv2s_data_servers length is 1 still applies, but ffv2m_stripes can
    carry multiple stripes.
 
-8.9.  ffv2_layout4
+8.10.  ffv2_layout4
 
       /// struct ffv2_layout4 {
       ///     ffv2_mirror4            ffv2l_mirrors<>;
@@ -2457,13 +2539,13 @@ Table of Contents
       ///     uint32_t                ffv2l_stats_collect_hint;
       /// };
 
-                        Figure 17: The ffv2_layout4
+                        Figure 18: The ffv2_layout4
 
-   The ffv2_layout4 (in Figure 17) describes the Flexible File Layout
+   The ffv2_layout4 (in Figure 18) describes the Flexible File Layout
    Version 2.
 
    The ffv2l_mirrors field is the array of mirrored storage devices that
-   provide the storage for the current stripe; see Figure 18.
+   provide the storage for the current stripe; see Figure 19.
 
    The ffv2l_stats_collect_hint field provides a hint to the client on
    how often the server wants it to report LAYOUTSTATS for a file.  The
@@ -2498,9 +2580,9 @@ Table of Contents
                                           +|  Devices  |
                                            +-----------+
 
-              Figure 18: The Relationship between MDS and DSes
+              Figure 19: The Relationship between MDS and DSes
 
-   As shown in Figure 18 if the ffv2m_coding_type_data is
+   As shown in Figure 19 if the ffv2m_coding_type_data is
    FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then each of the
    stripes MUST only have 1 storage device.  I.e., the length of
    ffv2s_data_servers MUST be 1.  The erasure-coding encoding types
@@ -2515,51 +2597,6 @@ Table of Contents
    stripes describes a set of data servers to which the shards are
    distributed.  Further, the payload length can be different per
    stripe.
-
-8.10.  ffv2_data_protection4
-
-      /// struct ffv2_data_protection4 {
-      ///     uint32_t fdp_data;    /* data shards (k) */
-      ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
-      /// };
-
-                    Figure 19: The ffv2_data_protection4
-
-   The ffv2_data_protection4 (in Figure 19) describes the data
-   protection geometry as a pair of counts: the number of data shards
-   (fdp_data, also known as k) and the number of parity or redundancy
-   shards (fdp_parity, also known as m).  This structure is used in both
-   layout hints and layout responses, and applies uniformly to all
-   coding types:
-
-    +=================+==========+============+=======+===============+
-    | Protection Mode | fdp_data | fdp_parity | Total | Description   |
-    |                 |          |            | DSes  |               |
-    +=================+==========+============+=======+===============+
-    | Mirroring       | 1        | 2          | 3     | 3 copies, no  |
-    | (3-way)         |          |            |       | encoding      |
-    +-----------------+----------+------------+-------+---------------+
-    | Striping        | 6        | 0          | 6     | Parallel I/O, |
-    | (6-way)         |          |            |       | no redundancy |
-    +-----------------+----------+------------+-------+---------------+
-    | RS Vandermonde  | 4        | 2          | 6     | Tolerates 2   |
-    | 4+2             |          |            |       | DS failures   |
-    +-----------------+----------+------------+-------+---------------+
-    | Mojette-sys 8+2 | 8        | 2          | 10    | Tolerates 2   |
-    |                 |          |            |       | DS failures   |
-    +-----------------+----------+------------+-------+---------------+
-
-              Table 1: Example data protection configurations
-
-   By expressing all protection modes as (fdp_data, fdp_parity) pairs, a
-   single structure serves mirroring, striping, and all erasure coding
-   types.  The coding type (Figure 9) determines how the shards are
-   encoded; the protection structure determines how many shards there
-   are.
-
-   The total number of data servers required is fdp_data + fdp_parity.
-   The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2, 25%
-   for 8+2).
 
 8.11.  ffv2_layouthint4
 
@@ -2635,10 +2672,10 @@ Table of Contents
    ffv2lh_expected_file_size   = 17179869184
 
    A server with a policy of RS 4+2 for this directory would ignore both
-   codec hints and return a layout with FFV2_ENCODING_RS_VANDERMONDE and
-   (fdp_data=4, fdp_parity=2).  A server without erasure coding might
-   return FFV2_ENCODING_MIRRORED with (fdp_data=3, fdp_parity=0) for
-   3-way mirroring with per-chunk integrity, or
+   encoding hints and return a layout with FFV2_ENCODING_RS_VANDERMONDE
+   and (fdp_data=4, fdp_parity=2).  A server without erasure coding
+   might return FFV2_ENCODING_MIRRORED with (fdp_data=3, fdp_parity=0)
+   for 3-way mirroring with per-chunk integrity, or
    FFV2_ENCODING_PASSTHROUGH with (fdp_data=1, fdp_parity=2) for 3-way
    flexible file v1 layout- compatible mirroring without per-chunk
    integrity.
@@ -2652,95 +2689,96 @@ Table of Contents
    either always stripe, never stripe, or rely on observing the file's
    growth -- which is exactly the friction the hint exists to remove.
 
-8.11.1.  Codec Negotiation
+8.11.1.  Encoding Negotiation
 
    Because the coding-type registry is expected to grow over time (new
    erasure coding types are added, older ones fall out of favour,
    vendors register private codes; see Section 28), neither clients nor
-   metadata servers are required to implement every registered codec.
+   metadata servers are required to implement every registered encoding.
    The protocol uses ffv2_layouthint4 as the negotiation surface:
 
-   Client-side advertisement:  A client that wishes to influence codec
-      selection SHOULD send the set of codecs it actually implements in
-      ffv2lh_supported_types.  A client MUST NOT claim support for a
-      codec it cannot encode or decode: a false advertisement produces
-      silent data unavailability when the resulting layout is issued.
+   Client-side advertisement:  A client that wishes to influence
+      encoding selection SHOULD send the set of encodings it actually
+      implements in ffv2lh_supported_types.  A client MUST NOT claim
+      support for an encoding it cannot encode or decode: a false
+      advertisement produces silent data unavailability when the
+      resulting layout is issued.
 
-   Metadata-server selection:  The metadata server SHOULD select a codec
-      from the client's ffv2lh_supported_types list when the server's
-      policy permits.  The server MAY override the hint when its policy
-      dictates a specific codec (for example, per-export objectives); in
-      that case the server issues a layout with the policy-dictated
-      codec and the client MUST either honour it or fail its I/O with
-      NFS4ERR_CODING_NOT_SUPPORTED.
+   Metadata-server selection:  The metadata server SHOULD select an
+      encoding from the client's ffv2lh_supported_types list when the
+      server's policy permits.  The server MAY override the hint when
+      its policy dictates a specific encoding (for example, per-export
+      objectives); in that case the server issues a layout with the
+      policy-dictated encoding and the client MUST either honour it or
+      fail its I/O with NFS4ERR_CODING_NOT_SUPPORTED.
 
    Fallback when no overlap exists:  If the server's policy cannot be
-      satisfied by any codec the client supports, the metadata server
+      satisfied by any encoding the client supports, the metadata server
       has three options:
 
       1.  Return NFS4ERR_CODING_NOT_SUPPORTED on the LAYOUTGET.  The
           client MAY retry with a different (possibly empty)
-          ffv2lh_supported_types list to learn the server's codec
+          ffv2lh_supported_types list to learn the server's encoding
           repertoire through the errors returned.
 
       2.  Fall back to I/O via the metadata server itself, so the
           client's reads and writes are satisfied by the metadata server
-          translating to the underlying data server codec on the
+          translating to the underlying data server encoding on the
           client's behalf (see Section 6.2 for the MDS-I/O fallback).
-          This is correct but serializes all I/O for the codec-ignorant
-          client through a single actor.
+          This is correct but serializes all I/O for the encoding-
+          ignorant client through a single actor.
 
       3.  Route the client through a *translating proxy* that
-          understands both the file's native codec and a codec the
-          client does support.  The metadata server issues a layout with
-          the proxy's data-server entry carrying FFV2_DS_FLAGS_PROXY and
-          a coding_type the client does support (typically
-          FFV2_ENCODING_MIRRORED for a minimal NFSv4.2 client, or
-          FFV2_ENCODING_PASSTHROUGH / a flat NFSv3 surface for an NFSv3
-          client).  The proxy encodes and decodes on the fly against the
-          real data servers.  This preserves parallel I/O for the codec-
-          ignorant client that the MDS-I/O fallback loses.  The proxy
-          registration, directive, and credential-forwarding rules are
-          defined in the [I-D.haynes-nfsv4-flexfiles-v2-proxy-server];
-          this draft defines only the layout-flag surface
-          (FFV2_DS_FLAGS_PROXY in Section 8.4) that makes the proxy
-          visible to the client.
+          understands both the file's native encoding and an encoding
+          the client does support.  The metadata server issues a layout
+          with the proxy's data-server entry carrying
+          FFV2_DS_FLAGS_PROXY and a coding_type the client does support
+          (typically FFV2_ENCODING_MIRRORED for a minimal NFSv4.2
+          client, or FFV2_ENCODING_PASSTHROUGH / a flat NFSv3 surface
+          for an NFSv3 client).  The proxy encodes and decodes on the
+          fly against the real data servers.  This preserves parallel I/
+          O for the encoding-ignorant client that the MDS-I/O fallback
+          loses.  The proxy registration, directive, and credential-
+          forwarding rules are defined in the
+          [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]; this draft
+          defines only the layout-flag surface (FFV2_DS_FLAGS_PROXY in
+          Section 8.4) that makes the proxy visible to the client.
 
       Options (1), (2), and (3) are not mutually exclusive: a given
       deployment MAY implement any combination.  A deployment that
       supports (3) covers all the clients that (1) and (2) would cover
-      and additionally preserves parallel I/O for codec-ignorant
+      and additionally preserves parallel I/O for encoding-ignorant
       clients.
 
-   Runtime codec change:  If a metadata server changes its codec policy
-      after layouts have been issued (for example, a deployment upgrade
-      that retires an older codec), the metadata server MUST recall the
-      affected layouts via CB_LAYOUTRECALL and may re-issue new layouts
-      with the new codec.  Clients that do not support the new codec
-      LAYOUTRETURN with NFS4ERR_CODING_NOT_SUPPORTED, and the server
-      either grants a layout using a mutually-supported codec or the
-      client falls back to I/O via the metadata server.
+   Runtime encoding change:  If a metadata server changes its encoding
+      policy after layouts have been issued (for example, a deployment
+      upgrade that retires an older encoding), the metadata server MUST
+      recall the affected layouts via CB_LAYOUTRECALL and may re-issue
+      new layouts with the new encoding.  Clients that do not support
+      the new encoding LAYOUTRETURN with NFS4ERR_CODING_NOT_SUPPORTED,
+      and the server either grants a layout using a mutually-supported
+      encoding or the client falls back to I/O via the metadata server.
 
    This mechanism deliberately avoids a separate capability-bit
    handshake at EXCHANGE_ID.  ffv2_layouthint4 already provides per-
    request negotiation surface; adding a session-level capability set
-   would duplicate it and would complicate codec upgrades without
-   additional value, because a client that genuinely upgrades its codec
-   set at runtime can simply update the ffv2lh_supported_types on its
-   next LAYOUTGET.
+   would duplicate it and would complicate encoding upgrades without
+   additional value, because a client that genuinely upgrades its
+   encoding set at runtime can simply update the ffv2lh_supported_types
+   on its next LAYOUTGET.
 
-   Note: In Figure 17 ffv2_coding_type_data4 is an enumerated union with
+   Note: In Figure 18 ffv2_coding_type_data4 is an enumerated union with
    the payload of each arm being defined by the protection type.
    ffv2m_client_id tells the client which id to use when interacting
    with the data servers.
 
-   The ffv2_layout4 structure (see Figure 17) specifies a layout in that
+   The ffv2_layout4 structure (see Figure 18) specifies a layout in that
    portion of the data file described in the current layout segment.  It
    is either a single instance or a set of mirrored copies of that
    portion of the data file.  When mirroring is in effect, it protects
    against loss of data in layout segments.
 
-   While not explicitly shown in Figure 17, each layout4 element
+   While not explicitly shown in Figure 18, each layout4 element
    returned in the logr_layout array of LAYOUTGET4res (see
    Section 18.43.2 of [RFC8881]) describes a layout segment.  Hence,
    each ffv2_layout4 also describes a layout segment.  It is possible
@@ -2748,12 +2786,16 @@ Table of Contents
    Each layout segment MAY represent different striping parameters.
 
    The ffv2m_striping_unit_size field (inside each ffv2_mirror4) is the
-   stripe unit size in use for that mirror.  The number of stripes is
-   given by the number of elements in ffv2s_data_servers within each
-   ffv2_stripes4.  If the number of stripes is one, then
-   ffv2m_striping_unit_size MUST be zero.  The mapping scheme (sparse or
-   dense) is selected per mirror by ffv2m_striping and is detailed in
-   Section 9.
+   stripe unit size in use for that mirror.  The stripe width W is given
+   by the number of elements in ffv2s_data_servers within each
+   ffv2_stripes4 (the count of data servers over which each stripe is
+   spread).  If ffv2m_striping is FFV2_STRIPING_NONE the mirror is
+   unstriped and ffv2m_striping_unit_size MUST be 1 (matching the
+   FFV2_STRIPING_NONE rule in Section 8.9 and Section 9); when
+   ffv2m_striping is FFV2_STRIPING_SPARSE or FFV2_STRIPING_DENSE the
+   field carries the stripe unit size in bytes with a minimum of 64.
+   The mapping scheme (sparse or dense) is selected per mirror by
+   ffv2m_striping and is detailed in Section 9.
 
    Stripe unit size and stripe count MAY differ between mirrors in the
    same layout segment.  In particular, mirrors of different encoding
@@ -2877,20 +2919,32 @@ Table of Contents
       granted.  If the client already has an appropriate layout, it
       should not continue with I/O to the storage devices.
 
-8.11.3.  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
+8.11.3.  Client Interactions with FFV2_FLAGS_NO_IO_THRU_MDS
 
-   Even if the metadata server provides the FF_FLAGS_NO_IO_THRU_MDS
-   flag, the client can still perform I/O to the metadata server.  The
-   flag functions as a hint.  The flag indicates to the client that the
-   metadata server prefers to separate the metadata I/O from the data I/
-   O, most likely for performance reasons.
+   FFV2_FLAGS_NO_IO_THRU_MDS is normative: when the metadata server sets
+   FFV2_FLAGS_NO_IO_THRU_MDS on a layout, the client MUST NOT proxy I/O
+   for that layout through the metadata server, even after detecting a
+   network disconnect to a storage device (Section 8.2.1).  A client
+   that cannot reach a storage device on which it holds a NO_IO_THRU_MDS
+   layout MUST return the layout via LAYOUTRETURN and reacquire (via
+   LAYOUTGET), at which point the metadata server chooses whether to
+   grant a new layout with the flag cleared, grant a layout naming a
+   different storage device, or fall back to metadata-server-terminated
+   I/O via the encoding-negotiation path (Section 8.11.1) with the flag
+   cleared.
+
+   The prior draft's "the flag functions as a hint" language is
+   withdrawn; the encoding-negotiation fallback path that requires MDS
+   I/O to be possible is served by the metadata server clearing
+   NO_IO_THRU_MDS on the fallback layout, not by clients ignoring the
+   flag on a NO_IO_THRU_MDS layout.
 
 8.12.  LAYOUTCOMMIT
 
    The flexible file v2 layout does not use lou_body inside the
    loca_layoutupdate argument to LAYOUTCOMMIT.  If lou_type is
-   LAYOUT4_FLEX_FILES, the lou_body field MUST have a zero length (see
-   Section 18.42.1 of [RFC8881]).
+   LAYOUT4_FLEX_FILES_V2, the lou_body field MUST have a zero length
+   (see Section 18.42.1 of [RFC8881]).
 
 8.13.  Interactions between Devices and Layouts
 
@@ -2938,7 +2992,7 @@ Table of Contents
    The flexible file v2 layout version 2 inherits the dense and sparse
    striping dispositions defined by the file layout type in Section 13.4
    of [RFC8881].  The disposition for a given mirror is selected by the
-   ffv2m_striping field (see Section 8.8) and applies to every data
+   ffv2m_striping field (see Section 8.9) and applies to every data
    server in that mirror's ffv2s_data_servers list.  Three values are
    permitted:
 
@@ -2992,10 +3046,10 @@ Table of Contents
 
    The pNFS client may encounter errors when directly accessing the
    storage devices.  However, it is the responsibility of the metadata
-   server to recover from the I/O errors.  When the LAYOUT4_FLEX_FILES
-   layout type is used, the client MUST report the I/O errors to the
-   server at LAYOUTRETURN time using the ffv2_ioerr4 structure (see
-   Section 14.1.1).
+   server to recover from the I/O errors.  When the
+   LAYOUT4_FLEX_FILES_V2 layout type is used, the client MUST report the
+   I/O errors to the server at LAYOUTRETURN time using the ffv2_ioerr4
+   structure (see Section 14.1.1).
 
    The metadata server analyzes the error and determines the required
    recovery operations such as recovering media failures or
@@ -3029,7 +3083,7 @@ Table of Contents
    transfer of the file contents MUST appear identical.  Note, this is a
    constraint of the selected XDR representation in which each mirrored
    copy of the layout segment has the same striping pattern (see
-   Figure 18).
+   Figure 19).
 
    The metadata server is responsible for determining the number of
    mirrored copies and the location of each mirror.  While the client
@@ -3309,11 +3363,10 @@ Table of Contents
 
    This describes a 3 block write of data from an offset of 1 block in
    the file.  As each block shares the cwa_owner, it is only presented
-   once.  I.e., the data server will be able to construct the header for
-   the i'th chunk from the cwa_chunks from the cwa_payload_id, the
-   cwa_owner, and the i'th checksum from the cwa_checksums.  The
-   cwa_chunks are sent together as a byte stream to increase
-   performance.
+   once.  The data server can construct the header for the i'th chunk
+   from the cwa_chunks from the cwa_payload_id, the cwa_owner, and the
+   i'th checksum from the cwa_checksums.  The cwa_chunks are sent
+   together as a byte stream to increase performance.
 
    Assuming that there were no issues, Figure 24 illustrates the
    results.  The payload sequence id is implicit in the CHUNK_WRITEargs.
@@ -3452,11 +3505,14 @@ Table of Contents
                         Figure 28: CRC32 on the Wire
 
    Assuming the CHUNK_READ results as in Figure 28, the crc32 needs to
-   be checked in order to ensure data integrity.  Conceptually, a header
-   and payload can be built as shown in Figure 29.  The crc32 is
+   be checked in order to detect accidental corruption.  Conceptually, a
+   header and payload can be built as shown in Figure 29.  The crc32 is
    calculated over the 4 fields as shown in the header and the cr_chunk.
-   In this example, it is calculated to be 0x21de8.  Thus this payload
-   for the data server has data integrity.
+   In this example, it is calculated to be 0x21de8; because the
+   calculated value matches the received cr_checksum, no accidental
+   corruption was detected on this payload.  (Content authentication --
+   protection against adversarial modification -- requires a keyed MAC
+   or signature; see Section 27.1.)
 
      +--------------------+
      | HEADER             |
@@ -3479,7 +3535,7 @@ Table of Contents
 
    There are two basic writing modes for erasure coding and they depend
    on the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER in the
-   ffv2l_flags in the ffv2_layout4 (see Figure 17) to inform the client
+   ffv2l_flags in the ffv2_layout4 (see Figure 18) to inform the client
    whether it is the only writer to the file or not.  If it is the only
    writer, then CHUNK_WRITE with the cwa_guard not set can be used to
    write chunks.  In this scenario, there is no write contention, but
@@ -3497,16 +3553,23 @@ Table of Contents
    has been detected, the client can use those chunks as a basis for
    read/modify/update.
 
-   CHUNK_WRITE is a two pass operation in cooperation with
+   CHUNK_WRITE is a two-pass operation in cooperation with
    CHUNK_FINALIZE (Section 25.3) and CHUNK_ROLLBACK (Section 25.8).  It
-   writes to the data file and the data server is responsible for
-   retaining a copy of the old header and chunk.  A subsequent
-   CHUNK_READ would return the new chunk.  However, until either the
-   CHUNK_FINALIZE or CHUNK_ROLLBACK is presented, a subsequent
-   CHUNK_WRITE MUST result in the locking of the chunk, as if a
-   CHUNK_LOCK (Section 25.5) had been performed on the chunk.  As such,
-   further CHUNK_WRITES by any client MUST be denied until the chunk is
-   unlocked by CHUNK_UNLOCK (Section 25.9).
+   writes new bytes into the chunk and transitions the chunk to the
+   PENDING state; the data server is responsible for retaining the prior
+   COMMITTED content until the chunk reaches its next stable state.
+   While a chunk is in PENDING or FINALIZED, a subsequent CHUNK_READ
+   does NOT observe the new content (visibility rules of Section 12
+   apply: PENDING and FINALIZED chunks are not globally visible;
+   CHUNK_READ returns only COMMITTED content).
+
+   Concurrent CHUNK_WRITE against a PENDING or FINALIZED chunk is
+   regulated by chunk_guard4 (Section 24.1), not by an implicit lock.  A
+   racing writer whose guard check fails receives NFS4ERR_CHUNK_GUARDED;
+   an explicit CHUNK_LOCK (Section 25.5) holder is signaled by
+   NFS4ERR_CHUNK_LOCKED.  No implicit chunk-write lock is acquired by
+   CHUNK_WRITE; the prior draft's "as if CHUNK_LOCK had been performed"
+   language is not part of this specification.
 
    If the CHUNK_WRITE results in a atomic data block, then the client
    will send a CHUNK_FINALIZE in a subsequent compound to inform the
@@ -3978,12 +4041,12 @@ Table of Contents
 
    *  Online migration between encodings, for example from a Reed-
       Solomon Vandermonde encoding to a Mojette systematic encoding when
-      a read-access-pattern change makes the new codec a better fit.
+      a read-access-pattern change makes the new encoding a better fit.
       Both representations remain addressable through the layout
       throughout the transition.
 
    *  Cross-encoding recovery: when one encoding loses data to a
-      correlated failure mode (a codec implementation bug, a memory-
+      correlated failure mode (an encoding implementation bug, a memory-
       corruption pattern that affects parity shards identically), a
       second mirror in a different encoding provides an independent
       recovery surface.
@@ -3991,7 +4054,7 @@ Table of Contents
    *  Client-capability routing: a Proxy Server
       ([I-D.haynes-nfsv4-flexfiles-v2-proxy-server]) sees the full
       mirror set and chooses between encodings on behalf of clients that
-      do not implement every codec the file is represented in.
+      do not implement every encoding the file is represented in.
 
    Consider a layout that exposes a file in two encodings
    simultaneously: a PASSTHROUGH mirror over the original byte stream
@@ -4001,8 +4064,9 @@ Table of Contents
    representations are active and addressable through the layout
    simultaneously.  This is the transition-window pattern: a file may
    transiently span encodings while it is being assimilated from a non-
-   FFv2 source or migrated between codecs.  Steady state is homogeneous;
-   the multi-encoding window is what the protocol must accommodate.
+   FFv2 source or migrated between encodings.  Steady state is
+   homogeneous; the multi-encoding window is what the protocol must
+   accommodate.
 
    The active mirrors serve different access patterns concurrently:
 
@@ -4092,8 +4156,8 @@ Table of Contents
    sets, but they are not the only ones.  A file's mirror set MAY be
    heterogeneous in steady state -- where no transition is in progress
    and no transition is planned -- when the deployment's storage pools
-   have different codec capabilities and the file is too large to fit in
-   any single pool.
+   have different encoding capabilities and the file is too large to fit
+   in any single pool.
 
    Consider an operator with three 100-TB storage pools.  Pool A is a
    Flexible File v1 export speaking only NFSv3 (capable of
@@ -4104,7 +4168,7 @@ Table of Contents
    file cannot fit in any single pool.  Striping the file across all
    three pools is forced by capacity arithmetic: 250 > 100.  And because
    each pool's data servers can only respond to the chunk operations of
-   its own codec, the layout for this file MUST name a different
+   its own encoding, the layout for this file MUST name a different
    ffv2_coding_type4 per mirror covering each stripe segment.  The
    heterogeneity is not a transition window; it is the permanent
    structural consequence of striping across heterogeneous capability
@@ -4114,11 +4178,11 @@ Table of Contents
    machinery is involved.  The client receives a layout enumerating the
    mirrors at different ffv2m_coding values and routes chunk operations
    to the appropriate data server per segment (or, if the client cannot
-   speak one of the codecs, requests proxy mediation per the proxy-
-   server draft's section "Codec Translation for Codec-Ignorant
+   speak one of the encodings, requests proxy mediation per the proxy-
+   server draft's section "Encoding Translation for Encoding-Ignorant
    Clients").  The layout machinery that supports this case is exactly
-   the per-mirror codec naming primitive described above; no additional
-   protocol elements are required to express it.
+   the per-mirror encoding naming primitive described above; no
+   additional protocol elements are required to express it.
 
    The transient case (one file moving between encodings) and the
    steady-state case (one file permanently striped across heterogeneous
@@ -4127,7 +4191,7 @@ Table of Contents
    foreclose both cases and would force one of three workarounds: (a)
    split the 250-TB file into three independently-named files (loses
    single-namespace semantics), (b) require every pool to implement
-   every codec (forces a single-vendor or single-implementation
+   every encoding (forces a single-vendor or single-implementation
    procurement story), or (c) require an always-on transcoding proxy in
    front of every read and write (re-introduces the centralized data-
    plane that the proxy-server role is scoped to avoid in steady state).
@@ -4174,14 +4238,37 @@ Table of Contents
    The encoding process uses a (k+m) x k Vandermonde matrix, normalized
    so that its top k rows form the identity matrix:
 
-   1.  Construct a (k+m) x k Vandermonde matrix V where V[i][j] = j^i in
-       GF(2^8).
+   1.  Assign each of the k+m shards a distinct non-zero evaluation
+       point in GF(2^8): shard i (for i = 0, 1, ..., k+m-1) is assigned
+       the point alpha_i = i + 1.  This gives evaluation points 1, 2,
+       ..., k+m, all non-zero and distinct.  The value k+m MUST NOT
+       exceed 255 so that all points fit in GF(2^8) \ {0}.
 
-   2.  Extract the top k x k sub-matrix T from V.
+   2.  Construct a (k+m) x k Vandermonde matrix V where the row for
+       shard i is the geometric progression of alpha_i:
 
-   3.  Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).
+      V\[i\]\[j\] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
 
-   4.  Multiply: E = V * T_inv.  The result has an identity block on top
+       Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  The
+       exponent zero is defined as x^0 = 1 for all x in GF(2^8),
+       including x = 0 (this is the standard combinatorial convention;
+       here alpha_i is never zero by step 1's construction, but the
+       convention makes the V[0][0] cell unambiguous).  Any k distinct
+       rows form a k x k Vandermonde matrix on k distinct non-zero
+       evaluation points, which is invertible over GF(2^8); this is the
+       property that gives the code its Maximum Distance Separable (any
+       k of k+m shards recover the data) guarantee.  The minimum useful
+       geometry is k >= 1 and m >= 1 (k = 0 gives no data and m = 0
+       gives no redundancy); the maximum is bounded by k + m <= 255 as
+       stated in step 1.
+
+   3.  Extract the top k x k sub-matrix T from V.  T is the Vandermonde
+       on evaluation points alpha_0 = 1, alpha_1 = 2, ..., alpha_(k-1) =
+       k.
+
+   4.  Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).
+
+   5.  Multiply: E = V * T_inv.  The result has an identity block on top
        (rows 0 through k-1) and the parity generation matrix P on the
        bottom (rows k through k+m-1).
 
@@ -4220,7 +4307,7 @@ Table of Contents
        encoding from the recovered data shards.
 
    The reconstruction cost is dominated by the matrix inversion, which
-   is O(k^2) in GF(2^8) multiplications.
+   is O(k^3) in GF(2^8) multiplications.
 
 11.4.6.  RS Interoperability Requirements
 
@@ -4233,14 +4320,80 @@ Table of Contents
 
    *  Primitive element: g = 2
 
-   *  Vandermonde evaluation points: V[i][j] = j^i in GF(2^8)
+   *  Evaluation points: shard i (i = 0, 1, ..., k+m-1) uses alpha_i = i
+      + 1 in GF(2^8) (values 1 through k+m, all non-zero and distinct)
 
-   *  Matrix normalization: E = V * (V[0..k-1])^(-1)
+   *  Vandermonde entries: V[i][j] = alpha_i^j = (i+1)^j in GF(2^8) for
+      i = 0..k+m-1, j = 0..k-1
 
-   These four parameters fully determine the encoding matrix for any (k,
-   m) configuration.
+   *  Matrix normalization: E = V * T^(-1) where T is the top k x k sub-
+      matrix (rows for shards 0..k-1)
 
-11.4.7.  RS Shard Sizes
+   *  Parameter bound: k + m MUST NOT exceed 255
+
+   These parameters fully determine the encoding matrix for any (k, m)
+   configuration in the permitted range.
+
+11.4.7.  RS Interoperability Test Vector
+
+   The following worked example pins the encoding matrix and one end-to-
+   end encoding for the smallest useful geometry (k=2, m=1).  An
+   implementation whose encoded output matches this example is using the
+   same GF(2^8) representation, the same evaluation-point assignment,
+   and the same matrix normalization as required by the interoperability
+   parameters above.
+
+   Evaluation points: alpha_0 = 1, alpha_1 = 2, alpha_2 = 3 (values 1,
+   2, 3 in GF(2^8)).
+
+   Vandermonde matrix V (3 rows x 2 columns):
+
+   V = [ [1, 1],    // row 0: (1^0, 1^1) = (1, 1)
+         [1, 2],    // row 1: (2^0, 2^1) = (1, 2)
+         [1, 3] ]   // row 2: (3^0, 3^1) = (1, 3)
+
+   Top k x k sub-matrix T = [[1, 1], [1, 2]] has determinant det(T) =
+   1*2 XOR 1*1 = 3 in GF(2^8).  The inverse of 3 in GF(2^8) with
+   irreducible polynomial 0x11d is 3^-1 = 0xF4 (verifiable: (x+1) *
+   (x^7+x^6+x^5+x^4+x^2) mod (x^8+x^4+x^3+x^2+1) = 1).  Applying T_inv =
+   (1/det) * [[T[1][1], T[0][1]], [T[1][0], T[0][0]]] (characteristic 2,
+   so no sign changes):
+
+   T_inv = [ [0xF5, 0xF4],
+             [0xF4, 0xF4] ]
+
+   Systematic-normalized encoding matrix E = V * T_inv:
+
+   E = [ [0x01, 0x00],    // identity block for data shard 0
+         [0x00, 0x01],    // identity block for data shard 1
+         [0xF4, 0xF5] ]   // parity generator P = E[2]
+
+   For k=2, m=1 the parity generator is P = [0xF4, 0xF5]; the parity
+   shard is computed byte-wise as parity[j] = 0xF4 * data[0][j] XOR 0xF5
+   * data[1][j] where the multiplication is in GF(2^8) with polynomial
+   0x11d.
+
+   Concrete byte-level test vector with shard_len = 1:
+
+    +=========+=========+========+====================================+
+    | data[0] | data[1] | parity | Notes                              |
+    +=========+=========+========+====================================+
+    | 0x00    | 0x00    | 0x00   | zero input                         |
+    +---------+---------+--------+------------------------------------+
+    | 0x01    | 0x00    | 0xF4   | 0xF4 * 0x01 XOR 0xF5 * 0x00 = 0xF4 |
+    +---------+---------+--------+------------------------------------+
+    | 0x00    | 0x01    | 0xF5   | 0xF4 * 0x00 XOR 0xF5 * 0x01 = 0xF5 |
+    +---------+---------+--------+------------------------------------+
+    | 0x01    | 0x01    | 0x01   | 0xF4 XOR 0xF5 = 0x01 (the          |
+    |         |         |        | polynomial diff of adjacent bytes) |
+    +---------+---------+--------+------------------------------------+
+
+     Table 2: RS Vandermonde test vector: k=2, m=1, single-byte shards
+
+   Implementations that produce different values for any row of Table 2
+   disagree with this specification and will not interoperate.
+
+11.4.8.  RS Shard Sizes
 
    All RS shards (data and parity) are exactly shard_len bytes.  This
    simplifies the CHUNK operation protocol: chunk_size is exactly the
@@ -4259,7 +4412,7 @@ Table of Contents
    | 8+2           | 1 MB      | 128 KB     | 1.25 MB       | 25%      |
    +---------------+-----------+------------+---------------+----------+
 
-             Table 2: RS shard sizes for common configurations
+             Table 3: RS shard sizes for common configurations
 
 11.5.  Mojette Transform Encoding (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
        FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC)
@@ -4273,15 +4426,23 @@ Table of Contents
    exactly.
 
    The transform operates on fixed-width words combined with bitwise XOR
-   -- the additive group of GF(2)^W where W is the element width in
-   bits.  Encoders and decoders MUST use XOR; modular integer addition
-   is not equivalent and is not interoperable.  XOR has no carry chain,
-   is its own inverse (so the residual subtraction in reconstruction is
-   identical to the forward accumulation), and scales straightforwardly
-   to wider SIMD lanes (NEON, SSE, AVX, AVX-512) without requiring
-   multiplicative Galois field operations.  The element width W is an
-   implementation choice; 64-bit elements are the conventional choice
-   and align well with NEON, SSE2, and AVX2 vector widths.
+   -- the additive group of (GF(2))^(W*8) where W is the element width
+   in bytes.  Encoders and decoders MUST use XOR; modular integer
+   addition is not equivalent and is not interoperable.  XOR has no
+   carry chain, is its own inverse (so the residual subtraction in
+   reconstruction is identical to the forward accumulation), and scales
+   straightforwardly to wider SIMD lanes (NEON, SSE, AVX, AVX-512)
+   without requiring multiplicative Galois field operations.
+
+   For interoperability, this specification pins the element width to W
+   = 8 bytes (64 bits) for both FFV2_ENCODING_MOJETTE_SYSTEMATIC and
+   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC in this revision.  All
+   implementations MUST use W = 8; a future revision (or a distinct
+   registered encoding type) may lift the fixed width, at which point it
+   becomes a wire-visible parameter.  Fixing W now removes the interop
+   hazard the review flagged (the same shard input, XOR'd at W = 4 vs W
+   = 8, produces different bin values that appear "close but wrong" to a
+   mismatched decoder).
 
 11.5.2.  Grid Structure
 
@@ -4294,14 +4455,44 @@ Table of Contents
 
 11.5.3.  Directions
 
-   A direction is a pair of coprime integers (p_i, q_i).
-   Implementations SHOULD use q_i = 1 for all directions [PARREIN].  For
-   n = k + m total shards, n directions are generated with non-zero p
-   values symmetric around zero:
+   A direction is a pair of coprime integers (p_i, q_i).  This
+   specification pins all directions to q_i = 1 for both Mojette
+   encoding types (systematic and non-systematic) in this revision.
+   Non-unity q_i values may be introduced by a future distinct
+   registered encoding type.
 
-   *  For n = 4: p = {-2, -1, 1, 2}
+   For n = k + m total shards (Mojette non-systematic) or m parity
+   shards (Mojette systematic), the direction set is determined by the
+   following mandatory algorithm on the shard count N (N = n for non-
+   systematic, N = m for systematic):
 
-   *  For n = 6: p = {-3, -2, -1, 1, 2, 3}
+If N is even (N = 2t):
+    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t} }
+    // Symmetric around zero; |directions| = 2t = N.
+If N is odd (N = 2t + 1):
+    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t, t+1} }
+    // Asymmetric by including one additional positive magnitude
+    // to make |directions| = 2t + 1 = N.
+
+   Direction slots are then sorted by p_i ascending (most-negative p
+   first, most-positive p last) to give the canonical direction order.
+   The direction in slot i is used to compute the projection for shard
+   slot (k + i) in systematic form, or for shard slot i in non-
+   systematic form.  Examples:
+
+   *  N = 4 (even): p = {-2, -1, 1, 2}
+
+   *  N = 6 (even): p = {-3, -2, -1, 1, 2, 3}
+
+   *  N = 3 (odd): p = {-1, 1, 2}
+
+   *  N = 5 (odd): p = {-2, -1, 1, 2, 3}
+
+   Two implementations that follow this algorithm on the same N generate
+   identical direction sets in identical slot order and therefore
+   identical shard layouts.  Implementations MUST NOT diverge from this
+   algorithm (e.g., by using a different tie-breaking rule for odd N)
+   without registering a distinct encoding type.
 
 11.5.4.  Forward Transform (Encoding)
 
@@ -4336,12 +4527,42 @@ Table of Contents
 
 11.5.5.  Katz Reconstruction Criterion
 
-   Reconstruction is possible if and only if the Katz criterion [KATZ]
-   holds:
+   Reconstruction from a set of n projections is possible if and only if
+   the Katz criterion [KATZ] holds over those n projections:
 
    SUM(i=1..n) |q_i| >= Q    OR    SUM(i=1..n) |p_i| >= P
 
-   When all q_i = 1, the q-sum simplifies to n >= Q.
+   With q_i = 1 pinned for every direction (see the Directions
+   subsection above), the q-sum simplifies to n >= Q.
+
+   For the non-systematic form, n = k + m and every direction counts
+   toward the criterion.  The criterion holds for the initial encoding
+   (design-time check on the direction set) and must continue to hold
+   after any losses; the surviving projections must satisfy Katz over
+   the same grid dimensions (P, Q).
+
+   For the systematic form, the raw data rows act as "projections at
+   direction (p=0, q=1)": row r is Grid[r] and contributes q = 1 toward
+   the q-sum of the Katz criterion.  For an arbitrary loss pattern with
+   r data-row losses and s parity-projection losses (with r + s <= m),
+   the surviving set comprises k - r data rows (each q_i = 1) and m - s
+   parity projections.  Decoding proceeds by:
+
+   1.  Subtracting the contributions of the k - r surviving data rows
+       from the m - s surviving parity projections (the "residual").
+
+   2.  Applying the corner-peeling algorithm over the residual to
+       recover the r missing rows.
+
+   Step 2 succeeds if and only if the Katz criterion holds over the m -
+   s residual projections against the r x P unknown sub-grid.
+   Substituting: the criterion reduces to m - s >= r (q-sum, since q_i =
+   1 for every parity direction and the unknown-grid Q is r) OR the
+   analogous p-sum condition over the residual.  Because the mandatory
+   direction algorithm above generates m projections with distinct
+   nonzero p values, the p-sum condition also holds for any loss pattern
+   with r + s <= m; the systematic form therefore achieves MDS-like
+   recovery up to m combined data-row and parity-projection losses.
 
 11.5.6.  Inverse Transform (Decoding)
 
@@ -4394,59 +4615,100 @@ Table of Contents
    inverse transform.  This provides constant performance regardless of
    failure count, but at higher baseline read cost than systematic.
 
-11.5.9.  Mojette Shard Sizes
+11.5.9.  Mojette Shard Sizes and Layout
 
-   Unlike RS, Mojette parity shard sizes vary by direction:
+   *Slot-to-direction mapping.* The canonical shard layout for Mojette
+   is:
 
-     +==================+=========================+==================+
-     | Direction (p, q) | Bins (B) for P=512, Q=4 | Size (bytes,     |
-     |                  |                         | 64-bit elements) |
-     +==================+=========================+==================+
-     | (-3, 1)          | 521                     | 4168             |
-     +------------------+-------------------------+------------------+
-     | (-2, 1)          | 518                     | 4144             |
-     +------------------+-------------------------+------------------+
-     | (-1, 1)          | 515                     | 4120             |
-     +------------------+-------------------------+------------------+
-     | (1, 1)           | 515                     | 4120             |
-     +------------------+-------------------------+------------------+
-     | (2, 1)           | 518                     | 4144             |
-     +------------------+-------------------------+------------------+
-     | (3, 1)           | 521                     | 4168             |
-     +------------------+-------------------------+------------------+
+   *  Systematic (FFV2_ENCODING_MOJETTE_SYSTEMATIC): shard slots 0..k-1
+      carry the k data rows (row r in slot r); shard slots k..k+m-1
+      carry the m parity projections in the canonical direction order
+      defined in the Directions subsection above (direction slot i
+      occupies shard slot k + i).
 
-       Table 3: Mojette projection sizes for 4+2, 4KB shards, 64-bit
-                                  elements
+   *  Non-systematic (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC): shard slots
+      0..k+m-1 carry the n = k + m parity projections in the canonical
+      direction order (direction slot i occupies shard slot i).
 
-   When using CHUNK operations, the chunk_size is a nominal stride; the
-   last chunk in a parity shard MAY be shorter than the stride.
+   *Bin ordering within a projection.* Within a projection shard the
+   bins are serialized in ascending bin-index order (bin 0 first, bin
+   B-1 last), with no gap or header.  Each bin value is W = 8 bytes
+   wide; the W-byte element is serialized in big-endian byte order (the
+   same order the data-row shards present their W-byte grid elements
+   in).
+
+   *Projection sizes.* Unlike RS, Mojette parity shard sizes vary by
+   direction:
+
+    +==================+=========================+===================+
+    | Direction (p, q) | Bins (B) for P=512, Q=4 | Size (bytes, W=8) |
+    +==================+=========================+===================+
+    | (-3, 1)          | 521                     | 4168              |
+    +------------------+-------------------------+-------------------+
+    | (-2, 1)          | 518                     | 4144              |
+    +------------------+-------------------------+-------------------+
+    | (-1, 1)          | 515                     | 4120              |
+    +------------------+-------------------------+-------------------+
+    | (1, 1)           | 515                     | 4120              |
+    +------------------+-------------------------+-------------------+
+    | (2, 1)           | 518                     | 4144              |
+    +------------------+-------------------------+-------------------+
+    | (3, 1)           | 521                     | 4168              |
+    +------------------+-------------------------+-------------------+
+
+        Table 4: Mojette projection sizes for 4+2, 4KB shards, W=8
+
+   *Chunk sizing for variable-length projections.* When a projection
+   shard is written via CHUNK_WRITE / CHUNK_FINALIZE / CHUNK_COMMIT, the
+   shard is divided into chunks by the following mapping.  Let
+   shard_bytes = B * W be the projection shard's total byte size (where
+   B is the number of bins per the B formula above (Table 4 uses it)
+   applied to the shard's direction (p, q) and the grid dimensions (P,
+   Q)):
+
+   *  num_chunks = ceil(shard_bytes / chunk_size)
+
+   *  Chunk j (for j = 0..num_chunks-1) covers the shard byte range [j *
+      chunk_size, min((j+1) * chunk_size, shard_bytes)).
+
+   *  The final chunk (chunk num_chunks - 1) MAY be shorter than
+      chunk_size if shard_bytes is not a multiple of chunk_size; all
+      other chunks are exactly chunk_size bytes.
+
+   The chunk_size value is a per-mirror parameter and does not vary
+   across the parity projections of a single file, even though the shard
+   sizes vary.  For a file with parity projections of sizes S_i = B_i *
+   W, the number of chunks per shard is ceil(S_i / chunk_size) per
+   shard; a reader that requests chunk offset >= S_i on shard i receives
+   NFS4ERR_PAYLOAD_LOST (per Section 21.1.5) with a short read reporting
+   the shard's true byte length.
 
 11.6.  Comparison of Encoding Types
 
-      +================+==============+============+================+
-      | Property       | Reed-Solomon | Mojette    | Mojette Non-   |
-      |                |              | Systematic | Systematic     |
-      +================+==============+============+================+
-      | MDS guarantee  | Yes          | Yes (Katz) | Yes (Katz)     |
-      +----------------+--------------+------------+----------------+
-      | Shard sizes    | Uniform      | Variable   | Variable       |
-      +----------------+--------------+------------+----------------+
-      | Reconstruction | O(k^2)       | O(m * k)   | O(m * k)       |
-      | cost           |              |            |                |
-      +----------------+--------------+------------+----------------+
-      | Healthy read   | Zero         | Zero       | Full decode    |
-      | cost           |              |            |                |
-      +----------------+--------------+------------+----------------+
-      | GF operations  | Yes          | No         | No             |
-      |                | (GF(2^8))    |            |                |
-      +----------------+--------------+------------+----------------+
+   +================+====================+============+================+
+   | Property       | Reed-Solomon       | Mojette    | Mojette Non-   |
+   |                |                    | Systematic | Systematic     |
+   +================+====================+============+================+
+   | MDS guarantee  | Yes                | Yes (Katz) | Yes (Katz)     |
+   +----------------+--------------------+------------+----------------+
+   | Shard sizes    | Uniform            | Variable   | Variable       |
+   +----------------+--------------------+------------+----------------+
+   | Reconstruction | O(k^3) shard ops   | O(m_k_P*Q) | O(m_k_P*Q)     |
+   | cost           | (matrix            | grid ops   | grid ops       |
+   |                | inversion)         | (peeling)  | (peeling)      |
+   +----------------+--------------------+------------+----------------+
+   | Healthy read   | Zero               | Zero       | Full decode    |
+   | cost           |                    |            |                |
+   +----------------+--------------------+------------+----------------+
+   | GF operations  | Yes (GF(2^8))      | No         | No             |
+   +----------------+--------------------+------------+----------------+
 
-               Table 4: Comparison of erasure encoding types
+               Table 5: Comparison of erasure encoding types
 
    Reed-Solomon uses uniform shard sizes and GF(2^8) operations.
    Mojette systematic provides zero-cost healthy reads with variable
    parity shard sizes; reconstruction cost scales as O(m * k) rather
-   than O(k^2).  Mojette non-systematic encodes all k + m shards as
+   than O(k^3).  Mojette non-systematic encodes all k + m shards as
    projections, providing constant decode cost regardless of failure
    count at a higher baseline read cost than systematic.  The choice
    among these is a deployment decision driven by workload
@@ -4681,13 +4943,13 @@ Table of Contents
    A data server MAY likewise act as a client of another data server --
    for example, when selected as the repair client by an MDS-directed
    CB_CHUNK_REPAIR.  Independent of the actor role, any entity may
-   operate as codec-aware (issuing CHUNK_* operations directly against
-   data servers) or codec-unaware (operating through the proxy-server-
-   mediated READ / WRITE path described in
+   operate as encoding-aware (issuing CHUNK_* operations directly
+   against data servers) or encoding-unaware (operating through the
+   proxy-server-mediated READ / WRITE path described in
    [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]).  Proxy-server
-   registration carries the codec capability explicitly; direct pNFS
-   clients reveal their codec posture implicitly through the operations
-   they issue.
+   registration carries the encoding capability explicitly; direct pNFS
+   clients reveal their encoding posture implicitly through the
+   operations they issue.
 
    The protocol does NOT mandate how a data server implements the chunk
    state machine or stores PENDING chunks.  An implementation MAY use
@@ -5380,28 +5642,28 @@ Table of Contents
 
    Stripe-aligned truncate:  When the new size lies on a stripe boundary
       (including zero), no chunk re-encoding is required.  The metadata
-      server computes per-shard sizes from the codec geometry it issued
-      in the layout (k, m, and the projection parameters for Mojette;
-      see Section 11.5) and issues per-data-server SETATTR(FATTR4_SIZE)
-      with the computed per-shard size.  Geometry parameters are
-      sufficient arithmetic; no codec implementation is required at the
-      metadata server.
+      server computes per-shard sizes from the encoding geometry it
+      issued in the layout (k, m, and the projection parameters for
+      Mojette; see Section 11.5) and issues per-data-server
+      SETATTR(FATTR4_SIZE) with the computed per-shard size.  Geometry
+      parameters are sufficient arithmetic; no encoding implementation
+      is required at the metadata server.
 
    Non-stripe-aligned truncate:  When the new size falls within a
       stripe, the data shards covering the partial stripe must be
       truncated and the parity shards re-encoded from the truncated
       data.  Because re-encoding requires running the erasure transform,
-      the metadata server MUST delegate this case to a codec-aware
+      the metadata server MUST delegate this case to an encoding-aware
       actor: either a Proxy Server
       ([I-D.haynes-nfsv4-flexfiles-v2-proxy-server]) for proxy-mediated
-      truncate, or a codec-aware client selected per Section 11.2.4 via
-      CB_CHUNK_REPAIR with the affected partial-stripe chunks as the
+      truncate, or an encoding-aware client selected per Section 11.2.4
+      via CB_CHUNK_REPAIR with the affected partial-stripe chunks as the
       repair target.  If neither path is available, the metadata server
       MUST return NFS4ERR_NOTSUPP to the originating SETATTR.
 
-   The metadata server knows codec geometry from the layout but is not
-   required to include a codec implementation.  The delegation rule
-   above accommodates a metadata server that has geometry knowledge
+   The metadata server knows encoding geometry from the layout but is
+   not required to include an encoding implementation.  The delegation
+   rule above accommodates a metadata server that has geometry knowledge
    only.
 
 13.2.6.  PASSTHROUGH Data Files (FFV2_ENCODING_PASSTHROUGH)
@@ -5652,7 +5914,7 @@ Table of Contents
    | BULK_REVOKE_STATEID            |                     | coupling)  |
    +--------------------------------+---------------------+------------+
 
-             Table 5: NFSv4.2 operations allowed on data files
+             Table 6: NFSv4.2 operations allowed on data files
 
 14.  Flexible File Version 2 Layout Type Return
 
@@ -5696,7 +5958,7 @@ Table of Contents
 
                         Figure 34: Layout Return XDR
 
-   If the lora_layout_type layout type is LAYOUT4_FLEX_FILES and the
+   If the lora_layout_type layout type is LAYOUT4_FLEX_FILES_V2 and the
    lr_returntype is LAYOUTRETURN4_FILE, then the lrf_body opaque value
    is defined by ffv2_layoutreturn4 (see Section 14.3).  This allows the
    client to report I/O error information or layout usage statistics
@@ -5928,7 +6190,10 @@ Table of Contents
    The layouthint4 structure is used by the client to pass a hint about
    the type of layout it would like created for a particular file.  If
    the loh_type layout type is LAYOUT4_FLEX_FILES, then the loh_body
-   opaque value is defined by the ff_layouthint4 type.
+   opaque value is defined by the ff_layouthint4 type (v1
+   compatibility).  If the loh_type layout type is
+   LAYOUT4_FLEX_FILES_V2, then the loh_body opaque value is defined by
+   the ffv2_layouthint4 type (see Section 8.11).
 
 18.  ff_layouthint4
 
@@ -5949,7 +6214,7 @@ Table of Contents
    flexible file v1 layouts.  For flexible file v2 layouts, clients
    SHOULD use ffv2_layouthint4 (Figure 20) instead, which provides
    coding type selection and data protection geometry hints via
-   ffv2_data_protection4 (Figure 19).
+   ffv2_data_protection4 (Figure 14).
 
 19.  Recalling a Layout
 
@@ -6090,7 +6355,7 @@ Table of Contents
     | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | 10102  | Section 21.1.6 |
     +---------------------------------------+--------+----------------+
 
-                         Table 6: Error Definitions
+                         Table 7: Error Definitions
 
 21.1.1.  NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097)
 
@@ -6148,7 +6413,7 @@ Table of Contents
 21.1.6.  NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED (Error Code 10102)
 
    Returned by the client on LAYOUTRETURN to indicate that the layout's
-   ffv2m_checksum_algorithm (Section 8.8) names a checksum_algorithm4
+   ffv2m_checksum_algorithm (Section 8.9) names a checksum_algorithm4
    (Section 24.3) that the client does not implement.  The client
    returns the layout with this error code rather than attempting
    CHUNK_* operations it cannot validate.
@@ -6172,7 +6437,7 @@ Table of Contents
 
 21.2.  Operations and Their Valid Errors
 
-   The operations and their valid errors are presented in Table 7.  All
+   The operations and their valid errors are presented in Table 8.  All
    error codes not defined in this document are defined in Section 15 of
    [RFC8881] and Section 11 of [RFC7862].
 
@@ -6263,12 +6528,12 @@ Table of Contents
    |                     | NFS4ERR_PERM, NFS4ERR_SERVERFAULT           |
    +---------------------+---------------------------------------------+
 
-                 Table 7: Operations and Their Valid Errors
+                 Table 8: Operations and Their Valid Errors
 
 21.3.  Callback Operations and Their Valid Errors
 
    The callback operations and their valid errors are presented in
-   Table 8.  All error codes not defined in this document are defined in
+   Table 9.  All error codes not defined in this document are defined in
    Section 15 of [RFC8881] and Section 11 of [RFC7862].
 
     +=================+==============================================+
@@ -6284,11 +6549,11 @@ Table of Contents
     |                 | NFS4ERR_SERVERFAULT, NFS4ERR_STALE           |
     +-----------------+----------------------------------------------+
 
-           Table 8: Callback Operations and Their Valid Errors
+           Table 9: Callback Operations and Their Valid Errors
 
 21.4.  Errors and the Operations That Use Them
 
-   The operations and their valid errors are presented in Table 9.  All
+   The operations and their valid errors are presented in Table 10.  All
    operations not defined in this document are defined in Section 18 of
    [RFC8881] and Section 15 of [RFC7862].
 
@@ -6300,7 +6565,7 @@ Table of Contents
        | NFS4ERR_PAYLOAD_LOST         | CB_CHUNK_REPAIR            |
        +------------------------------+----------------------------+
 
-              Table 9: Errors and the Operations That Use Them
+             Table 10: Errors and the Operations That Use Them
 
 22.  EXCHGID4_FLAG_USE_ERASURE_DS
 
@@ -6320,7 +6585,7 @@ Table of Contents
 
    If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
    EXCHANGE_ID operation, then it MUST support all of the operations in
-   Table 10.  Further, this support is orthogonal to the Erasure Coding
+   Table 11.  Further, this support is orthogonal to the Erasure Coding
    Type selected.  The data server is unaware of which type is driving
    the I/O.
 
@@ -6406,7 +6671,7 @@ Table of Contents
       single chunk on a single file.
 
    cg_client_id:  A 32-bit value established by the metadata server at
-      the time the client's layout is granted (see Section 8.8 and
+      the time the client's layout is granted (see Section 8.9 and
       ffv2m_client_id).  The metadata server MUST assign distinct
       cg_client_id values to distinct clients that hold concurrent write
       layouts on the same file.  cg_client_id is opaque with respect to
@@ -6425,18 +6690,40 @@ Table of Contents
 
    Deterministic tiebreaker for concurrent writers:  When two or more
       clients race on the same chunk in the multi-writer mode, the
-      client whose cg_client_id compares numerically lowest wins the
-      race.  A data server enforces this by accepting the first
-      CHUNK_WRITE whose guard check succeeds and rejecting later writers
-      with NFS4ERR_CHUNK_GUARDED; across the mirror set, the subset of
-      data servers on which each client wins will vary, but the
-      deterministic tiebreaker ensures all clients agree on which
-      client's write ultimately becomes COMMITTED.  A client that lost
-      the race on at least one data server MUST re-read the chunk and
-      MAY retry its write with a refreshed cg_gen_id.  A client that
-      detects no forward progress after a bounded number of retries MUST
-      escalate via LAYOUTERROR and the repair coordination flow in
-      Section 11.2.4.
+      client whose cg_client_id compares numerically lowest MUST
+      ultimately be the one whose write reaches COMMITTED on the
+      affected data servers.  The rule is enforced in two stages:
+
+      *  *At CHUNK_WRITE* (per data server, arrival-order): a data
+         server accepts the first CHUNK_WRITE whose chunk_guard4 CAS
+         check succeeds against its current chunk_guard4 value.  Later
+         writers whose CAS fails receive NFS4ERR_CHUNK_GUARDED.  Because
+         arrival order can differ between data servers, different
+         subsets of the mirror set may accept different clients' writes
+         in this stage; that is expected transient divergence, not a
+         violation of the tiebreaker rule.
+
+      *  *At CHUNK_FINALIZE* (numeric comparison, mirror-set
+         convergence): CHUNK_FINALIZE against a chunk whose current
+         PENDING write is owned by cg_client_id C_current MUST compare
+         the caller's cg_client_id C_caller numerically against
+         C_current.  If C_caller < C_current, the data server accepts
+         the FINALIZE against the caller's PENDING write and discards
+         the higher-numbered writer's state.  If C_caller > C_current,
+         the data server rejects the FINALIZE with NFS4ERR_CHUNK_GUARDED
+         and the caller's client MUST re-read the chunk.  If C_caller ==
+         C_current (same client re-finalizing its own write), FINALIZE
+         proceeds normally.  This is where the "lowest cg_client_id
+         wins" invariant is enforced globally: after every affected data
+         server has processed each racing client's FINALIZE attempt, the
+         mirror set converges on the numerically lowest cg_client_id's
+         write.
+
+      A client that observes NFS4ERR_CHUNK_GUARDED on either CHUNK_WRITE
+      or CHUNK_FINALIZE MUST re-read the chunk and MAY retry its write
+      with a refreshed cg_gen_id.  A client that detects no forward
+      progress after a bounded number of retries MUST escalate via
+      LAYOUTERROR and the repair coordination flow in Section 11.2.4.
 
    The numeric ordering of cg_client_id values is arbitrary with respect
    to the clients' external identities -- it is a deterministic total
@@ -6575,7 +6862,7 @@ Table of Contents
       ///
       /// struct checksum4 {
       ///     checksum_algorithm4   cs_algorithm;
-      ///     opaque                cs_value<>;
+      ///     opaque                cs_value<64>;
       /// };
 
                         Figure 53: XDR for checksum4
@@ -6614,7 +6901,7 @@ Table of Contents
       length for cs_algorithm MUST be rejected with NFS4ERR_INVAL.
 
    The checksum algorithm for a given file is selected by the metadata
-   server at LAYOUTGET time and carried in the layout (see Section 8.8).
+   server at LAYOUTGET time and carried in the layout (see Section 8.9).
    A client that does not implement the algorithm a layout names returns
    the layout with NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED
    (Section 21.1.6); the metadata server may then offer a layout with a
@@ -6769,7 +7056,7 @@ Table of Contents
      |                     |        | server control) |             |
      +---------------------+--------+-----------------+-------------+
 
-                          Table 10: Protocol OPs
+                          Table 11: Protocol OPs
 
 25.1.  Operation 78: CHUNK_COMMIT - Activate Cached Chunk Data
 
@@ -7703,12 +7990,12 @@ Table of Contents
    and a cra_count of how many chunks are to be read. cra_offset is the
    starting chunk index in the file (not a byte offset); the chunk at
    index N occupies the bytes [N * chunk_size, (N + 1) * chunk_size) for
-   codecs with a uniform chunk size, where chunk_size is taken from
-   ffv2m_striping_unit_size in the file's layout (Section 8.8).  For
-   codecs whose parity shards have variable sizes (the Mojette family),
-   the parity-shard chunks on a given data server may use a smaller per-
-   shard chunk size; see Section 11.5.  cra_count is a count of chunks
-   to read and not bytes to read.
+   encodings with a uniform chunk size, where chunk_size is taken from
+   ffv2m_striping_unit_size in the file's layout (Section 8.9).  For
+   encodings whose parity shards have variable sizes (the Mojette
+   family), the parity-shard chunks on a given data server may use a
+   smaller per-shard chunk size; see Section 11.5.  cra_count is a count
+   of chunks to read and not bytes to read.
 
    A cra_offset of zero starts reading at the first chunk of the file.
    If cra_offset is greater than or equal to the number of chunks the
@@ -7729,7 +8016,7 @@ Table of Contents
       over the chunk payload (cr_chunk) at CHUNK_FINALIZE or
       CHUNK_COMMIT time and persisted with the chunk metadata.  The
       cs_algorithm field matches the layout's ffv2m_checksum_algorithm
-      (Section 8.8); the cs_value carries the computed bytes at the
+      (Section 8.9); the cs_value carries the computed bytes at the
       length registered for that algorithm.  The client uses cr_checksum
       to detect transport corruption between the data server and the
       client; see Section 27.1 for the scope and limits of checksum
@@ -8345,7 +8632,7 @@ Table of Contents
    cwa_checksums, when non-empty, MUST contain one checksum entry per
    chunk in the payload.  Each entry's cs_algorithm MUST match
    ffv2m_checksum_algorithm of the mirror named in the layout (see
-   Section 8.8); a mismatch is rejected with NFS4ERR_INVAL.  The data
+   Section 8.9); a mismatch is rejected with NFS4ERR_INVAL.  The data
    server validates each chunk's checksum at CHUNK_WRITE time and
    rejects mismatched chunks with NFS4ERR_IO in the corresponding
    cwr_block_status slot.  An empty cwa_checksums array
@@ -8703,7 +8990,7 @@ Table of Contents
    cwra_checksums:  per-chunk checksum4 (Section 24.3) array.  Semantics
       match cwa_checksums in CHUNK_WRITE: each entry's cs_algorithm MUST
       match ffv2m_checksum_algorithm of the mirror named in the layout
-      (Section 8.8), with NFS4ERR_INVAL on mismatch.
+      (Section 8.9), with NFS4ERR_INVAL on mismatch.
 
    cwra_chunks:  the reconstructed chunk payload as an opaque blob,
       packed identically to cwa_chunks in CHUNK_WRITE.
@@ -9233,11 +9520,19 @@ Table of Contents
       the epoch, as defined in Section 3.3.1 of [RFC8881]) by which the
       client is expected to have driven every range to completion
       (CHUNK_REPAIRED on the reconstruction path, or CHUNK_UNLOCK on the
-      rollback path).  Missing the deadline does not corrupt state --
-      the metadata server MAY re-select another repair client after the
-      deadline elapses -- but a client that has missed the deadline MUST
-      re-verify its layout and the chunk lock state before continuing
-      any repair-related CHUNK_* operation.
+      rollback path).  As with tsa_expire (Section 6.4.6), the wall-
+      clock representation assumes the metadata server and the repair
+      client maintain clock synchronization within one metadata-server
+      lease period (see the clock-sync paragraph in Section 6.4.6 for
+      the deployment options when this cannot be guaranteed); under
+      skew, missing the deadline is not safety-critical because state
+      cannot be corrupted, but spurious deadline expiry SHOULD be
+      avoided by setting ccra_deadline to at least (current-wall-clock +
+      deadline-budget + expected-skew).  Missing the deadline does not
+      corrupt state -- the metadata server MAY re-select another repair
+      client after the deadline elapses -- but a client that has missed
+      the deadline MUST re-verify its layout and the chunk lock state
+      before continuing any repair-related CHUNK_* operation.
 
    ccra_reason:  distinguishes the two flows that cause the metadata
       server to issue a repair callback:
@@ -9316,7 +9611,7 @@ Table of Contents
       ranges into an implementation-defined damaged state.  See
       Section 21.1.5.
 
-   All other error codes listed in Table 8 are treated by the metadata
+   All other error codes listed in Table 9 are treated by the metadata
    server as retriable: the metadata server MAY issue a subsequent
    CB_CHUNK_REPAIR to the same or a different client.  If the client
    becomes unreachable (no response within the deadline), the metadata
@@ -9392,7 +9687,7 @@ Table of Contents
    software bugs in the erasure transform.  The threat model an
    individual deployment achieves depends on which checksum_algorithm4
    (Section 24.3) the metadata server selects for the file's mirrors via
-   ffv2m_checksum_algorithm (Section 8.8):
+   ffv2m_checksum_algorithm (Section 8.9):
 
    Bit-flip-class algorithms (CRC32, CRC32C, Fletcher4):  Detect
       accidental bit-level corruption with high probability.  Do NOT
@@ -9402,14 +9697,21 @@ Table of Contents
       public.  Suitable when the threat model excludes adversaries on
       the wire and at rest.
 
-   Cryptographic algorithms (SHA-256, SHA-512, BLAKE3):  Detect
-      accidental corruption AND defend against adversarial modification,
-      provided that (a) the algorithm choice itself is communicated over
-      a trusted channel (typically the layout from the MDS) and (b) the
-      integrity-protected recomputation happens at trust boundaries the
-      deployment controls.  Suitable when chunks may be at rest on
-      storage the deployment does not fully control, or when transit may
-      cross hostile network segments.
+   Cryptographic-strength algorithms (SHA-256, SHA-512, BLAKE3):  Detect
+      accidental corruption with cryptographic-strength collision
+      resistance.  These are UNKEYED hashes carried alongside the
+      payload on the wire, so they do NOT by themselves defend against
+      an adversary who can modify a chunk and recompute a valid hash:
+      the attacker knows the algorithm and can substitute a matching
+      digest.  Content authentication against active adversaries
+      requires a keyed MAC or signature scheme (e.g., RPCSEC_GSS_KRB5I,
+      RPC-over-TLS with mutual authentication, or an application-layer
+      signed manifest) applied at the trust boundary; the checksum
+      mechanism defined here provides corruption detection, not content
+      authentication.  Suitable when chunks may be at rest on storage
+      the deployment does not fully control and the deployment layers
+      cryptographic transport or storage integrity on top of the
+      checksum for adversarial protection.
 
    CHECKSUM_ALG_NONE:  No protocol-level integrity check.  The
       deployment is relying on transport-layer integrity (RPC-over-TLS
@@ -9672,7 +9974,7 @@ Table of Contents
    [RFC8881] introduced the "pNFS Layout Types Registry"; new layout
    type numbers in this registry need to be assigned by IANA.  This
    document defines a new layout type number: LAYOUT4_FLEX_FILES_V2 (see
-   Table 11).
+   Table 12).
 
     +=======================+=======+==========+=====+================+
     | Layout Type Name      | Value | RFC      | How | Minor Versions |
@@ -9680,12 +9982,12 @@ Table of Contents
     | LAYOUT4_FLEX_FILES_V2 | 0x6   | RFCTBD10 | L   | 1              |
     +-----------------------+-------+----------+-----+----------------+
 
-                     Table 11: Layout Type Assignments
+                     Table 12: Layout Type Assignments
 
    [RFC8881] also introduced the "NFSv4 Recallable Object Types
    Registry".  This document defines new recallable objects for
    RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX (see
-   Table 12).
+   Table 13).
 
     +===============================+=======+==========+===+==========+
     | Recallable Object Type Name   | Value | RFC      |How| Minor    |
@@ -9696,28 +9998,62 @@ Table of Contents
     | RCA4_TYPE_MASK_FF2_LAYOUT_MAX | 21    | RFCTBD10 |L  | 1        |
     +-------------------------------+-------+----------+---+----------+
 
-                Table 12: Recallable Object Type Assignments
+                Table 13: Recallable Object Type Assignments
+
+   This document also requests IANA to register a new bit in the
+   "EXCHGID4_FLAG_*" flag space for the ExchangeID operation from
+   [RFC8881] Section 18.35.3.  The requested value is 0x00100000,
+   outside the existing MASK_PNFS block (0x00070000); IANA MAY assign a
+   different value at its discretion, in which case the numeric value in
+   Figure 48 and its uses throughout the document are updated to match
+   the assignment.
+
+   +==============================+============+==========+============+
+   | Flag Name                    | Value      | RFC      | Reference  |
+   +==============================+============+==========+============+
+   | EXCHGID4_FLAG_USE_ERASURE_DS | 0x00100000 | RFCTBD10 | Figure     |
+   |                              |            |          | 48, this   |
+   |                              |            |          | doc        |
+   +------------------------------+------------+----------+------------+
+
+                    Table 14: EXCHGID4 Flag Assignments
 
    This document introduces the 'Flexible File Version 2 Layout Type
    Erasure Coding Type Registry'.  The registry uses a 32-bit value
    space partitioned into ranges based on the intended scope of the
-   encoding type (see Table 13).
+   encoding type (see Table 15).
 
-    +===============+=====================+==========================+
-    | Range         | Purpose             | Allocation Policy        |
-    +===============+=====================+==========================+
-    | 0x0000-0x00FF | Standards Track     | IETF Review              |
-    +---------------+---------------------+--------------------------+
-    | 0x0100-0x0FFF | Experimental        | Expert Review            |
-    +---------------+---------------------+--------------------------+
-    | 0x1000-0x7FFF | Vendor (open)       | First Come First Served  |
-    +---------------+---------------------+--------------------------+
-    | 0x8000-0xFFFE | Private/proprietary | No registration required |
-    +---------------+---------------------+--------------------------+
-    | 0xFFFF        | Reserved            | --                       |
-    +---------------+---------------------+--------------------------+
+      +=======================+=================+===================+
+      | Range                 | Purpose         | Allocation Policy |
+      +=======================+=================+===================+
+      | 0x0000                | Reserved        | --                |
+      |                       | (uninitialised) |                   |
+      +-----------------------+-----------------+-------------------+
+      | 0x0001-0x00FF         | Standards Track | IETF Review       |
+      +-----------------------+-----------------+-------------------+
+      | 0x0100-0x0FFF         | Experimental    | Expert Review     |
+      +-----------------------+-----------------+-------------------+
+      | 0x1000-0x7FFF         | Vendor (open)   | First Come First  |
+      |                       |                 | Served            |
+      +-----------------------+-----------------+-------------------+
+      | 0x8000-0xFFFE         | Private/        | No registration   |
+      |                       | proprietary     | required          |
+      +-----------------------+-----------------+-------------------+
+      | 0xFFFF                | Reserved        | --                |
+      +-----------------------+-----------------+-------------------+
+      | 0x00010000-0xFFFFFFFF | Reserved (upper | Reserved for      |
+      |                       | range)          | future partition  |
+      +-----------------------+-----------------+-------------------+
 
-                Table 13: Erasure Coding Type Value Ranges
+         Table 15: Erasure Coding Type Value Ranges (32-bit space)
+
+   The upper 16 bits of the 32-bit value space (0x00010000 through
+   0xFFFFFFFF) are reserved for future range extensions.  A receiver
+   that observes an ffv2_coding_type4 value in the reserved region MUST
+   treat it as an unsupported encoding type
+   (NFS4ERR_CODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
+   uninitialised-field sentinel and MUST NOT be allocated to an
+   encoding.
 
    Standards Track (0x0000-0x00FF):  Encoding types intended for broad
       interoperability.  The specification MUST include a complete
@@ -9737,16 +10073,14 @@ Table of Contents
 
    Private/proprietary (0x8000-0xFFFE):  Encoding types for use within a
       single vendor's ecosystem.  No IANA registration is required.
-      Interoperability with other implementations is not expected.  To
-      reduce the likelihood of accidental codepoint collisions between
-      independent vendors, implementations SHOULD derive the low-order
-      15 bits of any value in this range from that vendor's Private
-      Enterprise Number [IANA-PEN] (for example, by hashing the PEN into
-      the 15-bit space and reserving one well-known offset per codec).
-      The encoding type name SHOULD include an organizational identifier
-      (e.g., FFV2_ENCODING_ACME_FOOBAR).  A client that encounters a
-      value in this range from an unrecognized server SHOULD treat it as
-      an unsupported encoding type.
+      Interoperability with other implementations is not expected;
+      accidental codepoint collisions between independent vendors are
+      possible and are managed operationally rather than by protocol
+      mechanism.  The encoding type name SHOULD include an
+      organizational identifier (e.g., FFV2_ENCODING_ACME_FOOBAR).  A
+      client that encounters a value in this range from an unrecognized
+      server SHOULD treat it as an unsupported encoding type
+      (NFS4ERR_CODING_NOT_SUPPORTED).
 
    This partitioning prevents contention for small numbers in the
    Standards Track range and provides a clear signal to clients about
@@ -9755,7 +10089,7 @@ Table of Contents
    This document defines five encoding types: the flexible file v1
    layout-compatible PASSTHROUGH (see Section 8.1.2), the chunked
    MIRRORED (see Section 8.1.3), and three chunked erasure coding types
-   (see Table 14).
+   (see Table 16).
 
    +======================================+=====+========+===+========+
    | Encoding Type Name                   |Value|RFC     |How|Minor   |
@@ -9772,7 +10106,7 @@ Table of Contents
    | FFV2_ENCODING_MIRRORED               |5    |RFCTBD10|L  |2       |
    +--------------------------------------+-----+--------+---+--------+
 
-       Table 14: Flexible File Version 2 Layout Type Encoding Type
+       Table 16: Flexible File Version 2 Layout Type Encoding Type
                                Assignments
 
 28.1.  Checksum Algorithm Registry
@@ -9780,7 +10114,7 @@ Table of Contents
    This document introduces the "Flexible File Version 2 Layout Type
    Checksum Algorithm Registry".  Values in this registry name the
    checksum_algorithm4 (Section 24.3) carried in checksum4 on the wire
-   and selected per-mirror via ffv2m_checksum_algorithm (Section 8.8).
+   and selected per-mirror via ffv2m_checksum_algorithm (Section 8.9).
 
    The registry uses a 32-bit value space.  Registration policy is
    Specification Required [RFC8126]; the Designated Expert reviews each
@@ -9797,7 +10131,7 @@ Table of Contents
       decline to register an algorithm whose output overlaps
       substantially with an existing registration).
 
-   Initial registrations are listed in Table 15.
+   Initial registrations are listed in Table 17.
 
    +========================+=====+========+===============+==========+
    | Name                   |Value|cs_value| Class         | RFC      |
@@ -9818,39 +10152,69 @@ Table of Contents
    | CHECKSUM_ALG_BLAKE3    |6    |32      | cryptographic | RFCTBD10 |
    +------------------------+-----+--------+---------------+----------+
 
-            Table 15: Initial Checksum Algorithm Registrations
+            Table 17: Initial Checksum Algorithm Registrations
 
    CHECKSUM_ALG_NONE (value 0) indicates that no protocol-level checksum
    is computed.  The deployment relies on transport-layer integrity
    (RPC-over-TLS, RPCSEC_GSS_KRB5I) or storage-layer integrity instead;
    see Section 27.1.
 
-   CHECKSUM_ALG_CRC32 (value 1) is the CRC32 algorithm used in this
-   draft's predecessor revisions.  It is registered for backward
-   conceptual compatibility; deployments SHOULD prefer
+   CHECKSUM_ALG_CRC32 (value 1) is the CRC-32 algorithm specified in
+   [ITU-V42] Section 8.1.1.6.2 (the same CRC used in Ethernet
+   [IEEE802-3] Section 3.2.9, PNG [RFC2083] Annex D, and zlib
+   [RFC1950]).  Concrete parameters, which two independent
+   implementations MUST agree on to interoperate: generator polynomial
+   0x04C11DB7 (equivalently, the reflected form 0xEDB88320); initial
+   register value 0xFFFFFFFF; final XOR value 0xFFFFFFFF; input
+   reflected; output reflected; covered bytes are the shard payload in
+   transmission order (no length or type prefix).  The 4-byte cs_value
+   carries the CRC as a big-endian integer.  Deployments SHOULD prefer
    CHECKSUM_ALG_CRC32C for new files since CRC32C is hardware-
    accelerated on every modern CPU.
 
-   CHECKSUM_ALG_CRC32C (value 2) is the CRC32 with the Castagnoli
-   polynomial (0x1EDC6F41), as used in iSCSI, SCTP, and the SSE4.2 /
-   ARMv8 / RISC-V hardware-acceleration instructions.
+   CHECKSUM_ALG_CRC32C (value 2) is the CRC-32 with the Castagnoli
+   polynomial specified in [RFC3720] Section 12.1 and adopted by
+   [RFC4960] Section 6.4 (SCTP), and also as the SSE4.2 / ARMv8 / RISC-V
+   CRC-32C hardware-acceleration instructions.  Concrete parameters:
+   generator polynomial 0x1EDC6F41 (equivalently, the reflected form
+   0x82F63B78); initial register value 0xFFFFFFFF; final XOR value
+   0xFFFFFFFF; input reflected; output reflected; covered bytes are the
+   shard payload in transmission order.  The 4-byte cs_value carries the
+   CRC as a big-endian integer.
 
-   CHECKSUM_ALG_FLETCHER4 (value 3) is the Fletcher's checksum variant
-   used in ZFS, comprising four 64-bit accumulators concatenated to
-   produce a 32-byte output.  Other Fletcher4 implementations that
-   truncate to a shorter output register separately.
+   CHECKSUM_ALG_FLETCHER4 (value 3) is the ZFS Fletcher4 variant as
+   documented in the OpenZFS on-disk format specification
+   [OPENZFS-FLETCHER4].  Concrete parameters: input is processed as a
+   sequence of little-endian 32-bit words (the shard payload MUST be a
+   multiple of 4 bytes; implementations that need to checksum non-
+   multiple-of-4 payloads pad with zero bytes and register the padded
+   variant separately); the four 64-bit accumulators A, B, C, D are
+   updated per word wi as A += wi; B += A; C += B; D += C with 64-bit
+   unsigned wrap-around; the 32-byte cs_value is the concatenation A ||
+   B || C || D with each accumulator serialized in big-endian byte
+   order.  Other Fletcher4 implementations (different word width,
+   different endianness, truncated output) register separately.
 
-   CHECKSUM_ALG_SHA256 (value 4), CHECKSUM_ALG_SHA512 (value 5), and
-   CHECKSUM_ALG_BLAKE3 (value 6) are cryptographic hashes with standard
-   outputs at the lengths listed.  BLAKE3 is registered at its standard
-   32-byte output; extended-output BLAKE3 (the algorithm's XOF mode at
-   other lengths) registers separately.
+   CHECKSUM_ALG_SHA256 (value 4) and CHECKSUM_ALG_SHA512 (value 5) are
+   the SHA-256 and SHA-512 hash algorithms specified in [FIPS-180-4],
+   with output byte lengths 32 and 64 respectively.  The cs_value
+   carries the hash output in the byte order defined by [FIPS-180-4]
+   Section 3.1 (most-significant word first, each word serialized big-
+   endian).  Covered bytes are the shard payload in transmission order.
+
+   CHECKSUM_ALG_BLAKE3 (value 6) is the BLAKE3 hash algorithm specified
+   in [BLAKE3-SPEC] at its standard 32-byte output length (BLAKE3 in its
+   default mode, no keyed hash, no key-derivation context, no XOF output
+   at other lengths).  Extended-output BLAKE3, keyed BLAKE3, and the
+   key-derivation mode register as separate algorithms.  Covered bytes
+   are the shard payload in transmission order; cs_value is the 32-byte
+   hash output in the byte order defined by [BLAKE3-SPEC] Section 2.4.
 
    A checksum4 whose cs_value length does not match the registered
    cs_value bytes for its cs_algorithm MUST be rejected with
    NFS4ERR_INVAL.
 
-   The "Class" column in Table 15 is informational and indicates the
+   The "Class" column in Table 17 is informational and indicates the
    threat model the algorithm supports; see Section 27.1.
 
 29.  XDR Description of the Flexible File Version 2 Layout Type
@@ -9964,6 +10328,17 @@ Table of Contents
 
 30.2.  Informative References
 
+   [BLAKE3-SPEC]
+              O'Connor, J., Aumasson, J.-P., Neves, S., and Z. Wilcox-
+              O'Hearn, "BLAKE3: one function, fast everywhere", January
+              2020, <https://github.com/BLAKE3-team/BLAKE3-
+              specs/blob/master/blake3.pdf>.
+
+   [FIPS-180-4]
+              National Institute of Standards and Technology, "Secure
+              Hash Standard (SHS)", NIST FIPS PUB 180-4, August 2015,
+              <https://doi.org/10.6028/NIST.FIPS.180-4>.
+
    [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]
               Haynes, T., "Proxy-Driven Server for Flexible Files
               Version 2", Work in Progress, Internet-Draft, draft-
@@ -9974,12 +10349,24 @@ Table of Contents
    [IANA-PEN] IANA, "Private Enterprise Numbers",
               <https://www.iana.org/assignments/enterprise-numbers/>.
 
+   [IEEE802-3]
+              IEEE, "IEEE Standard for Ethernet", IEEE 802.3-2022, 2022.
+
+   [ITU-V42]  International Telecommunication Union, "Error-correcting
+              Procedures for DCEs Using Asynchronous-to-Synchronous
+              Conversion", ITU-T Recommendation V.42, March 2002.
+
    [KATZ]     Katz, M., "Questions of Uniqueness and Resolution in
               Reconstruction from Projections", Springer , 1978.
 
    [NORMAND]  Normand, N., Kingston, A., and P. Evenou, "A Geometry
               Driven Reconstruction Algorithm for the Mojette
               Transform", LNCS 4245, pp. 122-133, DGCI 2006, 2006.
+
+   [OPENZFS-FLETCHER4]
+              OpenZFS, "OpenZFS On-Disk Format Specification,
+              Section 2.2.4: Fletcher", <https://openzfs.github.io/
+              openzfs-docs/Basic%20Concepts/Checksums.html>.
 
    [PARREIN]  Parrein, B., Normand, N., and J.-P. Guedon, "Multiple
               Description Coding Using Exact Discrete Radon Transform",
@@ -9993,10 +10380,34 @@ Table of Contents
               DOI 10.17487/RFC1813, June 1995,
               <https://www.rfc-editor.org/rfc/rfc1813>.
 
+   [RFC1950]  Deutsch, P. and J. Gailly, "ZLIB Compressed Data Format
+              Specification version 3.3", RFC 1950,
+              DOI 10.17487/RFC1950, May 1996,
+              <https://www.rfc-editor.org/rfc/rfc1950>.
+
+   [RFC2083]  Boutell, T., "PNG (Portable Network Graphics)
+              Specification Version 1.0", RFC 2083,
+              DOI 10.17487/RFC2083, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2083>.
+
+   [RFC3720]  Satran, J., Meth, K., Sapuntzakis, C., Chadalapaka, M.,
+              and E. Zeidner, "Internet Small Computer Systems Interface
+              (iSCSI)", RFC 3720, DOI 10.17487/RFC3720, April 2004,
+              <https://www.rfc-editor.org/rfc/rfc3720>.
+
    [RFC4519]  Sciberras, A., Ed., "Lightweight Directory Access Protocol
               (LDAP): Schema for User Applications", RFC 4519,
               DOI 10.17487/RFC4519, June 2006,
               <https://www.rfc-editor.org/rfc/rfc4519>.
+
+   [RFC4960]  Stewart, R., Ed., "Stream Control Transmission Protocol",
+              RFC 4960, DOI 10.17487/RFC4960, September 2007,
+              <https://www.rfc-editor.org/rfc/rfc4960>.
+
+   [RFC5905]  Mills, D., Martin, J., Ed., Burbank, J., and W. Kasch,
+              "Network Time Protocol Version 4: Protocol and Algorithms
+              Specification", RFC 5905, DOI 10.17487/RFC5905, June 2010,
+              <https://www.rfc-editor.org/rfc/rfc5905>.
 
    [RFC7942]  Sheffer, Y. and A. Farrel, "Improving Awareness of Running
               Code: The Implementation Status Section", BCP 205,
@@ -10039,8 +10450,8 @@ reffs (metadata server and data server) and ec_demo (Client)
 
    *  CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, and CHUNK_COMMIT (the
       happy-path data-plane operations) are implemented end-to-end and
-      have been exercised against the three codec families (Reed-Solomon
-      Vandermonde, Mojette systematic, Mojette non-systematic).
+      have been exercised against the three encoding families (Reed-
+      Solomon Vandermonde, Mojette systematic, Mojette non-systematic).
 
    *  The chunk_guard4 CAS primitive, including the conflict-detection
       and deterministic-tiebreaker rules in Section 24.1, is implemented
@@ -10097,7 +10508,7 @@ Interoperability and Benchmarks
    Selected findings:
 
    Erasure-coded write overhead is modest at small and mid sizes:  At 4
-      KB to 64 KB payloads, all three codecs add 14% to 21% write
+      KB to 64 KB payloads, all three encodings add 14% to 21% write
       latency relative to plain mirroring.  Above 64 KB the encoding
       cost begins to dominate; at 1 MB Reed-Solomon and Mojette
       systematic reach approximately +54%, Mojette non-systematic
@@ -10111,19 +10522,19 @@ Interoperability and Benchmarks
       encoding plus two additional parity RPCs.
 
    Reconstruction of a missing data shard is essentially free for
-   systematic codecs at 4+2:  Reed-Solomon and Mojette systematic add 1%
-      to 6% to read latency in degraded-1 mode (one data shard missing,
-      reconstructed from the remaining five).  A client that discovers a
-      failed data server at read time can reconstruct transparently with
-      no user-visible latency impact.
+   systematic encodings at 4+2:  Reed-Solomon and Mojette systematic add
+      1% to 6% to read latency in degraded-1 mode (one data shard
+      missing, reconstructed from the remaining five).  A client that
+      discovers a failed data server at read time can reconstruct
+      transparently with no user-visible latency impact.
 
-   At 8+2, systematic-codec reconstruction diverges:  Mojette systematic
-      reconstruction overhead stays at approximately +4% at 1 MB, while
-      Reed-Solomon grows to approximately +54% due to the O(k^2) cost of
-      inverting a k x k matrix in GF(2^8).  Mojette systematic's back-
-      projection algorithm scales with m (parity count) rather than k
-      (data count), so its reconstruction overhead does not exhibit the
-      same growth at wider geometries.
+   At 8+2, systematic-encoding reconstruction diverges:  Mojette
+      systematic reconstruction overhead stays at approximately +4% at 1
+      MB, while Reed-Solomon grows to approximately +54% due to the
+      O(k^3) cost of inverting a k x k matrix in GF(2^8).  Mojette
+      systematic's back-projection algorithm scales with m (parity
+      count) rather than k (data count), so its reconstruction overhead
+      does not exhibit the same growth at wider geometries.
 
    Mojette non-systematic applies a full inverse transform on every
    read:  Regardless of whether any shard is missing.  At 1 MB this
@@ -10132,23 +10543,23 @@ Interoperability and Benchmarks
       is the algorithmic trade-off of the non-systematic form.
 
    Results are platform-independent:  The largest absolute latency delta
-      between macOS M4 and Fedora 43 at 1 MB is 20 ms on writes.  Codec
-      ordering, overhead percentages, and qualitative scaling behavior
-      are reproducible across operating systems and Docker
+      between macOS M4 and Fedora 43 at 1 MB is 20 ms on writes.
+      Encoding ordering, overhead percentages, and qualitative scaling
+      behavior are reproducible across operating systems and Docker
       implementations.
 
    The benchmarks confirm that the protocol's central design claims hold
    in practice: client-side erasure coding is affordable at typical
-   payload sizes; systematic codecs reconstruct missing shards cheaply;
-   and the scaling properties of the three codec families follow
-   directly from their published algorithmic complexities.
+   payload sizes; systematic encodings reconstruct missing shards
+   cheaply; and the scaling properties of the three encoding families
+   follow directly from their published algorithmic complexities.
 
-   The benchmarks quantify the algorithmic trade-offs each codec family
-   makes: Mojette non-systematic's constant decode cost comes at a
-   higher baseline read cost, and Reed-Solomon's matrix- inversion
-   reconstruction grows as O(k^2) at wider geometries.  The choice of
-   default codec and geometry in a given deployment follows from these
-   properties applied to the workload's read / write mix, fault-
+   The benchmarks quantify the algorithmic trade-offs each encoding
+   family makes: Mojette non-systematic's constant decode cost comes at
+   a higher baseline read cost, and Reed-Solomon's matrix- inversion
+   reconstruction grows as O(k^3) at wider geometries.  The choice of
+   default encoding and geometry in a given deployment follows from
+   these properties applied to the workload's read / write mix, fault-
    tolerance target, and acceptable encoding cost.
 
    A full benchmark report with per-size tables, figures, and the
@@ -10158,17 +10569,17 @@ Architectural Implication: Cost of Fault Tolerance
 
    The headline question every storage audience asks of an erasure-
    coding protocol is: "what does it cost when something goes wrong?"
-   At the systematic-codec operating points measured (Mojette systematic
-   at 4+2 and 8+2), the benchmark answer is *essentially zero*.  Mojette
-   systematic at 4+2 reconstructs a missing data shard with read-latency
-   overhead within run-to-run noise of healthy operation.  Mojette
-   systematic at 8+2 holds at approximately +4%.
+   At the systematic-encoding operating points measured (Mojette
+   systematic at 4+2 and 8+2), the benchmark answer is *essentially
+   zero*.  Mojette systematic at 4+2 reconstructs a missing data shard
+   with read-latency overhead within run-to-run noise of healthy
+   operation.  Mojette systematic at 8+2 holds at approximately +4%.
 
    This shifts the deployment conversation away from "is erasure coding
-   cheap enough to enable" and toward "which codec and geometry minimise
-   the compromise."  The compromise that remains is not the cost of
-   fault tolerance; it is the cost of write-time encoding, which is
-   bounded (under 60% at 1 MB, under 25% at 64 KB), and the cost of
+   cheap enough to enable" and toward "which encoding and geometry
+   minimise the compromise."  The compromise that remains is not the
+   cost of fault tolerance; it is the cost of write-time encoding, which
+   is bounded (under 60% at 1 MB, under 25% at 64 KB), and the cost of
    crash-safe durability via the chunk state machine (see Section 12.6),
    which is +7% to +22% on writes and +2% to +10% on reads.
 
@@ -10178,7 +10589,7 @@ Architectural Implication: Cost of Fault Tolerance
    the original Mojette-specific projection header has been replaced
    with XDR-encoded chunk metadata (see Section 24.1), so the remaining
    wire-format cost is the XDR-encoded chunk header itself, which is
-   identical for every codec and is part of the +7% to +22% v2 write
+   identical for every encoding and is part of the +7% to +22% v2 write
    overhead measured above.
 
 Design Rationale: Rejected Alternatives
@@ -10203,14 +10614,14 @@ Proprietary Projection Header Inside Opaque Payload
    the start of the READ/WRITE opaque payload, interpreted in the
    endianness of the writer's host.  The motivation was concrete: NFSv3
    READ and WRITE arguments carry data as opaque data<> and provide no
-   XDR room for per-write structured metadata such as codec geometry,
+   XDR room for per-write structured metadata such as encoding geometry,
    integrity, or write-ordering tiebreakers.  An NFSv3 server cannot be
    extended; if a flexible file v2 layout deployment wanted an NFSv3
    server to participate as a data server in an erasure-coded layout,
-   the only place to put codec metadata was inside that opaque payload,
-   prepended to the data bytes.  The data server stored the entire
-   opaque blob without interpreting it; the reader peeled the 16-byte
-   prefix off and acted on it.
+   the only place to put encoding metadata was inside that opaque
+   payload, prepended to the data bytes.  The data server stored the
+   entire opaque blob without interpreting it; the reader peeled the
+   16-byte prefix off and acted on it.
 
    This was rejected because:
 
@@ -10421,7 +10832,7 @@ Declustered RAID with Dynamic Parity Mapping
    consistency decisions to the chunks being written rather than to a
    global mapping table.
 
-Working Group Concern: Codec on Every Client
+Working Group Concern: Encoding on Every Client
 
    This section is to be removed before publishing as an RFC.
 
@@ -10444,13 +10855,14 @@ The Question as Asked
    having every client be a full participant in a distributed storage
    system."  He pointed out that any erasure-coding or replication
    protocol that runs at the client requires every client implementation
-   to understand the codec, and that codecs evolve over time as new
-   algorithms appear in the storage research literature.  He observed
-   that the same problem appears with replication ("simple two-, three-,
-   four-way replication"): a client power-failure event mid-write leaves
-   the participating data servers in inconsistent states, and the
-   recovery machinery (mirrored logs, write-ahead replay, partial-write
-   detection) is "a bit of overkill for simple replication."
+   to understand the encoding, and that encodings evolve over time as
+   new algorithms appear in the storage research literature.  He
+   observed that the same problem appears with replication ("simple
+   two-, three-, four-way replication"): a client power-failure event
+   mid-write leaves the participating data servers in inconsistent
+   states, and the recovery machinery (mirrored logs, write-ahead
+   replay, partial-write detection) is "a bit of overkill for simple
+   replication."
 
    David Black seconded the concern in the same session, stating that
    "it's better to have the data protection algorithm be inside the
@@ -10460,11 +10872,11 @@ What We Believe Is Being Asked
 
    Two coupled requirements:
 
-   1.  Codec correctness and codec evolution must not be a per-client
-       burden.  An ecosystem in which every client must ship and update
-       every supported codec does not interoperate at scale: an
-       organisation cannot upgrade its storage system's encoding without
-       coordinating an upgrade across every client.
+   1.  Encoding correctness and encoding evolution must not be a per-
+       client burden.  An ecosystem in which every client must ship and
+       update every supported encoding does not interoperate at scale:
+       an organisation cannot upgrade its storage system's encoding
+       without coordinating an upgrade across every client.
 
    2.  The expensive recovery paths (partial writes, durable shard
        placement, mirrored logging) must not live at the client either.
@@ -10486,27 +10898,27 @@ How the Proxy Server Addresses This
    A proxy server is a peer of the metadata server and the data servers
    that:
 
-   *  speaks the codec on behalf of clients that cannot;
+   *  speaks the encoding on behalf of clients that cannot;
 
-   *  receives whole-stripe operations from a codec-ignorant client;
+   *  receives whole-stripe operations from an encoding-ignorant client;
 
    *  encodes (or decodes) using whatever the layout's Figure 9 demands;
 
    *  drives the CHUNK operations to the participating data servers;
 
    *  carries the partial-write / FINALIZE / COMMIT recovery machinery
-      that the codec requires.
+      that the encoding requires.
 
    Three properties follow:
 
    *  A legacy NFSv4.2 (or even NFSv3) client gets erasure-coded
       durability without speaking erasure coding.  The proxy server is
-      where the codec lives; the client does not have to be upgraded
-      when the codec is upgraded.
+      where the encoding lives; the client does not have to be upgraded
+      when the encoding is upgraded.
 
-   *  Codec evolution is a server-side concern.  Adding a new entry to
-      Figure 9 requires updating the proxy servers and data servers, not
-      every client in the deployment.  This matches the operational
+   *  Encoding evolution is a server-side concern.  Adding a new entry
+      to Figure 9 requires updating the proxy servers and data servers,
+      not every client in the deployment.  This matches the operational
       pattern of every other distributed-storage protocol on the wire.
 
    *  The recovery machinery (PENDING -> FINALIZED -> COMMITTED, the
@@ -10516,11 +10928,11 @@ How the Proxy Server Addresses This
       converting those semantics into the chunk state-machine the data
       servers implement.
 
-   A codec-aware NFSv4.2 client is still permitted (and is the fast
+   An encoding-aware NFSv4.2 client is still permitted (and is the fast
    path: no proxy hop, no double bandwidth on the proxy's link).  The
    proxy server is the answer for clients that either cannot speak the
-   codec or are too old to be upgraded.  In Christoph's framing, the
-   proxy server is the inside of the storage boundary; codec-aware
+   encoding or are too old to be upgraded.  In Christoph's framing, the
+   proxy server is the inside of the storage boundary; encoding-aware
    clients are implementations that have been admitted into that
    boundary by design.
 
@@ -10528,9 +10940,10 @@ How the Proxy Server Addresses This
    the proxy on the way to the data servers, so the proxy's link sees
    roughly twice the bandwidth of a direct client-to-data server path,
    and the proxy server pays the encode/decode CPU.  This is the price
-   of admission for clients that do not speak the codec; it is the same
-   store-and-forward cost any storage gateway pays.  It does not affect
-   codec-aware clients, which talk to the data servers directly.
+   of admission for clients that do not speak the encoding; it is the
+   same store-and-forward cost any storage gateway pays.  It does not
+   affect encoding-aware clients, which talk to the data servers
+   directly.
 
 Working Group Concern: Coherent Multi-data server Writes Without Recall
 Storms
@@ -10656,7 +11069,7 @@ How TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID Address This
 
 Combined Effect on the "Cluster Tax"
 
-   The Proxy Server addresses the codec-distribution cost; the trust
+   The Proxy Server addresses the encoding-distribution cost; the trust
    stateid mechanism addresses the layout-mutation cost.  Together, they
    confine the residual cluster overhead to:
 
