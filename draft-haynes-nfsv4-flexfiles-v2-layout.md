@@ -2183,10 +2183,18 @@ assignment.
  | EXCHGID4_FLAG_USE_ERASURE_DS  | 0x00100000 | RFCTBD10 | {{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}, this doc  |
 {: #tbl_exchgid_flags title="EXCHGID4 Flag Assignments"}
 
-This document registers the following in the "NFSv4.2 Attributes"
-registry established by {{RFC7862}}:
+NFSv4 attribute numbers are governed by the publishing
+standards-track document ({{RFC7862}} assigned attributes 77-84;
+subsequent extensions have assigned above 84 by publishing
+document, not by IANA action; no "NFSv4.2 Attributes" IANA
+registry exists to assign attribute numbers).  This document
+therefore assigns -- rather than requests IANA to assign -- the
+following new NFSv4.2 attribute:
 
 - Attribute 89: fattr4_coding_block_size
+
+The reference is this document.  No IANA action is required for
+this assignment.
 
 This document registers the following in the "Flexible File
 Version 2 Layout Type Erasure Coding Type Registry" established
