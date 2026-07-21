@@ -169,11 +169,19 @@ so that its top k rows form the identity matrix:
 
        V\[i\]\[j\] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
 
-   Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  Any k
-   distinct rows form a k x k Vandermonde matrix on k distinct
-   non-zero evaluation points, which is invertible over GF(2^8);
-   this is the property that gives the code its Maximum Distance
-   Separable (any k of k+m shards recover the data) guarantee.
+   Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  The
+   exponent zero is defined as `x^0 = 1` for all `x` in GF(2^8),
+   including x = 0 (this is the standard combinatorial
+   convention; here `alpha_i` is never zero by step 1's
+   construction, but the convention makes the V\[0\]\[0\] cell
+   unambiguous).  Any k distinct rows form a k x k Vandermonde
+   matrix on k distinct non-zero evaluation points, which is
+   invertible over GF(2^8); this is the property that gives the
+   code its Maximum Distance Separable (any k of k+m shards
+   recover the data) guarantee.  The minimum useful geometry
+   is `k >= 1` and `m >= 1` (`k = 0` gives no data and `m = 0`
+   gives no redundancy); the maximum is bounded by `k + m <= 255`
+   as stated in step 1.
 
 3. Extract the top k x k sub-matrix T from V.  T is the Vandermonde
    on evaluation points alpha_0 = 1, alpha_1 = 2, ..., alpha_(k-1) = k.
@@ -220,7 +228,7 @@ by matrix inversion:
    re-encoding from the recovered data shards.
 
 The reconstruction cost is dominated by the matrix inversion, which
-is O(k^2) in GF(2^8) multiplications.
+is O(k^3) in GF(2^8) multiplications.
 
 ## RS Interoperability Requirements
 
@@ -242,6 +250,66 @@ data unrecoverable by a different implementation.
 
 These parameters fully determine the encoding matrix for any
 (k, m) configuration in the permitted range.
+
+### RS Interoperability Test Vector
+
+The following worked example pins the encoding matrix and one
+end-to-end encoding for the smallest useful geometry (k=2, m=1).
+An implementation whose encoded output matches this example is
+using the same GF(2^8) representation, the same evaluation-point
+assignment, and the same matrix normalization as required by the
+interoperability parameters above.
+
+Evaluation points: `alpha_0 = 1`, `alpha_1 = 2`, `alpha_2 = 3`
+(values 1, 2, 3 in GF(2^8)).
+
+Vandermonde matrix V (3 rows x 2 columns):
+
+~~~
+V = [ [1, 1],    // row 0: (1^0, 1^1) = (1, 1)
+      [1, 2],    // row 1: (2^0, 2^1) = (1, 2)
+      [1, 3] ]   // row 2: (3^0, 3^1) = (1, 3)
+~~~
+
+Top k x k sub-matrix T = [[1, 1], [1, 2]] has determinant
+`det(T) = 1*2 XOR 1*1 = 3` in GF(2^8).  The inverse of 3 in
+GF(2^8) with irreducible polynomial `0x11d` is
+`3^-1 = 0xF4` (verifiable: `(x+1) * (x^7+x^6+x^5+x^4+x^2) mod
+(x^8+x^4+x^3+x^2+1) = 1`).  Applying `T_inv = (1/det) *
+[[T[1][1], T[0][1]], [T[1][0], T[0][0]]]` (characteristic 2, so
+no sign changes):
+
+~~~
+T_inv = [ [0xF5, 0xF4],
+          [0xF4, 0xF4] ]
+~~~
+
+Systematic-normalized encoding matrix `E = V * T_inv`:
+
+~~~
+E = [ [0x01, 0x00],    // identity block for data shard 0
+      [0x00, 0x01],    // identity block for data shard 1
+      [0xF4, 0xF5] ]   // parity generator P = E[2]
+~~~
+
+For k=2, m=1 the parity generator is `P = [0xF4, 0xF5]`; the
+parity shard is computed byte-wise as
+`parity[j] = 0xF4 * data[0][j] XOR 0xF5 * data[1][j]` where the
+multiplication is in GF(2^8) with polynomial `0x11d`.
+
+Concrete byte-level test vector with `shard_len = 1`:
+
+| data[0] | data[1] | parity  | Notes |
+|---|---|---|---|
+| `0x00`  | `0x00`  | `0x00`  | zero input                                                   |
+| `0x01`  | `0x00`  | `0xF4`  | 0xF4 * 0x01 XOR 0xF5 * 0x00 = 0xF4                          |
+| `0x00`  | `0x01`  | `0xF5`  | 0xF4 * 0x00 XOR 0xF5 * 0x01 = 0xF5                          |
+| `0x01`  | `0x01`  | `0x01`  | 0xF4 XOR 0xF5 = 0x01 (the polynomial diff of adjacent bytes) |
+{: #tbl-rs-test-vector title="RS Vandermonde test vector: k=2, m=1, single-byte shards"}
+
+Implementations that produce different values for any row of
+{{tbl-rs-test-vector}} disagree with this specification and will
+not interoperate.
 
 ## RS Shard Sizes
 
