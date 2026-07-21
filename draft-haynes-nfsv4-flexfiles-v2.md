@@ -55,6 +55,7 @@ informative:
   RFC3720:
   RFC4519:
   RFC4960:
+  RFC5905:
   RFC7942:
   RFC8126:
   FIPS-180-4:
@@ -1480,6 +1481,24 @@ instant expressed as an nfstime4.  The metadata server MUST set
 tsa_expire to the current wall-clock time plus the metadata
 server's client lease period.
 
+Clock-synchronization assumption: the metadata server and each
+storage device MUST maintain wall-clock synchronization within
+one lease period, e.g., via NTP {{RFC5905}} or an equivalent
+mechanism.  Under this assumption, a tsa_expire computed by the
+metadata server and evaluated by the storage device is
+interpreted consistently within the storage device's local
+clock.  Deployments unable to guarantee sub-lease-period clock
+synchronization MUST either (a) shorten the effective TRUST_STATEID
+lease so it exceeds the worst-case skew by at least 2x, or (b)
+use the metadata-server-inband fallback path (no tight-coupling
+control session, no TRUST_STATEID) so lease enforcement stays
+on the metadata server's clock alone.  A storage device that
+detects sustained clock divergence from the metadata server
+(e.g., via periodic wall-clock exchange as part of its
+tight-coupling control-session heartbeats) SHOULD log the
+divergence and MAY refuse further TRUST_STATEID entries with
+NFS4ERR_DELAY until the divergence is corrected.
+
 The metadata server MUST re-issue TRUST_STATEID for an entry
 before tsa_expire while the corresponding layout is outstanding.
 The RECOMMENDED trigger is: when an entry is within half the
@@ -2873,13 +2892,26 @@ NFS4ERR_DELAY:
 If the client already has an appropriate layout, it should not
 continue with I/O to the storage devices.
 
-###  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
+###  Client Interactions with FFV2_FLAGS_NO_IO_THRU_MDS
 
-Even if the metadata server provides the FF_FLAGS_NO_IO_THRU_MDS
-flag, the client can still perform I/O to the metadata server.  The
-flag functions as a hint.  The flag indicates to the client that
-the metadata server prefers to separate the metadata I/O from the
-data I/ O, most likely for performance reasons.
+FFV2_FLAGS_NO_IO_THRU_MDS is normative: when the metadata
+server sets FFV2_FLAGS_NO_IO_THRU_MDS on a layout, the client
+MUST NOT proxy I/O for that layout through the metadata server,
+even after detecting a network disconnect to a storage device
+({{sec-ffv2_flags4}}).  A client that cannot reach a storage
+device on which it holds a NO_IO_THRU_MDS layout MUST return
+the layout via LAYOUTRETURN and reacquire (via LAYOUTGET), at
+which point the metadata server chooses whether to grant a new
+layout with the flag cleared, grant a layout naming a different
+storage device, or fall back to metadata-server-terminated I/O
+via the encoding-negotiation path
+({{sec-encoding-negotiation}}) with the flag cleared.
+
+The prior draft's "the flag functions as a hint" language is
+withdrawn; the encoding-negotiation fallback path that requires
+MDS I/O to be possible is served by the metadata server clearing
+NO_IO_THRU_MDS on the fallback layout, not by clients ignoring
+the flag on a NO_IO_THRU_MDS layout.
 
 ##  LAYOUTCOMMIT
 
@@ -3469,12 +3501,16 @@ erasure coding type.
 {: #fig-example-chunk-read-crc title="CRC32 on the Wire" }
 
 Assuming the CHUNK_READ results as in {{fig-example-chunk-read-crc}},
-the crc32 needs to be checked in order to ensure data integrity.
-Conceptually, a header and payload can be built as shown in
-{{fig-example-crc-checked}}.  The crc32 is calculated over the 4
-fields as shown in the header and the cr_chunk.  In this example,
-it is calculated to be 0x21de8.  Thus this payload for the data
-server has data integrity.
+the crc32 needs to be checked in order to detect accidental
+corruption.  Conceptually, a header and payload can be built as
+shown in {{fig-example-crc-checked}}.  The crc32 is calculated
+over the 4 fields as shown in the header and the cr_chunk.  In
+this example, it is calculated to be 0x21de8; because the
+calculated value matches the received cr_checksum, no
+accidental corruption was detected on this payload.  (Content
+authentication -- protection against adversarial modification --
+requires a keyed MAC or signature; see
+{{sec-security-checksum-scope}}.)
 
 ~~~
   +--------------------+
@@ -3517,16 +3553,26 @@ and MUST be handled as discussed there.  Once atomicity in the
 payload has been detected, the client can use those chunks as a
 basis for read/modify/update.
 
-CHUNK_WRITE is a two pass operation in cooperation with CHUNK_FINALIZE
-({{sec-CHUNK_FINALIZE}}) and CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
-It writes to the data file and the data server is responsible for
-retaining a copy of the old header and chunk. A subsequent CHUNK_READ
-would return the new chunk. However, until either the CHUNK_FINALIZE
-or CHUNK_ROLLBACK is presented, a subsequent CHUNK_WRITE MUST result
-in the locking of the chunk, as if a CHUNK_LOCK ({{sec-CHUNK_LOCK}})
-had been performed on the chunk. As such, further CHUNK_WRITES by
-any client MUST be denied until the chunk is unlocked by CHUNK_UNLOCK
-({{sec-CHUNK_UNLOCK}}).
+CHUNK_WRITE is a two-pass operation in cooperation with
+CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}) and CHUNK_ROLLBACK
+({{sec-CHUNK_ROLLBACK}}).  It writes new bytes into the chunk
+and transitions the chunk to the PENDING state; the data
+server is responsible for retaining the prior COMMITTED
+content until the chunk reaches its next stable state.  While
+a chunk is in PENDING or FINALIZED, a subsequent CHUNK_READ
+does NOT observe the new content (visibility rules of
+{{sec-system-model}} apply: PENDING and FINALIZED chunks are
+not globally visible; CHUNK_READ returns only COMMITTED
+content).
+
+Concurrent CHUNK_WRITE against a PENDING or FINALIZED chunk is
+regulated by chunk_guard4 ({{sec-chunk_guard4}}), not by an
+implicit lock.  A racing writer whose guard check fails
+receives NFS4ERR_CHUNK_GUARDED; an explicit CHUNK_LOCK
+({{sec-CHUNK_LOCK}}) holder is signaled by NFS4ERR_CHUNK_LOCKED.
+No implicit chunk-write lock is acquired by CHUNK_WRITE; the
+prior draft's "as if CHUNK_LOCK had been performed" language
+is not part of this specification.
 
 If the CHUNK_WRITE results in a atomic data block, then the
 client will send a CHUNK_FINALIZE in a subsequent compound to inform
@@ -6602,18 +6648,43 @@ Uniqueness contract:
 Deterministic tiebreaker for concurrent writers:
 :  When two or more clients race on the same chunk in the
    multi-writer mode, the client whose cg_client_id compares
-   numerically lowest wins the race.  A data server enforces this
-   by accepting the first CHUNK_WRITE whose guard check succeeds
-   and rejecting later writers with NFS4ERR_CHUNK_GUARDED; across
-   the mirror set, the subset of data servers on which each
-   client wins will vary, but the deterministic tiebreaker
-   ensures all clients agree on which client's write ultimately
-   becomes COMMITTED.  A client that lost the race on at least
-   one data server MUST re-read the chunk and MAY retry its write
-   with a refreshed cg_gen_id.  A client that detects no forward
-   progress after a bounded number of retries MUST escalate via
-   LAYOUTERROR and the repair coordination flow in
-   {{sec-repair-selection}}.
+   numerically lowest MUST ultimately be the one whose write
+   reaches COMMITTED on the affected data servers.  The rule is
+   enforced in two stages:
+
+    - **At CHUNK_WRITE** (per data server, arrival-order): a
+      data server accepts the first CHUNK_WRITE whose
+      chunk_guard4 CAS check succeeds against its current
+      chunk_guard4 value.  Later writers whose CAS fails receive
+      NFS4ERR_CHUNK_GUARDED.  Because arrival order can differ
+      between data servers, different subsets of the mirror set
+      may accept different clients' writes in this stage; that
+      is expected transient divergence, not a violation of the
+      tiebreaker rule.
+
+    - **At CHUNK_FINALIZE** (numeric comparison, mirror-set
+      convergence): CHUNK_FINALIZE against a chunk whose current
+      PENDING write is owned by cg_client_id C_current MUST
+      compare the caller's cg_client_id C_caller numerically
+      against C_current.  If C_caller < C_current, the data
+      server accepts the FINALIZE against the caller's PENDING
+      write and discards the higher-numbered writer's
+      state.  If C_caller > C_current, the data server rejects
+      the FINALIZE with NFS4ERR_CHUNK_GUARDED and the caller's
+      client MUST re-read the chunk.  If C_caller == C_current
+      (same client re-finalizing its own write), FINALIZE
+      proceeds normally.  This is where the "lowest cg_client_id
+      wins" invariant is enforced globally: after every affected
+      data server has processed each racing client's FINALIZE
+      attempt, the mirror set converges on the numerically
+      lowest cg_client_id's write.
+
+   A client that observes NFS4ERR_CHUNK_GUARDED on either
+   CHUNK_WRITE or CHUNK_FINALIZE MUST re-read the chunk and MAY
+   retry its write with a refreshed cg_gen_id.  A client that
+   detects no forward progress after a bounded number of retries
+   MUST escalate via LAYOUTERROR and the repair coordination
+   flow in {{sec-repair-selection}}.
 
 The numeric ordering of cg_client_id values is arbitrary with
 respect to the clients' external identities -- it is a
@@ -9906,12 +9977,24 @@ ccra_deadline:
    by which the client is expected to have driven every
    range to completion (CHUNK_REPAIRED on the
    reconstruction path, or CHUNK_UNLOCK on the rollback
-   path).  Missing the deadline does not corrupt state --
-   the metadata server MAY re-select another repair
-   client after the deadline elapses -- but a client that
-   has missed the deadline MUST re-verify its layout and
-   the chunk lock state before continuing any
-   repair-related CHUNK_* operation.
+   path).  As with `tsa_expire`
+   ({{sec-tight-coupling-lease}}), the wall-clock
+   representation assumes the metadata server and the
+   repair client maintain clock synchronization within one
+   metadata-server lease period (see the clock-sync
+   paragraph in {{sec-tight-coupling-lease}} for the
+   deployment options when this cannot be guaranteed);
+   under skew, missing the deadline is not
+   safety-critical because state cannot be corrupted, but
+   spurious deadline expiry SHOULD be avoided by setting
+   `ccra_deadline` to at least (current-wall-clock +
+   deadline-budget + expected-skew).
+   Missing the deadline does not corrupt state -- the
+   metadata server MAY re-select another repair client
+   after the deadline elapses -- but a client that has
+   missed the deadline MUST re-verify its layout and the
+   chunk lock state before continuing any repair-related
+   CHUNK_* operation.
 
 ccra_reason:
 :  distinguishes the two flows that cause the metadata
