@@ -268,16 +268,14 @@ First Served {{RFC8126}}.
 Private/proprietary (0x8000-0xFFFE):
 :  Encoding types for use within a single vendor's ecosystem.
 No IANA registration is required.  Interoperability with other
-implementations is not expected.  To reduce the likelihood of
-accidental codepoint collisions between independent vendors,
-implementations SHOULD derive the low-order 15 bits of any value
-in this range from that vendor's Private Enterprise Number
-{{IANA-PEN}} (for example, by hashing the PEN into the 15-bit
-space and reserving one well-known offset per encoding).  The
-encoding type name SHOULD include an organizational identifier
-(e.g., FFV2_ENCODING_ACME_FOOBAR).  A client that encounters a
+implementations is not expected; accidental codepoint collisions
+between independent vendors are possible and are managed
+operationally rather than by protocol mechanism.  The encoding
+type name SHOULD include an organizational identifier (e.g.,
+`FFV2_ENCODING_ACME_FOOBAR`).  A client that encounters a
 value in this range from an unrecognized server SHOULD treat
-it as an unsupported encoding type.
+it as an unsupported encoding type
+(`NFS4ERR_CODING_NOT_SUPPORTED`).
 
 Reserved (0xFFFF):
 :  Reserved for future use; MUST NOT be allocated.

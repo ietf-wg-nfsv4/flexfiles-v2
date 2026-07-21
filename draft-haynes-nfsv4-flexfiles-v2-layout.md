@@ -754,6 +754,41 @@ proxy-mediated.
 The ffv2_data_server4 (in {{fig-ffv2_data_server4}}) describes a data
 file and how to access it via the different NFS protocols.
 
+## ffv2_data_protection4
+
+~~~ xdr
+   /// struct ffv2_data_protection4 {
+   ///     uint32_t fdp_data;    /* data shards (k) */
+   ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
+   /// };
+~~~
+{: #fig-ffv2_data_protection4 title="The ffv2_data_protection4" }
+
+The ffv2_data_protection4 (in {{fig-ffv2_data_protection4}}) describes
+the data protection geometry as a pair of counts: the number of data
+shards (fdp_data, also known as k) and the number of parity or
+redundancy shards (fdp_parity, also known as m).  This structure is
+used in both layout hints and layout responses, and applies
+uniformly to all coding types:
+
+| Protection Mode | fdp_data | fdp_parity | Total DSes | Description |
+|---
+| Mirroring (3-way) | 1 | 2 | 3 | 3 copies, no encoding |
+| Striping (6-way) | 6 | 0 | 6 | Parallel I/O, no redundancy |
+| RS Vandermonde 4+2 | 4 | 2 | 6 | Tolerates 2 DS failures |
+| Mojette-sys 8+2 | 8 | 2 | 10 | Tolerates 2 DS failures |
+{: #fig-protection-examples title="Example data protection configurations" }
+
+By expressing all protection modes as (fdp_data, fdp_parity) pairs,
+a single structure serves mirroring, striping, and all erasure
+coding types.  The coding type ({{fig-ffv2_coding_type4}}) determines
+how the shards are encoded; the protection structure determines
+how many shards there are.
+
+The total number of data servers required is fdp_data + fdp_parity.
+The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
+25% for 8+2).
+
 ## ffv2_coding_type_data4
 
 ~~~ xdr
@@ -806,7 +841,7 @@ The (data, parity) tuple is interpreted per encoding type:
 ## ffv2_stripes4
 
 ~~~ xdr
-   /// enum ffv2_striping {
+   /// enum ffv2_striping4 {
    ///     FFV2_STRIPING_NONE = 0,
    ///     FFV2_STRIPING_SPARSE = 1,
    ///     FFV2_STRIPING_DENSE = 2
@@ -836,7 +871,7 @@ ffv2s_data_servers.
    ///
    /// struct ffv2_mirror4 {
    ///         ffv2_coding_type_data4  ffv2m_coding_type_data;
-   ///         ffv2_striping           ffv2m_striping;
+   ///         ffv2_striping4           ffv2m_striping;
    ///         uint32_t                ffv2m_striping_unit_size;
    ///         uint32_t                ffv2m_client_id;
    ///         checksum_algorithm4     ffv2m_checksum_algorithm;
@@ -1003,41 +1038,6 @@ server.  And for the erasure-coded encoding types, each of the
 stripes describes a set of data servers to which the shards are
 distributed.  Further, the payload length can be different per
 stripe.
-
-## ffv2_data_protection4
-
-~~~ xdr
-   /// struct ffv2_data_protection4 {
-   ///     uint32_t fdp_data;    /* data shards (k) */
-   ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
-   /// };
-~~~
-{: #fig-ffv2_data_protection4 title="The ffv2_data_protection4" }
-
-The ffv2_data_protection4 (in {{fig-ffv2_data_protection4}}) describes
-the data protection geometry as a pair of counts: the number of data
-shards (fdp_data, also known as k) and the number of parity or
-redundancy shards (fdp_parity, also known as m).  This structure is
-used in both layout hints and layout responses, and applies
-uniformly to all coding types:
-
-| Protection Mode | fdp_data | fdp_parity | Total DSes | Description |
-|---
-| Mirroring (3-way) | 1 | 2 | 3 | 3 copies, no encoding |
-| Striping (6-way) | 6 | 0 | 6 | Parallel I/O, no redundancy |
-| RS Vandermonde 4+2 | 4 | 2 | 6 | Tolerates 2 DS failures |
-| Mojette-sys 8+2 | 8 | 2 | 10 | Tolerates 2 DS failures |
-{: #fig-protection-examples title="Example data protection configurations" }
-
-By expressing all protection modes as (fdp_data, fdp_parity) pairs,
-a single structure serves mirroring, striping, and all erasure
-coding types.  The coding type ({{fig-ffv2_coding_type4}}) determines
-how the shards are encoded; the protection structure determines
-how many shards there are.
-
-The total number of data servers required is fdp_data + fdp_parity.
-The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
-25% for 8+2).
 
 ## ffv2_layouthint4 {#sec-ffv2-layouthint}
 
@@ -1388,13 +1388,26 @@ NFS4ERR_DELAY:
 If the client already has an appropriate layout, it should not
 continue with I/O to the storage devices.
 
-###  Client Interactions with FF_FLAGS_NO_IO_THRU_MDS
+###  Client Interactions with FFV2_FLAGS_NO_IO_THRU_MDS
 
-Even if the metadata server provides the FF_FLAGS_NO_IO_THRU_MDS
-flag, the client can still perform I/O to the metadata server.  The
-flag functions as a hint.  The flag indicates to the client that
-the metadata server prefers to separate the metadata I/O from the
-data I/ O, most likely for performance reasons.
+FFV2_FLAGS_NO_IO_THRU_MDS is normative: when the metadata
+server sets FFV2_FLAGS_NO_IO_THRU_MDS on a layout, the client
+MUST NOT proxy I/O for that layout through the metadata server,
+even after detecting a network disconnect to a storage device
+({{sec-ffv2_flags4}}).  A client that cannot reach a storage
+device on which it holds a NO_IO_THRU_MDS layout MUST return
+the layout via LAYOUTRETURN and reacquire (via LAYOUTGET), at
+which point the metadata server chooses whether to grant a new
+layout with the flag cleared, grant a layout naming a different
+storage device, or fall back to metadata-server-terminated I/O
+via the encoding-negotiation path
+({{sec-encoding-negotiation}}) with the flag cleared.
+
+The prior draft's "the flag functions as a hint" language is
+withdrawn; the encoding-negotiation fallback path that requires
+MDS I/O to be possible is served by the metadata server clearing
+NO_IO_THRU_MDS on the fallback layout, not by clients ignoring
+the flag on a NO_IO_THRU_MDS layout.
 
 ##  LAYOUTCOMMIT
 
@@ -1701,7 +1714,7 @@ have to perform the I/O through the metadata server.
 |---
 | MDS guarantee | Yes | Yes (Katz) | Yes (Katz) |
 | Shard sizes | Uniform | Variable | Variable |
-| Reconstruction cost | O(k^2) | O(m * k) | O(m * k) |
+| Reconstruction cost | O(k^3) shard ops<br>(matrix inversion) | O(m*k*P*Q) grid ops (peeling) | O(m*k*P*Q) grid ops (peeling) |
 | Healthy read cost | Zero | Zero | Full decode |
 | GF operations | Yes (GF(2^8)) | No | No |
 {: #tbl-encoding-comparison title="Comparison of erasure encoding types"}
@@ -1709,7 +1722,7 @@ have to perform the I/O through the metadata server.
 Reed-Solomon uses uniform shard sizes and GF(2^8) operations.
 Mojette systematic provides zero-cost healthy reads with variable
 parity shard sizes; reconstruction cost scales as O(m * k) rather
-than O(k^2).  Mojette non-systematic encodes all k + m shards as
+than O(k^3).  Mojette non-systematic encodes all k + m shards as
 projections, providing constant decode cost regardless of failure
 count at a higher baseline read cost than systematic.  The choice
 among these is a deployment decision driven by workload
@@ -2142,18 +2155,33 @@ chunks.
 This document registers the following in the "pNFS Layout Types"
 registry established by {{RFC8881}}:
 
-- Value 6: LAYOUT4_FLEX_FILES_V2
+ | Layout Type Name      | Value | RFC      | How | Minor Versions |
+ |---
+ | LAYOUT4_FLEX_FILES_V2 | 0x6   | RFCTBD10 | L   | 1              |
+{: #tbl_layout_types title="Layout Type Assignments"}
 
 This document registers the following in the "NFSv4 Recallable
 Object Types" registry established by {{RFC8881}}:
 
-- RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
-  (see Section CB_RECALL_ANY of this document).
+ | Recallable Object Type Name   | Value | RFC      |How| Minor Versions    |
+ |---
+ | RCA4_TYPE_MASK_FF2_LAYOUT_MIN | 20    | RFCTBD10 |L  | 1        |
+ | RCA4_TYPE_MASK_FF2_LAYOUT_MAX | 21    | RFCTBD10 |L  | 1        |
+{: #tbl_recallables title="Recallable Object Type Assignments"}
 
-This document registers the following in the
-"EXCHGID4_FLAG_*" registry established by {{RFC8881}}:
+This document also requests IANA to register a new bit in the
+"EXCHGID4_FLAG_*" flag space for the ExchangeID operation from
+{{RFC8881}} Section 18.35.3.  The requested value is
+`0x00100000`, outside the existing MASK_PNFS block (0x00070000);
+IANA MAY assign a different value at its discretion, in which
+case the numeric value in {{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}
+and its uses throughout the document are updated to match the
+assignment.
 
-- EXCHGID4_FLAG_USE_ERASURE_DS
+ | Flag Name                     | Value      | RFC      | Reference                                        |
+ |---
+ | EXCHGID4_FLAG_USE_ERASURE_DS  | 0x00100000 | RFCTBD10 | {{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}, this doc  |
+{: #tbl_exchgid_flags title="EXCHGID4 Flag Assignments"}
 
 This document registers the following in the "NFSv4.2 Attributes"
 registry established by {{RFC7862}}:

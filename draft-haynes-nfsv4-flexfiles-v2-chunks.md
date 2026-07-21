@@ -45,6 +45,48 @@ normative:
 informative:
   I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde:
   I-D.haynes-nfsv4-flexfiles-v2-mojette:
+  RFC1950:
+  RFC2083:
+  RFC3720:
+  RFC4960:
+  RFC5905:
+  FIPS-180-4:
+    title: Secure Hash Standard (SHS)
+    author:
+      - org: National Institute of Standards and Technology
+    date: August 2015
+    seriesinfo:
+      NIST: "FIPS PUB 180-4"
+    target: https://doi.org/10.6028/NIST.FIPS.180-4
+  BLAKE3-SPEC:
+    title: "BLAKE3: one function, fast everywhere"
+    author:
+      - name: J. O'Connor
+      - name: J.-P. Aumasson
+      - name: S. Neves
+      - name: Z. Wilcox-O'Hearn
+    date: January 2020
+    target: https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf
+  ITU-V42:
+    title: "Error-correcting Procedures for DCEs Using Asynchronous-to-Synchronous Conversion"
+    author:
+      - org: International Telecommunication Union
+    date: March 2002
+    seriesinfo:
+      ITU-T: "Recommendation V.42"
+  IEEE802-3:
+    title: "IEEE Standard for Ethernet"
+    author:
+      - org: IEEE
+    date: 2022
+    seriesinfo:
+      IEEE: "802.3-2022"
+  OPENZFS-FLETCHER4:
+    title: "OpenZFS On-Disk Format Specification, Section 2.2.4: Fletcher"
+    author:
+      - org: OpenZFS
+    target: https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Checksums.html
+    date: false
 
 --- abstract
 
@@ -441,12 +483,16 @@ erasure coding type.
 {: #fig-example-chunk-read-crc title="CRC32 on the Wire" }
 
 Assuming the CHUNK_READ results as in {{fig-example-chunk-read-crc}},
-the crc32 needs to be checked in order to ensure data integrity.
-Conceptually, a header and payload can be built as shown in
-{{fig-example-crc-checked}}.  The crc32 is calculated over the 4
-fields as shown in the header and the cr_chunk.  In this example,
-it is calculated to be 0x21de8.  Thus this payload for the data
-server has data integrity.
+the crc32 needs to be checked in order to detect accidental
+corruption.  Conceptually, a header and payload can be built as
+shown in {{fig-example-crc-checked}}.  The crc32 is calculated
+over the 4 fields as shown in the header and the cr_chunk.  In
+this example, it is calculated to be 0x21de8; because the
+calculated value matches the received cr_checksum, no
+accidental corruption was detected on this payload.  (Content
+authentication -- protection against adversarial modification --
+requires a keyed MAC or signature; see
+{{sec-security-checksum-scope}}.)
 
 ~~~
   +--------------------+
@@ -489,16 +535,26 @@ and MUST be handled as discussed there.  Once atomicity in the
 payload has been detected, the client can use those chunks as a
 basis for read/modify/update.
 
-CHUNK_WRITE is a two pass operation in cooperation with CHUNK_FINALIZE
-({{sec-CHUNK_FINALIZE}}) and CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
-It writes to the data file and the data server is responsible for
-retaining a copy of the old header and chunk. A subsequent CHUNK_READ
-would return the new chunk. However, until either the CHUNK_FINALIZE
-or CHUNK_ROLLBACK is presented, a subsequent CHUNK_WRITE MUST result
-in the locking of the chunk, as if a CHUNK_LOCK ({{sec-CHUNK_LOCK}})
-had been performed on the chunk. As such, further CHUNK_WRITES by
-any client MUST be denied until the chunk is unlocked by CHUNK_UNLOCK
-({{sec-CHUNK_UNLOCK}}).
+CHUNK_WRITE is a two-pass operation in cooperation with
+CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}) and CHUNK_ROLLBACK
+({{sec-CHUNK_ROLLBACK}}).  It writes new bytes into the chunk
+and transitions the chunk to the PENDING state; the data
+server is responsible for retaining the prior COMMITTED
+content until the chunk reaches its next stable state.  While
+a chunk is in PENDING or FINALIZED, a subsequent CHUNK_READ
+does NOT observe the new content (visibility rules of
+{{sec-system-model}} apply: PENDING and FINALIZED chunks are
+not globally visible; CHUNK_READ returns only COMMITTED
+content).
+
+Concurrent CHUNK_WRITE against a PENDING or FINALIZED chunk is
+regulated by chunk_guard4 ({{sec-chunk_guard4}}), not by an
+implicit lock.  A racing writer whose guard check fails
+receives NFS4ERR_CHUNK_GUARDED; an explicit CHUNK_LOCK
+({{sec-CHUNK_LOCK}}) holder is signaled by NFS4ERR_CHUNK_LOCKED.
+No implicit chunk-write lock is acquired by CHUNK_WRITE; the
+prior draft's "as if CHUNK_LOCK had been performed" language
+is not part of this specification.
 
 If the CHUNK_WRITE results in a atomic data block, then the
 client will send a CHUNK_FINALIZE in a subsequent compound to inform
@@ -2421,18 +2477,43 @@ Uniqueness contract:
 Deterministic tiebreaker for concurrent writers:
 :  When two or more clients race on the same chunk in the
    multi-writer mode, the client whose cg_client_id compares
-   numerically lowest wins the race.  A data server enforces this
-   by accepting the first CHUNK_WRITE whose guard check succeeds
-   and rejecting later writers with NFS4ERR_CHUNK_GUARDED; across
-   the mirror set, the subset of data servers on which each
-   client wins will vary, but the deterministic tiebreaker
-   ensures all clients agree on which client's write ultimately
-   becomes COMMITTED.  A client that lost the race on at least
-   one data server MUST re-read the chunk and MAY retry its write
-   with a refreshed cg_gen_id.  A client that detects no forward
-   progress after a bounded number of retries MUST escalate via
-   LAYOUTERROR and the repair coordination flow in
-   {{sec-repair-selection}}.
+   numerically lowest MUST ultimately be the one whose write
+   reaches COMMITTED on the affected data servers.  The rule is
+   enforced in two stages:
+
+    - **At CHUNK_WRITE** (per data server, arrival-order): a
+      data server accepts the first CHUNK_WRITE whose
+      chunk_guard4 CAS check succeeds against its current
+      chunk_guard4 value.  Later writers whose CAS fails receive
+      NFS4ERR_CHUNK_GUARDED.  Because arrival order can differ
+      between data servers, different subsets of the mirror set
+      may accept different clients' writes in this stage; that
+      is expected transient divergence, not a violation of the
+      tiebreaker rule.
+
+    - **At CHUNK_FINALIZE** (numeric comparison, mirror-set
+      convergence): CHUNK_FINALIZE against a chunk whose current
+      PENDING write is owned by cg_client_id C_current MUST
+      compare the caller's cg_client_id C_caller numerically
+      against C_current.  If C_caller < C_current, the data
+      server accepts the FINALIZE against the caller's PENDING
+      write and discards the higher-numbered writer's
+      state.  If C_caller > C_current, the data server rejects
+      the FINALIZE with NFS4ERR_CHUNK_GUARDED and the caller's
+      client MUST re-read the chunk.  If C_caller == C_current
+      (same client re-finalizing its own write), FINALIZE
+      proceeds normally.  This is where the "lowest cg_client_id
+      wins" invariant is enforced globally: after every affected
+      data server has processed each racing client's FINALIZE
+      attempt, the mirror set converges on the numerically
+      lowest cg_client_id's write.
+
+   A client that observes NFS4ERR_CHUNK_GUARDED on either
+   CHUNK_WRITE or CHUNK_FINALIZE MUST re-read the chunk and MAY
+   retry its write with a refreshed cg_gen_id.  A client that
+   detects no forward progress after a bounded number of retries
+   MUST escalate via LAYOUTERROR and the repair coordination
+   flow in {{sec-repair-selection}}.
 
 The numeric ordering of cg_client_id values is arbitrary with
 respect to the clients' external identities -- it is a
@@ -2583,7 +2664,7 @@ across all data files that a chunk corresponds.
    ///
    /// struct checksum4 {
    ///     checksum_algorithm4   cs_algorithm;
-   ///     opaque                cs_value<>;
+   ///     opaque                cs_value<64>;
    /// };
 ~~~
 {: #fig-checksum4 title="XDR for checksum4" }
@@ -5266,11 +5347,23 @@ ccra_deadline:
    by which the client is expected to have driven every
    range to completion (CHUNK_REPAIRED on the
    reconstruction path, or CHUNK_UNLOCK on the rollback
-   path).  Missing the deadline does not corrupt state --
-   the metadata server MAY re-select another repair
-   client after the deadline elapses -- but a client that
-   has missed the deadline MUST re-verify its layout and
-   the chunk lock state before continuing any
+   path).  The wall-clock representation assumes the
+   metadata server and the repair client maintain clock
+   synchronization within one metadata-server lease period
+   (via NTP {{RFC5905}} or an equivalent mechanism);
+   deployments unable to guarantee sub-lease-period
+   synchronization SHOULD extend the ccra_deadline budget
+   to accommodate the worst-case skew (concretely, set
+   `ccra_deadline` to at least
+   `current-wall-clock + deadline-budget + expected-skew`).
+   Under clock skew, missing the deadline is not
+   safety-critical because state cannot be corrupted, but
+   spurious deadline expiry SHOULD be avoided by the
+   budget above.  Missing the deadline does not corrupt
+   state -- the metadata server MAY re-select another
+   repair client after the deadline elapses -- but a
+   client that has missed the deadline MUST re-verify its
+   layout and the chunk lock state before continuing any
    repair-related CHUNK_* operation.
 
 ccra_reason:
@@ -5682,29 +5775,67 @@ on transport-layer integrity (RPC-over-TLS, RPCSEC_GSS_KRB5I)
 or storage-layer integrity instead; see
 {{sec-security-checksum-scope}}.
 
-CHECKSUM_ALG_CRC32 (value 1) is the CRC32 algorithm used
-in this draft's predecessor revisions.  It is registered
-for backward conceptual compatibility; deployments
-SHOULD prefer CHECKSUM_ALG_CRC32C for new files since
-CRC32C is hardware-accelerated on every modern CPU.
+CHECKSUM_ALG_CRC32 (value 1) is the CRC-32 algorithm
+specified in {{ITU-V42}} Section 8.1.1.6.2 (the same CRC
+used in Ethernet {{IEEE802-3}} Section 3.2.9, PNG
+{{RFC2083}} Annex D, and zlib {{RFC1950}}).  Concrete
+parameters, which two independent implementations MUST
+agree on to interoperate: generator polynomial
+`0x04C11DB7` (equivalently, the reflected form
+`0xEDB88320`); initial register value `0xFFFFFFFF`; final
+XOR value `0xFFFFFFFF`; input reflected; output reflected;
+covered bytes are the shard payload in transmission order
+(no length or type prefix).  The 4-byte `cs_value` carries
+the CRC as a big-endian integer.  Deployments SHOULD
+prefer CHECKSUM_ALG_CRC32C for new files since CRC32C is
+hardware-accelerated on every modern CPU.
 
-CHECKSUM_ALG_CRC32C (value 2) is the CRC32 with the
-Castagnoli polynomial (0x1EDC6F41), as used in iSCSI,
-SCTP, and the SSE4.2 / ARMv8 / RISC-V hardware-acceleration
-instructions.
+CHECKSUM_ALG_CRC32C (value 2) is the CRC-32 with the
+Castagnoli polynomial specified in {{RFC3720}} Section
+12.1 and adopted by {{RFC4960}} Section 6.4 (SCTP), and
+also as the SSE4.2 / ARMv8 / RISC-V CRC-32C
+hardware-acceleration instructions.  Concrete parameters:
+generator polynomial `0x1EDC6F41` (equivalently, the
+reflected form `0x82F63B78`); initial register value
+`0xFFFFFFFF`; final XOR value `0xFFFFFFFF`; input
+reflected; output reflected; covered bytes are the shard
+payload in transmission order.  The 4-byte `cs_value`
+carries the CRC as a big-endian integer.
 
-CHECKSUM_ALG_FLETCHER4 (value 3) is the Fletcher's
-checksum variant used in ZFS, comprising four 64-bit
-accumulators concatenated to produce a 32-byte output.
-Other Fletcher4 implementations that truncate to a
-shorter output register separately.
+CHECKSUM_ALG_FLETCHER4 (value 3) is the ZFS Fletcher4
+variant as documented in the OpenZFS on-disk format
+specification {{OPENZFS-FLETCHER4}}.  Concrete parameters:
+input is processed as a sequence of little-endian 32-bit
+words (the shard payload MUST be a multiple of 4 bytes;
+implementations that need to checksum non-multiple-of-4
+payloads pad with zero bytes and register the padded
+variant separately); the four 64-bit accumulators `A`,
+`B`, `C`, `D` are updated per word `wi` as
+`A += wi; B += A; C += B; D += C` with 64-bit unsigned
+wrap-around; the 32-byte `cs_value` is the concatenation
+`A || B || C || D` with each accumulator serialized in
+big-endian byte order.  Other Fletcher4 implementations
+(different word width, different endianness, truncated
+output) register separately.
 
-CHECKSUM_ALG_SHA256 (value 4), CHECKSUM_ALG_SHA512 (value
-5), and CHECKSUM_ALG_BLAKE3 (value 6) are cryptographic
-hashes with standard outputs at the lengths listed.
-BLAKE3 is registered at its standard 32-byte output;
-extended-output BLAKE3 (the algorithm's XOF mode at other
-lengths) registers separately.
+CHECKSUM_ALG_SHA256 (value 4) and CHECKSUM_ALG_SHA512
+(value 5) are the SHA-256 and SHA-512 hash algorithms
+specified in {{FIPS-180-4}}, with output byte lengths 32
+and 64 respectively.  The `cs_value` carries the hash
+output in the byte order defined by {{FIPS-180-4}} Section
+3.1 (most-significant word first, each word serialized
+big-endian).  Covered bytes are the shard payload in
+transmission order.
+
+CHECKSUM_ALG_BLAKE3 (value 6) is the BLAKE3 hash algorithm
+specified in {{BLAKE3-SPEC}} at its standard 32-byte
+output length (BLAKE3 in its default mode, no keyed hash,
+no key-derivation context, no XOF output at other
+lengths).  Extended-output BLAKE3, keyed BLAKE3, and the
+key-derivation mode register as separate algorithms.
+Covered bytes are the shard payload in transmission order;
+`cs_value` is the 32-byte hash output in the byte order
+defined by {{BLAKE3-SPEC}} Section 2.4.
 
 A checksum4 whose cs_value length does not match the
 registered cs_value bytes for its cs_algorithm MUST be

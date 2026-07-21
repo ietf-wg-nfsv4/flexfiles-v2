@@ -768,7 +768,7 @@ At 8+2, systematic-encoding reconstruction diverges:
 :  Mojette
    systematic reconstruction overhead stays at approximately +4% at
    1 MB, while Reed-Solomon grows to approximately +54% due to the
-   O(k^2) cost of inverting a k x k matrix in GF(2^8).  Mojette
+   O(k^3) cost of inverting a k x k matrix in GF(2^8).  Mojette
    systematic's back-projection algorithm scales with m (parity
    count) rather than k (data count), so its reconstruction
    overhead does not exhibit the same growth at wider geometries.
@@ -797,7 +797,7 @@ complexities.
 The benchmarks quantify the algorithmic trade-offs each encoding
 family makes: Mojette non-systematic's constant decode cost comes
 at a higher baseline read cost, and Reed-Solomon's matrix-
-inversion reconstruction grows as O(k^2) at wider geometries.
+inversion reconstruction grows as O(k^3) at wider geometries.
 The choice of default encoding and geometry in a given deployment
 follows from these properties applied to the workload's read /
 write mix, fault-tolerance target, and acceptable encoding cost.

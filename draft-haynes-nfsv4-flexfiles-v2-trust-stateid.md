@@ -35,6 +35,7 @@ normative:
 
 informative:
   RFC4519:
+  RFC5905:
   I-D.haynes-nfsv4-flexfiles-v2-chunks:
   I-D.haynes-nfsv4-flexfiles-v2-proxy-server:
   RFC8435:
@@ -853,6 +854,24 @@ tsa_expire in a TRUST_STATEID request is a wall-clock expiry
 instant expressed as an nfstime4.  The metadata server MUST set
 tsa_expire to the current wall-clock time plus the metadata
 server's client lease period.
+
+Clock-synchronization assumption: the metadata server and each
+storage device MUST maintain wall-clock synchronization within
+one lease period, e.g., via NTP {{RFC5905}} or an equivalent
+mechanism.  Under this assumption, a tsa_expire computed by the
+metadata server and evaluated by the storage device is
+interpreted consistently within the storage device's local
+clock.  Deployments unable to guarantee sub-lease-period clock
+synchronization MUST either (a) shorten the effective TRUST_STATEID
+lease so it exceeds the worst-case skew by at least 2x, or (b)
+use the metadata-server-inband fallback path (no tight-coupling
+control session, no TRUST_STATEID) so lease enforcement stays
+on the metadata server's clock alone.  A storage device that
+detects sustained clock divergence from the metadata server
+(e.g., via periodic wall-clock exchange as part of its
+tight-coupling control-session heartbeats) SHOULD log the
+divergence and MAY refuse further TRUST_STATEID entries with
+NFS4ERR_DELAY until the divergence is corrected.
 
 The metadata server MUST re-issue TRUST_STATEID for an entry
 before tsa_expire while the corresponding layout is outstanding.
