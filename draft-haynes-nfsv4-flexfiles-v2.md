@@ -50,9 +50,50 @@ informative:
       - org: IANA
     date: false
   RFC1813:
+  RFC1950:
+  RFC2083:
+  RFC3720:
   RFC4519:
+  RFC4960:
   RFC7942:
   RFC8126:
+  FIPS-180-4:
+    title: Secure Hash Standard (SHS)
+    author:
+      - org: National Institute of Standards and Technology
+    date: August 2015
+    seriesinfo:
+      NIST: "FIPS PUB 180-4"
+    target: https://doi.org/10.6028/NIST.FIPS.180-4
+  BLAKE3-SPEC:
+    title: "BLAKE3: one function, fast everywhere"
+    author:
+      - name: J. O'Connor
+      - name: J.-P. Aumasson
+      - name: S. Neves
+      - name: Z. Wilcox-O'Hearn
+    date: January 2020
+    target: https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf
+  ITU-V42:
+    title: "Error-correcting Procedures for DCEs Using Asynchronous-to-Synchronous Conversion"
+    author:
+      - org: International Telecommunication Union
+    date: March 2002
+    seriesinfo:
+      ITU-T: "Recommendation V.42"
+  IEEE802-3:
+    title: "IEEE Standard for Ethernet"
+    author:
+      - org: IEEE
+    date: 2022
+    seriesinfo:
+      IEEE: "802.3-2022"
+  OPENZFS-FLETCHER4:
+    title: "OpenZFS On-Disk Format Specification, Section 2.2.4: Fletcher"
+    author:
+      - org: OpenZFS
+    target: https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Checksums.html
+    date: false
   PARREIN:
     title: "Multiple Description Coding Using Exact Discrete Radon Transform"
     author:
@@ -2203,6 +2244,41 @@ proxy-mediated.
 The ffv2_data_server4 (in {{fig-ffv2_data_server4}}) describes a data
 file and how to access it via the different NFS protocols.
 
+## ffv2_data_protection4
+
+~~~ xdr
+   /// struct ffv2_data_protection4 {
+   ///     uint32_t fdp_data;    /* data shards (k) */
+   ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
+   /// };
+~~~
+{: #fig-ffv2_data_protection4 title="The ffv2_data_protection4" }
+
+The ffv2_data_protection4 (in {{fig-ffv2_data_protection4}}) describes
+the data protection geometry as a pair of counts: the number of data
+shards (fdp_data, also known as k) and the number of parity or
+redundancy shards (fdp_parity, also known as m).  This structure is
+used in both layout hints and layout responses, and applies
+uniformly to all coding types:
+
+| Protection Mode | fdp_data | fdp_parity | Total DSes | Description |
+|---
+| Mirroring (3-way) | 1 | 2 | 3 | 3 copies, no encoding |
+| Striping (6-way) | 6 | 0 | 6 | Parallel I/O, no redundancy |
+| RS Vandermonde 4+2 | 4 | 2 | 6 | Tolerates 2 DS failures |
+| Mojette-sys 8+2 | 8 | 2 | 10 | Tolerates 2 DS failures |
+{: #fig-protection-examples title="Example data protection configurations" }
+
+By expressing all protection modes as (fdp_data, fdp_parity) pairs,
+a single structure serves mirroring, striping, and all erasure
+coding types.  The coding type ({{fig-ffv2_coding_type4}}) determines
+how the shards are encoded; the protection structure determines
+how many shards there are.
+
+The total number of data servers required is fdp_data + fdp_parity.
+The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
+25% for 8+2).
+
 ## ffv2_coding_type_data4
 
 ~~~ xdr
@@ -2447,41 +2523,6 @@ server.  And for the erasure-coded encoding types, each of the
 stripes describes a set of data servers to which the shards are
 distributed.  Further, the payload length can be different per
 stripe.
-
-## ffv2_data_protection4
-
-~~~ xdr
-   /// struct ffv2_data_protection4 {
-   ///     uint32_t fdp_data;    /* data shards (k) */
-   ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
-   /// };
-~~~
-{: #fig-ffv2_data_protection4 title="The ffv2_data_protection4" }
-
-The ffv2_data_protection4 (in {{fig-ffv2_data_protection4}}) describes
-the data protection geometry as a pair of counts: the number of data
-shards (fdp_data, also known as k) and the number of parity or
-redundancy shards (fdp_parity, also known as m).  This structure is
-used in both layout hints and layout responses, and applies
-uniformly to all coding types:
-
-| Protection Mode | fdp_data | fdp_parity | Total DSes | Description |
-|---
-| Mirroring (3-way) | 1 | 2 | 3 | 3 copies, no encoding |
-| Striping (6-way) | 6 | 0 | 6 | Parallel I/O, no redundancy |
-| RS Vandermonde 4+2 | 4 | 2 | 6 | Tolerates 2 DS failures |
-| Mojette-sys 8+2 | 8 | 2 | 10 | Tolerates 2 DS failures |
-{: #fig-protection-examples title="Example data protection configurations" }
-
-By expressing all protection modes as (fdp_data, fdp_parity) pairs,
-a single structure serves mirroring, striping, and all erasure
-coding types.  The coding type ({{fig-ffv2_coding_type4}}) determines
-how the shards are encoded; the protection structure determines
-how many shards there are.
-
-The total number of data servers required is fdp_data + fdp_parity.
-The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
-25% for 8+2).
 
 ## ffv2_layouthint4 {#sec-ffv2-layouthint}
 
@@ -10322,29 +10363,67 @@ on transport-layer integrity (RPC-over-TLS, RPCSEC_GSS_KRB5I)
 or storage-layer integrity instead; see
 {{sec-security-checksum-scope}}.
 
-CHECKSUM_ALG_CRC32 (value 1) is the CRC32 algorithm used
-in this draft's predecessor revisions.  It is registered
-for backward conceptual compatibility; deployments
-SHOULD prefer CHECKSUM_ALG_CRC32C for new files since
-CRC32C is hardware-accelerated on every modern CPU.
+CHECKSUM_ALG_CRC32 (value 1) is the CRC-32 algorithm
+specified in {{ITU-V42}} Section 8.1.1.6.2 (the same CRC
+used in Ethernet {{IEEE802-3}} Section 3.2.9, PNG
+{{RFC2083}} Annex D, and zlib {{RFC1950}}).  Concrete
+parameters, which two independent implementations MUST
+agree on to interoperate: generator polynomial
+`0x04C11DB7` (equivalently, the reflected form
+`0xEDB88320`); initial register value `0xFFFFFFFF`; final
+XOR value `0xFFFFFFFF`; input reflected; output reflected;
+covered bytes are the shard payload in transmission order
+(no length or type prefix).  The 4-byte `cs_value` carries
+the CRC as a big-endian integer.  Deployments SHOULD
+prefer CHECKSUM_ALG_CRC32C for new files since CRC32C is
+hardware-accelerated on every modern CPU.
 
-CHECKSUM_ALG_CRC32C (value 2) is the CRC32 with the
-Castagnoli polynomial (0x1EDC6F41), as used in iSCSI,
-SCTP, and the SSE4.2 / ARMv8 / RISC-V hardware-acceleration
-instructions.
+CHECKSUM_ALG_CRC32C (value 2) is the CRC-32 with the
+Castagnoli polynomial specified in {{RFC3720}} Section
+12.1 and adopted by {{RFC4960}} Section 6.4 (SCTP), and
+also as the SSE4.2 / ARMv8 / RISC-V CRC-32C
+hardware-acceleration instructions.  Concrete parameters:
+generator polynomial `0x1EDC6F41` (equivalently, the
+reflected form `0x82F63B78`); initial register value
+`0xFFFFFFFF`; final XOR value `0xFFFFFFFF`; input
+reflected; output reflected; covered bytes are the shard
+payload in transmission order.  The 4-byte `cs_value`
+carries the CRC as a big-endian integer.
 
-CHECKSUM_ALG_FLETCHER4 (value 3) is the Fletcher's
-checksum variant used in ZFS, comprising four 64-bit
-accumulators concatenated to produce a 32-byte output.
-Other Fletcher4 implementations that truncate to a
-shorter output register separately.
+CHECKSUM_ALG_FLETCHER4 (value 3) is the ZFS Fletcher4
+variant as documented in the OpenZFS on-disk format
+specification {{OPENZFS-FLETCHER4}}.  Concrete parameters:
+input is processed as a sequence of little-endian 32-bit
+words (the shard payload MUST be a multiple of 4 bytes;
+implementations that need to checksum non-multiple-of-4
+payloads pad with zero bytes and register the padded
+variant separately); the four 64-bit accumulators `A`,
+`B`, `C`, `D` are updated per word `wi` as
+`A += wi; B += A; C += B; D += C` with 64-bit unsigned
+wrap-around; the 32-byte `cs_value` is the concatenation
+`A || B || C || D` with each accumulator serialized in
+big-endian byte order.  Other Fletcher4 implementations
+(different word width, different endianness, truncated
+output) register separately.
 
-CHECKSUM_ALG_SHA256 (value 4), CHECKSUM_ALG_SHA512 (value
-5), and CHECKSUM_ALG_BLAKE3 (value 6) are cryptographic
-hashes with standard outputs at the lengths listed.
-BLAKE3 is registered at its standard 32-byte output;
-extended-output BLAKE3 (the algorithm's XOF mode at other
-lengths) registers separately.
+CHECKSUM_ALG_SHA256 (value 4) and CHECKSUM_ALG_SHA512
+(value 5) are the SHA-256 and SHA-512 hash algorithms
+specified in {{FIPS-180-4}}, with output byte lengths 32
+and 64 respectively.  The `cs_value` carries the hash
+output in the byte order defined by {{FIPS-180-4}} Section
+3.1 (most-significant word first, each word serialized
+big-endian).  Covered bytes are the shard payload in
+transmission order.
+
+CHECKSUM_ALG_BLAKE3 (value 6) is the BLAKE3 hash algorithm
+specified in {{BLAKE3-SPEC}} at its standard 32-byte
+output length (BLAKE3 in its default mode, no keyed hash,
+no key-derivation context, no XOF output at other
+lengths).  Extended-output BLAKE3, keyed BLAKE3, and the
+key-derivation mode register as separate algorithms.
+Covered bytes are the shard payload in transmission order;
+`cs_value` is the 32-byte hash output in the byte order
+defined by {{BLAKE3-SPEC}} Section 2.4.
 
 A checksum4 whose cs_value length does not match the
 registered cs_value bytes for its cs_algorithm MUST be
