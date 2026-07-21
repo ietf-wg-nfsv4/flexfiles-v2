@@ -1036,6 +1036,44 @@ Mixed:
 
 # New NFSv4.2 Trust-Stateid Operations
 
+## Operation Numbers and XDR Amendments
+
+This document defines three new NFSv4.2 operations, opnums 89 through 91.
+
+~~~ xdr
+   /// /* MDS-to-DS control-plane operations for tight coupling */
+   ///
+   ///  OP_TRUST_STATEID       = 89,
+   ///  OP_REVOKE_STATEID      = 90,
+   ///  OP_BULK_REVOKE_STATEID = 91,
+~~~
+{: title="Trust-stateid opnum XDR (CHUNK_* opnums 78-88 live in [I-D.haynes-nfsv4-flexfiles-v2-chunks])"}
+
+~~~ xdr
+   /// /* nfs_argop4 amendment block (trust-stateid arms) */
+   ///
+   /// case OP_TRUST_STATEID: TRUST_STATEID4args optruststateid;
+   /// case OP_REVOKE_STATEID: REVOKE_STATEID4args oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:
+   ///     BULK_REVOKE_STATEID4args opbulkrevokestateid;
+~~~
+{: title="nfs_argop4 amendment (trust-stateid arms only; CHUNK arms live in [I-D.haynes-nfsv4-flexfiles-v2-chunks])"}
+
+~~~ xdr
+   /// /* nfs_resop4 amendment block (trust-stateid arms) */
+   ///
+   /// case OP_TRUST_STATEID: TRUST_STATEID4res optruststateid;
+   /// case OP_REVOKE_STATEID: REVOKE_STATEID4res oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:
+   ///     BULK_REVOKE_STATEID4res opbulkrevokestateid;
+~~~
+{: title="nfs_resop4 amendment (trust-stateid arms only)"}
+
+TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID are
+sent by the metadata server to storage devices on the MDS-to-DS
+control session (see {{sec-tight-coupling-control}}); they
+MUST NOT be sent by pNFS clients.
+
 ## Operation 89: TRUST_STATEID - Register Layout Stateid on Data Server {#sec-TRUST_STATEID}
 
 ### ARGUMENTS

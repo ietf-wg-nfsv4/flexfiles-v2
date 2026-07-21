@@ -815,6 +815,11 @@ ffv2s_data_servers.
 ## ffv2_mirror4 {#sec-ffv2-mirror4}
 
 ~~~ xdr
+   /// /* Shadow typedef; canonical definition and semantics live
+   ///  * in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.  Duplicated
+   ///  * here so this document's XDR extract is self-contained. */
+   /// typedef uint32_t   checksum_algorithm4;
+   ///
    /// struct ffv2_mirror4 {
    ///         ffv2_coding_type_data4  ffv2m_coding_type_data;
    ///         ffv2_striping           ffv2m_striping;

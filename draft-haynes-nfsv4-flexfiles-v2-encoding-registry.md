@@ -35,6 +35,7 @@ informative:
     author:
       - org: IANA
     date: false
+  I-D.haynes-nfsv4-flexfiles-v2-layout:
   I-D.haynes-nfsv4-flexfiles-v2-proxy-server:
   I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde:
   I-D.haynes-nfsv4-flexfiles-v2-mojette:
@@ -282,7 +283,7 @@ companion documents:
 
 - FFV2_ENCODING_PASSTHROUGH (value 1) and
   FFV2_ENCODING_MIRRORED (value 5): registered by
-  {{I-D.haynes-nfsv4-flexfiles-v2-requirements}}.
+  {{I-D.haynes-nfsv4-flexfiles-v2-layout}}.
 - FFV2_ENCODING_MOJETTE_SYSTEMATIC (value 2) and
   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC (value 3): registered
   by {{I-D.haynes-nfsv4-flexfiles-v2-mojette}}.

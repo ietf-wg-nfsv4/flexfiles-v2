@@ -347,7 +347,7 @@ checksum (per-chunk integrity), a provenance identifier
 (PENDING / FINALIZED / COMMITTED via the chunk state machine,
 see {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}), and per-chunk locking that
 survives stateid revocation through lock escrow.  A chunk is the
-addressable unit named in the CHUNK_* operations defined in this
+addressable unit named in the CHUNK_* operations defined in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}
 document and durably persisted by a data server.  A chunk's
 payload may be a block (mirrored layout) or a shard
 (erasure-coded layout); the wire protocol does not distinguish.
@@ -593,20 +593,20 @@ tight coupling:
 specifically for control communication.  It may be either a proprietary
 protocol adapted specifically to a particular metadata server or a
 protocol based on a Standards Track document.  The specific
-tight-coupling variant defined by this document, in which the
+tight-coupling variant defined by {{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}, in which the
 control protocol is the TRUST_STATEID family, is referred to as
 trusted-stateid tight coupling (see {{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}).
 
 trusted-stateid tight coupling:
 
-:  the specific tight-coupling control protocol defined in this
-document, consisting of the operations TRUST_STATEID, REVOKE_STATEID,
-and BULK_REVOKE_STATEID.  Within the scope of this document,
+:  the specific tight-coupling control protocol defined in
+{{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}, consisting of the operations TRUST_STATEID, REVOKE_STATEID,
+and BULK_REVOKE_STATEID.  Within the FFv2 family,
 unqualified references to "tight coupling" or "tightly coupled" refer
 to trusted-stateid tight coupling unless the context explicitly
 discusses the general concept.  Other tight-coupling control
 protocols (proprietary or future Standards Track) may exist but
-are not covered by this specification.
+are not covered by this family.
 
 uid:
 
@@ -908,7 +908,7 @@ structured fields through an opaque type bypasses XDR's
 self-description -- was the deeper reason the working group
 declined the approach.  Once the design accepted that data
 servers in a flexible file v2 layout deployment would speak
-NFSv4.2 (with new ops in this document), the constraint that
+NFSv4.2 (with new ops in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}} and {{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}), the constraint that
 forced the smuggling disappeared: chunk metadata could be
 expressed as proper XDR fields in CHUNK_WRITE / CHUNK_READ /
 chunk_guard4, visible to every observer of the wire.

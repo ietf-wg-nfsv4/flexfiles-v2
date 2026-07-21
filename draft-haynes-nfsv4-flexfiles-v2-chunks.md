@@ -2303,10 +2303,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
  | CHUNK_UNLOCK       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_WRITE        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_GUARDED, NFS4ERR_CHUNK_LOCKED, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_WRITE_REPAIR | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | TRUST_STATEID      | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
- | REVOKE_STATEID     | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
- | BULK_REVOKE_STATEID| NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
-{: #tbl-ops-and-errors title="Operations and Their Valid Errors"}
+{: #tbl-ops-and-errors title="Operations and Their Valid Errors (CHUNK_* only; TRUST/REVOKE/BULK_REVOKE errors live in [I-D.haynes-nfsv4-flexfiles-v2-trust-stateid])"}
 
 ## Callback Operations and Their Valid Errors
 
@@ -2658,14 +2655,13 @@ different algorithm.
    ///  OP_CHUNK_WRITE         = 87,
    ///  OP_CHUNK_WRITE_REPAIR  = 88,
    ///
-   /// /* MDS-to-DS control-plane operations for tight coupling */
-   ///
-   ///  OP_TRUST_STATEID       = 89,
-   ///  OP_REVOKE_STATEID      = 90,
-   ///  OP_BULK_REVOKE_STATEID = 91,
-   ///
 ~~~
 {: #fig-ops-xdr title="Operations XDR" }
+
+Note: opnum entries for the tight-coupling control-plane
+operations (`OP_TRUST_STATEID = 89`, `OP_REVOKE_STATEID = 90`,
+`OP_BULK_REVOKE_STATEID = 91`) live in
+{{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}.
 
 The following amendment blocks extend the nfs_argop4 and
 nfs_resop4 dispatch unions defined in {{RFC7863}} with arms for
@@ -2689,12 +2685,8 @@ XDR applies these amendments at the union's extension point.
    /// case OP_CHUNK_WRITE: CHUNK_WRITE4args opchunkwrite;
    /// case OP_CHUNK_WRITE_REPAIR:
    ///     CHUNK_WRITE_REPAIR4args opchunkwriterepair;
-   /// case OP_TRUST_STATEID: TRUST_STATEID4args optruststateid;
-   /// case OP_REVOKE_STATEID: REVOKE_STATEID4args oprevokestateid;
-   /// case OP_BULK_REVOKE_STATEID:
-   ///     BULK_REVOKE_STATEID4args opbulkrevokestateid;
 ~~~
-{: #fig-nfs_argop4-amend title="nfs_argop4 amendment block"}
+{: #fig-nfs_argop4-amend title="nfs_argop4 amendment block (CHUNK operations only; TRUST/REVOKE/BULK_REVOKE amendment arms live in [I-D.haynes-nfsv4-flexfiles-v2-trust-stateid])"}
 
 ~~~ xdr
    /// /* nfs_resop4 amendment block */
@@ -2712,20 +2704,15 @@ XDR applies these amendments at the union's extension point.
    /// case OP_CHUNK_WRITE: CHUNK_WRITE4res opchunkwrite;
    /// case OP_CHUNK_WRITE_REPAIR:
    ///     CHUNK_WRITE_REPAIR4res opchunkwriterepair;
-   /// case OP_TRUST_STATEID: TRUST_STATEID4res optruststateid;
-   /// case OP_REVOKE_STATEID: REVOKE_STATEID4res oprevokestateid;
-   /// case OP_BULK_REVOKE_STATEID:
-   ///     BULK_REVOKE_STATEID4res opbulkrevokestateid;
 ~~~
-{: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
+{: #fig-nfs_resop4-amend title="nfs_resop4 amendment block (CHUNK operations only; TRUST/REVOKE/BULK_REVOKE amendment arms live in [I-D.haynes-nfsv4-flexfiles-v2-trust-stateid])"}
 
 Operations 78 through 88 (the CHUNK_* operations) are sent by
-clients to storage devices on the data path.  Operations 89
-through 91 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
-are sent by the metadata server to storage devices on the
-MDS-to-DS control session (see
-{{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}); they MUST NOT be sent by
-pNFS clients.
+clients to storage devices on the data path.  The complementary
+MDS-to-DS control-plane operations (TRUST_STATEID,
+REVOKE_STATEID, BULK_REVOKE_STATEID; opnums 89-91) are
+specified in {{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}
+and MUST NOT be sent by pNFS clients.
 
 All CHUNK_* operations MUST be issued under an active flexible
 file v2 layout obtained via LAYOUTGET against the metadata
