@@ -267,7 +267,7 @@ elsewhere.  A server-side coordinator that holds the whole
 stripe -- the flexible file v1 case -- can resilver from a
 surviving copy without any client involvement.  In the v2
 case there is no such coordinator, and the on-wire
-protocol must specify how the partial state is reconciled.
+protocol specifies how the partial state is reconciled.
 This is the load-bearing constraint that shapes the rest
 of the design.
 
@@ -278,7 +278,7 @@ Distributed consensus is operationally expensive,
 introduces a synchronisation cost on every write, and
 makes the data servers themselves stateful peers in a way
 that closes off the simpler implementations the protocol
-should accommodate.  Instead, this draft uses two
+is designed to accommodate.  Instead, this draft uses two
 narrowly-scoped primitives that together provide just
 enough on-wire reconciliation: the chunk_guard4
 compare-and-swap (CAS) and the CB_CHUNK_REPAIR callback.
@@ -363,7 +363,7 @@ expose a POSIX file namespace satisfy the tight-coupling
 requirements without materialising POSIX uid/gid bits.
 
 A protocol-level consequence of placing erasure coding at
-the client is that the layout must be able to describe a
+the client is that the layout is able to describe a
 file's storage shape over its full lifetime -- including
 the transition windows when the file is being assimilated
 from a non-erasure-coded source, re-encoded from one
@@ -763,8 +763,8 @@ requirements on the client, the control protocol will need to provide:
 When implementing the loosely coupled model, the only control protocol
 will be a version of NFS, with no ability to provide a global stateid
 model or to prevent clients from using layouts inappropriately.  To enable
-client use in that environment, this document will specify how security,
-state, and locking are to be managed.
+client use in that environment, this document specifies how security,
+state, and locking are managed.
 
 The loosely and tightly coupled locking models defined in Section 2.3
 of {{RFC8435}} apply equally to this layout type, including the use of
@@ -2471,7 +2471,7 @@ striping or the ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
 then the length of ffv2m_stripes MUST be 1.  Under
 FFV2_ENCODING_MIRRORED the file MAY be striped within each
 replica; the constraint that ffv2s_data_servers length is 1
-still applies, but ffv2m_stripes may carry multiple stripes.
+still applies, but ffv2m_stripes can carry multiple stripes.
 
 ## ffv2_layout4
 
@@ -3351,7 +3351,7 @@ is in {{fig-example-chunk-write-args}}.
 
 This describes a 3 block write of data from an offset of 1 block
 in the file.  As each block shares the cwa_owner, it is only presented
-once.  I.e., the data server will be able to construct the header
+once.  The data server can construct the header
 for the i'th chunk from the cwa_chunks from the cwa_payload_id, the
 cwa_owner, and the i'th checksum from the cwa_checksums.  The cwa_chunks
 are sent together as a byte stream to increase performance.
