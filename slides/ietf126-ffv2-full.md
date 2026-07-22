@@ -13,7 +13,11 @@ style: |
   section.shrink85 pre code { font-size: inherit !important; }
   section.dense table { font-size: 0.72em; }
   section.tight { font-size: 21px; }
+  section.tight table { font-size: 0.78em; }
   section table { margin-inline: auto; }
+  section { justify-content: flex-start; }
+  section.big { justify-content: center; }
+  section:not(.big) > h1:first-child { margin-top: 0; margin-bottom: 0.6em; }
 ---
 
 <!-- _footer: "" -->
@@ -440,20 +444,32 @@ One `struct ec_encoding` interface; three encodings implemented and benchmarked:
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Translation costs 6-8x on writes.  ~530 ms floor is per-file
-     lifecycle - small-file workloads pay it per file.  This is the
-     QUANTIFIED price of compatibility AND the incentive for native
-     client-side EC. -->
-# **Measured cost of the translation path**
+     Two EC-doing paths on the SAME 3-host rig, RS 4+2.  Native
+     client-side EC via ec_demo is the intrinsic protocol cost of
+     client-side EC (k+m shard RPCs plus encode).  PS translation
+     is 3.3x native EC at 4 KB, 2.2x at 16 MB - the added cost of
+     routing through the PS for encoding-ignorant clients.  Both
+     pay a per-file lifecycle floor that dominates small sizes.
+     If asked about ec_demo tuning: shard-size scaled per payload
+     (~4 stripes/file); default 4 KB shards produce 6144 sequential
+     RPCs at 16 MB and are demo-only.  If asked why no MDS-inband
+     row: on this rig the MDS accepts ffv2 writes but stores them
+     MDS-local without doing EC - not a fair EC comparison. -->
+# Measured cost of the translation path
 
-(3-host bench, kernel client; full tables: backup):
+(3-host bench, RS 4+2; kernel client for PS row, `ec_demo` for native-EC row; full tables + read side: backup):
 
 | Path | 4 KB write | 16 MB write |
 |---|---:|---:|
-| MDS-inband (no client EC) | 70 ms | 284 ms |
+| **Native EC (`ec_demo`)** | **159 ms** | **784 ms** |
 | **Via PS (EC translation)** | **528 ms** | **1734 ms** |
 
-**The read:** translation costs 6&ndash;8x on writes, and the ~530 ms floor is **per-file lifecycle cost** &mdash; small-file workloads pay it per file.  MDS-inband is fast but serializes data through the MDS, giving up pNFS scaling.  **This is the quantified incentive for native client-side encoding support** &mdash; and the quantified price of compatibility until it exists.
+- PS translation adds **2&ndash;3x on top of native client-side EC**
+  - the price of routing through the PS for encoding-ignorant clients.
+  - The ~530 ms PS floor at small sizes is **per-file lifecycle cost**
+  - small-file workloads pay it per file.
+- **This is the quantified incentive for native client-side encoding support in kernel clients**
+  - the quantified price of compatibility until it exists.
 
 <!-- Presenter note: this reframing is deliberate. Tom's original framing
      ("proves server-side EC is costly") invites the counter "but the PS
@@ -537,7 +553,7 @@ The only implementation of FFv2 to date, in userspace, built to answer *"did the
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Seven documents, none over ~90 pages.  Doc 4 (chunk substrate) is
+     Seven documents; six are under 60 pages, chunks is 123 (marginally over the 120 target but coherent -- the chunk substrate is one thing).  Doc 4 (chunk substrate) is
      the anchor - ~4300 md lines of system model + chunk data
      structures + 11 CHUNK ops is where the page count lives.  Docs 6
      and 7 kept separate on purpose: encoding review goes where the
@@ -548,18 +564,18 @@ The only implementation of FFv2 to date, in userspace, built to answer *"did the
 <!-- _class: "tight dense" -->
 # Proposed multi-document breakdown
 
-| # | Document | Est. pages |
+| # | Document | Pages |
 |---|---|---:|
-| 1 | Requirements & rationale | ~17 |
-| 2 | Trusted-stateid control protocol | ~31 |
-| 3 | FFv2 layout type | ~60 |
-| 4 | **Chunk substrate & CHUNK operations** | **~90** |
-| 5 | Encoding framework & registry | ~8 |
-| 6 | RS-Vandermonde encoding | ~5 |
-| 7 | Mojette encoding | ~5 |
+| 1 | Requirements & rationale | 24 |
+| 2 | Trusted-stateid control protocol | 37 |
+| 3 | FFv2 layout type | 49 |
+| 4 | **Chunk substrate & CHUNK operations** | **123** |
+| 5 | Encoding framework & registry | 9 |
+| 6 | RS-Vandermonde encoding | 8 |
+| 7 | Mojette encoding | 9 |
 | 8 | Proxy Server (already split) | 62 |
 
-**Doc 4 is the anchor** &mdash; ~4300 md lines of chunk-substrate machinery is where the page count actually lives.  Extracting it drops Doc 3 (FFv2 layout) to ~60 pages.
+**Doc 4 is the anchor** &mdash; ~5800 md lines of chunk-substrate machinery is where the page count actually lives.  Extracting it drops Doc 3 (FFv2 layout) to 49 pages, well under the &le; 120 target.
 
 Docs 6 and 7 kept separate: encoding review goes where the expertise lives; any IPR clarification on a specific encoding does not block the others.
 
@@ -764,29 +780,32 @@ Median read, single client, 5 runs per cell:
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Full realnet numbers.  6-8x write penalty across every size.
-     Per-file floor at ~530 ms.  C variants within ~10% of each
-     other - DS fan-out count is in the noise on this topology. -->
+     Full realnet numbers.  6-8x write penalty for PS across every
+     size.  Native ec_demo sits between kernel MDS-inband and PS.
+     Per-file floor at ~530 ms for PS.  Kernel C variants within
+     ~10% of each other - DS fan-out count is in the noise on this
+     topology.  ec_demo shard-size scaled per payload (~4 stripes/
+     file); n=5 medians for E column. -->
 <!-- _class: "tight dense" -->
 # Backup: PS realnet tables (full)
 
-Write median (ms): Linux client &rarr; PS &rarr; MDS + 10 DSes
+Write median (ms): Linux client (or `ec_demo`) &rarr; PS/MDS &rarr; MDS + 10 DSes
 
-| Size | C-1DS | C-4mir | C-FFv2 | B (PS EC) | B vs C-1DS |
-|---|---:|---:|---:|---:|---:|
-| 4 KB | 70 | 64 | 66 | 528 | 8x |
-| 64 KB | 74 | 74 | 68 | 539 | 7x |
-| 1 MB | 93 | 85 | 82 | 600 | 6.5x |
-| 4 MB | 123 | 125 | 122 | 836 | 6.8x |
-| 16 MB | 284 | 269 | 277 | 1734 | 6x |
+| Size | C-1DS | C-4mir | C-FFv2 | **E (ec_demo)** | B (PS EC) | B vs C-1DS |
+|---|---:|---:|---:|---:|---:|---:|
+| 4 KB | 70 | 64 | 66 | **159** | 528 | 8x |
+| 64 KB | 74 | 74 | 68 | **201** | 539 | 7x |
+| 1 MB | 93 | 85 | 82 | **262** | 600 | 6.5x |
+| 4 MB | 123 | 125 | 122 | **382** | 836 | 6.8x |
+| 16 MB | 284 | 269 | 277 | **784** | 1734 | 6x |
 
 Read median (ms):
 
-| Size | C-1DS | B (PS EC) | ratio |
-|---|---:|---:|---:|
-| 4 KB | 42 | 165 | 4x |
-| 1 MB | 70 | 198 | 2.8x |
-| 16 MB | 309 | 476 | 1.5x |
+| Size | C-1DS | **E (ec_demo)** | B (PS EC) | B vs C-1DS |
+|---|---:|---:|---:|---:|
+| 4 KB | 42 | **114** | 165 | 4x |
+| 1 MB | 70 | **176** | 198 | 2.8x |
+| 16 MB | 309 | **490** | 476 | 1.5x |
 
 ---
 

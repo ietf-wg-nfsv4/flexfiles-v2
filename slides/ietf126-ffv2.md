@@ -15,6 +15,9 @@ style: |
   section.tight { font-size: 21px; }
   section.tight table { font-size: 0.78em; }
   section table { margin-inline: auto; }
+  section { justify-content: flex-start; }
+  section.big { justify-content: center; }
+  section:not(.big) > h1:first-child { margin-top: 0; margin-bottom: 0.6em; }
 ---
 
 <!-- _footer: "" -->
@@ -54,22 +57,6 @@ Tom Haynes &mdash; @@DATE@@
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Three ops replace v1's synthetic uid/gid fencing.  Every DS in a
-     layout holds an admission-table entry per stateid.  MDS remains
-     the single state authority; no consensus, no Distributed Lock
-     Manager (DLM). -->
-# Trust-stateid: the revoke-now mechanism
-
-| Op | When the MDS sends it | What it does |
-|---|---|---|
-| `TRUST_STATEID` | Layout issued to client | Push stateid to every DS in the layout *before* client I/O.  DS records it in an admission table; I/O with this stateid &rarr; accepted, any other &rarr; `NFS4ERR_BAD_STATEID`. |
-| `REVOKE_STATEID` | Layout returned, recalled, or reissued | Clear the stateid from each DS's table.  Next write from that client **fails closed**. |
-| `BULK_REVOKE_STATEID` | Client lease expires | One per affected DS; clears every entry for that client at once. |
-
----
-
-<!-- Slide role: CONTENT
-     Must-deliver:
      EC is an economics story before it's a math story.  PB archives,
      multi-rack, latency-sensitive reads - mirror can't pay for any of
      these at scale. -->
@@ -100,8 +87,24 @@ Tom Haynes &mdash; @@DATE@@
 - per-chunk linearizability on COMMITTED state
 - **no** multi-chunk atomicity (explicit non-goal)
 - O(1) round trips on the data path
-- no consensus rounds, no DLM
+- no consensus rounds, no Distributed Lock Management (DLM)
 - bounded repair termination.
+
+---
+
+<!-- Slide role: CONTENT
+     Must-deliver:
+     Three ops replace v1's synthetic uid/gid fencing.  Every DS in a
+     layout holds an admission-table entry per stateid.  MDS remains
+     the single state authority; no consensus, no Distributed Lock
+     Manager (DLM). -->
+# Trust-stateid: the revoke-now mechanism
+
+| Op | When the MDS sends it | What it does |
+|---|---|---|
+| `TRUST_STATEID` | Layout issued to client | Push stateid to every DS in the layout *before* client I/O.  DS records it in an admission table; I/O with this stateid &rarr; accepted, any other &rarr; `NFS4ERR_BAD_STATEID`. |
+| `REVOKE_STATEID` | Layout returned, recalled, or reissued | Clear the stateid from each DS's table.  Next write from that client **fails closed**. |
+| `BULK_REVOKE_STATEID` | Client lease expires | One per affected DS; clears every entry for that client at once. |
 
 ---
 
@@ -188,26 +191,32 @@ Median write, single client, 5 runs per cell *(full tables + read side: backup)*
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Translation costs 6-8x on writes.  ~530 ms floor is per-file
-     lifecycle - small-file workloads pay it per file.  This is the
-     QUANTIFIED price of compatibility AND the incentive for native
-     client-side EC. -->
-# **Measured cost of the translation path**
+     Two EC-doing paths on the SAME 3-host rig, RS 4+2.  Native
+     client-side EC via ec_demo is the intrinsic protocol cost of
+     client-side EC (k+m shard RPCs plus encode).  PS translation
+     is 3.3x native EC at 4 KB, 2.2x at 16 MB - the added cost of
+     routing through the PS for encoding-ignorant clients.  Both
+     pay a per-file lifecycle floor that dominates small sizes.
+     If asked about ec_demo tuning: shard-size scaled per payload
+     (~4 stripes/file); default 4 KB shards produce 6144 sequential
+     RPCs at 16 MB and are demo-only.  If asked why no MDS-inband
+     row: on this rig the MDS accepts ffv2 writes but stores them
+     MDS-local without doing EC - not a fair EC comparison. -->
+# Measured cost of the translation path
 
-(3-host bench, kernel client):
+(3-host bench, RS 4+2; kernel client for PS row, `ec_demo` for native-EC row):
 
 | Path | 4 KB write | 16 MB write |
 |---|---:|---:|
-| MDS-inband (no client EC) | 70 ms | 284 ms |
+| **Native EC (`ec_demo`)** | **159 ms** | **784 ms** |
 | **Via PS (EC translation)** | **528 ms** | **1734 ms** |
 
-**The read:** translation costs 6&ndash;8x on writes, and the ~530 ms floor is **per-file lifecycle cost** &mdash; small-file workloads pay it per file.  MDS-inband is fast but serializes data through the MDS, giving up pNFS scaling.  **This is the quantified incentive for native client-side encoding support** &mdash; and the quantified price of compatibility until it exists.
-
----
-
-<!-- Slide role: SEPARATOR (Implementation Status) -->
-<!-- _class: big -->
-# Implementation Status
+- PS translation adds **2&ndash;3x on top of native client-side EC**
+  - the price of routing through the PS for encoding-ignorant clients.
+  - The ~530 ms PS floor at small sizes is **per-file lifecycle cost**
+  - small-file workloads pay it per file.
+- **This is the quantified incentive for native client-side encoding support in kernel clients**
+  - the quantified price of compatibility until it exists.
 
 ---
 
@@ -234,7 +243,7 @@ The only implementation of FFv2 to date, in userspace, built to answer *"did the
 - **Shipped:** wire-level single-shard reconstruction (`CHUNK_WRITE_REPAIR` + `CHUNK_REPAIRED`, 80-cell bench)
 - **In progress:** PS-driven repair autopilot; cross-PS coherence for NFSv3 clients (known gap, fix shape documented)
 
-**What does not yet exist:** a kernel client; an implementation outside the reffs/ec_demo family.  We are explicit about this &mdash; it is one of the asks.
+**What does not yet exist:** a kernel client - we use the PS via NFSv3 if we need client semantics.
 
 ---
 
@@ -255,12 +264,6 @@ The only implementation of FFv2 to date, in userspace, built to answer *"did the
 
 ---
 
-<!-- Slide role: SEPARATOR (The structure question) -->
-<!-- _class: big -->
-# The structure question
-
----
-
 <!-- Slide role: CONTENT
      Must-deliver:
      216 pages is on the large side for IESG review; usual expectation
@@ -268,7 +271,7 @@ The only implementation of FFv2 to date, in userspace, built to answer *"did the
      non-published WG-concern sections.  PS is already split at 62
      pages.  This slide is the NUMERICAL case for going multi-doc -
      independent of any philosophical position on Option A vs B. -->
-# Page-count reality
+# The Structure Question: Page-count reality
 
 |  | Current | IESG-review target |
 |---|---:|---:|
@@ -279,7 +282,7 @@ The only implementation of FFv2 to date, in userspace, built to answer *"did the
 
 <!-- Slide role: CONTENT
      Must-deliver:
-     Seven documents, none over ~90 pages.  Doc 4 (chunk substrate) is
+     Seven documents; six are under 60 pages, chunks is 123 (marginally over the 120 target but coherent -- the chunk substrate is one thing).  Doc 4 (chunk substrate) is
      the anchor - ~4300 md lines of system model + chunk data
      structures + 11 CHUNK ops is where the page count lives.  Docs 6
      and 7 kept separate on purpose: encoding review goes where the
@@ -290,18 +293,18 @@ The only implementation of FFv2 to date, in userspace, built to answer *"did the
 <!-- _class: "tight dense" -->
 # Proposed multi-document breakdown
 
-| # | Document | Est. pages |
+| # | Document | Pages |
 |---|---|---:|
-| 1 | Requirements & rationale | ~17 |
-| 2 | Trusted-stateid control protocol | ~31 |
-| 3 | FFv2 layout type | ~60 |
-| 4 | **Chunk substrate & CHUNK operations** | **~90** |
-| 5 | Encoding framework & registry | ~8 |
-| 6 | RS-Vandermonde encoding | ~5 |
-| 7 | Mojette encoding | ~5 |
+| 1 | Requirements & rationale | 24 |
+| 2 | Trusted-stateid control protocol | 37 |
+| 3 | FFv2 layout type | 49 |
+| 4 | **Chunk substrate & CHUNK operations** | **123** |
+| 5 | Encoding framework & registry | 9 |
+| 6 | RS-Vandermonde encoding | 8 |
+| 7 | Mojette encoding | 9 |
 | 8 | Proxy Server (already split) | 62 |
 
-**Doc 4 is the anchor** &mdash; ~4300 md lines of chunk-substrate machinery is where the page count actually lives.  Extracting it drops Doc 3 (FFv2 layout) to ~60 pages.
+**Doc 4 is the anchor** &mdash; ~5800 md lines of chunk-substrate machinery is where the page count actually lives.  Extracting it drops Doc 3 (FFv2 layout) to 49 pages, well under the &le; 120 target.
 
 Docs 6 and 7 kept separate: encoding review goes where the expertise lives; any IPR clarification on a specific encoding does not block the others.
 
@@ -328,12 +331,6 @@ Docs 6 and 7 kept separate: encoding review goes where the expertise lives; any 
 
 ---
 
-<!-- Slide role: SEPARATOR (Adoption) -->
-<!-- _class: big -->
-# Call for Adoption
-
----
-
 <!-- Slide role: CONTENT
      Must-deliver:
      Side-by-side: what was missing at IETF 124, what is present at
@@ -342,7 +339,7 @@ Docs 6 and 7 kept separate: encoding review goes where the expertise lives; any 
      End with: IETF 122-124 comments addressed through -04..-06, and
      the concrete procedural ask (Call for Adoption at this meeting). -->
 <!-- _class: tight -->
-# Why now &mdash; what changed since IETF 124
+# Call for Adoption &mdash; what changed since IETF 124
 
 |  | IETF 124 | IETF 126 |
 |---|---|---|
