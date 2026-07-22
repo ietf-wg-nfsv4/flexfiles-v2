@@ -10385,7 +10385,9 @@ If N is odd (N = 2t + 1):
               IEEE Data Compression Conference (DCC), 2001.
 
    [Plank97]  Plank, J., "A Tutorial on Reed-Solomon Coding for Fault-
-              Tolerance in RAID-like System", September 1997.
+              Tolerance in RAID-like System", September 1997,
+              <http://web.eecs.utk.edu/~jplank/plank/papers/CS-
+              96-332.htm>.
 
    [RFC1813]  Callaghan, B., Pawlowski, B., and P. Staubach, "NFS
               Version 3 Protocol Specification", RFC 1813,
