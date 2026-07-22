@@ -274,7 +274,7 @@ V = [ [1, 1],    // row 0: (1^0, 1^1) = (1, 1)
       [1, 3] ]   // row 2: (3^0, 3^1) = (1, 3)
 ~~~
 
-Top k x k sub-matrix T = [[1, 1], [1, 2]] has determinant
+Top k x k sub-matrix `T = [[1, 1], [1, 2]]` has determinant
 `det(T) = 1*2 XOR 1*1 = 3` in GF(2^8).  The inverse of 3 in
 GF(2^8) with irreducible polynomial `0x11d` is
 `3^-1 = 0xF4` (verifiable: `(x+1) * (x^7+x^6+x^5+x^4+x^2) mod
