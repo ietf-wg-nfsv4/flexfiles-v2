@@ -13,6 +13,14 @@ keyword: Internet-Draft
 stand_alone: yes
 pi: [toc, sortrefs, symrefs, docmapping, comments]
 
+venue:
+  group: Network File System Version 4
+  type: Working Group
+  mail: nfsv4@ietf.org
+  arch: https://mailarchive.ietf.org/arch/browse/nfsv4/
+  github: ietf-wg-nfsv4/flexfiles-v2
+  latest: https://ietf-wg-nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2.html
+
 author:
  -
     ins: T. Haynes
@@ -134,14 +142,9 @@ erasure coding algorithms are used for data protection.
 
 --- note_Note_to_Readers
 
-Discussion of this draft takes place
-on the NFSv4 working group mailing list (nfsv4@ietf.org),
-which is archived at
-[](https://mailarchive.ietf.org/arch/search/?email_list=nfsv4). Source
-code and issues list for this draft can be found at
-[](https://github.com/ietf-wg-nfsv4/flexfiles-v2).
-
-Working Group information can be found at [](https://github.com/ietf-wg-nfsv4).
+This is an individual submission and does not reflect Working Group
+consensus.  The "About This Document" section above has the current
+discussion venue, latest rendering, and source location.
 
 --- middle
 
