@@ -47,6 +47,25 @@ informative:
   I-D.haynes-nfsv4-flexfiles-v2-proxy-server:
   I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde:
   I-D.haynes-nfsv4-flexfiles-v2-mojette:
+  SNAPRAID:
+    title: "SnapRAID -- backup program for disk arrays"
+    author:
+      - name: A. Mazzoleni
+    target: https://www.snapraid.it/
+    date: false
+  LINUX-RAID6:
+    title: "Linux kernel software RAID (md/raid6) -- lib/raid6"
+    author:
+      - name: H. P. Anvin
+      - org: Linux kernel contributors
+    target: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/raid6
+    date: false
+  ISA-L:
+    title: "Intel(R) Intelligent Storage Acceleration Library"
+    author:
+      - org: Intel Corporation
+    target: https://github.com/intel/isa-l
+    date: false
 
 --- abstract
 
@@ -366,11 +385,11 @@ including the top bit).  The generator is 2.
 
 **Matrix construction:** The encoding matrix is the Extended
 Cauchy construction as defined in the SnapRAID reference
-implementation (Andrea Mazzoleni, <https://www.snapraid.it>).
-The matrix's first two rows reproduce Linux md's P and Q
-parity coefficients byte-for-byte; rows 3 through 6 use
-SnapRAID-specific x_i / y_j point choices.  See the SnapRAID
-`raid.c` top-of-file theory comment for the full construction.
+implementation {{SNAPRAID}}.  The matrix's first two rows
+reproduce Linux md's P and Q parity coefficients
+byte-for-byte; rows 3 through 6 use SnapRAID-specific x_i /
+y_j point choices.  See the SnapRAID `raid.c` top-of-file
+theory comment for the full construction.
 
 **Encoding:** parity[i][b] = sum over j in [0, k) of
 matrix[i][j] * data[j][b], evaluated in GF(2^8), for every
@@ -389,7 +408,7 @@ byte-identical P and Q).  Diverges from ISA_L_RS at m>=3
 (different construction family) and from LINUX_MD_RAID at
 m>=3 (LINUX_MD_RAID does not support m>=3).
 
-**Reference implementation:** SnapRAID codebase
+**Reference implementation:** SnapRAID codebase {{SNAPRAID}}
 (GPL-3.0-or-later).
 
 ### FFV2_ENCODING_LINUX_MD_RAID {#sec-encoding-linux-md-raid-annex}
@@ -412,9 +431,9 @@ SNAPRAID_CAUCHY, ISA_L_RS, and RS_VANDERMONDE).
     Q[b] = sum over i in [0, k) of g^i * data[i][b],
 
 evaluated in GF(2^8) where g is the generator (2).  See the
-Linux kernel source at `lib/raid6/algos.c` and `lib/raid6/int.uc`
-(the unrolled generator template) for the reference
-implementation.
+Linux kernel `lib/raid6` sources {{LINUX-RAID6}} --
+specifically `algos.c` and `int.uc` (the unrolled generator
+template) -- for the reference implementation.
 
 **Recovery:** Standard RAID-6 recovery.  A single missing
 data shard is recovered via XOR against P; two missing data
@@ -430,14 +449,15 @@ two rows are the same in GF(2^8)).  This lets a client that
 speaks any of the three consume the others at m=2.
 
 **Reference implementation:** Linux kernel `lib/raid6/`
-(GPL-2.0-or-later).
+{{LINUX-RAID6}} (GPL-2.0-or-later).
 
 ### FFV2_ENCODING_ISA_L_RS {#sec-encoding-isa-l-rs-annex}
 
 Reed-Solomon erasure coding over GF(2^8) using the
 Vandermonde matrix construction from Intel's ISA-L
-(Intelligent Storage Acceleration Library).  Parameters: k
-in the range 1 to 253, m in the range 1 to (254 - k).
+(Intelligent Storage Acceleration Library) {{ISA-L}}.
+Parameters: k in the range 1 to 253, m in the range 1
+to (254 - k).
 
 **Field:** GF(2^8), primitive polynomial 0x1d, generator 2.
 
@@ -486,7 +506,7 @@ ISA-L's from parity row 0 onward.  ISA_L_RS thus requires its
 own registry value despite sharing the field with
 RS_VANDERMONDE.
 
-**Reference implementation:** Intel ISA-L codebase
+**Reference implementation:** Intel ISA-L codebase {{ISA-L}}
 (BSD-3-Clause).
 
 ### Designated Expert guidelines
