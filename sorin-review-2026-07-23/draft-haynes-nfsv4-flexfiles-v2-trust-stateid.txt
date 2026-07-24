@@ -1,0 +1,1758 @@
+
+
+
+
+Network File System Version 4                                  T. Haynes
+Internet-Draft                                               Hammerspace
+Intended status: Standards Track                            24 July 2026
+Expires: 25 January 2027
+
+
+Trusted Stateid Control Protocol for the Flexible File Version 2 Layout
+                                  Type
+          draft-haynes-nfsv4-flexfiles-v2-trust-stateid-latest
+
+Abstract
+
+   This document specifies the trusted-stateid control protocol between
+   the Metadata Server and Data Servers in the Flexible File Version 2
+   Layout Type.  Three new NFSv4.2 operations (TRUST_STATEID,
+   REVOKE_STATEID, BULK_REVOKE_STATEID) replace Flexible File v1's
+   synthetic uid/gid fencing with revoke-now admission control.  The
+   Metadata Server remains the single state authority; Data Servers are
+   admission gates.  This document also specifies the tight-coupling
+   control protocol (capability discovery, control sessions, crash
+   recovery on both sides) and the security considerations specific to
+   trusted stateids.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   The latest revision of this draft can be found at https://ietf-wg-
+   nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2-trust-
+   stateid.html.  Status information for this document may be found at
+   https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2-
+   trust-stateid/.
+
+   Discussion of this document takes place on the Network File System
+   Version 4 Working Group mailing list (mailto:nfsv4@ietf.org), which
+   is archived at https://mailarchive.ietf.org/arch/browse/nfsv4/.
+   Subscribe at https://www.ietf.org/mailman/listinfo/nfsv4/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/ietf-wg-nfsv4/flexfiles-v2.
+
+Note to Readers
+
+   This is an individual submission and does not reflect Working Group
+   consensus.  The "About This Document" section above has the current
+   discussion venue, latest rendering, and source location.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 25 January 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Requirements Language
+   3.  Definitions
+   4.  Coupling of Storage Devices
+     4.1.  LAYOUTCOMMIT
+     4.2.  Fencing Clients from the Storage Device
+       4.2.1.  Implementation Notes for Synthetic uids/gids
+       4.2.2.  Example of using Synthetic uids/gids
+     4.3.  State and Locking Models
+       4.3.1.  Loosely Coupled Locking Model
+       4.3.2.  Tightly Coupled Locking Model
+     4.4.  Tight Coupling Control Protocol
+       4.4.1.  Capability Discovery
+       4.4.2.  Control Session
+       4.4.3.  Flow at LAYOUTGET
+       4.4.4.  Principal Binding and the Kerberos Gap
+       4.4.5.  Client-Detected Trust Gap
+       4.4.6.  Lease and Renewal
+       4.4.7.  Storage Device Crash Recovery
+       4.4.8.  Metadata Server Crash Recovery
+       4.4.9.  Backward Compatibility
+   5.  Layout Revocation and Fencing
+   6.  New NFSv4.2 Trust-Stateid Operations
+     6.1.  Operation Numbers and XDR Amendments
+     6.2.  Operation 89: TRUST_STATEID - Register Layout Stateid on
+           Data Server
+       6.2.1.  ARGUMENTS
+       6.2.2.  RESULTS
+       6.2.3.  DESCRIPTION
+       6.2.4.  RESPONSE CODES
+     6.3.  Operation 90: REVOKE_STATEID - Revoke Registered Stateid on
+           Data Server
+       6.3.1.  ARGUMENTS
+       6.3.2.  RESULTS
+       6.3.3.  DESCRIPTION
+       6.3.4.  RESPONSE CODES
+     6.4.  Operation 91: BULK_REVOKE_STATEID - Revoke All Stateids for
+           a Client
+       6.4.1.  ARGUMENTS
+       6.4.2.  RESULTS
+       6.4.3.  DESCRIPTION
+       6.4.4.  RESPONSE CODES
+   7.  Security Considerations
+     7.1.  Trusted Stateids
+       7.1.1.  Interaction with Kerberos and RPCSEC_GSS
+       7.1.2.  Attack Surfaces and Mitigations
+   8.  IANA Considerations
+   Acknowledgments
+   References
+     Normative References
+     Informative References
+   Author's Address
+
+1.  Introduction
+
+   The Flexible File Version 2 Layout Type
+   [I-D.haynes-nfsv4-flexfiles-v2-requirements] extends pNFS with a
+   control-plane protocol that replaces Flexible File v1's synthetic
+   uid/gid fencing with revoke-now admission control.  This document
+   specifies:
+
+   *  The Coupling of Storage Devices model: fencing, state and locking,
+      and the tight-coupling control protocol between the Metadata
+      Server and its Data Servers.
+
+   *  The Layout Revocation and Fencing procedure.
+
+   *  Three new NFSv4.2 operations (TRUST_STATEID, REVOKE_STATEID,
+      BULK_REVOKE_STATEID) that the Metadata Server issues to Data
+      Servers to push and clear per-client stateids.
+
+   *  The Trusted Stateids Security Considerations.
+
+2.  Requirements Language
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+3.  Definitions
+
+   The following terms are used with meanings defined in
+   [I-D.haynes-nfsv4-flexfiles-v2-requirements]:
+
+   *  data server (DS), metadata server (MDS)
+
+   *  layout, ffv2_layout4
+
+   Local terms defined in this document:
+
+   Admission table:  A per-DS data structure holding the set of stateids
+      for which the DS accepts I/O; entries are inserted by
+      TRUST_STATEID and removed by REVOKE_STATEID (or all at once by
+      BULK_REVOKE_STATEID).
+
+   Stateid-owner:  The client identified by a stateid registered in a
+      DS's admission table.
+
+   Trust-stateid mechanism:  The mechanism by which the MDS pushes
+      stateids to DSes before client I/O and revokes them before
+      yielding the layout to another writer, providing revoke-now
+      admission control without dependence on lease expiry.
+
+   Layout revocation window:  The bounded interval between
+      REVOKE_STATEID fan-out from the MDS to all DSes in a layout and
+      the DSes' rejection of subsequent I/O bearing the revoked stateid.
+
+4.  Coupling of Storage Devices
+
+   A server implementation may choose either a loosely coupled model or
+   a tightly coupled model between the metadata server and the storage
+   devices.  [RFC8434] describes the general problems facing pNFS
+   implementations.  This document details how the new flexible file v2
+   layout addresses these issues.  To implement the tightly coupled
+   model, a control protocol has to be defined.  As the flexible file v2
+   layout imposes no special requirements on the client, the control
+   protocol will need to provide:
+
+   1.  management of both security and LAYOUTCOMMITs and
+
+   2.  a global stateid model and management of these stateids.
+
+   When implementing the loosely coupled model, the only control
+   protocol will be a version of NFS, with no ability to provide a
+   global stateid model or to prevent clients from using layouts
+   inappropriately.  To enable client use in that environment, this
+   document specifies how security, state, and locking are managed.
+
+   The loosely and tightly coupled locking models defined in Section 2.3
+   of [RFC8435] apply equally to this layout type, including the use of
+   anonymous stateids with loosely coupled storage devices, the handling
+   of lock and delegation stateids, and the mandatory byte-range lock
+   requirements for the tightly coupled model.
+
+4.1.  LAYOUTCOMMIT
+
+   Regardless of the coupling model, the metadata server has the
+   responsibility, upon receiving a LAYOUTCOMMIT (see Section 18.42 of
+   [RFC8881]) to ensure that the semantics of pNFS are respected (see
+   Section 3.1 of [RFC8434]).  These do include a requirement that data
+   written to a data storage device be stable before the occurrence of
+   the LAYOUTCOMMIT.
+
+   It is the responsibility of the client to make sure the data file is
+   stable before the metadata server begins to query the storage devices
+   about the changes to the file.  If any WRITE to a storage device did
+   not result with stable_how equal to FILE_SYNC, a LAYOUTCOMMIT to the
+   metadata server MUST be preceded by a COMMIT to the storage devices
+   written to.  Note that if the client has not done a COMMIT to the
+   storage device, then the LAYOUTCOMMIT might not be synchronized to
+   the last WRITE operation to the storage device.
+
+4.2.  Fencing Clients from the Storage Device
+
+   With loosely coupled storage devices, the metadata server uses
+   synthetic uids (user ids) and gids (group ids) for the data file,
+   where the uid owner of the data file is allowed read/write access and
+   the gid owner is allowed read-only access.  As part of the layout
+   (see ffv2ds_user and ffv2ds_group in
+   [I-D.haynes-nfsv4-flexfiles-v2-layout]), the client is provided with
+   the user and group to be used in the Remote Procedure Call (RPC)
+   [RFC5531] credentials needed to access the data file.  Fencing off of
+   clients is achieved by the metadata server changing the synthetic uid
+   and/or gid owners of the data file on the storage device to
+   implicitly revoke the outstanding RPC credentials.  A client
+   presenting the wrong credential for the desired access will get an
+   NFS4ERR_ACCESS error.
+
+   With this loosely coupled model, the metadata server is not able to
+   fence off a single client; it is forced to fence off all clients.
+   However, as the other clients react to the fencing, returning their
+   layouts and trying to get new ones, the metadata server can hand out
+   a new uid and gid to allow access.
+
+   It is RECOMMENDED to implement common access control methods at the
+   storage device file system to allow only the metadata server root
+   (super user) access to the storage device and to set the owner of all
+   directories holding data files to the root user.  This approach
+   provides a practical model to enforce access control and fence off
+   cooperative clients, but it cannot protect against malicious clients;
+   hence, it provides a level of security equivalent to AUTH_SYS.  It is
+   RECOMMENDED that the communication between the metadata server and
+   storage device be secure from eavesdroppers and man-in-the-middle
+   protocol tampering.  The security measure could be physical security
+   (e.g., the servers are co-located in a physically secure area),
+   encrypted communications, or some other technique.
+
+   With tightly coupled storage devices, the metadata server and the
+   storage device agree on the authorization decision for each client
+   access: a client allowed by the metadata server to read or write a
+   file is allowed the same access at the storage device, and a client
+   denied at the metadata server is denied at the storage device.  How
+   the storage device reaches that decision is not constrained by this
+   specification.  Some storage devices replicate the user, group, mode
+   bits, and ACL of the metadata file onto a POSIX-shaped local
+   representation of the data file and let their native filesystem
+   enforce the decision; others (such as storage devices backed by an
+   object store, a control-protocol-driven backend, or a backend with no
+   exposed file namespace) consult the control protocol directly without
+   ever materializing a POSIX file representation.  Both approaches are
+   conformant; the specification's requirement is the authorization-
+   outcome parity, not the mechanism that produces it.
+
+   The client authenticates with the storage device and receives the
+   same authorization outcome it would have received via the metadata
+   server.  In the case of tight coupling, fencing is the responsibility
+   of the control protocol and is not described in detail in this
+   document.  Implementations of the tightly coupled locking model (see
+   Section 4.3) will need a way to prevent access by certain clients to
+   specific files by invalidating the corresponding stateids on the
+   storage device; in such a scenario, the client receives
+   NFS4ERR_BAD_STATEID.
+
+   The client need not know the model used between the metadata server
+   and the storage device.  It need only react consistently to any
+   errors in interacting with the storage device.  It SHOULD both return
+   the layout and error to the metadata server and ask for a new layout.
+   At that point, the metadata server can either hand out a new layout,
+   hand out no layout (forcing the I/O through it), or deny the client
+   further access to the file.
+
+4.2.1.  Implementation Notes for Synthetic uids/gids
+
+   The selection method for the synthetic uids and gids to be used for
+   fencing in loosely coupled storage devices is strictly an
+   implementation issue.  That is, an administrator might restrict a
+   range of such ids available to the Lightweight Directory Access
+   Protocol (LDAP) 'uid' field [RFC4519].  The administrator might also
+   be able to choose an id that would never be used to grant access.
+   Then, when the metadata server had a request to access a file, a
+   SETATTR would be sent to the storage device to set the owner and
+   group of the data file.  The user and group might be selected in a
+   round-robin fashion from the range of available ids.
+
+   Those ids would be sent back as ffv2ds_user and ffv2ds_group to the
+   client, who would present them as the RPC credentials to the storage
+   device.  When the client is done accessing the file and the metadata
+   server knows that no other client is accessing the file, it can reset
+   the owner and group to restrict access to the data file.
+
+   When the metadata server wants to fence off a client, it changes the
+   synthetic uid and/or gid to the restricted ids.  Note that using a
+   restricted id ensures that there is a change of owner and at least
+   one id available that never gets allowed access.
+
+   Under an AUTH_SYS security model, synthetic uids and gids of 0 SHOULD
+   be avoided.  These typically either grant super access to files on a
+   storage device or are mapped to an anonymous id.  In the first case,
+   even if the data file is fenced, the client might still be able to
+   access the file.  In the second case, multiple ids might be mapped to
+   the anonymous ids.
+
+4.2.2.  Example of using Synthetic uids/gids
+
+   The user loghyr creates a file "ompha.c" on the metadata server,
+   which then creates a corresponding data file on the storage device.
+
+   The metadata server entry may look like:
+
+   -rw-r--r--    1 loghyr  staff    1697 Dec  4 11:31 ompha.c
+
+                    Figure 1: Metadata's view of ompha.c
+
+   On the storage device, the file may be assigned some unpredictable
+   synthetic uid/gid to deny access:
+
+   -rw-r-----    1 19452   28418    1697 Dec  4 11:31 data_ompha.c
+
+                      Figure 2: Data's view of ompha.c
+
+   When the file is opened on a client and accessed, the user will try
+   to get a layout for the data file.  Since the layout knows nothing
+   about the user (and does not care), it does not matter whether the
+   user loghyr or garbo opens the file.  The client has to present an
+   uid of 19452 to get write permission.  If it presents any other value
+   for the uid, then it must give a gid of 28418 to get read access.
+
+   Further, if the metadata server decides to fence the file, it SHOULD
+   change the uid and/or gid such that these values neither match
+   earlier values for that file nor match a predictable change based on
+   an earlier fencing.
+
+   -rw-r-----    1 19453   28419    1697 Dec  4 11:31 data_ompha.c
+
+                  Figure 3: Fenced Data's view of ompha.c
+
+   The set of synthetic gids on the storage device SHOULD be selected
+   such that there is no mapping in any of the name services used by the
+   storage device, i.e., each group SHOULD have no members.
+
+   If the layout segment has an iomode of LAYOUTIOMODE4_READ, then the
+   metadata server SHOULD return a synthetic uid that is not set on the
+   storage device.  Only the synthetic gid would be valid.
+
+   The client is thus solely responsible for enforcing file permissions
+   in a loosely coupled model.  To allow loghyr write access, it will
+   send an RPC to the storage device with a credential of 1066:1067.  To
+   allow garbo read access, it will send an RPC to the storage device
+   with a credential of 1067:1067.  The value of the uid does not matter
+   as long as it is not the synthetic uid granted when getting the
+   layout.
+
+   While pushing the enforcement of permission checking onto the client
+   may seem to weaken security, the client may already be responsible
+   for enforcing permissions before modifications are sent to a server.
+   With cached writes, the client is always responsible for tracking who
+   is modifying a file and making sure to not coalesce requests from
+   multiple users into one request.
+
+4.3.  State and Locking Models
+
+   The coupling model in effect for a given metadata-server / storage-
+   device pair is not negotiated over the NFS protocol.  The metadata
+   server determines the coupling model from out-of-band signals:
+   administrative configuration, the choice and capabilities of the
+   control protocol between the metadata server and the storage device,
+   the storage device's data-path protocol version, and the storage
+   device's backend architecture.  At the NFS protocol level, the
+   metadata server's expectations of the storage device follow these
+   classifications:
+
+   *  Storage devices implementing the NFSv3 or NFSv4.0 protocols on the
+      data path are treated as loosely coupled.
+
+   *  NFSv4.1+ storage devices that do not return the
+      EXCHGID4_FLAG_USE_PNFS_DS flag in EXCHANGE_ID indicate that they
+      are to be treated as loosely coupled.  From the locking viewpoint,
+      they are treated in the same way as NFSv4.0 storage devices.
+
+   *  NFSv4.1+ storage devices that identify themselves with the
+      EXCHGID4_FLAG_USE_PNFS_DS flag set in EXCHANGE_ID can potentially
+      be tightly coupled.  They use a back-end control protocol to
+      implement the global stateid model described in [RFC8881].
+
+   Tight coupling additionally requires a control protocol between the
+   metadata server and the storage device, discovered or advertised out-
+   of-band as described above.
+
+   Some storage devices cannot operate under the loosely coupled model
+   at all.  The loose-coupling model in this specification relies on the
+   storage device authorizing client access against synthetic uid and
+   gid values (Section 4.2), which presupposes that the data file has a
+   local representation on the storage device against which POSIX-style
+   ownership checks can be applied.  Storage devices whose backend has
+   no exposed file namespace -- for example, object-store-backed data
+   servers, or data servers driven entirely through a control protocol
+   against a non-POSIX backend -- do not have that local representation
+   and MUST operate in the tightly coupled model with a control protocol
+   that conveys the authorization decision directly.  A metadata server
+   deploying with such a storage device cannot fall back to loose
+   coupling.
+
+4.3.1.  Loosely Coupled Locking Model
+
+   When locking-related operations are requested, they are primarily
+   dealt with by the metadata server, which generates the appropriate
+   stateids.  When an NFSv4 version is used as the data access protocol,
+   the metadata server may make stateid-related requests of the storage
+   devices.  However, it is not required to do so, and the resulting
+   stateids are known only to the metadata server and the storage
+   device.
+
+   Given this basic structure, locking-related operations are handled as
+   follows:
+
+   *  OPENs are dealt with by the metadata server.  Stateids are
+      selected by the metadata server and associated with the client ID
+      describing the client's connection to the metadata server.  The
+      metadata server may need to interact with the storage device to
+      locate the file to be opened, but no locking-related functionality
+      need be used on the storage device.
+
+   *  OPEN_DOWNGRADE and CLOSE only require local execution on the
+      metadata server.
+
+   *  Advisory byte-range locks can be implemented locally on the
+      metadata server.  As in the case of OPENs, the stateids associated
+      with byte-range locks are assigned by the metadata server and only
+      used on the metadata server.
+
+   *  Delegations are assigned by the metadata server that initiates
+      recalls when conflicting OPENs are processed.  No storage device
+      involvement is required.
+
+   *  TEST_STATEID and FREE_STATEID are processed locally on the
+      metadata server, without storage device involvement.
+
+   All I/O operations to the storage device are done using the anonymous
+   stateid.  Thus, the storage device has no information about the
+   openowner and lockowner responsible for issuing a particular I/O
+   operation.  As a result:
+
+   *  Mandatory byte-range locking cannot be supported because the
+      storage device has no way of distinguishing I/O done on behalf of
+      the lock owner from those done by others.
+
+   *  Enforcement of share reservations is the responsibility of the
+      client.  Even though I/O is done using the anonymous stateid, the
+      client MUST ensure that it has a valid stateid associated with the
+      openowner.
+
+   In the event that a stateid is revoked, the metadata server is
+   responsible for preventing client access, since it has no way of
+   being sure that the client is aware that the stateid in question has
+   been revoked.
+
+   As the client never receives a stateid generated by a storage device,
+   there is no client lease on the storage device and no prospect of
+   lease expiration, even when access is via NFSv4 protocols.  Clients
+   will have leases on the metadata server.  In dealing with lease
+   expiration, the metadata server may need to use fencing to prevent
+   revoked stateids from being relied upon by a client unaware of the
+   fact that they have been revoked.
+
+4.3.2.  Tightly Coupled Locking Model
+
+   When locking-related operations are requested, they are primarily
+   dealt with by the metadata server, which generates the appropriate
+   stateids.  These stateids MUST be made known to the storage device
+   using control protocol facilities.  This document defines one such
+   control protocol -- the TRUST_STATEID, REVOKE_STATEID, and
+   BULK_REVOKE_STATEID operations in Section 4.4 -- for deployments in
+   which the storage devices are NFSv4.2 servers willing to implement
+   the new operations.  A storage device with its own established back-
+   end control protocol that provides the equivalent functional
+   capabilities is conformant under this specification without
+   implementing the TRUST_STATEID family; see Section 4.4 for the
+   conformance framing.
+
+   When using the TRUST_STATEID control protocol defined in Section 4.4,
+   the metadata server and a storage device establish that they can use
+   it via a two-part handshake, both parts of which MUST succeed before
+   the metadata server may issue TRUST_STATEID against that storage
+   device for production traffic:
+
+   Capability probe:  At control-session setup the metadata server sends
+      a TRUST_STATEID against the anonymous stateid (see Section 4.4.1).
+      A storage device that supports tight coupling MUST reject the
+      probe with NFS4ERR_INVAL; a storage device that does not support
+      tight coupling returns NFS4ERR_NOTSUPP and the metadata server
+      falls back to loose coupling.  The metadata server records the
+      result per storage device in ffdv_tightly_coupled.
+
+   Control-session gating:  The metadata server presents
+      EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID when it opens the
+      control session to the storage device (see Section 4.4.2).  The
+      storage device MUST reject any incoming TRUST_STATEID,
+      REVOKE_STATEID, or BULK_REVOKE_STATEID that does not arrive on
+      such a session with NFS4ERR_PERM.  This is the authorization
+      mechanism that distinguishes the metadata server from ordinary
+      pNFS clients, which connect with EXCHGID4_FLAG_USE_PNFS_DS or
+      EXCHGID4_FLAG_USE_NON_PNFS and are therefore structurally unable
+      to invoke these operations.
+
+   Given this basic structure, locking-related operations are handled as
+   follows:
+
+   *  OPENs are dealt with primarily on the metadata server.  Stateids
+      are selected by the metadata server and associated with the client
+      ID describing the client's connection to the metadata server.  The
+      metadata server needs to interact with the storage device to
+      locate the file to be opened and to make the storage device aware
+      of the association between the metadata-server-chosen stateid and
+      the client and openowner that it represents.  OPEN_DOWNGRADE and
+      CLOSE are executed initially on the metadata server, but the state
+      change MUST be propagated to the storage device.
+
+   *  Advisory byte-range locks can be implemented locally on the
+      metadata server.  As in the case of OPENs, the stateids associated
+      with byte-range locks are assigned by the metadata server and are
+      available for use on the metadata server.  Because I/O operations
+      are allowed to present lock stateids, the metadata server needs
+      the ability to make the storage device aware of the association
+      between the metadata-server-chosen stateid and the corresponding
+      open stateid it is associated with.
+
+   *  Mandatory byte-range locks can be supported when both the metadata
+      server and the storage devices have the appropriate support.  As
+      in the case of advisory byte-range locks, these are assigned by
+      the metadata server and are available for use on the metadata
+      server.  To enable mandatory lock enforcement on the storage
+      device, the metadata server needs the ability to make the storage
+      device aware of the association between the metadata-server-chosen
+      stateid and the client, openowner, and lock (i.e., lockowner,
+      byte-range, and lock-type) that it represents.  Because I/O
+      operations are allowed to present lock stateids, this information
+      needs to be propagated to all storage devices to which I/O might
+      be directed rather than only to storage device that contain the
+      locked region.
+
+   *  Delegations are assigned by the metadata server that initiates
+      recalls when conflicting OPENs are processed.  Because I/O
+      operations are allowed to present delegation stateids, the
+      metadata server requires the ability:
+
+      1.  to make the storage device aware of the association between
+          the metadata-server-chosen stateid and the filehandle and
+          delegation type it represents
+
+      2.  to break such an association.
+
+   *  TEST_STATEID is processed locally on the metadata server, without
+      storage device involvement.
+
+   *  FREE_STATEID is processed on the metadata server, but the metadata
+      server requires the ability to propagate the request to the
+      corresponding storage devices.
+
+   Because the client will possess and use stateids valid on the storage
+   device, there will be a client lease on the storage device, and the
+   possibility of lease expiration does exist.  The best approach for
+   the storage device is to retain these locks as a courtesy.  However,
+   if it does not do so, control protocol facilities need to provide the
+   means to synchronize lock state between the metadata server and
+   storage device.
+
+   Clients will also have leases on the metadata server that are subject
+   to expiration.  In dealing with lease expiration, the metadata server
+   would be expected to use control protocol facilities enabling it to
+   invalidate revoked stateids on the storage device.  In the event the
+   client is not responsive, the metadata server may need to use fencing
+   to prevent revoked stateids from being acted upon by the storage
+   device.
+
+4.4.  Tight Coupling Control Protocol
+
+   When an NFSv4.2 storage device participates in a tightly coupled
+   deployment, the metadata server and the storage devices need a
+   control protocol that:
+
+   1.  registers the layout stateid with each storage device so the
+       storage device can validate client I/O independently; and
+
+   2.  revokes trust promptly when the metadata server withdraws the
+       client's authorization -- for example, on CB_LAYOUTRECALL
+       timeout, lease expiry, or layout return after error.
+
+   This specification defines one such control protocol, designated
+   _trusted-stateid tight coupling_, as three new NFSv4.2 operations:
+   TRUST_STATEID (Section 6.2), REVOKE_STATEID (Section 6.3), and
+   BULK_REVOKE_STATEID (Section 6.4).  These operations are sent by the
+   metadata server to each storage device over a dedicated control
+   session (see Section 4.4.2) and MUST NOT be sent by pNFS clients.
+
+   Other tight-coupling control protocols may exist or be defined
+   elsewhere.  Existing pNFS server implementations with established
+   back-end control protocols -- for example, dCache, which has its own
+   control protocol between its metadata service and its data servers --
+   satisfy the tightly-coupled locking model (Section 4.3) through their
+   own mechanisms and are conformant under this specification provided
+   they meet the functional capabilities described there.  Such
+   implementations need not adopt the TRUST_STATEID family, and their
+   interoperability with the TRUST_STATEID family is outside the scope
+   of this document.
+
+   A storage device that does not implement TRUST_STATEID is treated as
+   not supporting trusted-stateid tight coupling specifically; the
+   capability probe in Section 4.4.1 detects this and the metadata
+   server falls back to loose coupling (Section 4.4.9) or, if the
+   storage device's own control protocol is in use, that protocol
+   governs.  Within the remainder of Section 4.4 and its subsections,
+   unqualified references to "tight coupling" or "tightly coupled" refer
+   to the trusted-stateid variant defined here.
+
+   The receiver of these operations is any server the metadata server
+   delegates client-I/O admission to.  In this document that is the
+   storage device (data server).  The same mechanism applies to a proxy
+   server [I-D.haynes-nfsv4-flexfiles-v2-proxy-server] -- a proxy server
+   may or may not additionally act as a data server, but in either role
+   it needs the metadata server to register a layout stateid before it
+   can admit client I/O.  Where this section says "storage device," read
+   it as "storage device, or proxy server
+   [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]"; the flag check and the
+   three operations are identical for both roles.
+
+4.4.1.  Capability Discovery
+
+   A storage device indicates support for trusted-stateid tight coupling
+   implicitly, by processing TRUST_STATEID rather than returning
+   NFS4ERR_NOTSUPP.  (A storage device that supports a non-TRUST_STATEID
+   form of tight coupling but not the trusted-stateid variant defined
+   here will return NFS4ERR_NOTSUPP on this probe; from this
+   specification's perspective it is treated the same as a storage
+   device that does not support tight coupling at all.)  The metadata
+   server probes each storage device during control-session setup:
+
+   SEQUENCE + PUTROOTFH + TRUST_STATEID(
+       tsa_layout_stateid = ANONYMOUS_STATEID,
+       tsa_iomode         = LAYOUTIOMODE4_READ,
+       tsa_expire         = 0,
+       tsa_principal      = "")
+
+                  Figure 4: TRUST_STATEID capability probe
+
+   The anonymous stateid is used deliberately: a correctly implemented
+   storage device MUST reject it (see Section 6.2), so the probe cannot
+   accidentally register garbage in the trust table.  The metadata
+   server interprets the probe response as follows:
+
+   NFS4ERR_NOTSUPP:  trusted-stateid tight coupling is not supported on
+      this storage device.  The metadata server falls back to loose
+      coupling (anonymous stateid plus fencing) and sets
+      ffdv_tightly_coupled to false for this storage device.
+
+   NFS4ERR_INVAL:  trusted-stateid tight coupling is supported.  The
+      anonymous stateid was correctly rejected.  The metadata server
+      records the capability and sets ffdv_tightly_coupled to true for
+      this storage device.
+
+   NFS4_OK:  the storage device accepted an anonymous stateid into its
+      trust table.  This is a storage device bug.  The metadata server
+      MAY treat the capability as confirmed to avoid downgrading to
+      loose coupling, but it MUST immediately issue REVOKE_STATEID to
+      remove the bogus entry.
+
+   The capability is recorded per storage device, not per file.  Partial
+   support across a mirror set is permitted: each ff_device_versions4
+   entry returned by GETDEVICEINFO carries its own ffdv_tightly_coupled
+   flag, set independently.
+
+4.4.2.  Control Session
+
+   The metadata server establishes an NFSv4.2 session to each tight-
+   coupling-capable storage device at startup.  On this session the
+   metadata server acts as the storage device's client and presents
+   EXCHGID4_FLAG_USE_PNFS_MDS in its EXCHANGE_ID args.
+
+   The storage device MUST verify that any incoming TRUST_STATEID,
+   REVOKE_STATEID, or BULK_REVOKE_STATEID compound arrives on a session
+   whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS in its
+   EXCHANGE_ID args.  Requests that arrive on any other session MUST be
+   rejected with NFS4ERR_PERM.  This is the sole access control on these
+   operations; a pNFS client connecting to the storage device does not
+   present EXCHGID4_FLAG_USE_PNFS_MDS and therefore cannot invoke them.
+
+   The EXCHGID4_FLAG_USE_PNFS_MDS check replaces any path- or
+   filehandle-level gating.  TRUST_STATEID operates on a filehandle that
+   may be any file on the storage device, and the metadata server is the
+   sole authority that can legitimately speak this protocol.
+
+   Because the EXCHGID4_FLAG_USE_PNFS_MDS check relies on the owning
+   client's self-declaration at EXCHANGE_ID time, the storage device
+   cannot by itself distinguish a legitimate metadata server from any
+   other host that sets the flag.  Deployments are therefore responsible
+   for constraining who can establish a control session in the first
+   place.  Two mechanisms are RECOMMENDED:
+
+   1.  The control session SHOULD use RPCSEC_GSS with a machine
+       principal that the storage device has been configured to accept
+       as a metadata server.  The storage device validates the principal
+       before accepting EXCHANGE_ID with EXCHGID4_FLAG_USE_PNFS_MDS.
+
+   2.  Alternatively, the control session SHOULD run over a network path
+       isolated from pNFS clients (for example, a dedicated management
+       VLAN or mutual TLS ([RFC9289]) with an allowlisted client
+       certificate), such that only configured metadata servers can
+       reach the storage device on that path.
+
+   Deploying neither mechanism reduces the authorization strength of
+   TRUST_STATEID and the revocation operations to "any host that can
+   reach the storage device can invoke them"; a strict deployment MUST
+   apply at least one of the above.
+
+4.4.3.  Flow at LAYOUTGET
+
+   For each new or refreshed layout segment, the metadata server:
+
+   1.  chooses the layout stateid (as it would without tight coupling);
+
+   2.  identifies the tight-coupling-capable storage devices in the
+       mirror set (those for which ffdv_tightly_coupled is true);
+
+   3.  fans out TRUST_STATEID to each such storage device, specifying
+       the layout stateid, the layout iomode, a tsa_expire derived from
+       the metadata server's lease (see Section 4.4.6), and the client's
+       authenticated identity in tsa_principal;
+
+   4.  waits for all fan-outs to complete (or reach their per-storage-
+       device timeout) before returning the layout.
+
+   If every storage device in the mirror set rejects the TRUST_STATEID
+   fan-out, the metadata server MUST NOT return the layout; instead it
+   returns NFS4ERR_LAYOUTTRYLATER.  If some storage devices accept and
+   others reject, the metadata server MAY return a layout covering only
+   the accepting storage devices, subject to the mirror-set rules for
+   minimum acceptable coverage.  A storage device that returns
+   NFS4ERR_DELAY is retried until either success or the metadata
+   server's LAYOUTGET-response budget is exhausted.  If a storage device
+   returns NFS4ERR_NOTSUPP at this time (having accepted the probe
+   earlier), the metadata server MUST clear ffdv_tightly_coupled for
+   this storage device, fall back to loose coupling, and re-issue the
+   layout accordingly.
+
+4.4.4.  Principal Binding and the Kerberos Gap
+
+   The flexible file v1 layout has a known gap: a client authenticated
+   to the metadata server with Kerberos has no way to present the same
+   authenticated identity to the storage device, because flexible file
+   v1 layouts carry only ffds_user / ffds_group (POSIX uid/gid for
+   AUTH_SYS).  A strict Kerberos deployment on the flexible file v1
+   layout must either allow AUTH_SYS from the metadata server's subnet
+   or accept that the flexible file v1 layout's data path is not
+   Kerberos-protected.
+
+   The tsa_principal field in TRUST_STATEID closes that gap.  When a
+   client authenticates to the metadata server as a Kerberos principal
+   (e.g., alice@REALM), the metadata server passes that principal name
+   to each storage device in tsa_principal.  The storage device then
+   enforces a two-part check on each CHUNK operation that presents the
+   layout stateid:
+
+   a.  the stateid is in the trust table and has not expired; and
+
+   b.  the caller's authenticated identity (the RPCSEC_GSS display name
+   on the CHUNK compound) matches tsa_principal.
+
+   Both conditions MUST hold.  On principal mismatch the storage device
+   MUST return NFS4ERR_ACCESS -- the semantics are "you do not have an
+   authorized layout for this file", which matches the existing fencing
+   error and avoids the confusion of NFS4ERR_WRONGSEC (which directs the
+   client to re-authenticate with a different flavor) or
+   NFS4ERR_BAD_STATEID (which directs the client to return the layout).
+
+   The metadata server MUST populate tsa_principal with the RPCSEC_GSS
+   display name of the authenticated client when the client
+   authenticated to the metadata server via RPCSEC_GSS.  The metadata
+   server MUST set tsa_principal to the empty string only for AUTH_SYS
+   and TLS clients (for which there is no server-verified per-user
+   identity).  Setting tsa_principal to the empty string for an
+   RPCSEC_GSS client disables the principal check on the storage device
+   and silently re-opens the flexible file v1 layout Kerberos gap; it is
+   a metadata server bug, not a protocol option.
+
+   If tsa_principal is the empty string, no principal check applies.
+   This is the expected setting for AUTH_SYS and TLS clients:
+
+   *  AUTH_SYS clients have no server-verified identity.  The storage
+      device's stateid check and the AUTH_SYS uid/gid on the data file
+      together constitute the authorization.  In a tightly coupled
+      deployment the data file's owner/group need not match the metadata
+      file's, since ffv2ds_user and ffv2ds_group are ignored (see
+      [I-D.haynes-nfsv4-flexfiles-v2-layout]).
+
+   *  TLS clients have transport-layer authentication via mutual TLS
+      ([RFC9289]).  The TLS layer authenticates the client machine; the
+      stateid check confirms the metadata server authorized that machine
+      to access this file.  The machine-level authentication is handled
+      beneath the RPC layer and is not reflected in tsa_principal.
+      Opportunistic TLS (STARTTLS without certificate verification)
+      provides encryption but not authentication, and therefore has the
+      same authorization properties as plain AUTH_SYS.
+
+   When a client's I/O is routed through a proxy server -- that is, the
+   layout the metadata server returns to the client has
+   FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry, per
+   [I-D.haynes-nfsv4-flexfiles-v2-proxy-server] -- the storage device
+   observes CHUNK operations arriving from the proxy server's address
+   rather than from the client directly.  The tsa_principal the metadata
+   server populates in TRUST_STATEID is the principal the _storage
+   device_ will observe on those CHUNK operations, and
+   [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]'s credential-forwarding
+   rules (in particular rule 1, "Credential pass-through") require the
+   proxy server to forward the client's credentials verbatim on every
+   CHUNK operation it issues on the client's behalf.  Therefore:
+
+   *  For an RPCSEC_GSS client whose I/O is proxied through a proxy
+      server, the metadata server MUST set tsa_principal to the client's
+      RPCSEC_GSS display name (identical to the non-proxied case).  The
+      storage device's principal check on CHUNK operations will match
+      against the client's principal on the forwarded compound, not the
+      proxy server's service identity.
+
+   *  For an AUTH_SYS client whose I/O is proxied through a proxy
+      server, the metadata server MUST set tsa_principal to the empty
+      string (identical to the non-proxied case).  The proxy server
+      forwards the client's AUTH_SYS uid/gid; the storage device's
+      stateid check plus the forwarded AUTH_SYS uid/gid constitute the
+      authorization.
+
+   The metadata server MUST NOT set tsa_principal to the proxy server's
+   own service principal.  Doing so would require the proxy server to
+   authenticate to the storage device as itself (bypassing credential
+   forwarding) which is explicitly prohibited by rule 4 of
+   [I-D.haynes-nfsv4-flexfiles-v2-proxy-server] ("proxy server service
+   identity is for the control plane only").
+
+4.4.5.  Client-Detected Trust Gap
+
+   A window exists between a successful TRUST_STATEID fan-out and the
+   client's first I/O to the storage device.  A transient failure may
+   cause the storage device to forget or reject the entry before the
+   client's first CHUNK_WRITE arrives.  The client cannot distinguish
+   this case from legitimate revocation; both surface as
+   NFS4ERR_BAD_STATEID on the storage device.
+
+   The recovery path:
+
+   1.  The client sends LAYOUTERROR(layout_stateid, device_id,
+       NFS4ERR_BAD_STATEID) to the metadata server.
+
+   2.  The metadata server retries TRUST_STATEID against the reporting
+       storage device.  If the retry succeeds, the metadata server
+       returns NFS4_OK for LAYOUTERROR.  The client retries the original
+       I/O.
+
+   3.  If the retry fails -- the storage device is unreachable or
+       returns a hard error -- the metadata server issues
+       CB_LAYOUTRECALL for that device and the client returns the layout
+       segment covering that storage device.  The client is expected to
+       re-request via LAYOUTGET.
+
+   This is the same LAYOUTERROR path used for NFS4ERR_ACCESS or
+   NFS4ERR_PERM in the fencing model (see Section 4.2), with the
+   metadata server's action being "retry TRUST_STATEID" instead of
+   "rotate uid/gid".
+
+4.4.6.  Lease and Renewal
+
+   tsa_expire in a TRUST_STATEID request is a wall-clock expiry instant
+   expressed as an nfstime4.  The metadata server MUST set tsa_expire to
+   the current wall-clock time plus the metadata server's client lease
+   period.
+
+   Clock-synchronization assumption: the metadata server and each
+   storage device MUST maintain wall-clock synchronization within one
+   lease period, e.g., via NTP [RFC5905] or an equivalent mechanism.
+   Under this assumption, a tsa_expire computed by the metadata server
+   and evaluated by the storage device is interpreted consistently
+   within the storage device's local clock.  Deployments unable to
+   guarantee sub-lease-period clock synchronization MUST either (a)
+   shorten the effective TRUST_STATEID lease so it exceeds the worst-
+   case skew by at least 2x, or (b) use the metadata-server-inband
+   fallback path (no tight-coupling control session, no TRUST_STATEID)
+   so lease enforcement stays on the metadata server's clock alone.  A
+   storage device that detects sustained clock divergence from the
+   metadata server (e.g., via periodic wall-clock exchange as part of
+   its tight-coupling control-session heartbeats) SHOULD log the
+   divergence and MAY refuse further TRUST_STATEID entries with
+   NFS4ERR_DELAY until the divergence is corrected.
+
+   The metadata server MUST re-issue TRUST_STATEID for an entry before
+   tsa_expire while the corresponding layout is outstanding.  The
+   RECOMMENDED trigger is: when an entry is within half the lease period
+   of its tsa_expire, re-issue TRUST_STATEID with a refreshed
+   tsa_expire.  Renewing on every SEQUENCE that keeps the layout stateid
+   alive is correct but produces metadata-server-to-storage-device
+   traffic proportional to the client's SEQUENCE rate, which is
+   undesirable in steady state.
+
+   If an entry expires on the storage device before the metadata server
+   renews it -- for example, because the metadata server is partitioned
+   from the storage device for longer than the lease period -- the
+   storage device MUST return NFS4ERR_BAD_STATEID to the client on the
+   next CHUNK operation.  The client returns the layout to the metadata
+   server and re-requests.  This is the same recovery path as the trust
+   gap described above.
+
+4.4.7.  Storage Device Crash Recovery
+
+   A storage device MAY persist its trust table across restarts.  An
+   implementation that does so MUST also persist its server-instance
+   identity, returning the same eir_server_owner.so_minor_id on
+   EXCHANGE_ID after the restart (per [RFC8881] S18.35), so that clients
+   and the metadata server observe the device as continuously available
+   and the persisted trust entries remain valid against the layout
+   stateids that were issued before the restart.
+
+   A storage device that does NOT persist its trust table empties the
+   table on restart and MUST present a new server instance (incremented
+   so_minor_id) so that clients detect the restart.  The remainder of
+   this section describes the recovery path for the volatile case.
+
+   The client detects a volatile storage device restart via
+   NFS4ERR_BADSESSION or NFS4ERR_STALE_CLIENTID on its data server
+   session.  The client returns the affected layout segment to the
+   metadata server via LAYOUTRETURN and re-requests via LAYOUTGET.  The
+   metadata server then fans out fresh TRUST_STATEID operations to the
+   recovered storage device.
+
+   Planned storage device restarts (software upgrade, etc.)  SHOULD
+   drain in-flight CHUNK operations before shutting down.
+
+4.4.8.  Metadata Server Crash Recovery
+
+   A metadata server MAY persist all its trust-management state across
+   restarts.  An implementation that does so MUST also persist its
+   server-instance identity, returning the same
+   eir_server_owner.so_minor_id on EXCHANGE_ID after the restart (per
+   [RFC8881] S18.35), so that storage devices observe the metadata
+   server as continuously available and accept incoming TRUST_STATEID
+   and REVOKE_STATEID operations against the existing trust entries
+   without revalidation.  No grace period is required.
+
+   A metadata server that presents a new server instance (incremented
+   so_minor_id) on restart follows the recovery path in the remainder of
+   this section.
+
+   When the metadata server restarts as a new instance, its control
+   sessions to the storage devices are lost.  Trust entries remain on
+   the storage devices until tsa_expire, but the metadata server is no
+   longer renewing them; the entries are effectively orphaned until the
+   metadata server completes grace.
+
+   When the metadata server reconnects to a storage device with a new
+   boot epoch -- that is, the EXCHANGE_ID returns a new server owner on
+   the storage device's view of the metadata server -- the storage
+   device SHOULD mark all trust entries established under the prior
+   metadata-server epoch as pending-revalidation.  While an entry is
+   pending-revalidation:
+
+   *  I/O that presents the entry's stateid MUST receive NFS4ERR_DELAY,
+      not NFS4ERR_BAD_STATEID.  NFS4ERR_DELAY tells the client to retry
+      with the same stateid -- the metadata server is recovering and may
+      yet revalidate the entry.  NFS4ERR_BAD_STATEID would instead cause
+      the client to return the layout immediately, producing a
+      thundering herd against the metadata server during grace.
+
+   *  An entry remains pending-revalidation until the metadata server
+      either re-issues TRUST_STATEID for it (which transitions it back
+      to trusted) or until the entry's tsa_expire elapses (which removes
+      it).
+
+   The metadata server's recovery sequence is:
+
+   1.  Reconnect to each storage device and establish a fresh control
+       session.
+
+   2.  Optionally issue BULK_REVOKE_STATEID with an all-zeros clientid
+       to each storage device.  This clears the prior trust table
+       eagerly; skipping this step is correct, because orphan entries
+       expire via tsa_expire.
+
+   3.  Enter grace and accept RECLAIM operations from clients.  For each
+       reclaimed layout, fan out TRUST_STATEID to the relevant storage
+       devices.
+
+   4.  Exit grace.  Clients that did not reclaim in time have their
+       state revoked; the metadata server issues REVOKE_STATEID or
+       BULK_REVOKE_STATEID on their behalf.
+
+   Metadata servers SHOULD persist the set of outstanding TRUST_STATEID
+   entries (clientid, layout stateid, storage device address,
+   tsa_expire) to stable storage.  With this persistence the metadata
+   server can re-issue TRUST_STATEID for all known entries immediately
+   upon reconnecting to each storage device, before clients begin
+   reclaiming.  This shrinks the window during which the storage device
+   returns NFS4ERR_DELAY for client I/O.  Persistence is a latency
+   optimization, not a correctness requirement: the re-layout path
+   handles recovery in all cases.
+
+4.4.9.  Backward Compatibility
+
+   *  NFSv3 storage devices are unchanged.  They are always treated as
+      loosely coupled; TRUST_STATEID does not exist on NFSv3 servers.
+
+   *  NFSv4.2 storage devices for which the TRUST_STATEID probe returns
+      NFS4ERR_NOTSUPP are treated as loosely coupled; fencing is the
+      only revocation mechanism, the same as for NFSv3.
+
+   *  NFSv4.2 storage devices for which the probe returns NFS4ERR_INVAL
+      support tight coupling; the metadata server uses TRUST_STATEID at
+      LAYOUTGET and REVOKE_STATEID or BULK_REVOKE_STATEID for revocation
+      instead of fencing.
+
+   A single deployment MAY contain a mix of tight-coupled and loose-
+   coupled storage devices; each is negotiated independently via the
+   probe.
+
+5.  Layout Revocation and Fencing
+
+   In cases where clients are uncommunicative and their lease has
+   expired, or when clients fail to return recalled layouts within a
+   lease period, the metadata server MAY revoke client layouts and
+   reassign these resources to other clients (see Section 12.5.5 of
+   [RFC8881]).  To avoid data corruption from a revoked client
+   continuing to issue I/O, the metadata server MUST fence the revoked
+   client from the affected data files.  The mechanism varies by
+   coupling model and by whether the client's layout stateid has been
+   registered with the data servers via TRUST_STATEID:
+
+   Loosely coupled, untrusted stateid:  The metadata server rotates the
+      synthetic uid/gid on the affected data files per Section 4.2.  The
+      revoked client presents stale RPC credentials and receives
+      NFS4ERR_ACCESS from the data server.  This is the FFv1-style
+      fencing mechanism; it operates per data file and does not
+      distinguish between clients that hold layouts on the same file.
+
+   Tightly coupled, trusted stateid:  When the metadata server has
+      registered a client's layout stateid with the data servers via
+      TRUST_STATEID (Section 6.2), it can revoke per-client access
+      without rotating credentials by issuing REVOKE_STATEID
+      (Section 6.3) to each affected data server, or BULK_REVOKE_STATEID
+      (Section 6.4) when revoking all stateids belonging to a single
+      clientid4 across a data server.  Subsequent I/O from the revoked
+      client carrying the revoked stateid receives NFS4ERR_BAD_STATEID.
+      This is the preferred mechanism for erasure-coded layouts because
+      it is per-client and avoids the FFv1 limitation of fencing all
+      clients on a data file when only one needs to be revoked.
+
+   Mixed:  A metadata server MAY combine the two mechanisms when a
+      file's layout includes both PASSTHROUGH mirrors (where stateid
+      registration is not in play) and erasure-coded mirrors with
+      trusted stateids.  The metadata server rotates synthetic ids for
+      the PASSTHROUGH mirror's data file and issues REVOKE_STATEID for
+      the erasure-coded mirror's data servers.
+
+6.  New NFSv4.2 Trust-Stateid Operations
+
+6.1.  Operation Numbers and XDR Amendments
+
+   This document defines three new NFSv4.2 operations, opnums 89 through
+   91.
+
+      /// /* MDS-to-DS control-plane operations for tight coupling */
+      ///
+      ///  OP_TRUST_STATEID       = 89,
+      ///  OP_REVOKE_STATEID      = 90,
+      ///  OP_BULK_REVOKE_STATEID = 91,
+
+      Figure 5: Trust-stateid opnum XDR (CHUNK_* opnums 78-88 live in
+                  [I-D.haynes- nfsv4-flexfiles-v2-chunks])
+
+      /// /* nfs_argop4 amendment block (trust-stateid arms) */
+      ///
+      /// case OP_TRUST_STATEID: TRUST_STATEID4args optruststateid;
+      /// case OP_REVOKE_STATEID: REVOKE_STATEID4args oprevokestateid;
+      /// case OP_BULK_REVOKE_STATEID:
+      ///     BULK_REVOKE_STATEID4args opbulkrevokestateid;
+
+       Figure 6: nfs_argop4 amendment (trust-stateid arms only; CHUNK
+           arms live in [I- D.haynes-nfsv4-flexfiles-v2-chunks])
+
+      /// /* nfs_resop4 amendment block (trust-stateid arms) */
+      ///
+      /// case OP_TRUST_STATEID: TRUST_STATEID4res optruststateid;
+      /// case OP_REVOKE_STATEID: REVOKE_STATEID4res oprevokestateid;
+      /// case OP_BULK_REVOKE_STATEID:
+      ///     BULK_REVOKE_STATEID4res opbulkrevokestateid;
+
+          Figure 7: nfs_resop4 amendment (trust-stateid arms only)
+
+   TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID are sent by
+   the metadata server to storage devices on the MDS-to-DS control
+   session (see Section 4.4); they MUST NOT be sent by pNFS clients.
+
+6.2.  Operation 89: TRUST_STATEID - Register Layout Stateid on Data
+      Server
+
+6.2.1.  ARGUMENTS
+
+      /// struct TRUST_STATEID4args {
+      ///     /* CURRENT_FH: file */
+      ///     stateid4        tsa_layout_stateid;
+      ///     layoutiomode4   tsa_iomode;
+      ///     nfstime4        tsa_expire;
+      ///     utf8str_cs      tsa_principal;
+      /// };
+
+                    Figure 8: XDR for TRUST_STATEID4args
+
+6.2.2.  RESULTS
+
+      /// union TRUST_STATEID4res switch (nfsstat4 tsr_status) {
+      ///     case NFS4_OK:
+      ///         void;
+      ///     default:
+      ///         void;
+      /// };
+
+                    Figure 9: XDR for TRUST_STATEID4res
+
+6.2.3.  DESCRIPTION
+
+   TRUST_STATEID registers a layout stateid with the data server so that
+   subsequent CHUNK_* operations presenting that stateid can be
+   validated against the data server's per-file trust table.  It is the
+   mechanism by which tight coupling (see Section 4.4) is established
+   between the metadata server and the data server for a particular
+   layout.
+
+   TRUST_STATEID has no analog in [RFC8881]: pNFS layouts in RFC 8881 do
+   not register the layout stateid with data servers; data servers in
+   the loose-coupling model trust the synthetic uid/gid the metadata
+   server inserts on each I/O (Section 4.2).  TRUST_STATEID is the new
+   MDS- to-DS control-plane operation that replaces synthetic-uid
+   fencing with per-client stateid-table validation for deployments that
+   opt into tight coupling.
+
+   TRUST_STATEID is an MDS-to-DS operation; pNFS clients MUST NOT send
+   it.  The data server MUST verify that the operation arrived on a
+   session whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS at
+   EXCHANGE_ID and reject any TRUST_STATEID received on a regular client
+   session with NFS4ERR_PERM.  TRUST_STATEID operates on the current
+   filehandle; a PUTFH naming the data server's file MUST precede it in
+   the same compound (except in the capability probe case, where the
+   current filehandle is the root).
+
+   The metadata server provides:
+
+   tsa_layout_stateid:  the stateid the metadata server issued in the
+      LAYOUTGET that produced this layout.  MUST NOT be a special
+      stateid (anonymous, invalid, read-bypass, or current).  The sole
+      exception is the capability probe described in Section 4.4.1: when
+      the metadata server sends TRUST_STATEID with tsa_layout_stateid
+      set to the anonymous stateid against the root filehandle, the data
+      server MUST reject the request with NFS4ERR_INVAL -- that
+      rejection is the positive response to the probe.
+
+   tsa_iomode:  the iomode of the layout (LAYOUTIOMODE4_READ or
+      LAYOUTIOMODE4_RW).  The data server MAY enforce this against the
+      CHUNK_* operation presented later: a READ-iomode trust entry does
+      not authorize CHUNK_WRITE.
+
+   tsa_expire:  the absolute wall-clock time at which the trust entry
+      becomes invalid if not renewed (see Section 4.4.6).  The data
+      server MUST reject a TRUST_STATEID whose tsa_expire has
+      tv_nseconds >= 10^9 with NFS4ERR_INVAL.
+
+   tsa_principal:  the client's authenticated identity as verified by
+      the metadata server at LAYOUTGET time.  For RPCSEC_GSS clients
+      this is the GSS display name (e.g., "alice@REALM").  For AUTH_SYS
+      and TLS clients, tsa_principal MUST be the empty string,
+      indicating that no principal binding is enforced on subsequent
+      CHUNK operations.  See Section 4.4.4.
+
+   If a trust entry already exists for the same tsa_layout_stateid on
+   the same current filehandle, TRUST_STATEID atomically updates
+   tsa_expire and tsa_principal; this is the renewal path (see
+   Section 4.4.6).
+
+   At registration time the data server tags the new trust entry with
+   the identity of the metadata server, derived from the clientid of the
+   owning client of the control session on which TRUST_STATEID arrived.
+   This tag is consulted by REVOKE_STATEID (Section 6.3) and
+   BULK_REVOKE_STATEID (Section 6.4) so that revocation only affects
+   entries registered by the same metadata server.  In a multi-metadata-
+   server deployment sharing a single data server, each metadata server
+   registers and revokes only its own entries; the tag is opaque to pNFS
+   clients and is not carried on the wire.
+
+   TRUST_STATEID returns only a top-level status; there is no result
+   body beyond the nfsstat4 discriminant.
+
+   If the current filehandle is not an ordinary file (except in the
+   capability-probe case, where the current filehandle is the root and
+   the operation is expected to be rejected with NFS4ERR_INVAL), an
+   error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+   NFS4ERR_WRONG_TYPE).
+
+6.2.4.  RESPONSE CODES
+
+   NFS4_OK:  the trust entry is registered (or updated).
+
+   NFS4ERR_BADXDR:  arguments could not be decoded.
+
+   NFS4ERR_BAD_STATEID:  tsa_layout_stateid was a special stateid other
+      than the anonymous stateid on the root filehandle.
+
+   NFS4ERR_DELAY:  the data server is temporarily unable to process the
+      request; the metadata server SHOULD retry.
+
+   NFS4ERR_INVAL:  tsa_layout_stateid was the anonymous stateid and the
+      current filehandle is not the root filehandle; tsa_expire is
+      malformed; or the current filehandle is a directory (except in the
+      capability-probe case).
+
+   NFS4ERR_NOFILEHANDLE:  no current filehandle is set.
+
+   NFS4ERR_NOTSUPP:  the data server does not implement TRUST_STATEID.
+      This is the capability-probe response (see Section 4.4.1).
+
+   NFS4ERR_PERM:  the request arrived on a session whose owning client
+      did not present EXCHGID4_FLAG_USE_PNFS_MDS.
+
+   NFS4ERR_SERVERFAULT:  the data server failed while processing the
+      request.
+
+6.3.  Operation 90: REVOKE_STATEID - Revoke Registered Stateid on Data
+      Server
+
+6.3.1.  ARGUMENTS
+
+      /// struct REVOKE_STATEID4args {
+      ///     /* CURRENT_FH: file */
+      ///     stateid4        rsa_layout_stateid;
+      /// };
+
+                   Figure 10: XDR for REVOKE_STATEID4args
+
+6.3.2.  RESULTS
+
+      /// union REVOKE_STATEID4res switch (nfsstat4 rsr_status) {
+      ///     case NFS4_OK:
+      ///         void;
+      ///     default:
+      ///         void;
+      /// };
+
+                   Figure 11: XDR for REVOKE_STATEID4res
+
+6.3.3.  DESCRIPTION
+
+   REVOKE_STATEID invalidates a single trust entry on the data server.
+   Subsequent CHUNK_* operations that present the revoked stateid MUST
+   fail with NFS4ERR_BAD_STATEID.  REVOKE_STATEID is the per-file revoke
+   counterpart to TRUST_STATEID (Section 6.2) -- registration and
+   revocation form the matched pair that drives the per-file trust table
+   for a tightly coupled deployment.
+
+   REVOKE_STATEID has no analog in [RFC8881].  RFC 8881 revokes pNFS
+   layouts via LAYOUTRETURN with a special all-files marker or via
+   implicit lease expiry; REVOKE_STATEID is the new MDS-to-DS surface
+   that lets the metadata server force per-client invalidation at the
+   data server without waiting for tsa_expire and without unsetting
+   other clients' trust entries.
+
+   REVOKE_STATEID is an MDS-to-DS operation; pNFS clients MUST NOT send
+   it.  The data server MUST verify that the operation arrived on a
+   session whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS at
+   EXCHANGE_ID and reject any REVOKE_STATEID received on a regular
+   client session with NFS4ERR_PERM.  REVOKE_STATEID operates on the
+   current filehandle; a PUTFH naming the data server's file MUST
+   precede it in the same compound.
+
+   The metadata server provides:
+
+   rsa_layout_stateid:  the stateid to revoke.  Together with the
+      current filehandle this identifies the trust entry to remove.
+      MUST NOT be a special stateid; the anonymous stateid is rejected
+      with NFS4ERR_INVAL and other special stateids with
+      NFS4ERR_BAD_STATEID.
+
+   The metadata server calls REVOKE_STATEID in any of the following
+   situations:
+
+   *  CB_LAYOUTRECALL timeout: the client did not return the layout
+      within the recall timeout.  REVOKE_STATEID terminates the client's
+      ability to issue further I/O to the data server without waiting
+      for tsa_expire.
+
+   *  LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM: the data server
+      rejected the client's I/O; the trust entry is stale and must be
+      removed.  This mirrors the fencing case in the loose-coupled model
+      (Section 4.2).
+
+   *  Explicit LAYOUTRETURN: the client returned the layout cleanly.
+      The metadata server MAY issue REVOKE_STATEID at this time or MAY
+      rely on tsa_expire; either is correct.
+
+   In-flight CHUNK_* operations that arrived before REVOKE_STATEID
+   completes MAY be allowed to finish.  The data server MUST NOT process
+   new CHUNK_* operations presenting rsa_layout_stateid after
+   REVOKE_STATEID returns.
+
+   Lock state (see [I-D.haynes-nfsv4-flexfiles-v2-chunks]) held by the
+   revoked stateid is NOT released as part of REVOKE_STATEID; the data
+   server MUST transfer each held lock to the MDS-escrow owner (see
+   [I-D.haynes-nfsv4-flexfiles-v2-chunks]).  Dropping a chunk lock
+   during revocation would permit a write hole and is prohibited; the
+   repair coordination sequence in
+   [I-D.haynes-nfsv4-flexfiles-v2-chunks] assumes that locks held by a
+   revoked writer remain held until a repair client adopts them via
+   CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT.
+
+   REVOKE_STATEID is scoped to the issuing metadata server's entries
+   (see the tagging rule in Section 6.2).  The data server MUST NOT
+   remove an entry that was registered by a different metadata server,
+   even if rsa_layout_stateid happens to match.  In a multi-metadata-
+   server deployment, one metadata server therefore cannot revoke
+   another metadata server's entries.
+
+   REVOKE_STATEID is idempotent: revoking a stateid that has no matching
+   trust entry (either no entry exists, or the entry was registered by a
+   different metadata server) returns NFS4_OK.  The metadata server
+   therefore does not need to track precisely which entries are
+   currently live on which data server in order to revoke safely.
+
+   REVOKE_STATEID returns only a top-level status; there is no result
+   body beyond the nfsstat4 discriminant.
+
+   If the current filehandle is not an ordinary file, an error MUST be
+   returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK / NFS4ERR_WRONG_TYPE).
+
+6.3.4.  RESPONSE CODES
+
+   NFS4_OK:  the trust entry was removed, or no matching entry existed
+      (idempotent).
+
+   NFS4ERR_BADXDR:  arguments could not be decoded.
+
+   NFS4ERR_BAD_STATEID:  rsa_layout_stateid was a special stateid.
+
+   NFS4ERR_DELAY:  the data server is temporarily unable to process the
+      request.
+
+   NFS4ERR_INVAL:  rsa_layout_stateid was the anonymous stateid.
+
+   NFS4ERR_NOFILEHANDLE:  no current filehandle is set.
+
+   NFS4ERR_NOTSUPP:  the data server does not implement REVOKE_STATEID.
+
+   NFS4ERR_PERM:  the request arrived on a session whose owning client
+      did not present EXCHGID4_FLAG_USE_PNFS_MDS.
+
+   NFS4ERR_SERVERFAULT:  the data server failed while processing the
+      request.
+
+6.4.  Operation 91: BULK_REVOKE_STATEID - Revoke All Stateids for a
+      Client
+
+6.4.1.  ARGUMENTS
+
+      /// struct BULK_REVOKE_STATEID4args {
+      ///     clientid4       brsa_clientid;
+      /// };
+
+                Figure 12: XDR for BULK_REVOKE_STATEID4args
+
+6.4.2.  RESULTS
+
+      /// union BULK_REVOKE_STATEID4res switch (nfsstat4 brsr_status) {
+      ///     case NFS4_OK:
+      ///         void;
+      ///     default:
+      ///         void;
+      /// };
+
+                 Figure 13: XDR for BULK_REVOKE_STATEID4res
+
+6.4.3.  DESCRIPTION
+
+   BULK_REVOKE_STATEID removes every trust entry on the data server that
+   was registered on behalf of a single named client.  Unlike
+   REVOKE_STATEID (Section 6.3), which removes one entry identified by a
+   (filehandle, stateid) pair, BULK_REVOKE_STATEID does not target a
+   specific filehandle or stateid; it instructs the data server to scan
+   its trust table and remove every entry whose owning pNFS client
+   matches brsa_clientid (and whose issuing metadata server matches the
+   calling MDS).
+
+   BULK_REVOKE_STATEID has no analog in [RFC8881].  RFC 8881 recall-all
+   is expressed at the layout layer (CB_LAYOUTRECALL with
+   LAYOUTRECALL4_ALL); the per-client trust-table sweep introduced here
+   is the data-server-side complement, replacing the N per-file
+   REVOKE_STATEID compounds that per-entry revocation would require with
+   a single round-trip.
+
+   BULK_REVOKE_STATEID is an MDS-to-DS operation; pNFS clients MUST NOT
+   send it.  The data server MUST verify that the operation arrived on a
+   session whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS at
+   EXCHANGE_ID and reject any BULK_REVOKE_STATEID received on a regular
+   client session with NFS4ERR_PERM.  BULK_REVOKE_STATEID does not
+   operate on the current filehandle; no PUTFH is required in the
+   compound.
+
+   The metadata server provides:
+
+   brsa_clientid:  the clientid of the pNFS client whose trust entries
+      are to be removed.  The special all-zeros value means "remove
+      every trust entry owned by the calling metadata server, regardless
+      of which pNFS client registered it"; the data server MUST
+      interpret this value as a sweep of its own entries only, NOT as
+      the pNFS client whose clientid happens to be zero and NOT as a
+      global cross-MDS table clear.
+
+   The metadata server calls BULK_REVOKE_STATEID in any of the following
+   situations:
+
+   *  Client lease expiry: when a client's lease on the metadata server
+      expires, the metadata server revokes all of that client's layouts.
+      A single BULK_REVOKE_STATEID with brsa_clientid set to the expired
+      client's clientid sweeps every per-file trust entry the metadata
+      server had registered for that client.
+
+   *  CB_LAYOUTRECALL with LAYOUTRECALL4_ALL: the metadata server is
+      recalling all layouts for a client.  BULK_REVOKE_STATEID is the
+      data-server-side complement.
+
+   *  Metadata server restart cleanup: after the metadata server
+      reconnects to a data server, it MAY issue BULK_REVOKE_STATEID with
+      brsa_clientid set to all-zeros to clear the prior trust table
+      before re-issuing TRUST_STATEID as clients reclaim.  See
+      Section 4.4.8.
+
+   BULK_REVOKE_STATEID is scoped to the issuing metadata server's
+   entries (see the tagging rule in Section 6.2).  The data server MUST
+   NOT affect entries registered by a different metadata server.
+   Consequently, in a multi-metadata-server deployment sharing a single
+   data server, one metadata server cannot clear another metadata
+   server's entries via BULK_REVOKE_STATEID.
+
+   Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent (no error is
+   returned if there are no matching entries) and preserves chunk locks
+   held under any revoked stateid by transferring them to the MDS-escrow
+   owner (see [I-D.haynes-nfsv4-flexfiles-v2-chunks]), rather than
+   dropping them.  Subsequent CHUNK_* operations from the revoked client
+   fail with NFS4ERR_BAD_STATEID; locks held under those revoked
+   stateids remain until adopted by a repair client via CHUNK_LOCK with
+   CHUNK_LOCK_FLAGS_ADOPT ([I-D.haynes-nfsv4-flexfiles-v2-chunks]).
+
+   BULK_REVOKE_STATEID returns only a top-level status; there is no
+   result body beyond the nfsstat4 discriminant.
+
+6.4.4.  RESPONSE CODES
+
+   NFS4_OK:  the matching entries were removed, or there were none
+      (idempotent).
+
+   NFS4ERR_BADXDR:  arguments could not be decoded.
+
+   NFS4ERR_DELAY:  the data server is temporarily unable to process the
+      request.
+
+   NFS4ERR_NOTSUPP:  the data server does not implement
+      BULK_REVOKE_STATEID.
+
+   NFS4ERR_PERM:  the request arrived on a session whose owning client
+      did not present EXCHGID4_FLAG_USE_PNFS_MDS.
+
+   NFS4ERR_SERVERFAULT:  the data server failed while processing the
+      request.
+
+7.  Security Considerations
+
+7.1.  Trusted Stateids
+
+   The TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID operations
+   (Section 6.2, Section 6.3, Section 6.4) introduce a per-stateid
+   authorization channel between the metadata server and the data
+   server.  The security implications of that channel are distinct from
+   those of the loosely coupled synthetic-uid model (Section 4.2) and
+   warrant their own treatment.
+
+7.1.1.  Interaction with Kerberos and RPCSEC_GSS
+
+   Trusted stateids decouple the credential the data server uses to
+   authorize I/O from the credential the client uses to authenticate to
+   the data server.  Under loose coupling (Section 4.2), the metadata
+   server inserts a synthetic uid/gid into the layout and the client
+   presents that synthetic credential on every data-server RPC; the data
+   server has no independent verification of the client's identity, and
+   a client that learns another client's synthetic uid/gid can
+   impersonate it on the data path.  Tight coupling via TRUST_STATEID
+   changes this in three ways:
+
+   *  The metadata server records the client's authenticated principal
+      in the trust entry via tsa_principal at TRUST_STATEID time
+      (Section 6.2).  Under RPCSEC_GSS (typically Kerberos V5 GSS-API
+      per [RFC4121]), tsa_principal is the GSS display name (for
+      example, "alice@REALM"); under AUTH_SYS and TLS, tsa_principal is
+      the empty string.
+
+   *  The client presents its own RPCSEC_GSS context on each CHUNK_*
+      operation against the data server.  Under tight coupling with GSS,
+      the data server MUST verify that the principal carried in the
+      inbound RPC's RPCSEC_GSS context matches the tsa_principal
+      recorded for the stateid in its trust table; a mismatch returns
+      NFS4ERR_ACCESS.  A client that learned another client's layout
+      stateid (from a log file, a packet capture of cleartext RPC, or
+      any other leak) cannot use it because their own GSS principal
+      would not match.
+
+   *  The data server does NOT need its own Kerberos keytab to validate
+      each client principal individually.  In a loose-coupling Kerberos
+      deployment the data server would have to be a service principal in
+      every realm it serves clients from; under tight coupling the data
+      server's keytab is only required for its session with the metadata
+      server (the control session, Section 4.4).  Operational complexity
+      of Kerberos deployment is meaningfully reduced.
+
+   The mechanism does not authenticate the metadata server to the
+   client; it authenticates the client to the data server using
+   credentials the metadata server vouched for at LAYOUTGET time.
+   Compromise of the metadata server allows an attacker to register
+   arbitrary trust entries; the metadata server is the trust anchor for
+   the layout grant, unchanged from the existing pNFS layout-issuance
+   model.
+
+7.1.2.  Attack Surfaces and Mitigations
+
+   Compromised metadata server:  An attacker controlling the metadata
+      server can issue TRUST_STATEID for any (layout stateid, principal)
+      pair.  This is the same trust assumption pNFS already makes -- the
+      metadata server grants layouts and the data servers honour them.
+      Deployment defence is the same: restrict administrative access to
+      the metadata server, require RPCSEC_GSS or RPC-over-TLS
+      ([RFC9289]) with mutual authentication on the control session
+      (Section 4.4), and monitor for anomalous TRUST_STATEID volume.
+
+   Compromised data server:  A compromised data server sees plaintext
+      chunk payloads at rest and on the wire (subject to whatever the
+      deployment uses for at-rest encryption and transport security).
+      It can return arbitrary content on CHUNK_READ with a correctly
+      computed checksum; the checksum protects against transport
+      corruption, not adversarial content
+      ([I-D.haynes-nfsv4-flexfiles-v2-chunks]).  This is the same as the
+      RAID-stripe trust model: each shard host can lie about its shard.
+      Deployment defences are encryption at rest, an integrity-
+      protected transport (RPCSEC_GSS_KRB5I or TLS), and physical or
+      logical isolation of data servers.
+
+   Stateid leak from client to attacker:  Under tight coupling with
+      RPCSEC_GSS, a leaked stateid is not exploitable: the attacker's
+      own RPC principal will not match tsa_principal in the trust table,
+      and the data server returns NFS4ERR_ACCESS.  Under tight coupling
+      with AUTH_SYS over TLS (where tsa_principal is empty), a leaked
+      stateid is exploitable by any attacker who can also forge the
+      source-address binding the data server's TLS session expects; this
+      is the standard AUTH_SYS-over-TLS trust model, unchanged.
+
+   Replay of revoked stateid:  After REVOKE_STATEID or
+      BULK_REVOKE_STATEID the data server removes the trust entry and
+      subsequent CHUNK_* operations presenting the revoked stateid fail
+      with NFS4ERR_BAD_STATEID (Section 6.3).  An in-flight CHUNK_*
+      operation that arrived before the revoke completed MAY be allowed
+      to finish; the chunk_guard4 CAS
+      ([I-D.haynes-nfsv4-flexfiles-v2-chunks]) bounds the worst-case
+      damage from such in-flight I/O to the chunks already PENDING at
+      revocation time, and the lock-transfer-to-MDS-escrow rule
+      ([I-D.haynes-nfsv4-flexfiles-v2-chunks]) prevents a write hole
+      from opening during revocation.
+
+   Compromised control session:  An attacker who controls the metadata-
+      server-to-data- server control session can register or revoke
+      arbitrary trust entries.  The control session is the most
+      security-sensitive surface introduced by tight coupling.
+      Deployment MUST protect it with RPCSEC_GSS ([RFC7861]) using a
+      service principal both sides trust, or with RPC-over-TLS
+      ([RFC9289]) using mutual authentication and allowlisted
+      certificates.  The data server enforces that TRUST_STATEID,
+      REVOKE_STATEID, and BULK_REVOKE_STATEID only arrive on sessions
+      whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS at
+      EXCHANGE_ID (Section 6.2), but that flag alone does not
+      authenticate the metadata server.
+
+   Resource exhaustion via trust-table flood:  A misbehaving metadata
+      server could register an unbounded number of TRUST_STATEID entries
+      to exhaust the data server's trust-table memory.  The mechanism
+      defending against this is the tsa_expire lease on each entry:
+      trust entries that are not renewed before expiry are reaped by the
+      data server.  A data server under memory pressure MAY also return
+      NFS4ERR_DELAY on new TRUST_STATEID requests, forcing the metadata
+      server to back off.
+
+   Cross-metadata-server isolation:  In a deployment where two metadata
+      servers share a single data server, the per-entry metadata-server
+      tag (derived from the control session's owning client; see
+      Section 6.2) ensures that REVOKE_STATEID and BULK_REVOKE_STATEID
+      from one metadata server cannot remove entries registered by the
+      other.  A compromised metadata server can, however, register
+      entries against any filehandle the data server exposes to it.
+      Deployments concerned about cross-metadata-server isolation MUST
+      partition the data server's filesystem namespace into per-
+      metadata-server exports at the data server, rather than rely on
+      the trust table alone to enforce file-level boundaries between
+      metadata servers.
+
+8.  IANA Considerations
+
+   NFSv4 operation numbers are governed by the publishing standards-
+   track document, not by an IANA registry (there is no "NFSv4
+   Operations" IANA registry that assigns opcodes; see [RFC8881], whose
+   operation numbers were similarly assigned by the publishing document
+   rather than by IANA action).  This document therefore assigns --
+   rather than requests IANA to assign -- the following new NFSv4.2
+   operation numbers, extending the assignments of [RFC8881]:
+
+   *  Value 89: TRUST_STATEID
+
+   *  Value 90: REVOKE_STATEID
+
+   *  Value 91: BULK_REVOKE_STATEID
+
+   The reference for each is this document.  No IANA action is required
+   for this section.
+
+Acknowledgments
+
+   See the Acknowledgments section of
+   [I-D.haynes-nfsv4-flexfiles-v2-requirements].
+
+References
+
+Normative References
+
+   [I-D.haynes-nfsv4-flexfiles-v2-layout]
+              "*** BROKEN REFERENCE ***".
+
+   [I-D.haynes-nfsv4-flexfiles-v2-requirements]
+              "*** BROKEN REFERENCE ***".
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC4121]  Zhu, L., Jaganathan, K., and S. Hartman, "The Kerberos
+              Version 5 Generic Security Service Application Program
+              Interface (GSS-API) Mechanism: Version 2", RFC 4121,
+              DOI 10.17487/RFC4121, July 2005,
+              <https://www.rfc-editor.org/rfc/rfc4121>.
+
+   [RFC4506]  Eisler, M., Ed., "XDR: External Data Representation
+              Standard", STD 67, RFC 4506, DOI 10.17487/RFC4506, May
+              2006, <https://www.rfc-editor.org/rfc/rfc4506>.
+
+   [RFC5531]  Thurlow, R., "RPC: Remote Procedure Call Protocol
+              Specification Version 2", RFC 5531, DOI 10.17487/RFC5531,
+              May 2009, <https://www.rfc-editor.org/rfc/rfc5531>.
+
+   [RFC5661]  Shepler, S., Ed., Eisler, M., Ed., and D. Noveck, Ed.,
+              "Network File System (NFS) Version 4 Minor Version 1
+              Protocol", RFC 5661, DOI 10.17487/RFC5661, January 2010,
+              <https://www.rfc-editor.org/rfc/rfc5661>.
+
+   [RFC7861]  Adamson, A. and N. Williams, "Remote Procedure Call (RPC)
+              Security Version 3", RFC 7861, DOI 10.17487/RFC7861,
+              November 2016, <https://www.rfc-editor.org/rfc/rfc7861>.
+
+   [RFC7862]  Haynes, T., "Network File System (NFS) Version 4 Minor
+              Version 2 Protocol", RFC 7862, DOI 10.17487/RFC7862,
+              November 2016, <https://www.rfc-editor.org/rfc/rfc7862>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+   [RFC8434]  Haynes, T., "Requirements for Parallel NFS (pNFS) Layout
+              Types", RFC 8434, DOI 10.17487/RFC8434, August 2018,
+              <https://www.rfc-editor.org/rfc/rfc8434>.
+
+   [RFC8881]  Noveck, D., Ed. and C. Lever, "Network File System (NFS)
+              Version 4 Minor Version 1 Protocol", RFC 8881,
+              DOI 10.17487/RFC8881, August 2020,
+              <https://www.rfc-editor.org/rfc/rfc8881>.
+
+   [RFC9289]  Myklebust, T. and C. Lever, Ed., "Towards Remote Procedure
+              Call Encryption by Default", RFC 9289,
+              DOI 10.17487/RFC9289, September 2022,
+              <https://www.rfc-editor.org/rfc/rfc9289>.
+
+Informative References
+
+   [I-D.haynes-nfsv4-flexfiles-v2-chunks]
+              "*** BROKEN REFERENCE ***".
+
+   [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]
+              Haynes, T., "Proxy-Driven Server for Flexible Files
+              Version 2", Work in Progress, Internet-Draft, draft-
+              haynes-nfsv4-flexfiles-v2-proxy-server-02, 25 May 2026,
+              <https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-
+              flexfiles-v2-proxy-server-02>.
+
+   [RFC4519]  Sciberras, A., Ed., "Lightweight Directory Access Protocol
+              (LDAP): Schema for User Applications", RFC 4519,
+              DOI 10.17487/RFC4519, June 2006,
+              <https://www.rfc-editor.org/rfc/rfc4519>.
+
+   [RFC5905]  Mills, D., Martin, J., Ed., Burbank, J., and W. Kasch,
+              "Network Time Protocol Version 4: Protocol and Algorithms
+              Specification", RFC 5905, DOI 10.17487/RFC5905, June 2010,
+              <https://www.rfc-editor.org/rfc/rfc5905>.
+
+   [RFC8435]  Halevy, B. and T. Haynes, "Parallel NFS (pNFS) Flexible
+              File Layout", RFC 8435, DOI 10.17487/RFC8435, August 2018,
+              <https://www.rfc-editor.org/rfc/rfc8435>.
+
+Author's Address
+
+   Thomas Haynes
+   Hammerspace
+   Email: loghyr@gmail.com
