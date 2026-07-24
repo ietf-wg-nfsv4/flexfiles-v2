@@ -644,8 +644,8 @@ presentation, the chunk lifecycle and guard semantics, the
 trusted-stateid design, and many smaller choices recorded
 throughout the family.
 
-Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
-process.
+Chris Inacio, Chuck Lever, Brian Pawlowski, and Gorry Fairhurst
+guided this process.
 
 Mojette-specific acknowledgments are carried by
 {{I-D.haynes-nfsv4-flexfiles-v2-mojette}}.
