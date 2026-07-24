@@ -356,7 +356,7 @@ consumes FFV2_ENCODING_XOR_PARITY output.
 ### FFV2_ENCODING_SNAPRAID_CAUCHY {#sec-encoding-snapraid-cauchy-annex}
 
 Cauchy erasure coding over GF(2^8) with primitive polynomial
-0x1d.  Parameters: k in [1, 251], m in [1, 6].
+0x1d.  Parameters: k in the range 1 to 251, m in the range 1 to 6.
 
 **Field:** GF(2^8) elements are represented as octets.
 Addition is bytewise XOR.  Multiplication is defined by the
@@ -395,7 +395,7 @@ m>=3 (LINUX_MD_RAID does not support m>=3).
 ### FFV2_ENCODING_LINUX_MD_RAID {#sec-encoding-linux-md-raid-annex}
 
 Linux kernel md/raid6 P+Q double-parity encoding.
-Parameters: k in [2, 253], m fixed at 2.  The k=1 case is
+Parameters: k in the range 2 to 253, m fixed at 2.  The k=1 case is
 degenerate (single data shard with P and Q) and is not
 supported; use FFV2_ENCODING_MIRRORED with N=3 for that
 semantics.
@@ -437,7 +437,7 @@ speaks any of the three consume the others at m=2.
 Reed-Solomon erasure coding over GF(2^8) using the
 Vandermonde matrix construction from Intel's ISA-L
 (Intelligent Storage Acceleration Library).  Parameters: k
-in [1, 253], m in [1, 254-k].
+in the range 1 to 253, m in the range 1 to (254 - k).
 
 **Field:** GF(2^8), primitive polynomial 0x1d, generator 2.
 
