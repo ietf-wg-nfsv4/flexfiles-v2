@@ -5700,6 +5700,16 @@ is used as the security mechanism, then the storage device could
 use a control protocol to validate the RPC credentials to the
 metadata server.
 
+A repair client reconstructs and writes shards on behalf of other
+clients via CHUNK_WRITE_REPAIR.  A malicious or buggy repair client
+is therefore a write path into data it did not originate; the
+metadata server MUST validate repaired shards against the file's
+registered checksum before accepting them, and integrity against a
+malicious data server (as opposed to bit-flips) requires a
+cryptographic checksum_algorithm together with transport security.
+CHECKSUM_ALG_NONE and the CRC variants provide bit-flip detection
+only.
+
 
 # IANA Considerations
 
