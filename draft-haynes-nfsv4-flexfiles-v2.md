@@ -2072,7 +2072,7 @@ cost-vs-tolerance one.
 
 FFV2_ENCODING_XOR_PARITY is single-parity systematic RAID-5-
 shape: k data shards plus one parity shard computed as the
-bytewise XOR of every data shard.  Parameters: k in [1, 254],
+bytewise XOR of every data shard.  Parameters: k in the range 1 to 254,
 m fixed at 1.  No finite-field arithmetic is required -- the
 "encoding" is a plain XOR reduction across k shards, so the
 implementation footprint is trivial and the compute cost
@@ -2090,7 +2090,7 @@ XOR_PARITY.  This is the simplest MTI-candidate encoding.
 
 FFV2_ENCODING_SNAPRAID_CAUCHY is a Cauchy erasure coding over
 GF(2^8) with primitive polynomial 0x1d.  Parameters: k in
-[1, 251], m in [1, 6].  The encoding matrix is the Extended
+the range 1 to 251, m in the range 1 to 6.  The encoding matrix is the Extended
 Cauchy construction defined in the SnapRAID reference
 implementation (see the wire-format annex in the
 `snapraid-cauchy` encoding companion): the matrix's first two
@@ -2116,7 +2116,7 @@ an interoperable wrapper.
 
 FFV2_ENCODING_LINUX_MD_RAID is the Linux kernel md/raid6 P+Q
 double-parity encoding, over GF(2^8) with primitive
-polynomial 0x1d.  Parameters: k in [2, 253], m fixed at 2.
+polynomial 0x1d.  Parameters: k in the range 2 to 253, m fixed at 2.
 
 The P parity row is the bytewise XOR of every data shard --
 identical to FFV2_ENCODING_XOR_PARITY's parity when
@@ -2143,8 +2143,7 @@ FFV2_ENCODING_MIRRORED with N=3 instead.
 FFV2_ENCODING_ISA_L_RS is Reed-Solomon erasure coding over
 GF(2^8) with primitive polynomial 0x1d, using the Vandermonde
 matrix construction from Intel's ISA-L (Intelligent Storage
-Acceleration Library).  Parameters: k in [1, 253], m in
-[1, 254-k].  The encoding matrix's top k rows form the
+Acceleration Library).  Parameters: k in the range 1 to 253, m in the range 1 to (254 - k).  The encoding matrix's top k rows form the
 identity (systematic form) and the remaining m rows are
 plain Vandermonde: row (k+i) column j equals `2^(i*j)` in
 GF(2^8).
@@ -11625,5 +11624,5 @@ trusted-stateid design, and many smaller choices recorded
 throughout the
 document.
 
-Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
-process.
+Chris Inacio, Chuck Lever, Brian Pawlowski, and Gorry Fairhurst
+guided this process.
