@@ -202,11 +202,13 @@ the other instance locations.
 
 However, lacking integrity checks, silent corruptions are not able to
 be detected and the choice of what constitutes the good copy is
-difficult.  This document updates the Flexible File Version 1 Layout Type to
-version 2 by providing error-detection integrity (checksum) for erasure
-coding.  Data blocks are transformed into a header and a chunk.  This
-document also introduces new operations that allow the client to roll
-back writes to the data file.
+difficult.  This document defines the Flexible File Version 2 Layout
+Type, an independent layout type that adds error-detection integrity
+(checksum) for erasure coding.  It does not modify the Flexible File
+Version 1 Layout Type ({{RFC8435}}); the two coexist.  Data blocks are
+transformed into a header and a chunk.  This document also introduces
+new operations that allow the client to roll back writes to the data
+file.
 
 Using the process detailed in {{RFC8178}}, the revisions in this
 document become an extension of NFSv4.2 {{RFC7862}}.  They are built on
@@ -270,7 +272,7 @@ elsewhere.  A server-side coordinator that holds the whole
 stripe -- the flexible file v1 case -- can resilver from a
 surviving copy without any client involvement.  In the v2
 case there is no such coordinator, and the on-wire
-protocol must specify how the partial state is reconciled.
+protocol specifies how the partial state is reconciled.
 This is the load-bearing constraint that shapes the rest
 of the design.
 
@@ -281,7 +283,7 @@ Distributed consensus is operationally expensive,
 introduces a synchronisation cost on every write, and
 makes the data servers themselves stateful peers in a way
 that closes off the simpler implementations the protocol
-should accommodate.  Instead, this draft uses two
+is designed to accommodate.  Instead, this draft uses two
 narrowly-scoped primitives that together provide just
 enough on-wire reconciliation: the chunk_guard4
 compare-and-swap (CAS) and the CB_CHUNK_REPAIR callback.
@@ -366,7 +368,7 @@ expose a POSIX file namespace satisfy the tight-coupling
 requirements without materialising POSIX uid/gid bits.
 
 A protocol-level consequence of placing erasure coding at
-the client is that the layout must be able to describe a
+the client is that the layout is able to describe a
 file's storage shape over its full lifetime -- including
 the transition windows when the file is being assimilated
 from a non-erasure-coded source, re-encoded from one
@@ -400,33 +402,30 @@ existing NFSv4 locking primitives.
 #  Use Cases {#sec-use-cases}
 
 The protocol is designed around three workload classes.  The
-percentages below reflect the expected deployment mix in
+labels below reflect the relative frequency of each class in
 installations that choose flexible file v2 layout for its combination of
 integrity and performance; individual deployments may diverge.
 
-Single writer, multiple readers:
-:  Approximately 90% of expected deployments.  The common case is a
-   file written by one client and subsequently read by many.
+Single writer, multiple readers (the common case):
+:  A file written by one client and subsequently read by many.
    Examples include artifacts deposited by batch jobs, container
    images, and media files.  The protocol is optimized for this
    case; see {{sec-system-model-progress}}.
 
-Multiple writers without sustained contention:
-:  Approximately 9% of expected deployments.  Files with multiple
-   concurrent writers where races on the same chunk are rare.
-   Examples include shared-directory append-only logs and
-   distributed builds.  The chunk_guard4 CAS primitive and per-chunk
-   locking cover this case without penalizing the common
+Multiple writers without sustained contention (occasional):
+:  Files with multiple concurrent writers where races on the same
+   chunk are rare.  Examples include shared-directory append-only
+   logs and distributed builds.  The chunk_guard4 CAS primitive and
+   per-chunk locking cover this case without penalizing the common
    single-writer path.
 
-Multiple writers, disjoint regions:
-:  Approximately 1% of expected deployments.  High-performance
-   computing (HPC) checkpoint workloads, in which many ranks write
-   disjoint regions of the same file in lockstep.  The protocol
-   relies on block alignment to keep per-chunk contention rare
-   despite overall high writer count.  Contention that does occur
-   is resolved via the deterministic tiebreaker rule defined in
-   {{sec-chunk_guard4}}.
+Multiple writers, disjoint regions (rare):
+:  High-performance computing (HPC) checkpoint workloads, in which
+   many ranks write disjoint regions of the same file in lockstep.
+   The protocol relies on block alignment to keep per-chunk
+   contention rare despite overall high writer count.  Contention
+   that does occur is resolved via the deterministic tiebreaker
+   rule defined in {{sec-chunk_guard4}}.
 
 Scale targets include multi-thousand-client deployments (on the
 order of tens of thousands of concurrent clients for HPC
@@ -766,8 +765,8 @@ requirements on the client, the control protocol will need to provide:
 When implementing the loosely coupled model, the only control protocol
 will be a version of NFS, with no ability to provide a global stateid
 model or to prevent clients from using layouts inappropriately.  To enable
-client use in that environment, this document will specify how security,
-state, and locking are to be managed.
+client use in that environment, this document specifies how security,
+state, and locking are managed.
 
 The loosely and tightly coupled locking models defined in Section 2.3
 of {{RFC8435}} apply equally to this layout type, including the use of
@@ -2474,7 +2473,7 @@ striping or the ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
 then the length of ffv2m_stripes MUST be 1.  Under
 FFV2_ENCODING_MIRRORED the file MAY be striped within each
 replica; the constraint that ffv2s_data_servers length is 1
-still applies, but ffv2m_stripes may carry multiple stripes.
+still applies, but ffv2m_stripes can carry multiple stripes.
 
 ## ffv2_layout4
 
@@ -3354,7 +3353,7 @@ is in {{fig-example-chunk-write-args}}.
 
 This describes a 3 block write of data from an offset of 1 block
 in the file.  As each block shares the cwa_owner, it is only presented
-once.  I.e., the data server will be able to construct the header
+once.  The data server can construct the header
 for the i'th chunk from the cwa_chunks from the cwa_payload_id, the
 cwa_owner, and the i'th checksum from the cwa_checksums.  The cwa_chunks
 are sent together as a byte stream to increase performance.
@@ -10492,6 +10491,16 @@ Cross-metadata-server isolation:
    rather than rely on the trust table alone to enforce
    file-level boundaries between metadata servers.
 
+A repair client reconstructs and writes shards on behalf of other
+clients via CHUNK_WRITE_REPAIR.  A malicious or buggy repair client
+is therefore a write path into data it did not originate; the
+metadata server MUST validate repaired shards against the file's
+registered checksum before accepting them, and integrity against a
+malicious data server (as opposed to bit-flips) requires a
+cryptographic checksum_algorithm together with transport security.
+CHECKSUM_ALG_NONE and the CRC variants provide bit-flip detection
+only.
+
 #  IANA Considerations {#iana-considerations}
 
 {{RFC8881}} introduced the "pNFS Layout Types Registry"; new layout
@@ -10749,9 +10758,10 @@ XDR descriptions with the sentinel sequence are embedded throughout
 the document.
 
 Note that the XDR code contained in this document depends on types
-from the NFSv4.1 nfs4_prot.x file {{RFC5662}}.  This includes both nfs
-types that end with a 4, such as offset4, length4, etc., as well as
-more generic types such as uint32_t and uint64_t.
+from the NFSv4.2 nfs4_prot.x file {{RFC7863}} (which itself builds on
+{{RFC5662}}).  This includes both nfs types that end with a 4, such
+as offset4, length4, etc., as well as more generic types such as
+uint32_t and uint64_t.
 
 While the XDR can be appended to that from {{RFC7863}}, the various
 code snippets belong in their respective areas of that XDR.
@@ -11461,7 +11471,7 @@ which is the property the working group asked for.
 # Acknowledgments
 {:numbered="false"}
 
-The following contributors were instrumental in driving Flexible
+The following from Hammerspace were instrumental in driving Flexible
 File Version 2 Layout Type: David Flynn, Trond Myklebust, Didier
 Feron, Jean-Pierre Monchanin, Pierre Evenou, and Brian Pawlowski.
 
@@ -11483,11 +11493,12 @@ framing is reflected in {{sec-motivation}} and in the Non-Goals
 of {{sec-system-model-consistency}}.
 
 The authors thank Dave Noveck, Chuck Lever, Tigran
-Mkrtchyan, Rick Macklem, and Christoph Hellwig for their
-detailed review of earlier revisions of this draft.  Their
-comments shaped the system model presentation, the chunk
-lifecycle and guard semantics, the trusted-stateid design,
-and many smaller choices recorded throughout the
+Mkrtchyan, Rick Macklem, Christoph Hellwig, and Sorin
+Faibish for their detailed review of earlier revisions of
+this draft.  Their comments shaped the system model
+presentation, the chunk lifecycle and guard semantics, the
+trusted-stateid design, and many smaller choices recorded
+throughout the
 document.
 
 Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
