@@ -11624,5 +11624,5 @@ trusted-stateid design, and many smaller choices recorded
 throughout the
 document.
 
-Chris Inacio, Chuck Lever, Brian Pawlowski, and Gorry Fairhurst
-guided this process.
+Chris Inacio, Chuck Lever, Brian Pawlowski, Gorry Fairhurst,
+and Zahed Sarker guided this process.
