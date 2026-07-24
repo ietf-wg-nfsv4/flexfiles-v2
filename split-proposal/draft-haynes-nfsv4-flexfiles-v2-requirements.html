@@ -1,0 +1,2609 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Requirements and Rationale for the Flexible File Version 2 Layout Type</title>
+<meta content="Thomas Haynes" name="author">
+<meta content="
+       This document is the requirements and rationale companion to the
+Flexible File Version 2 Layout Type family of NFSv4.2
+specifications.  It carries the motivation (why the family
+exists), the use cases (which deployments the family targets),
+the family-wide definitions, the implementation-status
+provenance, and the design rationale for choices the family
+made and alternatives it rejected.  This document does not
+define wire-protocol operations; those are specified in the
+family's Standards-Track companion documents (trust-stateid,
+layout, chunk substrate, encoding registry, and per-encoding
+specifications). 
+    " name="description">
+<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="pNFS" name="keyword">
+<meta content="flexfiles" name="keyword">
+<meta content="requirements" name="keyword">
+<meta content="draft-haynes-nfsv4-flexfiles-v2-requirements-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.0
+    Python 3.14.5
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.10.1
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.8.2
+-->
+<link href="draft-haynes-nfsv4-flexfiles-v2-requirements.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">FFv2 Requirements</td>
+<td class="right">July 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Haynes</td>
+<td class="center">Expires 25 January 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network File System Version 4</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-requirements-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-07-24" class="published">24 July 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-01-25">25 January 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">T. Haynes</div>
+<div class="org">Hammerspace</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Requirements and Rationale for the Flexible File Version 2 Layout Type</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document is the requirements and rationale companion to the
+Flexible File Version 2 Layout Type family of NFSv4.2
+specifications.  It carries the motivation (why the family
+exists), the use cases (which deployments the family targets),
+the family-wide definitions, the implementation-status
+provenance, and the design rationale for choices the family
+made and alternatives it rejected.  This document does not
+define wire-protocol operations; those are specified in the
+family's Standards-Track companion documents (trust-stateid,
+layout, chunk substrate, encoding registry, and per-encoding
+specifications).<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://ietf-wg-nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2-requirements.html">https://ietf-wg-nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2-requirements.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2-requirements/">https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2-requirements/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Network File System Version 4 Working Group mailing list (<span><a href="mailto:nfsv4@ietf.org">mailto:nfsv4@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/nfsv4/">https://mailarchive.ietf.org/arch/browse/nfsv4/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/nfsv4/">https://www.ietf.org/mailman/listinfo/nfsv4/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/ietf-wg-nfsv4/flexfiles-v2">https://github.com/ietf-wg-nfsv4/flexfiles-v2</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<section class="note" id="section-note.2">
+      <h2 id="name-note-to-readers">
+<a href="#name-note-to-readers" class="section-name selfRef">Note to Readers</a>
+      </h2>
+<p id="section-note.2-1">This is an individual submission and does not reflect Working Group
+consensus.  The "About This Document" section above has the current
+discussion venue, latest rendering, and source location.<a href="#section-note.2-1" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 25 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-requirements-language" class="internal xref">Requirements Language</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-motivation" class="internal xref">Motivation</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-use-cases" class="internal xref">Use Cases</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-definitions" class="internal xref">Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref"></a><a href="#name-implementation-status" class="internal xref">Implementation Status</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref"></a><a href="#name-reffs-metadata-server-and-d" class="internal xref">reffs (metadata server and data server) and ec_demo (Client)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref"></a><a href="#name-interoperability-and-benchm" class="internal xref">Interoperability and Benchmarks</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref"></a><a href="#name-architectural-implication-c" class="internal xref">Architectural Implication: Cost of Fault Tolerance</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref"></a><a href="#name-design-rationale-rejected-a" class="internal xref">Design Rationale: Rejected Alternatives</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref"></a><a href="#name-proprietary-projection-head" class="internal xref">Proprietary Projection Header Inside Opaque Payload</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref"></a><a href="#name-per-client-swap-files-with-" class="internal xref">Per-Client Swap Files with metadata server MAPPING_RECALL</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.3">
+                <p id="section-toc.1-1.10.2.3.1"><a href="#section-10.3" class="auto internal xref"></a><a href="#name-server-side-byte-range-lock" class="internal xref">Server-Side Byte-Range Lock Manager per File</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.4">
+                <p id="section-toc.1-1.10.2.4.1"><a href="#section-10.4" class="auto internal xref"></a><a href="#name-modified-two-touch-paxos-on" class="internal xref">Modified Two-Touch Paxos on Each Chunk</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.5">
+                <p id="section-toc.1-1.10.2.5.1"><a href="#section-10.5" class="auto internal xref"></a><a href="#name-automatic-commit-of-empty-c" class="internal xref">Automatic Commit of Empty Chunks</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.6">
+                <p id="section-toc.1-1.10.2.6.1"><a href="#section-10.6" class="auto internal xref"></a><a href="#name-global-clock-or-wall-clock-" class="internal xref">Global Clock or Wall-Clock-Based Generation Counter</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.7">
+                <p id="section-toc.1-1.10.2.7.1"><a href="#section-10.7" class="auto internal xref"></a><a href="#name-layout-level-generation-cou" class="internal xref">Layout-Level Generation Counter</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.8">
+                <p id="section-toc.1-1.10.2.8.1"><a href="#section-10.8" class="auto internal xref"></a><a href="#name-declustered-raid-with-dynam" class="internal xref">Declustered RAID with Dynamic Parity Mapping</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref"></a><a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref"></a><a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref"></a><a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">The Flexible File Version 2 Layout Type is specified as a
+family of NFSv4.2 Internet-Drafts:<a href="#section-1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-2.1">
+          <p id="section-1-2.1.1"><strong>This document</strong>:
+requirements, use cases, definitions, and design rationale.<a href="#section-1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.2">
+          <p id="section-1-2.2.1"><span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-trust-stateid" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-trust-stateid</a>]</span>: the
+Metadata-Server-to-Data-Server trust-stateid control protocol
+and the three new NFSv4.2 operations (TRUST_STATEID,
+REVOKE_STATEID, BULK_REVOKE_STATEID).<a href="#section-1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.3">
+          <p id="section-1-2.3.1"><span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-layout" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-layout</a>]</span>: the layout XDR
+types, device addressing, striping, layout-return / error /
+stats, and layout recall.<a href="#section-1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.4">
+          <p id="section-1-2.4.1"><span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>: the chunk substrate,
+the correctness model, the 11 CHUNK operations, and the
+CB_CHUNK_REPAIR callback.<a href="#section-1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.5">
+          <p id="section-1-2.5.1"><span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-encoding-registry" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-encoding-registry</a>]</span>: the IANA
+registry for erasure encoding types and the mixing-of-coding-
+types framework.<a href="#section-1-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.6">
+          <p id="section-1-2.6.1"><span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde</a>]</span>: the
+Reed-Solomon Vandermonde encoding specification.<a href="#section-1-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.7">
+          <p id="section-1-2.7.1"><span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-mojette" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-mojette</a>]</span>: the Mojette
+Transform encoding specification (systematic and
+non-systematic).<a href="#section-1-2.7.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.8">
+          <p id="section-1-2.8.1"><span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span>: the Proxy
+Server companion for encoding-ignorant clients.<a href="#section-1-2.8.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-3">The remainder of this document carries the motivation, use
+cases, definitions, implementation status, and design rationale
+that ground the family as a whole.<a href="#section-1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="requirements-language">
+<section id="section-2">
+      <h2 id="name-requirements-language">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-requirements-language" class="section-name selfRef">Requirements Language</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-motivation">
+<section id="section-3">
+      <h2 id="name-motivation">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-motivation" class="section-name selfRef">Motivation</a>
+      </h2>
+<p id="section-3-1">Workloads that need both the throughput of parallel pNFS
+data servers and the durability of erasure coding have
+driven the work in this draft.  The deployments span
+scientific-instrumentation pipelines that produce
+petabytes of detector data per year, training-checkpoint
+files written hot from machine-learning jobs, archive
+workloads in which a single file may hold the only copy of
+an experiment's result, and ordinary production
+filesystems where read patterns evolve across a file's
+lifetime.  These deployments are documented in detail in
+<a href="#sec-use-cases" class="auto internal xref">Section 4</a>; the protocol shape that follows is the
+result of looking at them and asking what a pNFS layout
+type would have to provide.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">The first thing the deployments share is that erasure
+coding moves work off the data servers that are already
+the bottleneck in the write-heavy parallel case.
+Server-side erasure coding makes each data server compute
+its share of the parity transform on every write,
+multiplying the per-write CPU cost by (k + m) across the
+storage tier and serialising on the data server's limited
+compute.  Client-side erasure coding shifts that compute
+to the writers, which scale horizontally with the
+workload, and lets the data servers stay close to their
+strength -- storing and serving bytes.  Flexible file v1
+layout (<span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>) already chose client-side compute by
+placing replication at the writer; this draft extends that
+choice to client-side erasure coding.  Benchmark
+measurements summarised in <a href="#sec-implementation-status" class="auto internal xref">Section "Implementation Status"</a>
+confirm that the resulting overhead is competitive with
+server-side encoding on realistic workloads and that the
+encoding compute scales with the writer population rather
+than with the data-server count.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-3">Client-side erasure coding has a corollary that protocol
+designers cannot avoid: when a client fans a stripe out
+across multiple data servers and fails mid-write, no
+single data server has whole-transaction visibility.  The
+state left behind on each data server is a partial
+fragment of a write that may or may not have completed
+elsewhere.  A server-side coordinator that holds the whole
+stripe -- the flexible file v1 case -- can resilver from a
+surviving copy without any client involvement.  In the v2
+case there is no such coordinator, and the on-wire
+protocol specifies how the partial state is reconciled.
+This is the load-bearing constraint that shapes the rest
+of the design.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4">A natural-looking answer is to add a distributed-consensus
+protocol between the data servers and have them agree on
+which write committed.  That answer is rejected here.
+Distributed consensus is operationally expensive,
+introduces a synchronisation cost on every write, and
+makes the data servers themselves stateful peers in a way
+that closes off the simpler implementations the protocol
+is designed to accommodate.  Instead, this draft uses two
+narrowly-scoped primitives that together provide just
+enough on-wire reconciliation: the chunk_guard4
+compare-and-swap (CAS) and the CB_CHUNK_REPAIR callback.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">Every CHUNK_WRITE carries a chunk_guard4 -- a 32-bit
+per-chunk generation counter and a 32-bit owning-client
+short-id -- and the data server performs a per-chunk CAS
+on receipt.  If two writers race for the same chunk,
+exactly one wins on each data server, the loser receives
+NFS4ERR_CHUNK_GUARDED for that chunk, and the chunks the
+loser intended to write are left unchanged.  No data
+server needs to consult its peers; the CAS is local.  The
+cost on the metadata server is bounded by the 8-byte
+chunk_guard4 header per chunk plus a 32-bit per-layout
+client identifier (<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>,
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-layout" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-layout</a>]</span>).  Independent collisions on
+different chunks resolve independently; there is no
+file-wide lock and no global ordering across writes.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6">When the per-chunk CAS detects that a stripe ended up
+non-atomic -- some shards under writer A's guard, others
+under writer B's, or a writer crashed mid-fan-out -- the
+metadata server selects a repair client via
+CB_CHUNK_REPAIR (<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) and that client
+drives the repair: it acquires CHUNK_LOCK on the affected
+range, reads the surviving shards, decodes through the
+erasure transform, writes the reconstructed shards via
+CHUNK_WRITE_REPAIR, and clears the errored state via
+CHUNK_REPAIRED.  The repair client is exactly one actor
+holding a chunk-range lock; the data servers still do not
+coordinate among themselves.  The repair-client selection
+rule is given in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-3-6" class="pilcrow">¶</a></p>
+<p id="section-3-7">These two primitives -- the per-chunk CAS and the
+callback-driven repair -- replace what would otherwise
+require a distributed-consensus protocol.  The CAS handles
+the common case at local cost, where independent writers
+racing for different chunks resolve independently and
+concurrent writers on the same chunk get a clean win/loss
+decision.  CB_CHUNK_REPAIR handles the rare case of
+partial-failure non-atomicity with a single coordinator
+selected per repair episode.  The cost model is asymmetric
+on purpose: the hot path pays for an 8-byte header and a
+local CAS; the cold path pays for a selected actor and a
+small number of round-trips.<a href="#section-3-7" class="pilcrow">¶</a></p>
+<p id="section-3-8">The CHUNK_* operation set in this draft is the minimum
+sufficient to drive the chunk state machine
+(<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) plus the repair flow
+above.  CHUNK_WRITE places PENDING content; CHUNK_FINALIZE
+signals that the writer is done with a generation;
+CHUNK_COMMIT promotes that generation to durable, globally
+visible state; CHUNK_READ retrieves it; CHUNK_HEADER_READ
+provides the fast probe that lets repair coordinators and
+recovering writers inspect chunk metadata without reading
+payloads.  CHUNK_LOCK, CHUNK_UNLOCK, CHUNK_ERROR,
+CHUNK_REPAIRED, CHUNK_WRITE_REPAIR, and CHUNK_ROLLBACK
+together drive the repair flow.  Each operation does one
+well-scoped job; the complexity is in the state machine
+the operations drive, not in the operation set itself.
+Each of these primitives closes a specific gap in the
+lifecycle or the repair path.  The detailed treatment of
+the operation set is in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-3-8" class="pilcrow">¶</a></p>
+<p id="section-3-9">The same design discipline shapes the rest of the
+specification.  The protocol describes wire format and
+server obligations; it does not pin a data-server
+backend, a control protocol between metadata server and
+data server, a checksum algorithm, or a file-attribute
+representation on the data server.  Different
+implementations resolve these choices differently and
+remain conformant.  TRUST_STATEID
+(<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-trust-stateid" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-trust-stateid</a>]</span>) is one such control
+protocol that this draft defines; storage devices with
+their own established control protocols are conformant
+without implementing it.  The tagged checksum4
+(<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) lets the metadata server pick any
+registered checksum algorithm per file.  The
+authorization-outcome parity rule
+(<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-trust-stateid" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-trust-stateid</a>]</span>) lets data servers that do not
+expose a POSIX file namespace satisfy the tight-coupling
+requirements without materialising POSIX uid/gid bits.<a href="#section-3-9" class="pilcrow">¶</a></p>
+<p id="section-3-10">A protocol-level consequence of placing erasure coding at
+the client is that the layout is able to describe a
+file's storage shape over its full lifetime -- including
+the transition windows when the file is being assimilated
+from a non-erasure-coded source, re-encoded from one
+encoding to another, or recovered from a correlated encoding
+failure through a mirror under a different encoding.
+This draft allows a single file's layout to contain
+mirrors under different encodings.  The
+heterogeneous-mirror capability is not a steady-state
+expectation; most files have one encoding most of the
+time.  It is the protocol shape that lets transitions
+happen while the file remains readable.  The deployment
+cases that drive the allowance are catalogued in
+<a href="#sec-use-cases" class="auto internal xref">Section 4</a>.<a href="#section-3-10" class="pilcrow">¶</a></p>
+<p id="section-3-11">Scope note: the consistency goal of flexible file v2
+layout is RAID consistency across the shards that make
+up an encoded stripe, not POSIX write ordering across
+arbitrary application writes.  The protocol does not
+attempt to make overlapping application writes from
+different clients atomic; that is the province of file
+locking (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 12) and of application-level
+coordination.  What the protocol does guarantee is that
+the shards comprising a given stripe agree on which
+write produced them -- expressed on the wire as agreement
+on the chunk_guard4 value of every chunk that carries
+those shards -- so that readers and repair clients never
+observe a half-applied stripe.  Readers who need
+cross-write ordering beyond a single stripe <span class="bcp14">MUST</span> use the
+existing NFSv4 locking primitives.<a href="#section-3-11" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-use-cases">
+<section id="section-4">
+      <h2 id="name-use-cases">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-use-cases" class="section-name selfRef">Use Cases</a>
+      </h2>
+<p id="section-4-1">The protocol is designed around three workload classes.  The
+labels below reflect the relative frequency of each class in
+installations that choose flexible file v2 layout for its combination of
+integrity and performance; individual deployments may diverge.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-4-2">
+        <dt id="section-4-2.1">Single writer, multiple readers (the common case):</dt>
+        <dd style="margin-left: 1.5em" id="section-4-2.2">
+          <p id="section-4-2.2.1">A file written by one client and subsequently read by many.
+Examples include artifacts deposited by batch jobs, container
+images, and media files.  The protocol is optimized for this
+case; see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-4-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-4-2.3">Multiple writers without sustained contention (occasional):</dt>
+        <dd style="margin-left: 1.5em" id="section-4-2.4">
+          <p id="section-4-2.4.1">Files with multiple concurrent writers where races on the same
+chunk are rare.  Examples include shared-directory append-only
+logs and distributed builds.  The chunk_guard4 CAS primitive and
+per-chunk locking cover this case without penalizing the common
+single-writer path.<a href="#section-4-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-4-2.5">Multiple writers, disjoint regions (rare):</dt>
+        <dd style="margin-left: 1.5em" id="section-4-2.6">
+          <p id="section-4-2.6.1">High-performance computing (HPC) checkpoint workloads, in which
+many ranks write disjoint regions of the same file in lockstep.
+The protocol relies on block alignment to keep per-chunk
+contention rare despite overall high writer count.  Contention
+that does occur is resolved via the deterministic tiebreaker
+rule defined in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-4-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-4-3">Scale targets include multi-thousand-client deployments (on the
+order of tens of thousands of concurrent clients for HPC
+checkpointing), parallel-filesystem replacements, and multi-rack
+shared-storage clusters.  The repair protocol (see
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) is designed to let such deployments
+tolerate data-server failures and concurrent-writer races without
+blocking the critical path for the first two workload classes.<a href="#section-4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="definitions">
+<section id="section-5">
+      <h2 id="name-definitions">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-definitions" class="section-name selfRef">Definitions</a>
+      </h2>
+<span class="break"></span><dl class="dlParallel" id="section-5-1">
+        <dt id="section-5-1.1">block:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-1.2">
+          <p id="section-5-1.2.1">the application's view of file data.  A block is a unit of file
+content as observed by an NFS client at the POSIX layer or by the
+local file system.  A chunk's payload, after any decoding the client
+performs, is presented to the application as one or more blocks.<a href="#section-5-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-1.3">shard:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-1.4">
+          <p id="section-5-1.4.1">the encoding's view.  A shard is a single piece of an encoded stripe
+produced by an erasure-coding (or replication) transformation.  A
+stripe of k data shards plus m parity shards is the unit an encoding
+encodes and decodes.  The word "shard" only has meaning while the
+encoding is reasoning about a stripe; once a shard is at rest on a data
+server it is, by virtue of having been transmitted, the payload of a
+chunk.<a href="#section-5-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-1.5">chunk:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-1.6">
+          <p id="section-5-1.6.1">the protocol's unit of file data on the wire, carrying an
+envelope of guard, checksum, provenance, and lifecycle state.
+Full definition (including chunk_guard4, chunk_owner4, the
+PENDING / FINALIZED / COMMITTED chunk state machine, lock
+escrow, and the CHUNK_* operations) lives in
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>, which is authoritative.
+A chunk's payload may be a block (mirrored layout) or a shard
+(erasure-coded layout); the wire protocol does not distinguish.
+The chunk size <span class="bcp14">MAY</span> differ from the size of the block or shard it
+carries.<a href="#section-5-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-5-2">The three terms block / shard / chunk describe the same data at
+three different layers.  The encoding transforms blocks into
+shards; the wire protocol transmits shards as chunk payloads;
+the data server persists chunks.  On read the path reverses.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5-3">
+        <dt id="section-5-3.1">control communication requirements:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.2">
+          <p id="section-5-3.2.1">the specification for information on layouts, stateids, file metadata,
+and file data that must be communicated between the metadata server and
+the storage devices.  There is a separate set of requirements for each
+layout type.<a href="#section-5-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.3">control protocol:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.4">
+          <p id="section-5-3.4.1">the particular mechanism that an implementation of a layout type would
+use to meet the control communication requirement for that layout type.
+This need not be a protocol as normally understood.  In some cases,
+the same protocol may be used as a control protocol and storage protocol.<a href="#section-5-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.5">client-side mirroring:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.6">
+          <p id="section-5-3.6.1">a feature in which the client, not the server, is responsible for
+updating all of the mirrored copies of a layout segment.<a href="#section-5-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.7">data block:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.8">
+          <p id="section-5-3.8.1">A block (as defined above) in the client's cache for a file.<a href="#section-5-3.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.9">data file:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.10">
+          <p id="section-5-3.10.1">The data portion of the file, stored on the data server.<a href="#section-5-3.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.11">replication of data:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.12">
+          <p id="section-5-3.12.1">Data replication is making and storing multiple copies of data in
+different locations.<a href="#section-5-3.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.13">erasure coding:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.14">
+          <p id="section-5-3.14.1">A data protection scheme where a stripe of data is encoded into
+shards (k data shards and m parity shards) so that the original
+content can be reconstructed from any sufficient subset of the
+shards.  Shards are transmitted as the payload of CHUNK operations
+and stored on different data servers.<a href="#section-5-3.14.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.15">client-side erasure coding:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.16">
+          <p id="section-5-3.16.1">Erasure coding in which the encode and decode transforms are
+performed on the pNFS client, and encoded shards are written
+directly to the data servers (rather than being computed at
+a server-side coordinator).  This is the deployment shape
+Flexible File Version 2 Layout Type is designed for; the
+chunk substrate and CHUNK_* operations that make it safe are
+specified in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.
+Contrast: server-side erasure coding, where a coordinator
+holds the entire stripe and produces parity, is out of scope
+for this family.<a href="#section-5-3.16.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.17">compare-and-swap (CAS):</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.18">
+          <p id="section-5-3.18.1">an atomic primitive from concurrent programming in which an
+update is conditional on a prior observed value.  The FFv2
+family's chunk-level CAS mechanism (chunk_guard4 +
+NFS4ERR_CHUNK_GUARDED) is defined in
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-5-3.18.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.19">(file) data:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.20">
+          <p id="section-5-3.20.1">that part of the file system object that contains the data to be read
+or written.  It is the contents of the object rather than the attributes
+of the object.<a href="#section-5-3.20.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.21">data server (DS):</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.22">
+          <p id="section-5-3.22.1">a pNFS server that provides the file's data when the file system
+object is accessed over a file-based protocol.<a href="#section-5-3.22.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.23">escrow (lock escrow, MDS-escrow):</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.24">
+          <p id="section-5-3.24.1">a state in which a chunk lock is held by the metadata server
+on behalf of an as-yet-unselected future owner, preserving
+lock-continuity across stateid revocation.  Full mechanics
+(CHUNK_GUARD_CLIENT_ID_MDS, CHUNK_LOCK_FLAGS_ADOPT,
+CB_CHUNK_REPAIR) are defined in
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-5-3.24.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.25">fencing:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.26">
+          <p id="section-5-3.26.1">the process by which the metadata server prevents the storage devices
+from processing I/O from a specific client to a specific file.<a href="#section-5-3.26.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.27">file layout type:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.28">
+          <p id="section-5-3.28.1">a layout type in which the storage devices are accessed via the NFS
+protocol (see Section 5.12.4 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-5-3.28.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.29">gid:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.30">
+          <p id="section-5-3.30.1">the group id, a numeric value that identifies to which group a file
+belongs.<a href="#section-5-3.30.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.31">layout:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.32">
+          <p id="section-5-3.32.1">the information a client uses to access file data on a storage device.
+This information includes specification of the protocol (layout type)
+and the identity of the storage devices to be used.<a href="#section-5-3.32.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.33">layout iomode:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.34">
+          <p id="section-5-3.34.1">a grant of either read-only or read/write I/O to the client.<a href="#section-5-3.34.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.35">layout segment:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.36">
+          <p id="section-5-3.36.1">a sub-division of a layout.  That sub-division might be by the layout
+iomode (see Sections 3.3.20 and 12.2.9 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), a striping pattern
+(see Section 13.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), or requested byte range.<a href="#section-5-3.36.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.37">layout stateid:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.38">
+          <p id="section-5-3.38.1">a 128-bit quantity returned by a server that uniquely defines the
+layout state provided by the server for a specific layout that describes
+a layout type and file (see Section 12.5.2 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  Further,
+Section 12.5.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> describes differences in handling between
+layout stateids and other stateid types.<a href="#section-5-3.38.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.39">layout type:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.40">
+          <p id="section-5-3.40.1">a specification of both the storage protocol used to access the data
+and the aggregation scheme used to lay out the file data on the underlying
+storage devices.<a href="#section-5-3.40.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.41">loose coupling:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.42">
+          <p id="section-5-3.42.1">when the control protocol is a storage protocol.<a href="#section-5-3.42.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.43">(file) metadata:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.44">
+          <p id="section-5-3.44.1">the part of the file system object that contains various descriptive
+data relevant to the file object, as opposed to the file data itself.
+This could include the time of last modification, access time, EOF
+position, etc.<a href="#section-5-3.44.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.45">metadata server (MDS):</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.46">
+          <p id="section-5-3.46.1">the pNFS server that provides metadata information for a file system
+object.  It is also responsible for generating, recalling, and revoking
+layouts for file system objects, for performing directory operations,
+and for performing I/O operations to regular files when the clients
+direct these to the metadata server itself.<a href="#section-5-3.46.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.47">mirror:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.48">
+          <p id="section-5-3.48.1">a copy of a layout segment.  Note that if one copy of the mirror is
+updated, then all copies must be updated.<a href="#section-5-3.48.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.49">non-systematic encoding:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.50">
+          <p id="section-5-3.50.1">An erasure coding scheme in which the encoded shards do not contain
+verbatim copies of the original data.  Every read requires decoding,
+even when no shards are lost.  The Mojette non-systematic transform is
+an example.<a href="#section-5-3.50.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.51">proxy server (PS):</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.52">
+          <p id="section-5-3.52.1">a peer of the metadata server, defined in
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span>, that admits client
+I/O on the metadata server's behalf -- either as a translator for
+clients that cannot speak the file's native encoding, or as a
+proxy-mediated data path during whole-file move and repair
+operations.  A proxy server may additionally act as a data server.<a href="#section-5-3.52.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.53">recalling a layout:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.54">
+          <p id="section-5-3.54.1">a graceful recall, via a callback, of a specific layout by the metadata
+server to the client.  Graceful here means that the client would have
+the opportunity to flush any WRITEs, etc., before returning the layout
+to the metadata server.<a href="#section-5-3.54.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.55">revoking a layout:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.56">
+          <p id="section-5-3.56.1">an invalidation of a specific layout by the metadata server.
+Once revocation occurs, the metadata server will not accept as valid any
+reference to the revoked layout, and a storage device will not accept
+any client access based on the layout.<a href="#section-5-3.56.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.57">resilvering:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.58">
+          <p id="section-5-3.58.1">the act of rebuilding a mirrored copy of a layout segment from a
+known good copy of the layout segment.  Note that this can also be done
+to create a new mirrored copy of the layout segment.<a href="#section-5-3.58.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.59">rsize:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.60">
+          <p id="section-5-3.60.1">the data transfer buffer size used for READs.<a href="#section-5-3.60.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.61">stateid:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.62">
+          <p id="section-5-3.62.1">a 128-bit quantity returned by a server that uniquely defines the set
+of locking-related state provided by the server.  Stateids may designate
+state related to open files, byte-range locks, delegations, or layouts.<a href="#section-5-3.62.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.63">storage device:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.64">
+          <p id="section-5-3.64.1">the target to which clients may direct I/O requests when they hold
+an appropriate layout.  See Section 2.1 of <span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span> for further
+discussion of the difference between a data server and a storage device.<a href="#section-5-3.64.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.65">storage protocol:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.66">
+          <p id="section-5-3.66.1">the protocol used by clients to do I/O operations to the storage
+device.  Each layout type specifies the set of storage protocols.<a href="#section-5-3.66.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.67">systematic encoding:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.68">
+          <p id="section-5-3.68.1">An erasure coding scheme in which the first k of the k+m encoded
+shards are identical to the original k data blocks.  A healthy read
+(no failures) requires no decoding -- the data shards are read directly.
+Decoding is triggered only when data shards are missing.  Reed-Solomon
+Vandermonde and Mojette systematic are examples.<a href="#section-5-3.68.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.69">tight coupling:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.70">
+          <p id="section-5-3.70.1">an arrangement in which the control protocol is one designed
+specifically for control communication.  It may be either a proprietary
+protocol adapted specifically to a particular metadata server or a
+protocol based on a Standards Track document.  The specific
+tight-coupling variant defined by <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-trust-stateid" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-trust-stateid</a>]</span>, in which the
+control protocol is the TRUST_STATEID family, is referred to as
+trusted-stateid tight coupling (see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-trust-stateid" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-trust-stateid</a>]</span>).<a href="#section-5-3.70.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.71">trusted-stateid tight coupling:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.72">
+          <p id="section-5-3.72.1">the specific tight-coupling control protocol defined in
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-trust-stateid" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-trust-stateid</a>]</span>, consisting of the operations TRUST_STATEID, REVOKE_STATEID,
+and BULK_REVOKE_STATEID.  Within the FFv2 family,
+unqualified references to "tight coupling" or "tightly coupled" refer
+to trusted-stateid tight coupling unless the context explicitly
+discusses the general concept.  Other tight-coupling control
+protocols (proprietary or future Standards Track) may exist but
+are not covered by this family.<a href="#section-5-3.72.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.73">uid:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.74">
+          <p id="section-5-3.74.1">the user id, a numeric value that identifies which user owns a file.<a href="#section-5-3.74.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.75">write hole:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.76">
+          <p id="section-5-3.76.1">a data corruption scenario in erasure-coded systems where a
+partial-stripe write leaves the stripe in a non-atomic state
+(mixed old and new shards).  The FFv2 family's write-hole
+handling (chunk state machine, guard rejection, repair flow)
+is defined in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-5-3.76.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-3.77">wsize:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-3.78">
+          <p id="section-5-3.78.1">the data transfer buffer size used for WRITEs.<a href="#section-5-3.78.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-6">
+      <h2 id="name-security-considerations">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-6-1">This document defines no wire-protocol operations and creates
+no IANA registries.  Security considerations specific to the
+family's operations live in the Standards-Track companion
+documents cited in the Introduction.<a href="#section-6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-7">
+      <h2 id="name-iana-considerations">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-7-1">This document requests no IANA actions.<a href="#section-7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="section-8">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="section-8-1">The following contributors were instrumental in driving Flexible
+File Version 2 Layout Type: David Flynn, Trond Myklebust, Didier
+Feron, Jean-Pierre Monchanin, Pierre Evenou, and Brian Pawlowski.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-2">Christoph Hellwig was instrumental in making sure the Flexible File
+Version 2 Layout Type was applicable to more than the Mojette
+Transformation.<a href="#section-8-2" class="pilcrow">¶</a></p>
+<p id="section-8-3">David Black clarified at IETF 124 that the consistency goal of
+flexible file v2 layout is RAID consistency across the shards of a stripe
+rather than POSIX write ordering across application writes; that
+framing is reflected in <a href="#sec-motivation" class="auto internal xref">Section 3</a> and in the System Model
+non-goals of <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-8-3" class="pilcrow">¶</a></p>
+<p id="section-8-4">The authors thank Dave Noveck, Chuck Lever, Tigran
+Mkrtchyan, Rick Macklem, Christoph Hellwig, and Sorin
+Faibish for their detailed review of earlier revisions of
+the parent draft.  Their comments shaped the system model
+presentation, the chunk lifecycle and guard semantics, the
+trusted-stateid design, and many smaller choices recorded
+throughout the family.<a href="#section-8-4" class="pilcrow">¶</a></p>
+<p id="section-8-5">Chris Inacio, Chuck Lever, Brian Pawlowski, and Gorry Fairhurst
+guided this process.<a href="#section-8-5" class="pilcrow">¶</a></p>
+<p id="section-8-6">Mojette-specific acknowledgments are carried by
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-mojette" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-mojette</a>]</span>.<a href="#section-8-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-implementation-status">
+<section id="section-9">
+      <h2 id="name-implementation-status">
+<a href="#name-implementation-status" class="section-name selfRef">Implementation Status</a>
+      </h2>
+<p id="section-9-1">This section is to be removed before publishing as an RFC.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">This appendix records the implementation status of this
+specification at the time of writing.  The purpose, per
+<span>[<a href="#RFC7942" class="cite xref">RFC7942</a>]</span>, is to help reviewers evaluate the protocol
+against running code and to document which parts have
+been validated end-to-end versus specified on paper.
+This appendix is reviewer-aid material and is removed
+from the final RFC.<a href="#section-9-2" class="pilcrow">¶</a></p>
+<div id="reffs-metadata-server-and-data-server-and-ecdemo-client">
+<section id="section-9.1">
+        <h3 id="name-reffs-metadata-server-and-d">
+<a href="#name-reffs-metadata-server-and-d" class="section-name selfRef">reffs (metadata server and data server) and ec_demo (Client)</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-9.1-1">
+          <dt id="section-9.1-1.1">Organization:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.1-1.2">
+            <p id="section-9.1-1.2.1">Independent / open source.<a href="#section-9.1-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.1-1.3">License:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.1-1.4">
+            <p id="section-9.1-1.4.1">AGPL-3.0-or-later.<a href="#section-9.1-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.1-1.5">Source:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.1-1.6">
+            <p id="section-9.1-1.6.1"><a href="https://github.com/loghyr/reffs">https://github.com/loghyr/reffs</a>.<a href="#section-9.1-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.1-1.7">Implementation:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.1-1.8">
+            <p id="section-9.1-1.8.1"><code>reffs</code> is an NFSv4.2 server written in C that acts as both a
+metadata server (MDS) and a data server (DS) in a flexible file v2 layout
+deployment.  <code>ec_demo</code> is a client-side library with a
+demonstration driver that exercises the flexible file v2 layout data path
+over NFSv4.2 with all three erasure coding types defined in the family.<a href="#section-9.1-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-9.1-2">Coverage:<a href="#section-9.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.1-3.1">
+            <p id="section-9.1-3.1.1">CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, and CHUNK_COMMIT (the
+happy-path data-plane operations) are implemented end-to-end and
+have been exercised against the three encoding families (Reed-Solomon
+Vandermonde, Mojette systematic, Mojette non-systematic).<a href="#section-9.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-3.2">
+            <p id="section-9.1-3.2.1">The chunk_guard4 CAS primitive, including the conflict-detection
+and deterministic-tiebreaker rules in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>, is
+implemented on both the client and the data server.<a href="#section-9.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-3.3">
+            <p id="section-9.1-3.3.1">Per-chunk checksum integrity checking (see
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) is implemented end-to-end.<a href="#section-9.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-3.4">
+            <p id="section-9.1-3.4.1">Per-inode persistent storage of chunk state (PENDING / FINALIZED
+/ COMMITTED) is implemented using write-temp / fdatasync / rename
+for crash safety.<a href="#section-9.1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-3.5">
+            <p id="section-9.1-3.5.1">The repair data path (CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT,
+CHUNK_WRITE_REPAIR, CHUNK_REPAIRED, CHUNK_ROLLBACK, and
+CB_CHUNK_REPAIR) is <strong>specified but not yet implemented</strong> in the
+prototype.  The corresponding operations currently return
+NFS4ERR_NOTSUPP.  A fault-injection test harness is in place to
+drive the repair path once it is implemented.<a href="#section-9.1-3.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-3.6">
+            <p id="section-9.1-3.6.1">The tight-coupling control protocol (TRUST_STATEID,
+REVOKE_STATEID, BULK_REVOKE_STATEID) is <strong>specified but not yet
+implemented</strong>.  Data servers advertise loose coupling via
+<code>ffdv_tightly_coupled = false</code>, and synthetic AUTH_SYS
+credentials with fencing are used for access control.<a href="#section-9.1-3.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<span class="break"></span><dl class="dlParallel" id="section-9.1-4">
+          <dt id="section-9.1-4.1">Level of maturity:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.1-4.2">
+            <p id="section-9.1-4.2.1">Research-quality prototype.  The implementation demonstrates the
+protocol and has produced the benchmark data summarised below.
+It is not production-ready; in particular, it does not yet
+implement the repair path required to tolerate concurrent-writer
+races or multi-data server failure reconstruction.<a href="#section-9.1-4.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.1-4.3">Contact:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.1-4.4">
+            <p id="section-9.1-4.4.1">loghyr@gmail.com.<a href="#section-9.1-4.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.1-4.5">Last update:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.1-4.6">
+            <p id="section-9.1-4.6.1">April 2026.<a href="#section-9.1-4.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="interoperability-and-benchmarks">
+<section id="section-9.2">
+        <h3 id="name-interoperability-and-benchm">
+<a href="#name-interoperability-and-benchm" class="section-name selfRef">Interoperability and Benchmarks</a>
+        </h3>
+<p id="section-9.2-1">The reffs + ec_demo implementation has been benchmarked against
+itself (no second flexible file v2 layout implementation is known to the
+authors at the time of writing).  The benchmark suite exercises
+four I/O strategies -- plain mirroring, pure striping, Reed-Solomon
+Vandermonde, Mojette systematic, and Mojette non-systematic -- at
+five file sizes (4 KB, 16 KB, 64 KB, 256 KB, and 1 MB), at two
+parity geometries (4+2 and 8+2), and on two platforms (an Apple M4
+host running macOS with a Rocky Linux 8.10 Docker container, and a
+Fedora 43 native Linux host on aarch64).  Each data point is the
+mean of five measured runs.  Data servers run as Docker containers
+on a single-host bridge network, so absolute latency numbers
+reflect encoding and RPC fan-out cost with near-zero network
+latency; real deployments will see higher absolute values but
+similar overhead ratios.<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+<p id="section-9.2-2">Selected findings:<a href="#section-9.2-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-9.2-3">
+          <dt id="section-9.2-3.1">Erasure-coded write overhead is modest at small and mid sizes:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.2-3.2">
+            <p id="section-9.2-3.2.1">At 4 KB to 64 KB payloads, all three encodings add 14% to 21%
+write latency relative to plain mirroring.  Above 64 KB the
+encoding cost begins to dominate; at 1 MB Reed-Solomon and Mojette
+systematic reach approximately +54%, Mojette non-systematic
+approximately +62%.<a href="#section-9.2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.2-3.3">The dominant write cost is encoding, not fan-out:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.2-3.4">
+            <p id="section-9.2-3.4.1">A pure-striping variant (6 data shards, no parity) isolates the two
+costs.  At 1 MB, plain mirroring writes in 64 ms, striping in
+71 ms (+11%), Reed-Solomon in 103 ms (+60%).  Of the 39 ms
+Reed-Solomon penalty, only 7 ms comes from parallel fan-out; the
+remaining 32 ms is encoding plus two additional parity RPCs.<a href="#section-9.2-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.2-3.5">Reconstruction of a missing data shard is essentially free for systematic encodings at 4+2:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.2-3.6">
+            <p id="section-9.2-3.6.1">Reed-Solomon and Mojette systematic
+add 1% to 6% to read latency in degraded-1 mode (one data shard
+missing, reconstructed from the remaining five).  A client that
+discovers a failed data server at read time can reconstruct transparently
+with no user-visible latency impact.<a href="#section-9.2-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.2-3.7">At 8+2, systematic-encoding reconstruction diverges:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.2-3.8">
+            <p id="section-9.2-3.8.1">Mojette
+systematic reconstruction overhead stays at approximately +4% at
+1 MB, while Reed-Solomon grows to approximately +54% due to the
+O(k^3) cost of inverting a k x k matrix in GF(2^8).  Mojette
+systematic's back-projection algorithm scales with m (parity
+count) rather than k (data count), so its reconstruction
+overhead does not exhibit the same growth at wider geometries.<a href="#section-9.2-3.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.2-3.9">Mojette non-systematic applies a full inverse transform on every read:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.2-3.10">
+            <p id="section-9.2-3.10.1">Regardless of whether any shard is missing.  At
+1 MB this produces approximately 4x read overhead at 4+2 and
+approximately 7x at 8+2.  The read cost is independent of
+failure count, which is the algorithmic trade-off of the
+non-systematic form.<a href="#section-9.2-3.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-9.2-3.11">Results are platform-independent:</dt>
+          <dd style="margin-left: 1.5em" id="section-9.2-3.12">
+            <p id="section-9.2-3.12.1">The largest absolute
+latency delta between macOS M4 and Fedora 43 at 1 MB is 20 ms
+on writes.  Encoding ordering, overhead percentages, and
+qualitative scaling behavior are reproducible across operating
+systems and Docker implementations.<a href="#section-9.2-3.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-9.2-4">The benchmarks confirm that the protocol's central design claims
+hold in practice: client-side erasure coding is affordable at
+typical payload sizes; systematic encodings reconstruct missing
+shards cheaply; and the scaling properties of the three encoding
+families follow directly from their published algorithmic
+complexities.<a href="#section-9.2-4" class="pilcrow">¶</a></p>
+<p id="section-9.2-5">The benchmarks quantify the algorithmic trade-offs each encoding
+family makes: Mojette non-systematic's constant decode cost comes
+at a higher baseline read cost, and Reed-Solomon's matrix-
+inversion reconstruction grows as O(k^3) at wider geometries.
+The choice of default encoding and geometry in a given deployment
+follows from these properties applied to the workload's read /
+write mix, fault-tolerance target, and acceptable encoding cost.<a href="#section-9.2-5" class="pilcrow">¶</a></p>
+<p id="section-9.2-6">A full benchmark report with per-size tables, figures, and the
+platform comparison is available alongside the source code.<a href="#section-9.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-architectural-implication">
+<section id="section-9.3">
+        <h3 id="name-architectural-implication-c">
+<a href="#name-architectural-implication-c" class="section-name selfRef">Architectural Implication: Cost of Fault Tolerance</a>
+        </h3>
+<p id="section-9.3-1">The headline question every storage audience asks of an
+erasure-coding protocol is: "what does it cost when something goes
+wrong?"  At the systematic-encoding operating points measured
+(Mojette systematic at 4+2 and 8+2), the benchmark answer is
+<strong>essentially zero</strong>.  Mojette systematic at 4+2 reconstructs a
+missing data shard with read-latency overhead within run-to-run
+noise of healthy operation.  Mojette systematic at 8+2 holds at
+approximately +4%.<a href="#section-9.3-1" class="pilcrow">¶</a></p>
+<p id="section-9.3-2">This shifts the deployment conversation away from "is erasure
+coding cheap enough to enable" and toward "which encoding and
+geometry minimise the compromise."  The compromise that remains is
+not the cost of fault tolerance; it is the cost of write-time
+encoding, which is bounded (under 60% at 1 MB, under 25% at 64 KB),
+and the cost of crash-safe durability via the chunk state machine
+(see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>), which is +7% to +22% on
+writes and +2% to +10% on reads.<a href="#section-9.3-2" class="pilcrow">¶</a></p>
+<p id="section-9.3-3">Wire-format performance objections raised earlier in the working
+group's review of this work are addressed in
+<a href="#sec-rejected-alternatives" class="auto internal xref">Section "Design Rationale: Rejected Alternatives"</a>: the per-RPC byte-shuffling cost of
+the original Mojette-specific projection header has been replaced
+with XDR-encoded chunk metadata (see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>), so the
+remaining wire-format cost is the XDR-encoded chunk header itself,
+which is identical for every encoding and is part of the +7% to +22%
+v2 write overhead measured above.<a href="#section-9.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-rejected-alternatives">
+<section id="section-10">
+      <h2 id="name-design-rationale-rejected-a">
+<a href="#name-design-rationale-rejected-a" class="section-name selfRef">Design Rationale: Rejected Alternatives</a>
+      </h2>
+<p id="section-10-1">This appendix records design alternatives that were
+considered and rejected during the development of this
+specification.  It is reviewer-aid material in this draft
+and is retained in the final RFC as design-history
+context for future implementers; the alternatives below
+are not part of the normative specification.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2">The design of flexible file v2 layout went through several iterations between
+2024 and 2026 that are recorded here for the benefit of future
+reviewers and implementers.  Each alternative below was considered
+and rejected, with the specific concern that led to its rejection.
+Understanding why these approaches were rejected may help reviewers
+evaluate the current design against a fuller space of possibilities
+and may guide future extensions or replacements.<a href="#section-10-2" class="pilcrow">¶</a></p>
+<div id="proprietary-projection-header-inside-opaque-payload">
+<section id="section-10.1">
+        <h3 id="name-proprietary-projection-head">
+<a href="#name-proprietary-projection-head" class="section-name selfRef">Proprietary Projection Header Inside Opaque Payload</a>
+        </h3>
+<p id="section-10.1-1">The earliest iteration placed a 16-byte Mojette-specific header at
+the start of the READ/WRITE opaque payload, interpreted in the
+endianness of the writer's host.  The motivation was concrete:
+NFSv3 READ and WRITE arguments carry data as <code>opaque data&lt;&gt;</code> and
+provide no XDR room for per-write structured metadata such as
+encoding geometry, integrity, or write-ordering tiebreakers.  An
+NFSv3 server cannot be extended; if a flexible file v2 layout deployment
+wanted an NFSv3 server to participate as a data server in an
+erasure-coded layout, the only place to put encoding metadata was
+inside that opaque payload, prepended to the data bytes.  The data server
+stored the entire opaque blob without interpreting it; the reader
+peeled the 16-byte prefix off and acted on it.<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+<p id="section-10.1-2">This was rejected because:<a href="#section-10.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.1-3.1">
+            <p id="section-10.1-3.1.1">It embedded a specific erasure coding type (Mojette) into the
+generic replication-method framework, preventing alternate
+codings from reusing the same wire format.<a href="#section-10.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.1-3.2">
+            <p id="section-10.1-3.2.1">The header bytes were not XDR-aligned, which required every
+implementation to handle endianness explicitly rather than
+relying on XDR's natural byte order.<a href="#section-10.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.1-3.3">
+            <p id="section-10.1-3.3.1">Carrying integrity and identification data inside an opaque
+disrespected the XDR self-description model that the rest of
+NFSv4 relies on.  A generic NFSv3 inspector watching the wire
+could not tell those bytes apart from application data, which
+among other things made debugging, traffic analysis, and
+middlebox processing rely on out-of-band knowledge.<a href="#section-10.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.1-4">The endianness objection raised at IETF 120 (July 2024) was the
+surface complaint; the structural objection -- that smuggling
+structured fields through an opaque type bypasses XDR's
+self-description -- was the deeper reason the working group
+declined the approach.  Once the design accepted that data
+servers in a flexible file v2 layout deployment would speak
+NFSv4.2 (with new ops in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span> and <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-trust-stateid" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-trust-stateid</a>]</span>), the constraint that
+forced the smuggling disappeared: chunk metadata could be
+expressed as proper XDR fields in CHUNK_WRITE / CHUNK_READ /
+chunk_guard4, visible to every observer of the wire.<a href="#section-10.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="per-client-swap-files-with-metadata-server-mappingrecall">
+<section id="section-10.2">
+        <h3 id="name-per-client-swap-files-with-">
+<a href="#name-per-client-swap-files-with-" class="section-name selfRef">Per-Client Swap Files with metadata server MAPPING_RECALL</a>
+        </h3>
+<p id="section-10.2-1">One proposal split logical and physical chunk addressing: the
+metadata server maintained a mapping from logical offset to
+physical location, and the client appended new chunks to a
+per-client staging file on each data server before asking the
+metadata server to atomically remap the file to the new chunks.
+This was rejected because:<a href="#section-10.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.2-2.1">
+            <p id="section-10.2-2.1.1">The MAPPING_RECALL operation required to atomically update the
+mapping would, in a multi-writer deployment, have to recall all
+outstanding read/write layouts on the file -- grinding the
+application to a halt during every remap.<a href="#section-10.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.2-2.2">
+            <p id="section-10.2-2.2.1">Each client required its own staging file on every data server,
+producing N clients * M data servers staging files that had to
+be reconciled on client restart.<a href="#section-10.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.2-2.3">
+            <p id="section-10.2-2.3.1">The approach was biased toward correctness at the expense of
+throughput, which inverted the expected workload mix where
+single-writer cases dominate.<a href="#section-10.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="server-side-byte-range-lock-manager-per-file">
+<section id="section-10.3">
+        <h3 id="name-server-side-byte-range-lock">
+<a href="#name-server-side-byte-range-lock" class="section-name selfRef">Server-Side Byte-Range Lock Manager per File</a>
+        </h3>
+<p id="section-10.3-1">Another proposal relied on byte-range locks obtained by clients
+before writing, with the lock manager state spread across the data
+servers.  This was rejected because:<a href="#section-10.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.3-2.1">
+            <p id="section-10.3-2.1.1">A failed lock holder required a lock manager to arbitrate
+recovery, effectively reintroducing a centralized decision
+point for each chunk.<a href="#section-10.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.3-2.2">
+            <p id="section-10.3-2.2.1">The lock recall path for HPC checkpoint workloads (many ranks
+writing disjoint regions) would have required thousands of
+locks per file, with recall storms on every phase transition.<a href="#section-10.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.3-2.3">
+            <p id="section-10.3-2.3.1">The design did not specify how the lock manager itself would
+be replicated for high availability, deferring the hardest
+part of the problem.<a href="#section-10.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.3-3">The current design uses CHUNK_LOCK (see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) but
+only on the repair path, not on the normal write path.<a href="#section-10.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="modified-two-touch-paxos-on-each-chunk">
+<section id="section-10.4">
+        <h3 id="name-modified-two-touch-paxos-on">
+<a href="#name-modified-two-touch-paxos-on" class="section-name selfRef">Modified Two-Touch Paxos on Each Chunk</a>
+        </h3>
+<p id="section-10.4-1">A fully distributed-consensus proposal placed a lightweight
+(modified two-touch) Paxos round on each chunk write, reaching
+agreement among the data servers holding the mirror set.  This was
+rejected because:<a href="#section-10.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.4-2.1">
+            <p id="section-10.4-2.1.1">The constant-factor cost per write (two or three round trips,
+leader election overhead, majority quorum requirement) was
+unacceptable for workloads where single-writer throughput
+dominates the deployment mix.<a href="#section-10.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.4-2.2">
+            <p id="section-10.4-2.2.1">The approach demanded that data servers be peers in a
+consensus protocol, which is a substantially heavier
+requirement than being independent chunk stores.<a href="#section-10.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.4-2.3">
+            <p id="section-10.4-2.3.1">A majority of (k+m) data servers must be reachable for any
+progress, which is a strictly stronger availability requirement
+than the k-of-(k+m) needed for erasure-coded reads.<a href="#section-10.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.4-3">Working-group feedback on this proposal was uniformly negative.
+The current design retains the option -- nothing in this
+specification prevents an implementation from running classical
+consensus internally among metadata server replicas (see
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) -- but does not require it per
+write.<a href="#section-10.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="automatic-commit-of-empty-chunks">
+<section id="section-10.5">
+        <h3 id="name-automatic-commit-of-empty-c">
+<a href="#name-automatic-commit-of-empty-c" class="section-name selfRef">Automatic Commit of Empty Chunks</a>
+        </h3>
+<p id="section-10.5-1">An earlier version included a WRITE_BLOCK_FLAGS_COMMIT_IF_EMPTY
+flag (later renamed CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY) that
+automatically committed a write to a previously-empty chunk
+without a separate CHUNK_COMMIT round trip.  The flag is retained
+in the current design but its scope was narrowed: it is
+performant in the exclusive-writer case but produces blocks that
+cannot be rolled back if a racing writer appears concurrently,
+requiring either hole-punching or an extension of CHUNK_ROLLBACK
+to work on committed blocks.  The narrow scope is documented in
+the flag's definition; a broader version was rejected because it
+created rollback liabilities that were disproportionate to the
+single-RTT savings.<a href="#section-10.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="global-clock-or-wall-clock-based-generation-counter">
+<section id="section-10.6">
+        <h3 id="name-global-clock-or-wall-clock-">
+<a href="#name-global-clock-or-wall-clock-" class="section-name selfRef">Global Clock or Wall-Clock-Based Generation Counter</a>
+        </h3>
+<p id="section-10.6-1">An early design used a wall-clock timestamp as the cg_gen_id.
+This was rejected because:<a href="#section-10.6-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.6-2.1">
+            <p id="section-10.6-2.1.1">No global clock exists among the many clients of a
+multi-rack deployment.  Clock skew can cause a newer write
+to appear to have an earlier timestamp than an older one.<a href="#section-10.6-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.6-2.2">
+            <p id="section-10.6-2.2.1">Timestamps at millisecond or microsecond resolution are not
+fine-grained enough to disambiguate bursty writes from the
+same client.<a href="#section-10.6-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.6-2.3">
+            <p id="section-10.6-2.3.1">Mixing client identity bits into the low-order bits of a
+timestamp (to make it unique) reduces effective timestamp
+resolution without providing a useful total ordering.<a href="#section-10.6-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.6-3">The current design uses a per-chunk monotonic counter scoped to
+the chunk on the data server, with cg_client_id as the
+disambiguator across clients.  See <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>.<a href="#section-10.6-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="layout-level-generation-counter">
+<section id="section-10.7">
+        <h3 id="name-layout-level-generation-cou">
+<a href="#name-layout-level-generation-cou" class="section-name selfRef">Layout-Level Generation Counter</a>
+        </h3>
+<p id="section-10.7-1">An alternative raised at IETF 122 (March 2025) was adding a
+generation counter to the layout itself, transmitted to the
+data servers alongside each I/O, so that the metadata server
+could redirect writes to new data servers without issuing a
+full CB_LAYOUTRECALL storm across every holder of the file.
+This is a natural extension of the per-chunk cg_gen_id: where
+cg_gen_id disambiguates successive writes to the same chunk, a
+layout-level counter would disambiguate successive placements
+of the same data.  This was rejected because:<a href="#section-10.7-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.7-2.1">
+            <p id="section-10.7-2.1.1">The use case is already covered.  CB_CHUNK_REPAIR (see
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) and the Proxy Server
+mechanism (see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span>) together
+handle mid-layout remap without requiring a layout-level
+epoch on the wire.  CB_CHUNK_REPAIR reaches the specific
+chunks that need redirection; the proxy server reaches the
+broader re-placement case; between them the full remap
+space is covered.<a href="#section-10.7-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.7-2.2">
+            <p id="section-10.7-2.2.1">Adding a layout-level counter introduces a second,
+potentially-conflicting epoch alongside cg_gen_id.  The CAS
+semantics on the data server would have to compose the two
+generations (per-chunk and per-layout), which multiplies
+the states the data server must reason about without
+strengthening any guarantee the protocol offers today.<a href="#section-10.7-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.7-2.3">
+            <p id="section-10.7-2.3.1">The CB_LAYOUTRECALL storm that motivated the proposal is a
+worst-case cost that the current design pays only during a
+genuine data-server retirement or full re-placement.
+Partial remaps -- the common case -- already flow through
+CB_CHUNK_REPAIR + layout refresh on LAYOUTGET without
+disturbing other holders.<a href="#section-10.7-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.7-3">If a future revision determines that layout-level generation is
+needed, it can be added as a protocol extension: the on-wire
+surface is additive rather than a replacement, because
+cg_gen_id's semantics are independent of any outer layout
+epoch.<a href="#section-10.7-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="declustered-raid-with-dynamic-parity-mapping">
+<section id="section-10.8">
+        <h3 id="name-declustered-raid-with-dynam">
+<a href="#name-declustered-raid-with-dynam" class="section-name selfRef">Declustered RAID with Dynamic Parity Mapping</a>
+        </h3>
+<p id="section-10.8-1">An alternative raised at IETF 121 (November 2024) was
+borrowing from declustered RAID designs: the
+metadata server maintains, for every fixed-size region of each
+file, a mapping from logical address to the specific data
+servers that currently hold that region's data and parity
+shards; writes do not update chunks in place but instead produce
+a new parity stripe on a freshly allocated set of data servers,
+and the mapping is atomically swapped on the metadata server
+once the new stripe is durable.  The attraction is that
+overwrite is replaced by remap, eliminating the write-hole
+problem entirely at the cost of moving consistency into the
+mapping table.  This was rejected because:<a href="#section-10.8-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.8-2.1">
+            <p id="section-10.8-2.1.1">The mapping load scales with the file's chunk count, not with
+the file count.  A single large file with billions of chunks
+produces a billion-entry mapping that the metadata server
+must maintain with transactional semantics; the overhead is
+inverted from the usual "a few large files" regime that
+pNFS is designed for.<a href="#section-10.8-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.8-2.2">
+            <p id="section-10.8-2.2.1">Remapping storms during rebalancing, data-server addition, or
+data-server failure require atomic updates to many mapping
+entries at once.  Providing those updates with the
+reasonable-latency bounds required by HPC checkpoint
+workloads is an open research problem, not a specifiable
+protocol.<a href="#section-10.8-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.8-2.3">
+            <p id="section-10.8-2.3.1">The approach reintroduces the metadata-server scale bottleneck
+that client-side erasure coding is designed to avoid: every
+write traverses the mapping table, and the mapping table is
+the hot-spot under concurrent writes.<a href="#section-10.8-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.8-2.4">
+            <p id="section-10.8-2.4.1">The mapping table becomes the single point of failure that
+the rest of the flexible file v2 layout architecture works hard to avoid;
+replicating it with strong consistency requires a consensus
+protocol on the metadata server, which the current design
+deliberately does not require (see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>).<a href="#section-10.8-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.8-3">The current design uses fixed per-file chunk placement decided
+at LAYOUTGET time plus chunk_guard4 CAS for writes, which
+localises consistency decisions to the chunks being written
+rather than to a global mapping table.<a href="#section-10.8-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-11">
+      <h2 id="name-references">
+<a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-11.1">
+        <h3 id="name-normative-references">
+<a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5661">[RFC5661]</dt>
+        <dd>
+<span class="refAuthor">Shepler, S., Ed.</span>, <span class="refAuthor">Eisler, M., Ed.</span>, and <span class="refAuthor">D. Noveck, Ed.</span>, <span class="refTitle">"Network File System (NFS) Version 4 Minor Version 1 Protocol"</span>, <span class="seriesInfo">RFC 5661</span>, <span class="seriesInfo">DOI 10.17487/RFC5661</span>, <time datetime="2010-01" class="refDate">January 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5661">https://www.rfc-editor.org/rfc/rfc5661</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7862">[RFC7862]</dt>
+        <dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Network File System (NFS) Version 4 Minor Version 2 Protocol"</span>, <span class="seriesInfo">RFC 7862</span>, <span class="seriesInfo">DOI 10.17487/RFC7862</span>, <time datetime="2016-11" class="refDate">November 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7862">https://www.rfc-editor.org/rfc/rfc7862</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8434">[RFC8434]</dt>
+        <dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Requirements for Parallel NFS (pNFS) Layout Types"</span>, <span class="seriesInfo">RFC 8434</span>, <span class="seriesInfo">DOI 10.17487/RFC8434</span>, <time datetime="2018-08" class="refDate">August 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8434">https://www.rfc-editor.org/rfc/rfc8434</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8435">[RFC8435]</dt>
+        <dd>
+<span class="refAuthor">Halevy, B.</span> and <span class="refAuthor">T. Haynes</span>, <span class="refTitle">"Parallel NFS (pNFS) Flexible File Layout"</span>, <span class="seriesInfo">RFC 8435</span>, <span class="seriesInfo">DOI 10.17487/RFC8435</span>, <time datetime="2018-08" class="refDate">August 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8435">https://www.rfc-editor.org/rfc/rfc8435</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8881">[RFC8881]</dt>
+      <dd>
+<span class="refAuthor">Noveck, D., Ed.</span> and <span class="refAuthor">C. Lever</span>, <span class="refTitle">"Network File System (NFS) Version 4 Minor Version 1 Protocol"</span>, <span class="seriesInfo">RFC 8881</span>, <span class="seriesInfo">DOI 10.17487/RFC8881</span>, <time datetime="2020-08" class="refDate">August 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8881">https://www.rfc-editor.org/rfc/rfc8881</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-11.2">
+        <h3 id="name-informative-references">
+<a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-chunks">[I-D.haynes-nfsv4-flexfiles-v2-chunks]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-encoding-registry">[I-D.haynes-nfsv4-flexfiles-v2-encoding-registry]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-layout">[I-D.haynes-nfsv4-flexfiles-v2-layout]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-mojette">[I-D.haynes-nfsv4-flexfiles-v2-mojette]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-proxy-server">[I-D.haynes-nfsv4-flexfiles-v2-proxy-server]</dt>
+        <dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Proxy-Driven Server for Flexible Files Version 2"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-haynes-nfsv4-flexfiles-v2-proxy-server-02</span>, <time datetime="2026-05-25" class="refDate">25 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-02">https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde">[I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-trust-stateid">[I-D.haynes-nfsv4-flexfiles-v2-trust-stateid]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC1813">[RFC1813]</dt>
+        <dd>
+<span class="refAuthor">Callaghan, B.</span>, <span class="refAuthor">Pawlowski, B.</span>, and <span class="refAuthor">P. Staubach</span>, <span class="refTitle">"NFS Version 3 Protocol Specification"</span>, <span class="seriesInfo">RFC 1813</span>, <span class="seriesInfo">DOI 10.17487/RFC1813</span>, <time datetime="1995-06" class="refDate">June 1995</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc1813">https://www.rfc-editor.org/rfc/rfc1813</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5662">[RFC5662]</dt>
+        <dd>
+<span class="refAuthor">Shepler, S., Ed.</span>, <span class="refAuthor">Eisler, M., Ed.</span>, and <span class="refAuthor">D. Noveck, Ed.</span>, <span class="refTitle">"Network File System (NFS) Version 4 Minor Version 1 External Data Representation Standard (XDR) Description"</span>, <span class="seriesInfo">RFC 5662</span>, <span class="seriesInfo">DOI 10.17487/RFC5662</span>, <time datetime="2010-01" class="refDate">January 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5662">https://www.rfc-editor.org/rfc/rfc5662</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7530">[RFC7530]</dt>
+        <dd>
+<span class="refAuthor">Haynes, T., Ed.</span> and <span class="refAuthor">D. Noveck, Ed.</span>, <span class="refTitle">"Network File System (NFS) Version 4 Protocol"</span>, <span class="seriesInfo">RFC 7530</span>, <span class="seriesInfo">DOI 10.17487/RFC7530</span>, <time datetime="2015-03" class="refDate">March 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7530">https://www.rfc-editor.org/rfc/rfc7530</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7863">[RFC7863]</dt>
+        <dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Network File System (NFS) Version 4 Minor Version 2 External Data Representation Standard (XDR) Description"</span>, <span class="seriesInfo">RFC 7863</span>, <span class="seriesInfo">DOI 10.17487/RFC7863</span>, <time datetime="2016-11" class="refDate">November 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7863">https://www.rfc-editor.org/rfc/rfc7863</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7942">[RFC7942]</dt>
+        <dd>
+<span class="refAuthor">Sheffer, Y.</span> and <span class="refAuthor">A. Farrel</span>, <span class="refTitle">"Improving Awareness of Running Code: The Implementation Status Section"</span>, <span class="seriesInfo">BCP 205</span>, <span class="seriesInfo">RFC 7942</span>, <span class="seriesInfo">DOI 10.17487/RFC7942</span>, <time datetime="2016-07" class="refDate">July 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7942">https://www.rfc-editor.org/rfc/rfc7942</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8126">[RFC8126]</dt>
+        <dd>
+<span class="refAuthor">Cotton, M.</span>, <span class="refAuthor">Leiba, B.</span>, and <span class="refAuthor">T. Narten</span>, <span class="refTitle">"Guidelines for Writing an IANA Considerations Section in RFCs"</span>, <span class="seriesInfo">BCP 26</span>, <span class="seriesInfo">RFC 8126</span>, <span class="seriesInfo">DOI 10.17487/RFC8126</span>, <time datetime="2017-06" class="refDate">June 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8126">https://www.rfc-editor.org/rfc/rfc8126</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8178">[RFC8178]</dt>
+      <dd>
+<span class="refAuthor">Noveck, D.</span>, <span class="refTitle">"Rules for NFSv4 Extensions and Minor Versions"</span>, <span class="seriesInfo">RFC 8178</span>, <span class="seriesInfo">DOI 10.17487/RFC8178</span>, <time datetime="2017-07" class="refDate">July 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8178">https://www.rfc-editor.org/rfc/rfc8178</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-A">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Thomas Haynes</span></div>
+<div dir="auto" class="left"><span class="org">Hammerspace</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:loghyr@gmail.com" class="email">loghyr@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
