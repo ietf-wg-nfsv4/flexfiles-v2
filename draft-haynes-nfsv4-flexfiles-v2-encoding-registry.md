@@ -300,10 +300,194 @@ companion documents:
   by {{I-D.haynes-nfsv4-flexfiles-v2-mojette}}.
 - FFV2_ENCODING_RS_VANDERMONDE (value 4): registered by
   {{I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde}}.
+- FFV2_ENCODING_SNAPRAID_CAUCHY (value 6),
+  FFV2_ENCODING_XOR_PARITY (value 7),
+  FFV2_ENCODING_LINUX_MD_RAID (value 8), and
+  FFV2_ENCODING_ISA_L_RS (value 9): registered by this
+  document; specification annexes appear as sections
+  {{sec-encoding-xor-parity-annex}},
+  {{sec-encoding-snapraid-cauchy-annex}},
+  {{sec-encoding-linux-md-raid-annex}}, and
+  {{sec-encoding-isa-l-rs-annex}} below.
 
 Additional encoding types are added via companion documents
 targeting the appropriate range per this registry's allocation
 policies.
+
+## Standards-Track Encoding Specifications
+
+The four subsections that follow are the wire-format annexes
+for the encodings this document registers directly.  Each
+subsection is a complete-enough mathematical description that
+an independent implementation can interoperate with a
+reference implementation.
+
+### FFV2_ENCODING_XOR_PARITY {#sec-encoding-xor-parity-annex}
+
+Single-parity systematic RAID-5-shape.  Parameters: k in
+[1, 254], m fixed at 1.
+
+**Construction:** The parity shard is the bytewise XOR of every
+data shard:
+
+    parity[b] = data[0][b] XOR data[1][b] XOR ... XOR data[k-1][b]
+
+for every byte b in [0, shard_len).  No finite-field
+arithmetic is used; the operation is a plain XOR reduction
+across k shards, so a receiver requires no GF tables or
+matrix inversion machinery.
+
+**Recovery:** If the missing shard is a data shard i, compute
+
+    data[i][b] = parity[b] XOR (XOR of all data[j][b] for j != i)
+
+for every byte b.  If the missing shard is the parity shard,
+recompute it from the construction above.  In both cases the
+computation is proportional to (k-1) * shard_len XOR
+operations.
+
+**Wire-compatibility:** At m=1, FFV2_ENCODING_XOR_PARITY is
+byte-identical to FFV2_ENCODING_LINUX_MD_RAID's P shard, to
+the first parity row of FFV2_ENCODING_SNAPRAID_CAUCHY, and
+to the first parity row of FFV2_ENCODING_ISA_L_RS.  A
+receiver that speaks any of those at m=1 also correctly
+consumes FFV2_ENCODING_XOR_PARITY output.
+
+### FFV2_ENCODING_SNAPRAID_CAUCHY {#sec-encoding-snapraid-cauchy-annex}
+
+Cauchy erasure coding over GF(2^8) with primitive polynomial
+0x1d.  Parameters: k in [1, 251], m in [1, 6].
+
+**Field:** GF(2^8) elements are represented as octets.
+Addition is bytewise XOR.  Multiplication is defined by the
+irreducible polynomial x^8 + x^4 + x^3 + x^2 + 1 (0x1d in
+bit-reversed form, or 0x11d as the 9-bit representation
+including the top bit).  The generator is 2.
+
+**Matrix construction:** The encoding matrix is the Extended
+Cauchy construction as defined in the SnapRAID reference
+implementation (Andrea Mazzoleni, <https://www.snapraid.it>).
+The matrix's first two rows reproduce Linux md's P and Q
+parity coefficients byte-for-byte; rows 3 through 6 use
+SnapRAID-specific x_i / y_j point choices.  See the SnapRAID
+`raid.c` top-of-file theory comment for the full construction.
+
+**Encoding:** parity[i][b] = sum over j in [0, k) of
+matrix[i][j] * data[j][b], evaluated in GF(2^8), for every
+i in [0, m) and every byte b.
+
+**Recovery:** Take k surviving shards; extract the k x k
+sub-matrix of the encoding matrix whose rows correspond to
+their indices; invert in GF(2^8); multiply by the surviving
+shard bytes to recover the original data shards.  Missing
+parity shards are then re-computed from the recovered data
+via the forward encoding formula.
+
+**Wire-compatibility:** Matches FFV2_ENCODING_LINUX_MD_RAID
+and FFV2_ENCODING_ISA_L_RS at m<=2 (all three emit
+byte-identical P and Q).  Diverges from ISA_L_RS at m>=3
+(different construction family) and from LINUX_MD_RAID at
+m>=3 (LINUX_MD_RAID does not support m>=3).
+
+**Reference implementation:** SnapRAID codebase
+(GPL-3.0-or-later).
+
+### FFV2_ENCODING_LINUX_MD_RAID {#sec-encoding-linux-md-raid-annex}
+
+Linux kernel md/raid6 P+Q double-parity encoding.
+Parameters: k in [2, 253], m fixed at 2.  The k=1 case is
+degenerate (single data shard with P and Q) and is not
+supported; use FFV2_ENCODING_MIRRORED with N=3 for that
+semantics.
+
+**Field:** GF(2^8), primitive polynomial 0x1d (same as
+SNAPRAID_CAUCHY, ISA_L_RS, and RS_VANDERMONDE).
+
+**Construction (P):**
+
+    P[b] = data[0][b] XOR data[1][b] XOR ... XOR data[k-1][b]
+
+**Construction (Q):**
+
+    Q[b] = sum over i in [0, k) of g^i * data[i][b],
+
+evaluated in GF(2^8) where g is the generator (2).  See the
+Linux kernel source at `lib/raid6/algos.c` and `lib/raid6/int.uc`
+(the unrolled generator template) for the reference
+implementation.
+
+**Recovery:** Standard RAID-6 recovery.  A single missing
+data shard is recovered via XOR against P; two missing data
+shards are recovered via the standard `raid6_2data_recov`
+procedure using both P and Q; a missing P is recomputed
+from data; a missing Q is regenerated via re-encoding.
+
+**Wire-compatibility:** Byte-identical to
+FFV2_ENCODING_SNAPRAID_CAUCHY at m<=2 (SnapRAID's first two
+Cauchy rows are exactly Linux md's P and Q coefficients) and
+to FFV2_ENCODING_ISA_L_RS at m<=2 (ISA-L's Vandermonde first
+two rows are the same in GF(2^8)).  This lets a client that
+speaks any of the three consume the others at m=2.
+
+**Reference implementation:** Linux kernel `lib/raid6/`
+(GPL-2.0-or-later).
+
+### FFV2_ENCODING_ISA_L_RS {#sec-encoding-isa-l-rs-annex}
+
+Reed-Solomon erasure coding over GF(2^8) using the
+Vandermonde matrix construction from Intel's ISA-L
+(Intelligent Storage Acceleration Library).  Parameters: k
+in [1, 253], m in [1, 254-k].
+
+**Field:** GF(2^8), primitive polynomial 0x1d, generator 2.
+
+**Matrix construction:** The encoding matrix has (k + m) rows
+and k columns.  The top k rows form the identity matrix.
+For each parity row i in [k, k+m):
+
+    matrix[i][j] = g^((i - k) * j)  in GF(2^8), for j in [0, k)
+
+This is the classical Vandermonde generator-power construction
+with the systematic-identity top block, matching the output
+of ISA-L's `gf_gen_rs_matrix` function.
+
+**Encoding:** parity[i][b] = sum over j in [0, k) of
+matrix[k + i][j] * data[j][b], evaluated in GF(2^8), for
+every i in [0, m) and every byte b.
+
+**Recovery:** Take k surviving shards; extract the k x k
+sub-matrix of the encoding matrix whose rows correspond to
+their indices; invert in GF(2^8); multiply by the surviving
+shard bytes to recover the original data shards.  ISA-L's
+`gf_invert_matrix` and `ec_encode_data` provide the reference
+routines.  Missing parity shards are re-computed from the
+recovered data via the forward encoding formula.
+
+**Wire-compatibility:**
+
+-  At m=1, the parity row is `[1, 1, ..., 1]`, so
+   FFV2_ENCODING_ISA_L_RS at m=1 is byte-identical to
+   FFV2_ENCODING_XOR_PARITY and to FFV2_ENCODING_LINUX_MD_RAID's
+   P shard.
+-  At m=2, the second parity row is `[1, 2, 4, 8, ...]` in
+   GF(2^8), byte-identical to LINUX_MD_RAID's Q shard and to
+   the second row of SNAPRAID_CAUCHY's matrix.
+-  At m>=3, the ISA-L matrix continues the Vandermonde
+   sequence.  SNAPRAID_CAUCHY diverges at m>=3 (different
+   Cauchy point choice); LINUX_MD_RAID does not support
+   m>=3.
+
+**Wire-incompatibility with FFV2_ENCODING_RS_VANDERMONDE (0x4):**
+the encoding registered by {{I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde}}
+uses a normalized Vandermonde construction (Vandermonde
+multiplied by the inverse of the top k x k block to force
+identity on top), whose parity coefficients differ from
+ISA-L's from parity row 0 onward.  ISA_L_RS thus requires its
+own registry value despite sharing the field with
+RS_VANDERMONDE.
+
+**Reference implementation:** Intel ISA-L codebase
+(BSD-3-Clause).
 
 ### Designated Expert guidelines
 
