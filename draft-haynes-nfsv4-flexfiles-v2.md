@@ -1854,7 +1854,11 @@ this otherwise opaque value, ffv2_layout4.
    ///     FFV2_ENCODING_MOJETTE_SYSTEMATIC      = 2,
    ///     FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC  = 3,
    ///     FFV2_ENCODING_RS_VANDERMONDE          = 4,
-   ///     FFV2_ENCODING_MIRRORED                = 5
+   ///     FFV2_ENCODING_MIRRORED                = 5,
+   ///     FFV2_ENCODING_SNAPRAID_CAUCHY         = 6,
+   ///     FFV2_ENCODING_XOR_PARITY              = 7,
+   ///     FFV2_ENCODING_LINUX_MD_RAID           = 8,
+   ///     FFV2_ENCODING_ISA_L_RS                = 9
    /// };
 ~~~
 {: #fig-ffv2_coding_type4 title="The coding type"}
@@ -1871,16 +1875,25 @@ encoding types this document defines fall into two groups:
    CHUNK_READ, no per-chunk CRC.  See {{sec-encoding-passthrough}}.
 
 -  FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, and
-   FFV2_ENCODING_RS_VANDERMONDE all use the new operations
+   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
+   FFV2_ENCODING_RS_VANDERMONDE,
+   FFV2_ENCODING_SNAPRAID_CAUCHY,
+   FFV2_ENCODING_XOR_PARITY,
+   FFV2_ENCODING_LINUX_MD_RAID, and
+   FFV2_ENCODING_ISA_L_RS all use the new operations
    defined here: in particular CHUNK_WRITE
    ({{sec-CHUNK_WRITE}}) and CHUNK_READ ({{sec-CHUNK_READ}}),
    which carry the per-chunk checksum this version of the layout
    type relies on for end-to-end integrity.  The encoding type
    selects how chunks are produced from application data
-   (mirrored verbatim, Reed-Solomon shards, Mojette
+   (mirrored verbatim, Reed-Solomon shards over GF(2^8) with
+   distinct matrix constructions, single-parity XOR, or Mojette
    projections); the wire and the storage device are the same
-   in every case.
+   in every case.  See the individual encoding sections
+   ({{sec-encoding-xor-parity}}, {{sec-encoding-snapraid-cauchy}},
+   {{sec-encoding-linux-md-raid}}, {{sec-encoding-isa-l-rs}}) for
+   the mathematical constructions and wire-compatibility
+   relationships among the GF(2^8) family.
 
 The 32-bit ffv2_coding_type4 value space is partitioned by
 intended scope -- Standards Track, Experimental, Vendor (open),
@@ -2054,6 +2067,117 @@ but costs N x the payload; a (k, m) erasure coding tolerates m
 losses at (k+m)/k x the payload.  Both have per-chunk
 integrity under this document; the choice is the
 cost-vs-tolerance one.
+
+### FFV2_ENCODING_XOR_PARITY {#sec-encoding-xor-parity}
+
+FFV2_ENCODING_XOR_PARITY is single-parity systematic RAID-5-
+shape: k data shards plus one parity shard computed as the
+bytewise XOR of every data shard.  Parameters: k in [1, 254],
+m fixed at 1.  No finite-field arithmetic is required -- the
+"encoding" is a plain XOR reduction across k shards, so the
+implementation footprint is trivial and the compute cost
+scales at memory bandwidth.
+
+Recovery: for a missing data shard, XOR the surviving k-1
+data shards with the parity shard.  For a missing parity
+shard, XOR all k data shards.  The mathematics is identical
+to the first parity row (P) of a Reed-Solomon Vandermonde or
+Cauchy encoding at m=1, so a receiver capable of any of the
+GF(2^8) codes at m=1 is also wire-compatible with
+XOR_PARITY.  This is the simplest MTI-candidate encoding.
+
+### FFV2_ENCODING_SNAPRAID_CAUCHY {#sec-encoding-snapraid-cauchy}
+
+FFV2_ENCODING_SNAPRAID_CAUCHY is a Cauchy erasure coding over
+GF(2^8) with primitive polynomial 0x1d.  Parameters: k in
+[1, 251], m in [1, 6].  The encoding matrix is the Extended
+Cauchy construction defined in the SnapRAID reference
+implementation (see the wire-format annex in the
+`snapraid-cauchy` encoding companion): the matrix's first two
+rows reproduce Linux md's P and Q parity coefficients
+byte-for-byte, so a receiver that speaks
+FFV2_ENCODING_LINUX_MD_RAID at m<=2 also correctly consumes
+FFV2_ENCODING_SNAPRAID_CAUCHY at m<=2.
+
+Divergence from LINUX_MD_RAID begins at m>=3, where
+SnapRAID's Cauchy point-choice for rows 3 through 6 differs
+from any of the other GF(2^8) codes registered here.  The
+cap m<=6 comes from SnapRAID's own precomputed coefficient
+tables.
+
+Recovery uses inversion of the k x k sub-matrix built from k
+surviving shards.  A reference implementation of the
+encoding, decoding, and matrix construction is available in
+the SnapRAID codebase (GPL-3.0-or-later); an
+AGPL-3.0-or-later derivative in the reffs codebase provides
+an interoperable wrapper.
+
+### FFV2_ENCODING_LINUX_MD_RAID {#sec-encoding-linux-md-raid}
+
+FFV2_ENCODING_LINUX_MD_RAID is the Linux kernel md/raid6 P+Q
+double-parity encoding, over GF(2^8) with primitive
+polynomial 0x1d.  Parameters: k in [2, 253], m fixed at 2.
+
+The P parity row is the bytewise XOR of every data shard --
+identical to FFV2_ENCODING_XOR_PARITY's parity when
+FFV2_ENCODING_LINUX_MD_RAID is considered at m=1.  The Q
+parity row is sum(2^i * data_i) evaluated in GF(2^8), with
+the exponentiation done over the RAID-6 generator (see the
+kernel source at `lib/raid6/algos.c` for the reference
+implementation).
+
+Wire-compatibility with FFV2_ENCODING_SNAPRAID_CAUCHY at m=2
+and with FFV2_ENCODING_ISA_L_RS at m<=2 is guaranteed by
+construction: all three encoders emit byte-identical P and Q
+for the same (k, data) input at m<=2.  This lets a client
+implementing any one of them consume the others without
+re-encoding.
+
+The k=1 case (a single data shard with P and Q) is
+degenerate and MUST NOT be used with FFV2_ENCODING_LINUX_MD_RAID;
+callers who need triple-mirror semantics MUST use
+FFV2_ENCODING_MIRRORED with N=3 instead.
+
+### FFV2_ENCODING_ISA_L_RS {#sec-encoding-isa-l-rs}
+
+FFV2_ENCODING_ISA_L_RS is Reed-Solomon erasure coding over
+GF(2^8) with primitive polynomial 0x1d, using the Vandermonde
+matrix construction from Intel's ISA-L (Intelligent Storage
+Acceleration Library).  Parameters: k in [1, 253], m in
+[1, 254-k].  The encoding matrix's top k rows form the
+identity (systematic form) and the remaining m rows are
+plain Vandermonde: row (k+i) column j equals `2^(i*j)` in
+GF(2^8).
+
+Wire-compatibility properties:
+
+-  At m=1, the parity row is `[1, 1, ..., 1]`, so
+   FFV2_ENCODING_ISA_L_RS at m=1 is byte-identical to
+   FFV2_ENCODING_XOR_PARITY and to FFV2_ENCODING_LINUX_MD_RAID's
+   P shard.
+-  At m=2, the second parity row is `[1, 2, 4, 8, ...]` in
+   GF(2^8), byte-identical to LINUX_MD_RAID's Q shard and to
+   the second row of SNAPRAID_CAUCHY's matrix.  So the three
+   GF(2^8) codes coexist at m<=2.
+-  At m>=3, the ISA-L matrix continues the Vandermonde
+   sequence.  SNAPRAID_CAUCHY diverges at m>=3 (different
+   Cauchy point choice); LINUX_MD_RAID does not support
+   m>=3.
+
+Wire-incompatibility with FFV2_ENCODING_RS_VANDERMONDE (0x4):
+the reffs reference RS encoding uses a normalized
+Vandermonde construction (Vandermonde multiplied by the
+inverse of the top k x k block to force identity on top),
+whose parity coefficients differ from ISA-L's from row 0
+onward.  ISA_L_RS thus requires its own registry value
+despite sharing the field with RS_VANDERMONDE.
+
+A reference implementation of the encoding, decoding, and
+matrix construction is available in the ISA-L codebase
+(BSD-3-Clause).  On x86-64 CPUs supporting AVX2 or newer,
+the encoder achieves multi-GB/s throughput per core via
+shuffle-based inner loops; a portable-C fallback is also
+provided.
 
 ### Encoding Type Interoperability {#encoding-type-interoperability}
 
