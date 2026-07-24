@@ -2157,10 +2157,10 @@ Table of Contents
 
    FFV2_ENCODING_XOR_PARITY is single-parity systematic RAID-5- shape: k
    data shards plus one parity shard computed as the bytewise XOR of
-   every data shard.  Parameters: k in [1, 254], m fixed at 1.  No
-   finite-field arithmetic is required -- the "encoding" is a plain XOR
-   reduction across k shards, so the implementation footprint is trivial
-   and the compute cost scales at memory bandwidth.
+   every data shard.  Parameters: k in the range 1 to 254, m fixed at 1.
+   No finite-field arithmetic is required -- the "encoding" is a plain
+   XOR reduction across k shards, so the implementation footprint is
+   trivial and the compute cost scales at memory bandwidth.
 
    Recovery: for a missing data shard, XOR the surviving k-1 data shards
    with the parity shard.  For a missing parity shard, XOR all k data
@@ -2172,13 +2172,14 @@ Table of Contents
 8.1.5.  FFV2_ENCODING_SNAPRAID_CAUCHY
 
    FFV2_ENCODING_SNAPRAID_CAUCHY is a Cauchy erasure coding over GF(2^8)
-   with primitive polynomial 0x1d.  Parameters: k in [1, 251], m in [1,
-   6].  The encoding matrix is the Extended Cauchy construction defined
-   in the SnapRAID reference implementation (see the wire-format annex
-   in the snapraid-cauchy encoding companion): the matrix's first two
-   rows reproduce Linux md's P and Q parity coefficients byte-for-byte,
-   so a receiver that speaks FFV2_ENCODING_LINUX_MD_RAID at m<=2 also
-   correctly consumes FFV2_ENCODING_SNAPRAID_CAUCHY at m<=2.
+   with primitive polynomial 0x1d.  Parameters: k in the range 1 to 251,
+   m in the range 1 to 6.  The encoding matrix is the Extended Cauchy
+   construction defined in the SnapRAID reference implementation (see
+   the wire-format annex in the snapraid-cauchy encoding companion): the
+   matrix's first two rows reproduce Linux md's P and Q parity
+   coefficients byte-for-byte, so a receiver that speaks
+   FFV2_ENCODING_LINUX_MD_RAID at m<=2 also correctly consumes
+   FFV2_ENCODING_SNAPRAID_CAUCHY at m<=2.
 
    Divergence from LINUX_MD_RAID begins at m>=3, where SnapRAID's Cauchy
    point-choice for rows 3 through 6 differs from any of the other
@@ -2195,7 +2196,7 @@ Table of Contents
 
    FFV2_ENCODING_LINUX_MD_RAID is the Linux kernel md/raid6 P+Q double-
    parity encoding, over GF(2^8) with primitive polynomial 0x1d.
-   Parameters: k in [2, 253], m fixed at 2.
+   Parameters: k in the range 2 to 253, m fixed at 2.
 
    The P parity row is the bytewise XOR of every data shard -- identical
    to FFV2_ENCODING_XOR_PARITY's parity when FFV2_ENCODING_LINUX_MD_RAID
@@ -2220,10 +2221,10 @@ Table of Contents
    FFV2_ENCODING_ISA_L_RS is Reed-Solomon erasure coding over GF(2^8)
    with primitive polynomial 0x1d, using the Vandermonde matrix
    construction from Intel's ISA-L (Intelligent Storage Acceleration
-   Library).  Parameters: k in [1, 253], m in [1, 254-k].  The encoding
-   matrix's top k rows form the identity (systematic form) and the
-   remaining m rows are plain Vandermonde: row (k+i) column j equals
-   2^(i*j) in GF(2^8).
+   Library).  Parameters: k in the range 1 to 253, m in the range 1 to
+   (254 - k).  The encoding matrix's top k rows form the identity
+   (systematic form) and the remaining m rows are plain Vandermonde: row
+   (k+i) column j equals 2^(i*j) in GF(2^8).
 
    Wire-compatibility properties:
 
@@ -11254,8 +11255,8 @@ Acknowledgments
    the trusted-stateid design, and many smaller choices recorded
    throughout the document.
 
-   Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
-   process.
+   Chris Inacio, Chuck Lever, Brian Pawlowski, and Gorry Fairhurst
+   guided this process.
 
 Author's Address
 
