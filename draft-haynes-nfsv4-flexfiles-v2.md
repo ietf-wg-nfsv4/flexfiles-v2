@@ -128,6 +128,25 @@ informative:
     date: 1978
     seriesinfo:
       Springer: ""
+  SNAPRAID:
+    title: "SnapRAID -- backup program for disk arrays"
+    author:
+      - name: A. Mazzoleni
+    target: https://www.snapraid.it/
+    date: false
+  LINUX-RAID6:
+    title: "Linux kernel software RAID (md/raid6) -- lib/raid6"
+    author:
+      - name: H. P. Anvin
+      - org: Linux kernel contributors
+    target: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/raid6
+    date: false
+  ISA-L:
+    title: "Intel(R) Intelligent Storage Acceleration Library"
+    author:
+      - org: Intel Corporation
+    target: https://github.com/intel/isa-l
+    date: false
 
 --- abstract
 
@@ -2092,12 +2111,10 @@ FFV2_ENCODING_SNAPRAID_CAUCHY is a Cauchy erasure coding over
 GF(2^8) with primitive polynomial 0x1d.  Parameters: k in
 the range 1 to 251, m in the range 1 to 6.  The encoding matrix is the Extended
 Cauchy construction defined in the SnapRAID reference
-implementation (see the wire-format annex in the
-`snapraid-cauchy` encoding companion): the matrix's first two
-rows reproduce Linux md's P and Q parity coefficients
-byte-for-byte, so a receiver that speaks
-FFV2_ENCODING_LINUX_MD_RAID at m<=2 also correctly consumes
-FFV2_ENCODING_SNAPRAID_CAUCHY at m<=2.
+implementation {{SNAPRAID}}: the matrix's first two rows
+reproduce Linux md's P and Q parity coefficients byte-for-byte,
+so a receiver that speaks FFV2_ENCODING_LINUX_MD_RAID at m<=2
+also correctly consumes FFV2_ENCODING_SNAPRAID_CAUCHY at m<=2.
 
 Divergence from LINUX_MD_RAID begins at m>=3, where
 SnapRAID's Cauchy point-choice for rows 3 through 6 differs
@@ -2106,11 +2123,9 @@ cap m<=6 comes from SnapRAID's own precomputed coefficient
 tables.
 
 Recovery uses inversion of the k x k sub-matrix built from k
-surviving shards.  A reference implementation of the
-encoding, decoding, and matrix construction is available in
-the SnapRAID codebase (GPL-3.0-or-later); an
-AGPL-3.0-or-later derivative in the reffs codebase provides
-an interoperable wrapper.
+surviving shards.  The SnapRAID codebase {{SNAPRAID}}
+(GPL-3.0-or-later) provides the reference implementation of
+the encoding, decoding, and matrix construction.
 
 ### FFV2_ENCODING_LINUX_MD_RAID {#sec-encoding-linux-md-raid}
 
@@ -2123,8 +2138,8 @@ identical to FFV2_ENCODING_XOR_PARITY's parity when
 FFV2_ENCODING_LINUX_MD_RAID is considered at m=1.  The Q
 parity row is sum(2^i * data_i) evaluated in GF(2^8), with
 the exponentiation done over the RAID-6 generator (see the
-kernel source at `lib/raid6/algos.c` for the reference
-implementation).
+Linux kernel `lib/raid6` sources {{LINUX-RAID6}} for the
+reference implementation).
 
 Wire-compatibility with FFV2_ENCODING_SNAPRAID_CAUCHY at m=2
 and with FFV2_ENCODING_ISA_L_RS at m<=2 is guaranteed by
@@ -2143,7 +2158,8 @@ FFV2_ENCODING_MIRRORED with N=3 instead.
 FFV2_ENCODING_ISA_L_RS is Reed-Solomon erasure coding over
 GF(2^8) with primitive polynomial 0x1d, using the Vandermonde
 matrix construction from Intel's ISA-L (Intelligent Storage
-Acceleration Library).  Parameters: k in the range 1 to 253, m in the range 1 to (254 - k).  The encoding matrix's top k rows form the
+Acceleration Library) {{ISA-L}}.  Parameters: k in the range
+1 to 253, m in the range 1 to (254 - k).  The encoding matrix's top k rows form the
 identity (systematic form) and the remaining m rows are
 plain Vandermonde: row (k+i) column j equals `2^(i*j)` in
 GF(2^8).
@@ -2171,11 +2187,11 @@ whose parity coefficients differ from ISA-L's from row 0
 onward.  ISA_L_RS thus requires its own registry value
 despite sharing the field with RS_VANDERMONDE.
 
-A reference implementation of the encoding, decoding, and
-matrix construction is available in the ISA-L codebase
-(BSD-3-Clause).  On x86-64 CPUs supporting AVX2 or newer,
-the encoder achieves multi-GB/s throughput per core via
-shuffle-based inner loops; a portable-C fallback is also
+The ISA-L codebase {{ISA-L}} (BSD-3-Clause) provides the
+reference implementation of the encoding, decoding, and
+matrix construction.  On x86-64 CPUs supporting AVX2 or
+newer, the encoder achieves multi-GB/s throughput per core
+via shuffle-based inner loops; a portable-C fallback is also
 provided.
 
 ### Encoding Type Interoperability {#encoding-type-interoperability}
