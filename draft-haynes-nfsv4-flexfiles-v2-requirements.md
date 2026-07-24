@@ -285,33 +285,30 @@ existing NFSv4 locking primitives.
 #  Use Cases {#sec-use-cases}
 
 The protocol is designed around three workload classes.  The
-percentages below reflect the expected deployment mix in
+labels below reflect the relative frequency of each class in
 installations that choose flexible file v2 layout for its combination of
 integrity and performance; individual deployments may diverge.
 
-Single writer, multiple readers:
-:  Approximately 90% of expected deployments.  The common case is a
-   file written by one client and subsequently read by many.
+Single writer, multiple readers (the common case):
+:  A file written by one client and subsequently read by many.
    Examples include artifacts deposited by batch jobs, container
    images, and media files.  The protocol is optimized for this
    case; see {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.
 
-Multiple writers without sustained contention:
-:  Approximately 9% of expected deployments.  Files with multiple
-   concurrent writers where races on the same chunk are rare.
-   Examples include shared-directory append-only logs and
-   distributed builds.  The chunk_guard4 CAS primitive and per-chunk
-   locking cover this case without penalizing the common
+Multiple writers without sustained contention (occasional):
+:  Files with multiple concurrent writers where races on the same
+   chunk are rare.  Examples include shared-directory append-only
+   logs and distributed builds.  The chunk_guard4 CAS primitive and
+   per-chunk locking cover this case without penalizing the common
    single-writer path.
 
-Multiple writers, disjoint regions:
-:  Approximately 1% of expected deployments.  High-performance
-   computing (HPC) checkpoint workloads, in which many ranks write
-   disjoint regions of the same file in lockstep.  The protocol
-   relies on block alignment to keep per-chunk contention rare
-   despite overall high writer count.  Contention that does occur
-   is resolved via the deterministic tiebreaker rule defined in
-   {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.
+Multiple writers, disjoint regions (rare):
+:  High-performance computing (HPC) checkpoint workloads, in which
+   many ranks write disjoint regions of the same file in lockstep.
+   The protocol relies on block alignment to keep per-chunk
+   contention rare despite overall high writer count.  Contention
+   that does occur is resolved via the deterministic tiebreaker
+   rule defined in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.
 
 Scale targets include multi-thousand-client deployments (on the
 order of tens of thousands of concurrent clients for HPC
@@ -640,11 +637,12 @@ framing is reflected in {{sec-motivation}} and in the System Model
 non-goals of {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.
 
 The authors thank Dave Noveck, Chuck Lever, Tigran
-Mkrtchyan, Rick Macklem, and Christoph Hellwig for their
-detailed review of earlier revisions of the parent draft.  Their
-comments shaped the system model presentation, the chunk
-lifecycle and guard semantics, the trusted-stateid design,
-and many smaller choices recorded throughout the family.
+Mkrtchyan, Rick Macklem, Christoph Hellwig, and Sorin
+Faibish for their detailed review of earlier revisions of
+the parent draft.  Their comments shaped the system model
+presentation, the chunk lifecycle and guard semantics, the
+trusted-stateid design, and many smaller choices recorded
+throughout the family.
 
 Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
 process.
