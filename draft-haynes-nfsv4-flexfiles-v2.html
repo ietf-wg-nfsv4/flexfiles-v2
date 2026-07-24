@@ -5924,7 +5924,7 @@ single transaction, a more accurate description of a CHUNK_WRITE
 is in <a href="#fig-example-chunk-write-args" class="auto internal xref">Figure 23</a>.<a href="#section-11.2.1-2" class="pilcrow">¶</a></p>
 <span id="name-example-of-chunk_write_args"></span><div id="fig-example-chunk-write-args">
 <figure id="figure-23">
-            <div class="alignLeft art-text artwork" id="section-11.2.1-3.1">
+            <div class="lang-art sourcecode" id="section-11.2.1-3.1">
 <pre>
   +------------------------------------+
   | CHUNK_WRITEargs                    |
@@ -5961,7 +5961,7 @@ illustrates the results.  The payload sequence id is implicit in
 the CHUNK_WRITEargs.<a href="#section-11.2.1-5" class="pilcrow">¶</a></p>
 <span id="name-example-of-chunk_write_res"></span><div id="fig-example-chunk-write-res">
 <figure id="figure-24">
-            <div class="alignLeft art-text artwork" id="section-11.2.1-6.1">
+            <div class="lang-art sourcecode" id="section-11.2.1-6.1">
 <pre>
   +-------------------------------+
   | CHUNK_WRITEresok              |
@@ -6038,7 +6038,7 @@ the header and the cw_chunk.  In this example, it is calculated to
 be 0x21de8.  The resulting CHUNK_WRITE is shown in <a href="#fig-calc-crc-after" class="auto internal xref">Figure 26</a>.<a href="#section-11.2.1.1-3" class="pilcrow">¶</a></p>
 <span id="name-crc32-after-calculation"></span><div id="fig-calc-crc-after">
 <figure id="figure-26">
-              <div class="alignLeft art-text artwork" id="section-11.2.1.1-4.1">
+              <div class="lang-art sourcecode" id="section-11.2.1.1-4.1">
 <pre>
   +------------------------------------+
   | CHUNK_WRITEargs                    |
@@ -6118,7 +6118,7 @@ erasure coding type.<a href="#section-11.2.2-3" class="pilcrow">¶</a></p>
             </h5>
 <span id="name-crc32-on-the-wire"></span><div id="fig-example-chunk-read-crc">
 <figure id="figure-28">
-              <div class="alignLeft art-text artwork" id="section-11.2.2.1-1.1">
+              <div class="lang-art sourcecode" id="section-11.2.2.1-1.1">
 <pre>
   +------------------------------------+
   | CHUNK_READresok                    |
@@ -6865,7 +6865,7 @@ encodings on the client's behalf
 <p id="section-11.3-6">All three patterns coexist during the transition.<a href="#section-11.3-6" class="pilcrow">¶</a></p>
 <span id="name-example-of-mixed-coding-typ"></span><div id="fig-example_mixing">
 <figure id="figure-31">
-          <div class="alignLeft art-text artwork" id="section-11.3-7.1">
+          <div class="lang-art sourcecode" id="section-11.3-7.1">
 <pre>
  +-----------------------------------------------------+
  | ffv2_layout4:                                       |
@@ -7214,8 +7214,8 @@ V = [ [1, 1],    // row 0: (1^0, 1^1) = (1, 1)
 GF(2^8) with irreducible polynomial <code>0x11d</code> is
 <code>3^-1 = 0xF4</code> (verifiable: <code>(x+1) * (x^7+x^6+x^5+x^4+x^2) mod
 (x^8+x^4+x^3+x^2+1) = 1</code>).  Applying <code>T_inv = (1/det) *
-[[T[1][1], T[0][1]], [T[1][0], T[0][0]]]</code> (characteristic 2, so
-no sign changes):<a href="#section-11.4.7-5" class="pilcrow">¶</a></p>
+[[T\[1\]\[1\], T\[0\]\[1\]], [T\[1\]\[0\], T\[0\]\[0\]]]</code>
+(characteristic 2, so no sign changes):<a href="#section-11.4.7-5" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-11.4.7-6">
 <pre>
 T_inv = [ [0xF5, 0xF4],
@@ -7232,7 +7232,7 @@ E = [ [0x01, 0x00],    // identity block for data shard 0
 </div>
 <p id="section-11.4.7-9">For k=2, m=1 the parity generator is <code>P = [0xF4, 0xF5]</code>; the
 parity shard is computed byte-wise as
-<code>parity[j] = 0xF4 * data[0][j] XOR 0xF5 * data[1][j]</code> where the
+<code>parity\[j\] = 0xF4 * data\[0\]\[j\] XOR 0xF5 * data\[1\]\[j\]</code> where the
 multiplication is in GF(2^8) with polynomial <code>0x11d</code>.<a href="#section-11.4.7-9" class="pilcrow">¶</a></p>
 <p id="section-11.4.7-10">Concrete byte-level test vector with <code>shard_len = 1</code>:<a href="#section-11.4.7-10" class="pilcrow">¶</a></p>
 <span id="name-rs-vandermonde-test-vector-"></span><div id="tbl-rs-test-vector">
@@ -12883,7 +12883,7 @@ synthetic zero-filled payload.<a href="#section-25.6.3-12" class="pilcrow">¶</a
 </div>
 <span id="name-example-resulting-chunk_rea"></span><div id="fig-example-CHUNK_READ4resok">
 <figure id="figure-76">
-            <div class="alignLeft art-text artwork" id="section-25.6.3-14.1">
+            <div class="lang-art sourcecode" id="section-25.6.3-14.1">
 <pre>
         Data Server 2
   +--------------------------------+
@@ -16426,7 +16426,7 @@ code snippets belong in their respective areas of that XDR.<a href="#section-29-
 <dd class="break"></dd>
 <dt id="I-D.haynes-nfsv4-flexfiles-v2-proxy-server">[I-D.haynes-nfsv4-flexfiles-v2-proxy-server]</dt>
         <dd>
-<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Proxy-Driven Server for Flexible Files Version 2"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-haynes-nfsv4-flexfiles-v2-proxy-server-02</span>, <time datetime="2026-05-25" class="refDate">25 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-02">https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-02</a>&gt;</span>. </dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Proxy-Driven Server for Flexible Files Version 2"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-haynes-nfsv4-flexfiles-v2-proxy-server-03</span>, <time datetime="2026-07-24" class="refDate">24 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-03">https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-03</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="IANA-PEN">[IANA-PEN]</dt>
         <dd>
