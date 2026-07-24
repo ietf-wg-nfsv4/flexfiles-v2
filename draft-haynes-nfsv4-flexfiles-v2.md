@@ -3468,7 +3468,7 @@ data servers as shown in {{fig-encoding-data-block}}.  As CHUNK_WRITE
 single transaction, a more accurate description of a CHUNK_WRITE
 is in {{fig-example-chunk-write-args}}.
 
-~~~
+~~~ art
   +------------------------------------+
   | CHUNK_WRITEargs                    |
   +------------------------------------+
@@ -3501,7 +3501,7 @@ Assuming that there were no issues, {{fig-example-chunk-write-res}}
 illustrates the results.  The payload sequence id is implicit in
 the CHUNK_WRITEargs.
 
-~~~
+~~~ art
   +-------------------------------+
   | CHUNK_WRITEresok              |
   +-------------------------------+
@@ -3565,7 +3565,7 @@ this case, the crc32 is calculated over the 4 fields as shown in
 the header and the cw_chunk.  In this example, it is calculated to
 be 0x21de8.  The resulting CHUNK_WRITE is shown in {{fig-calc-crc-after}}.
 
-~~~
+~~~ art
   +------------------------------------+
   | CHUNK_WRITEargs                    |
   +------------------------------------+
@@ -3625,7 +3625,7 @@ erasure coding type.
 
 #### Worked Example: Checking the CRC32 {#sec-checking-crc32}
 
-~~~
+~~~ art
   +------------------------------------+
   | CHUNK_READresok                    |
   +------------------------------------+
@@ -4231,7 +4231,7 @@ The active mirrors serve different access patterns concurrently:
 
 All three patterns coexist during the transition.
 
-~~~
+~~~ art
  +-----------------------------------------------------+
  | ffv2_layout4:                                       |
  +-----------------------------------------------------+
@@ -4514,8 +4514,8 @@ Top k x k sub-matrix `T = [[1, 1], [1, 2]]` has determinant
 GF(2^8) with irreducible polynomial `0x11d` is
 `3^-1 = 0xF4` (verifiable: `(x+1) * (x^7+x^6+x^5+x^4+x^2) mod
 (x^8+x^4+x^3+x^2+1) = 1`).  Applying `T_inv = (1/det) *
-[[T[1][1], T[0][1]], [T[1][0], T[0][0]]]` (characteristic 2, so
-no sign changes):
+[[T\[1\]\[1\], T\[0\]\[1\]], [T\[1\]\[0\], T\[0\]\[0\]]]`
+(characteristic 2, so no sign changes):
 
 ~~~
 T_inv = [ [0xF5, 0xF4],
@@ -4532,12 +4532,12 @@ E = [ [0x01, 0x00],    // identity block for data shard 0
 
 For k=2, m=1 the parity generator is `P = [0xF4, 0xF5]`; the
 parity shard is computed byte-wise as
-`parity[j] = 0xF4 * data[0][j] XOR 0xF5 * data[1][j]` where the
+`parity\[j\] = 0xF4 * data\[0\]\[j\] XOR 0xF5 * data\[1\]\[j\]` where the
 multiplication is in GF(2^8) with polynomial `0x11d`.
 
 Concrete byte-level test vector with `shard_len = 1`:
 
-| data[0] | data[1] | parity  | Notes |
+| `data[0]` | `data[1]` | parity  | Notes |
 |---|---|---|---|
 | `0x00`  | `0x00`  | `0x00`  | zero input                                                   |
 | `0x01`  | `0x00`  | `0xF4`  | 0xF4 * 0x01 XOR 0xF5 * 0x00 = 0xF4                          |
@@ -8430,7 +8430,7 @@ synthetic zero-filled payload.
 ~~~
 {: #fig-example-CHUNK_READ4args title="Example: CHUNK_READ4args parameters" }
 
-~~~
+~~~ art
         Data Server 2
   +--------------------------------+
   | CHUNK_READ4resok               |
