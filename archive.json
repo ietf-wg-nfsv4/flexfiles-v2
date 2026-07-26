@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-23T02:36:42.895062+00:00",
+  "timestamp": "2026-07-26T02:39:28.413699+00:00",
   "repo": "ietf-wg-nfsv4/flexfiles-v2",
   "labels": [
     {
@@ -1032,6 +1032,22 @@
       "createdAt": "2026-04-22T05:42:39Z",
       "updatedAt": "2026-04-22T07:01:31Z",
       "closedAt": "2026-04-22T07:01:31Z",
+      "comments": []
+    },
+    {
+      "number": 48,
+      "id": "I_kwDOOloKJ88AAAABJ_50Aw",
+      "title": "Process 2026-07-23 reviews of flexfiles-v2-06 and PS-02",
+      "url": "https://github.com/ietf-wg-nfsv4/flexfiles-v2/issues/48",
+      "state": "OPEN",
+      "author": "loghyr",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Two review threads landed on the NFSv4 list on 2026-07-23; both need to be walked through and folded into the next revision(s):\n\n**flexfiles-v2-06 parent draft**\n- Sorin Faibish, \"Re: My review notes of draft-haynes-nfsv4-flexfiles-v2-06.txt\", 2026-07-23 10:53 UTC-0400\n  <https://mailarchive.ietf.org/arch/msg/nfsv4/UFeQL-aliGxBcwl1d2cOSo5JnWw/>\n- David Noveck, reply on same thread, 2026-07-23 12:07 UTC-0400\n  <https://mailarchive.ietf.org/arch/msg/nfsv4/x66sp1APxwqLPSghylqmUkLJfLc/>\n\n**flexfiles-v2-proxy-server-02 companion**\n- Sorin Faibish, \"My review notes of draft-haynes-nfsv4-flexfiles-v2-proxy-server-02.txt\", 2026-07-23 12:21 UTC-0400\n  <https://mailarchive.ietf.org/arch/msg/nfsv4/ya_rKm47wRD0iK76LlmPimQmyYw/>\n\nBoth archived locally under `reffs-docs/thread-flexfiles-v2-06.mbox` + `thread-flexfiles-v2-proxy-server-02.mbox` (with `.index.md` companions).\n\n**Threading note.** Sorin's three 2026-07-23 review mails (uncacheable-directories-08, flexfiles-v2-06, proxy-server-02) share a single email-header thread anchored to his uncacheable-directories review's Message-ID; subjects branch by subject-rename. The uncacheable review is being processed against the `uncacheable-directories` draft separately.\n\n**Todo**\n- [ ] Extract issues raised in Sorin's flexfiles-v2-06 review; sort BLOCK / FIX / NIT.\n- [ ] Reconcile with David Noveck's reply (agrees / disagrees / adds).\n- [ ] Extract issues raised in Sorin's PS-02 review; sort BLOCK / FIX / NIT.\n- [ ] Cross-reference against the FFv2 items already carried in `~/Documents/reffs-docs/ietf126-issues.md` (F-1 through F-10) so we do not double-schedule.\n- [ ] Fold into the next parent + PS revisions; add resolutions to the appropriate reviewer stance files (`sorin.md` (new?), `davidnoveck.md`).\n- [ ] Reply on-list once the resolutions land, tying each addressed point to the revision commit or section reference (matches the convention we established in the -04 thread response).\n\n**Related context**\n- IETF-126 WG session digest: <https://mailarchive.ietf.org/arch/browse/nfsv4/> (2026-07-23 session); local mining in `reffs-docs/ietf126-issues.md`.\n- Working group process notes: co-chair Brian Pawlowski's \"silence is not consensus\" rule means we should actively confirm resolutions on-list rather than assume no-response = accepted.",
+      "createdAt": "2026-07-24T06:46:44Z",
+      "updatedAt": "2026-07-24T06:46:44Z",
+      "closedAt": null,
       "comments": []
     }
   ],
