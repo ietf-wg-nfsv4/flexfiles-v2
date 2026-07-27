@@ -2141,11 +2141,15 @@ the exponentiation done over the RAID-6 generator (see the
 Linux kernel `lib/raid6` sources {{LINUX-RAID6}} for the
 reference implementation).
 
-Wire-compatibility with FFV2_ENCODING_SNAPRAID_CAUCHY at m=2
-and with FFV2_ENCODING_ISA_L_RS at m<=2 is guaranteed by
-construction: all three encoders emit byte-identical P and Q
-for the same (k, data) input at m<=2.  This lets a client
-implementing any one of them consume the others without
+Wire-compatibility with FFV2_ENCODING_SNAPRAID_CAUCHY,
+FFV2_ENCODING_ISA_L_RS, and FFV2_ENCODING_RS_VANDERMONDE at
+m<=2 is guaranteed by construction: all four encoders emit
+byte-identical P and Q for the same (k, data) input at m<=2.
+RS_VANDERMONDE joined the m<=2 set as a wire-format revision
+(hand-crafted P/Q parity rows at m<=2 instead of the
+normalized-Vandermonde bottom rows; see
+{{sec-rs-encoding}} below).  This lets a client
+implementing any one of the four consume the others without
 re-encoding.
 
 The k=1 case (a single data shard with P and Q) is
@@ -2168,24 +2172,23 @@ Wire-compatibility properties:
 
 -  At m=1, the parity row is `[1, 1, ..., 1]`, so
    FFV2_ENCODING_ISA_L_RS at m=1 is byte-identical to
-   FFV2_ENCODING_XOR_PARITY and to FFV2_ENCODING_LINUX_MD_RAID's
-   P shard.
+   FFV2_ENCODING_XOR_PARITY, to FFV2_ENCODING_LINUX_MD_RAID's
+   P shard, and to FFV2_ENCODING_RS_VANDERMONDE at m=1
+   (whose sole parity row is fixed at `[1, 1, ..., 1]`).
 -  At m=2, the second parity row is `[1, 2, 4, 8, ...]` in
-   GF(2^8), byte-identical to LINUX_MD_RAID's Q shard and to
-   the second row of SNAPRAID_CAUCHY's matrix.  So the three
-   GF(2^8) codes coexist at m<=2.
+   GF(2^8), byte-identical to LINUX_MD_RAID's Q shard, to
+   the second row of SNAPRAID_CAUCHY's matrix, and to the
+   second row of FFV2_ENCODING_RS_VANDERMONDE at m=2.  All
+   four GF(2^8) codes coexist at m<=2.
 -  At m>=3, the ISA-L matrix continues the Vandermonde
    sequence.  SNAPRAID_CAUCHY diverges at m>=3 (different
    Cauchy point choice); LINUX_MD_RAID does not support
-   m>=3.
-
-Wire-incompatibility with FFV2_ENCODING_RS_VANDERMONDE (0x4):
-the reffs reference RS encoding uses a normalized
-Vandermonde construction (Vandermonde multiplied by the
-inverse of the top k x k block to force identity on top),
-whose parity coefficients differ from ISA-L's from row 0
-onward.  ISA_L_RS thus requires its own registry value
-despite sharing the field with RS_VANDERMONDE.
+   m>=3.  RS_VANDERMONDE at m>=3 uses the
+   normalized-Vandermonde bottom rows (its own point set is
+   still {1, 2, 3, 4, ...} pre-normalization) and diverges
+   from all three; ISA_L_RS thus requires its own registry
+   value despite sharing the field with RS_VANDERMONDE at
+   m<=2.
 
 The ISA-L codebase {{ISA-L}} (BSD-3-Clause) provides the
 reference implementation of the encoding, decoding, and
@@ -4393,8 +4396,44 @@ which covers certain SIMD-based GF multiplication techniques.
 
 ### Encoding Matrix
 
-The encoding process uses a (k+m) x k Vandermonde matrix, normalized
-so that its top k rows form the identity matrix:
+The systematic encoding matrix E has (k + m) rows and k columns.
+The top k rows are always the k x k identity, so data shards pass
+through unchanged.  The bottom m parity rows are chosen as
+follows.
+
+#### At m = 1: single parity row
+
+The single parity row is `[1, 1, ..., 1]`:
+
+    E\[k\]\[j\] = 1    for j = 0, 1, ..., k-1
+
+Encoded parity is the bitwise XOR of every data shard.  This
+matches the P row of Linux md's RAID6 construction and the sole
+parity row of FFV2_ENCODING_XOR_PARITY byte-for-byte; a receiver
+that speaks either of those consumes RS_VANDERMONDE at m=1
+without re-encoding.
+
+#### At m = 2: P + Q parity rows
+
+The two parity rows are:
+
+    E\[k\]\[j\]     = 1              for j = 0, 1, ..., k-1   (P row)
+    E\[k+1\]\[j\]   = g^j            for j = 0, 1, ..., k-1   (Q row)
+
+where g = 2 is the primitive element of GF(2^8) with polynomial
+0x11d.  These are exactly the coefficients Linux md RAID6 uses
+for its P and Q shards, exactly the first two rows of ISA-L's
+Reed-Solomon Vandermonde matrix, and exactly the first two
+Cauchy rows of the SnapRAID construction.  A receiver that
+speaks any of FFV2_ENCODING_LINUX_MD_RAID,
+FFV2_ENCODING_ISA_L_RS, or FFV2_ENCODING_SNAPRAID_CAUCHY at
+m <= 2 also consumes RS_VANDERMONDE at m <= 2 byte-for-byte
+(and vice versa).
+
+#### At m >= 3: normalized Vandermonde bottom rows
+
+The parity rows are the bottom m rows of a normalized
+Vandermonde encoding matrix, constructed as follows.
 
 1. Assign each of the k+m shards a distinct non-zero evaluation
    point in GF(2^8): shard i (for i = 0, 1, ..., k+m-1) is assigned
@@ -4432,6 +4471,9 @@ so that its top k rows form the identity matrix:
 
 The identity block makes the code systematic: data shards pass through
 unchanged, and only the parity sub-matrix P is needed during encoding.
+These bottom rows do not match any external encoding at m >= 3;
+implementations that need cross-family interop at m >= 3 SHOULD use
+FFV2_ENCODING_ISA_L_RS or FFV2_ENCODING_SNAPRAID_CAUCHY instead.
 
 ### Encoding
 
@@ -4489,65 +4531,77 @@ data unrecoverable by a different implementation.
 These parameters fully determine the encoding matrix for any
 (k, m) configuration in the permitted range.
 
-### RS Interoperability Test Vector
+### RS Interoperability Test Vectors
 
-The following worked example pins the encoding matrix and one
-end-to-end encoding for the smallest useful geometry (k=2, m=1).
-An implementation whose encoded output matches this example is
-using the same GF(2^8) representation, the same evaluation-point
-assignment, and the same matrix normalization as required by the
-interoperability parameters above.
+The following worked examples pin the encoding matrix and
+end-to-end encodings for two representative geometries: k=2 m=1
+(exercises the m=1 all-ones parity row) and k=3 m=2 (exercises
+the m=2 P + Q parity rows).  An implementation whose encoded
+output matches these tables is using the same GF(2^8)
+representation and the same parity-row construction as required
+by the interoperability parameters above.
 
-Evaluation points: `alpha_0 = 1`, `alpha_1 = 2`, `alpha_2 = 3`
-(values 1, 2, 3 in GF(2^8)).
+#### k=2, m=1
 
-Vandermonde matrix V (3 rows x 2 columns):
-
-~~~
-V = [ [1, 1],    // row 0: (1^0, 1^1) = (1, 1)
-      [1, 2],    // row 1: (2^0, 2^1) = (1, 2)
-      [1, 3] ]   // row 2: (3^0, 3^1) = (1, 3)
-~~~
-
-Top k x k sub-matrix `T = [[1, 1], [1, 2]]` has determinant
-`det(T) = 1*2 XOR 1*1 = 3` in GF(2^8).  The inverse of 3 in
-GF(2^8) with irreducible polynomial `0x11d` is
-`3^-1 = 0xF4` (verifiable: `(x+1) * (x^7+x^6+x^5+x^4+x^2) mod
-(x^8+x^4+x^3+x^2+1) = 1`).  Applying `T_inv = (1/det) *
-[[T\[1\]\[1\], T\[0\]\[1\]], [T\[1\]\[0\], T\[0\]\[0\]]]`
-(characteristic 2, so no sign changes):
-
-~~~
-T_inv = [ [0xF5, 0xF4],
-          [0xF4, 0xF4] ]
-~~~
-
-Systematic-normalized encoding matrix `E = V * T_inv`:
+Encoding matrix `E`:
 
 ~~~
 E = [ [0x01, 0x00],    // identity block for data shard 0
       [0x00, 0x01],    // identity block for data shard 1
-      [0xF4, 0xF5] ]   // parity generator P = E[2]
+      [0x01, 0x01] ]   // parity row P = [1, 1]
 ~~~
 
-For k=2, m=1 the parity generator is `P = [0xF4, 0xF5]`; the
-parity shard is computed byte-wise as
-`parity\[j\] = 0xF4 * data\[0\]\[j\] XOR 0xF5 * data\[1\]\[j\]` where the
-multiplication is in GF(2^8) with polynomial `0x11d`.
+The parity shard is the bitwise XOR of both data shards:
+`parity\[j\] = data\[0\]\[j\] XOR data\[1\]\[j\]`.
 
 Concrete byte-level test vector with `shard_len = 1`:
 
 | `data[0]` | `data[1]` | parity  | Notes |
 |---|---|---|---|
-| `0x00`  | `0x00`  | `0x00`  | zero input                                                   |
-| `0x01`  | `0x00`  | `0xF4`  | 0xF4 * 0x01 XOR 0xF5 * 0x00 = 0xF4                          |
-| `0x00`  | `0x01`  | `0xF5`  | 0xF4 * 0x00 XOR 0xF5 * 0x01 = 0xF5                          |
-| `0x01`  | `0x01`  | `0x01`  | 0xF4 XOR 0xF5 = 0x01 (the polynomial diff of adjacent bytes) |
-{: #tbl-rs-test-vector title="RS Vandermonde test vector: k=2, m=1, single-byte shards"}
+| `0x00`  | `0x00`  | `0x00`  | zero input             |
+| `0x01`  | `0x00`  | `0x01`  | 0x01 XOR 0x00 = 0x01   |
+| `0x00`  | `0x01`  | `0x01`  | 0x00 XOR 0x01 = 0x01   |
+| `0x01`  | `0x01`  | `0x00`  | 0x01 XOR 0x01 = 0x00   |
+| `0x80`  | `0x80`  | `0x00`  | 0x80 XOR 0x80 = 0x00   |
+{: #tbl-rs-test-vector-k2m1 title="RS Vandermonde test vector: k=2, m=1"}
+
+#### k=3, m=2
+
+Encoding matrix `E`:
+
+~~~
+E = [ [0x01, 0x00, 0x00],   // identity block for data shard 0
+      [0x00, 0x01, 0x00],   // identity block for data shard 1
+      [0x00, 0x00, 0x01],   // identity block for data shard 2
+      [0x01, 0x01, 0x01],   // P row = [1, 1, 1]
+      [0x01, 0x02, 0x04] ]  // Q row = [g^0, g^1, g^2] with g = 2
+~~~
+
+The two parity shards are computed byte-wise as:
+
+    P\[j\] = data\[0\]\[j\] XOR data\[1\]\[j\] XOR data\[2\]\[j\]
+    Q\[j\] = 1 * data\[0\]\[j\] XOR 2 * data\[1\]\[j\] XOR 4 * data\[2\]\[j\]
+
+where the multiplication is in GF(2^8) with polynomial `0x11d`.
+
+Concrete byte-level test vector with `shard_len = 1`:
+
+| `data[0]` | `data[1]` | `data[2]` | P     | Q     | Notes                          |
+|---|---|---|---|---|---|
+| `0x00`  | `0x00`  | `0x00`  | `0x00`| `0x00`| zero input                     |
+| `0x01`  | `0x02`  | `0x03`  | `0x00`| `0x09`| 1 XOR (2*2) XOR (4*3) = 1 XOR 4 XOR 12 = 9 |
+| `0x80`  | `0x00`  | `0x00`  | `0x80`| `0x80`| Q = 1 * 0x80 = 0x80            |
+| `0x00`  | `0x80`  | `0x00`  | `0x80`| `0x1d`| Q = 2 * 0x80 = 0x100 -> reduce by 0x11d -> 0x1d |
+| `0x00`  | `0x00`  | `0x80`  | `0x80`| `0x3a`| Q = 4 * 0x80 = (2 * 0x1d) = 0x3a              |
+| `0x37`  | `0x91`  | `0xac`  | `0x0a`| `0x82`| general non-degenerate case    |
+{: #tbl-rs-test-vector-k3m2 title="RS Vandermonde test vector: k=3, m=2"}
 
 Implementations that produce different values for any row of
-{{tbl-rs-test-vector}} disagree with this specification and will
-not interoperate.
+either table disagree with this specification and will not
+interoperate.  m >= 3 test vectors are not included here because
+the normalized-Vandermonde parity rows are not easily
+hand-computed; implementations that need m >= 3 verification
+SHOULD cross-check against a reference implementation.
 
 ### RS Shard Sizes
 
