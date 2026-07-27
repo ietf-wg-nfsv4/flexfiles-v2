@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                            24 July 2026
-Expires: 25 January 2027
+Intended status: Standards Track                            27 July 2026
+Expires: 28 January 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 25 January 2027.
+   This Internet-Draft will expire on 28 January 2027.
 
 Copyright Notice
 
@@ -157,7 +157,7 @@ Table of Contents
        11.4.4.  Encoding
        11.4.5.  Decoding
        11.4.6.  RS Interoperability Requirements
-       11.4.7.  RS Interoperability Test Vector
+       11.4.7.  RS Interoperability Test Vectors
        11.4.8.  RS Shard Sizes
      11.5.  Mojette Transform Encoding
             (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
@@ -1991,7 +1991,7 @@ Table of Contents
    scope -- Standards Track, Experimental, Vendor (open), and Private /
    proprietary -- with different allocation policies per range, so that
    vendors can assign encoding values without consuming standards-track
-   codepoints.  See Table 15 and the accompanying prose in Section 28
+   codepoints.  See Table 16 and the accompanying prose in Section 28
    for the range assignments and allocation policies.
 
 8.1.1.  Heterogeneous Mirror Sets
@@ -2203,11 +2203,14 @@ Table of Contents
    generator (see the Linux kernel lib/raid6 sources [LINUX-RAID6] for
    the reference implementation).
 
-   Wire-compatibility with FFV2_ENCODING_SNAPRAID_CAUCHY at m=2 and with
-   FFV2_ENCODING_ISA_L_RS at m<=2 is guaranteed by construction: all
-   three encoders emit byte-identical P and Q for the same (k, data)
-   input at m<=2.  This lets a client implementing any one of them
-   consume the others without re-encoding.
+   Wire-compatibility with FFV2_ENCODING_SNAPRAID_CAUCHY,
+   FFV2_ENCODING_ISA_L_RS, and FFV2_ENCODING_RS_VANDERMONDE at m<=2 is
+   guaranteed by construction: all four encoders emit byte-identical P
+   and Q for the same (k, data) input at m<=2.  RS_VANDERMONDE joined
+   the m<=2 set as a wire-format revision (hand-crafted P/Q parity rows
+   at m<=2 instead of the normalized-Vandermonde bottom rows; see
+   Section 11.4 below).  This lets a client implementing any one of the
+   four consume the others without re-encoding.
 
    The k=1 case (a single data shard with P and Q) is degenerate and
    MUST NOT be used with FFV2_ENCODING_LINUX_MD_RAID; callers who need
@@ -2228,24 +2231,23 @@ Table of Contents
 
    *  At m=1, the parity row is [1, 1, ..., 1], so
       FFV2_ENCODING_ISA_L_RS at m=1 is byte-identical to
-      FFV2_ENCODING_XOR_PARITY and to FFV2_ENCODING_LINUX_MD_RAID's P
-      shard.
+      FFV2_ENCODING_XOR_PARITY, to FFV2_ENCODING_LINUX_MD_RAID's P
+      shard, and to FFV2_ENCODING_RS_VANDERMONDE at m=1 (whose sole
+      parity row is fixed at [1, 1, ..., 1]).
 
    *  At m=2, the second parity row is [1, 2, 4, 8, ...] in GF(2^8),
-      byte-identical to LINUX_MD_RAID's Q shard and to the second row of
-      SNAPRAID_CAUCHY's matrix.  So the three GF(2^8) codes coexist at
-      m<=2.
+      byte-identical to LINUX_MD_RAID's Q shard, to the second row of
+      SNAPRAID_CAUCHY's matrix, and to the second row of
+      FFV2_ENCODING_RS_VANDERMONDE at m=2.  All four GF(2^8) codes
+      coexist at m<=2.
 
    *  At m>=3, the ISA-L matrix continues the Vandermonde sequence.
       SNAPRAID_CAUCHY diverges at m>=3 (different Cauchy point choice);
-      LINUX_MD_RAID does not support m>=3.
-
-   Wire-incompatibility with FFV2_ENCODING_RS_VANDERMONDE (0x4): the
-   reffs reference RS encoding uses a normalized Vandermonde
-   construction (Vandermonde multiplied by the inverse of the top k x k
-   block to force identity on top), whose parity coefficients differ
-   from ISA-L's from row 0 onward.  ISA_L_RS thus requires its own
-   registry value despite sharing the field with RS_VANDERMONDE.
+      LINUX_MD_RAID does not support m>=3.  RS_VANDERMONDE at m>=3 uses
+      the normalized-Vandermonde bottom rows (its own point set is still
+      {1, 2, 3, 4, ...} pre-normalization) and diverges from all three;
+      ISA_L_RS thus requires its own registry value despite sharing the
+      field with RS_VANDERMONDE at m<=2.
 
    The ISA-L codebase [ISA-L] (BSD-3-Clause) provides the reference
    implementation of the encoding, decoding, and matrix construction.
@@ -4362,8 +4364,41 @@ Table of Contents
 
 11.4.3.  Encoding Matrix
 
-   The encoding process uses a (k+m) x k Vandermonde matrix, normalized
-   so that its top k rows form the identity matrix:
+   The systematic encoding matrix E has (k + m) rows and k columns.  The
+   top k rows are always the k x k identity, so data shards pass through
+   unchanged.  The bottom m parity rows are chosen as follows.
+
+11.4.3.1.  At m = 1: single parity row
+
+   The single parity row is [1, 1, ..., 1]:
+
+   E\[k\]\[j\] = 1    for j = 0, 1, ..., k-1
+
+   Encoded parity is the bitwise XOR of every data shard.  This matches
+   the P row of Linux md's RAID6 construction and the sole parity row of
+   FFV2_ENCODING_XOR_PARITY byte-for-byte; a receiver that speaks either
+   of those consumes RS_VANDERMONDE at m=1 without re-encoding.
+
+11.4.3.2.  At m = 2: P + Q parity rows
+
+   The two parity rows are:
+
+   E\[k\]\[j\]     = 1              for j = 0, 1, ..., k-1   (P row)
+   E\[k+1\]\[j\]   = g^j            for j = 0, 1, ..., k-1   (Q row)
+
+   where g = 2 is the primitive element of GF(2^8) with polynomial
+   0x11d.  These are exactly the coefficients Linux md RAID6 uses for
+   its P and Q shards, exactly the first two rows of ISA-L's Reed-
+   Solomon Vandermonde matrix, and exactly the first two Cauchy rows of
+   the SnapRAID construction.  A receiver that speaks any of
+   FFV2_ENCODING_LINUX_MD_RAID, FFV2_ENCODING_ISA_L_RS, or
+   FFV2_ENCODING_SNAPRAID_CAUCHY at m <= 2 also consumes RS_VANDERMONDE
+   at m <= 2 byte-for-byte (and vice versa).
+
+11.4.3.3.  At m >= 3: normalized Vandermonde bottom rows
+
+   The parity rows are the bottom m rows of a normalized Vandermonde
+   encoding matrix, constructed as follows.
 
    1.  Assign each of the k+m shards a distinct non-zero evaluation
        point in GF(2^8): shard i (for i = 0, 1, ..., k+m-1) is assigned
@@ -4401,7 +4436,9 @@ Table of Contents
 
    The identity block makes the code systematic: data shards pass
    through unchanged, and only the parity sub-matrix P is needed during
-   encoding.
+   encoding.  These bottom rows do not match any external encoding at m
+   >= 3; implementations that need cross-family interop at m >= 3 SHOULD
+   use FFV2_ENCODING_ISA_L_RS or FFV2_ENCODING_SNAPRAID_CAUCHY instead.
 
 11.4.4.  Encoding
 
@@ -4461,64 +4498,95 @@ Table of Contents
    These parameters fully determine the encoding matrix for any (k, m)
    configuration in the permitted range.
 
-11.4.7.  RS Interoperability Test Vector
+11.4.7.  RS Interoperability Test Vectors
 
-   The following worked example pins the encoding matrix and one end-to-
-   end encoding for the smallest useful geometry (k=2, m=1).  An
-   implementation whose encoded output matches this example is using the
-   same GF(2^8) representation, the same evaluation-point assignment,
-   and the same matrix normalization as required by the interoperability
-   parameters above.
+   The following worked examples pin the encoding matrix and end-to-end
+   encodings for two representative geometries: k=2 m=1 (exercises the
+   m=1 all-ones parity row) and k=3 m=2 (exercises the m=2 P + Q parity
+   rows).  An implementation whose encoded output matches these tables
+   is using the same GF(2^8) representation and the same parity-row
+   construction as required by the interoperability parameters above.
 
-   Evaluation points: alpha_0 = 1, alpha_1 = 2, alpha_2 = 3 (values 1,
-   2, 3 in GF(2^8)).
+11.4.7.1.  k=2, m=1
 
-   Vandermonde matrix V (3 rows x 2 columns):
-
-   V = [ [1, 1],    // row 0: (1^0, 1^1) = (1, 1)
-         [1, 2],    // row 1: (2^0, 2^1) = (1, 2)
-         [1, 3] ]   // row 2: (3^0, 3^1) = (1, 3)
-
-   Top k x k sub-matrix T = [[1, 1], [1, 2]] has determinant det(T) =
-   1*2 XOR 1*1 = 3 in GF(2^8).  The inverse of 3 in GF(2^8) with
-   irreducible polynomial 0x11d is 3^-1 = 0xF4 (verifiable: (x+1) *
-   (x^7+x^6+x^5+x^4+x^2) mod (x^8+x^4+x^3+x^2+1) = 1).  Applying T_inv =
-   (1/det) * [[T\[1\]\[1\], T\[0\]\[1\]], [T\[1\]\[0\], T\[0\]\[0\]]]
-   (characteristic 2, so no sign changes):
-
-   T_inv = [ [0xF5, 0xF4],
-             [0xF4, 0xF4] ]
-
-   Systematic-normalized encoding matrix E = V * T_inv:
+   Encoding matrix E:
 
    E = [ [0x01, 0x00],    // identity block for data shard 0
          [0x00, 0x01],    // identity block for data shard 1
-         [0xF4, 0xF5] ]   // parity generator P = E[2]
+         [0x01, 0x01] ]   // parity row P = [1, 1]
 
-   For k=2, m=1 the parity generator is P = [0xF4, 0xF5]; the parity
-   shard is computed byte-wise as parity\[j\] = 0xF4 * data\[0\]\[j\]
-   XOR 0xF5 * data\[1\]\[j\] where the multiplication is in GF(2^8) with
-   polynomial 0x11d.
+   The parity shard is the bitwise XOR of both data shards: parity\[j\]
+   = data\[0\]\[j\] XOR data\[1\]\[j\].
 
    Concrete byte-level test vector with shard_len = 1:
 
-    +=========+=========+========+====================================+
-    | data[0] | data[1] | parity | Notes                              |
-    +=========+=========+========+====================================+
-    | 0x00    | 0x00    | 0x00   | zero input                         |
-    +---------+---------+--------+------------------------------------+
-    | 0x01    | 0x00    | 0xF4   | 0xF4 * 0x01 XOR 0xF5 * 0x00 = 0xF4 |
-    +---------+---------+--------+------------------------------------+
-    | 0x00    | 0x01    | 0xF5   | 0xF4 * 0x00 XOR 0xF5 * 0x01 = 0xF5 |
-    +---------+---------+--------+------------------------------------+
-    | 0x01    | 0x01    | 0x01   | 0xF4 XOR 0xF5 = 0x01 (the          |
-    |         |         |        | polynomial diff of adjacent bytes) |
-    +---------+---------+--------+------------------------------------+
+           +=========+=========+========+======================+
+           | data[0] | data[1] | parity | Notes                |
+           +=========+=========+========+======================+
+           | 0x00    | 0x00    | 0x00   | zero input           |
+           +---------+---------+--------+----------------------+
+           | 0x01    | 0x00    | 0x01   | 0x01 XOR 0x00 = 0x01 |
+           +---------+---------+--------+----------------------+
+           | 0x00    | 0x01    | 0x01   | 0x00 XOR 0x01 = 0x01 |
+           +---------+---------+--------+----------------------+
+           | 0x01    | 0x01    | 0x00   | 0x01 XOR 0x01 = 0x00 |
+           +---------+---------+--------+----------------------+
+           | 0x80    | 0x80    | 0x00   | 0x80 XOR 0x80 = 0x00 |
+           +---------+---------+--------+----------------------+
 
-     Table 2: RS Vandermonde test vector: k=2, m=1, single-byte shards
+               Table 2: RS Vandermonde test vector: k=2, m=1
 
-   Implementations that produce different values for any row of Table 2
-   disagree with this specification and will not interoperate.
+11.4.7.2.  k=3, m=2
+
+   Encoding matrix E:
+
+   E = [ [0x01, 0x00, 0x00],   // identity block for data shard 0
+         [0x00, 0x01, 0x00],   // identity block for data shard 1
+         [0x00, 0x00, 0x01],   // identity block for data shard 2
+         [0x01, 0x01, 0x01],   // P row = [1, 1, 1]
+         [0x01, 0x02, 0x04] ]  // Q row = [g^0, g^1, g^2] with g = 2
+
+   The two parity shards are computed byte-wise as:
+
+P\[j\] = data\[0\]\[j\] XOR data\[1\]\[j\] XOR data\[2\]\[j\]
+Q\[j\] = 1 * data\[0\]\[j\] XOR 2 * data\[1\]\[j\] XOR 4 * data\[2\]\[j\]
+
+   where the multiplication is in GF(2^8) with polynomial 0x11d.
+
+   Concrete byte-level test vector with shard_len = 1:
+
+   +=========+=========+=========+======+======+=======================+
+   | data[0] | data[1] | data[2] | P    | Q    | Notes                 |
+   +=========+=========+=========+======+======+=======================+
+   | 0x00    | 0x00    | 0x00    | 0x00 | 0x00 | zero input            |
+   +---------+---------+---------+------+------+-----------------------+
+   | 0x01    | 0x02    | 0x03    | 0x00 | 0x09 | 1 XOR (2_2) XOR       |
+   |         |         |         |      |      | (4_3) = 1 XOR 4       |
+   |         |         |         |      |      | XOR 12 = 9            |
+   +---------+---------+---------+------+------+-----------------------+
+   | 0x80    | 0x00    | 0x00    | 0x80 | 0x80 | Q = 1 * 0x80 =        |
+   |         |         |         |      |      | 0x80                  |
+   +---------+---------+---------+------+------+-----------------------+
+   | 0x00    | 0x80    | 0x00    | 0x80 | 0x1d | Q = 2 * 0x80 =        |
+   |         |         |         |      |      | 0x100 -> reduce       |
+   |         |         |         |      |      | by 0x11d -> 0x1d      |
+   +---------+---------+---------+------+------+-----------------------+
+   | 0x00    | 0x00    | 0x80    | 0x80 | 0x3a | Q = 4 * 0x80 =        |
+   |         |         |         |      |      | (2 * 0x1d) =          |
+   |         |         |         |      |      | 0x3a                  |
+   +---------+---------+---------+------+------+-----------------------+
+   | 0x37    | 0x91    | 0xac    | 0x0a | 0x82 | general non-          |
+   |         |         |         |      |      | degenerate case       |
+   +---------+---------+---------+------+------+-----------------------+
+
+               Table 3: RS Vandermonde test vector: k=3, m=2
+
+   Implementations that produce different values for any row of either
+   table disagree with this specification and will not interoperate.  m
+   >= 3 test vectors are not included here because the normalized-
+   Vandermonde parity rows are not easily hand-computed; implementations
+   that need m >= 3 verification SHOULD cross-check against a reference
+   implementation.
 
 11.4.8.  RS Shard Sizes
 
@@ -4539,7 +4607,7 @@ Table of Contents
    | 8+2           | 1 MB      | 128 KB     | 1.25 MB       | 25%      |
    +---------------+-----------+------------+---------------+----------+
 
-             Table 3: RS shard sizes for common configurations
+             Table 4: RS shard sizes for common configurations
 
 11.5.  Mojette Transform Encoding (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
        FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC)
@@ -4783,13 +4851,13 @@ If N is odd (N = 2t + 1):
     | (3, 1)           | 521                     | 4168              |
     +------------------+-------------------------+-------------------+
 
-        Table 4: Mojette projection sizes for 4+2, 4KB shards, W=8
+        Table 5: Mojette projection sizes for 4+2, 4KB shards, W=8
 
    *Chunk sizing for variable-length projections.* When a projection
    shard is written via CHUNK_WRITE / CHUNK_FINALIZE / CHUNK_COMMIT, the
    shard is divided into chunks by the following mapping.  Let
    shard_bytes = B * W be the projection shard's total byte size (where
-   B is the number of bins per the B formula above (Table 4 uses it)
+   B is the number of bins per the B formula above (Table 5 uses it)
    applied to the shard's direction (p, q) and the grid dimensions (P,
    Q)):
 
@@ -4830,7 +4898,7 @@ If N is odd (N = 2t + 1):
    | GF operations  | Yes (GF(2^8))      | No         | No             |
    +----------------+--------------------+------------+----------------+
 
-               Table 5: Comparison of erasure encoding types
+               Table 6: Comparison of erasure encoding types
 
    Reed-Solomon uses uniform shard sizes and GF(2^8) operations.
    Mojette systematic provides zero-cost healthy reads with variable
@@ -6041,7 +6109,7 @@ If N is odd (N = 2t + 1):
    | BULK_REVOKE_STATEID            |                     | coupling)  |
    +--------------------------------+---------------------+------------+
 
-             Table 6: NFSv4.2 operations allowed on data files
+             Table 7: NFSv4.2 operations allowed on data files
 
 14.  Flexible File Version 2 Layout Type Return
 
@@ -6482,7 +6550,7 @@ If N is odd (N = 2t + 1):
     | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | 10102  | Section 21.1.6 |
     +---------------------------------------+--------+----------------+
 
-                         Table 7: Error Definitions
+                         Table 8: Error Definitions
 
 21.1.1.  NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097)
 
@@ -6564,7 +6632,7 @@ If N is odd (N = 2t + 1):
 
 21.2.  Operations and Their Valid Errors
 
-   The operations and their valid errors are presented in Table 8.  All
+   The operations and their valid errors are presented in Table 9.  All
    error codes not defined in this document are defined in Section 15 of
    [RFC8881] and Section 11 of [RFC7862].
 
@@ -6655,13 +6723,13 @@ If N is odd (N = 2t + 1):
    |                     | NFS4ERR_PERM, NFS4ERR_SERVERFAULT           |
    +---------------------+---------------------------------------------+
 
-                 Table 8: Operations and Their Valid Errors
+                 Table 9: Operations and Their Valid Errors
 
 21.3.  Callback Operations and Their Valid Errors
 
    The callback operations and their valid errors are presented in
-   Table 9.  All error codes not defined in this document are defined in
-   Section 15 of [RFC8881] and Section 11 of [RFC7862].
+   Table 10.  All error codes not defined in this document are defined
+   in Section 15 of [RFC8881] and Section 11 of [RFC7862].
 
     +=================+==============================================+
     | Callback        | Errors                                       |
@@ -6676,11 +6744,11 @@ If N is odd (N = 2t + 1):
     |                 | NFS4ERR_SERVERFAULT, NFS4ERR_STALE           |
     +-----------------+----------------------------------------------+
 
-           Table 9: Callback Operations and Their Valid Errors
+           Table 10: Callback Operations and Their Valid Errors
 
 21.4.  Errors and the Operations That Use Them
 
-   The operations and their valid errors are presented in Table 10.  All
+   The operations and their valid errors are presented in Table 11.  All
    operations not defined in this document are defined in Section 18 of
    [RFC8881] and Section 15 of [RFC7862].
 
@@ -6692,7 +6760,7 @@ If N is odd (N = 2t + 1):
        | NFS4ERR_PAYLOAD_LOST         | CB_CHUNK_REPAIR            |
        +------------------------------+----------------------------+
 
-             Table 10: Errors and the Operations That Use Them
+             Table 11: Errors and the Operations That Use Them
 
 22.  EXCHGID4_FLAG_USE_ERASURE_DS
 
@@ -6712,7 +6780,7 @@ If N is odd (N = 2t + 1):
 
    If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
    EXCHANGE_ID operation, then it MUST support all of the operations in
-   Table 11.  Further, this support is orthogonal to the Erasure Coding
+   Table 12.  Further, this support is orthogonal to the Erasure Coding
    Type selected.  The data server is unaware of which type is driving
    the I/O.
 
@@ -7183,7 +7251,7 @@ If N is odd (N = 2t + 1):
      |                     |        | server control) |             |
      +---------------------+--------+-----------------+-------------+
 
-                          Table 11: Protocol OPs
+                          Table 12: Protocol OPs
 
 25.1.  Operation 78: CHUNK_COMMIT - Activate Cached Chunk Data
 
@@ -9738,7 +9806,7 @@ If N is odd (N = 2t + 1):
       ranges into an implementation-defined damaged state.  See
       Section 21.1.5.
 
-   All other error codes listed in Table 9 are treated by the metadata
+   All other error codes listed in Table 10 are treated by the metadata
    server as retriable: the metadata server MAY issue a subsequent
    CB_CHUNK_REPAIR to the same or a different client.  If the client
    becomes unreachable (no response within the deadline), the metadata
@@ -10111,7 +10179,7 @@ If N is odd (N = 2t + 1):
    [RFC8881] introduced the "pNFS Layout Types Registry"; new layout
    type numbers in this registry need to be assigned by IANA.  This
    document defines a new layout type number: LAYOUT4_FLEX_FILES_V2 (see
-   Table 12).
+   Table 13).
 
     +=======================+=======+==========+=====+================+
     | Layout Type Name      | Value | RFC      | How | Minor Versions |
@@ -10119,12 +10187,12 @@ If N is odd (N = 2t + 1):
     | LAYOUT4_FLEX_FILES_V2 | 0x6   | RFCTBD10 | L   | 1              |
     +-----------------------+-------+----------+-----+----------------+
 
-                     Table 12: Layout Type Assignments
+                     Table 13: Layout Type Assignments
 
    [RFC8881] also introduced the "NFSv4 Recallable Object Types
    Registry".  This document defines new recallable objects for
    RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX (see
-   Table 13).
+   Table 14).
 
     +===============================+=======+==========+===+==========+
     | Recallable Object Type Name   | Value | RFC      |How| Minor    |
@@ -10135,7 +10203,7 @@ If N is odd (N = 2t + 1):
     | RCA4_TYPE_MASK_FF2_LAYOUT_MAX | 21    | RFCTBD10 |L  | 1        |
     +-------------------------------+-------+----------+---+----------+
 
-                Table 13: Recallable Object Type Assignments
+                Table 14: Recallable Object Type Assignments
 
    This document also requests IANA to register a new bit in the
    "EXCHGID4_FLAG_*" flag space for the ExchangeID operation from
@@ -10153,12 +10221,12 @@ If N is odd (N = 2t + 1):
    |                              |            |          | doc        |
    +------------------------------+------------+----------+------------+
 
-                    Table 14: EXCHGID4 Flag Assignments
+                    Table 15: EXCHGID4 Flag Assignments
 
    This document introduces the 'Flexible File Version 2 Layout Type
    Erasure Coding Type Registry'.  The registry uses a 32-bit value
    space partitioned into ranges based on the intended scope of the
-   encoding type (see Table 15).
+   encoding type (see Table 16).
 
       +=======================+=================+===================+
       | Range                 | Purpose         | Allocation Policy |
@@ -10182,7 +10250,7 @@ If N is odd (N = 2t + 1):
       |                       | range)          | future partition  |
       +-----------------------+-----------------+-------------------+
 
-         Table 15: Erasure Coding Type Value Ranges (32-bit space)
+         Table 16: Erasure Coding Type Value Ranges (32-bit space)
 
    The upper 16 bits of the 32-bit value space (0x00010000 through
    0xFFFFFFFF) are reserved for future range extensions.  A receiver
@@ -10226,7 +10294,7 @@ If N is odd (N = 2t + 1):
    This document defines five encoding types: the flexible file v1
    layout-compatible PASSTHROUGH (see Section 8.1.2), the chunked
    MIRRORED (see Section 8.1.3), and three chunked erasure coding types
-   (see Table 16).
+   (see Table 17).
 
    +======================================+=====+========+===+========+
    | Encoding Type Name                   |Value|RFC     |How|Minor   |
@@ -10243,7 +10311,7 @@ If N is odd (N = 2t + 1):
    | FFV2_ENCODING_MIRRORED               |5    |RFCTBD10|L  |2       |
    +--------------------------------------+-----+--------+---+--------+
 
-       Table 16: Flexible File Version 2 Layout Type Encoding Type
+       Table 17: Flexible File Version 2 Layout Type Encoding Type
                                Assignments
 
 28.1.  Checksum Algorithm Registry
@@ -10268,7 +10336,7 @@ If N is odd (N = 2t + 1):
       decline to register an algorithm whose output overlaps
       substantially with an existing registration).
 
-   Initial registrations are listed in Table 17.
+   Initial registrations are listed in Table 18.
 
    +========================+=====+========+===============+==========+
    | Name                   |Value|cs_value| Class         | RFC      |
@@ -10289,7 +10357,7 @@ If N is odd (N = 2t + 1):
    | CHECKSUM_ALG_BLAKE3    |6    |32      | cryptographic | RFCTBD10 |
    +------------------------+-----+--------+---------------+----------+
 
-            Table 17: Initial Checksum Algorithm Registrations
+            Table 18: Initial Checksum Algorithm Registrations
 
    CHECKSUM_ALG_NONE (value 0) indicates that no protocol-level checksum
    is computed.  The deployment relies on transport-layer integrity
@@ -10351,7 +10419,7 @@ If N is odd (N = 2t + 1):
    cs_value bytes for its cs_algorithm MUST be rejected with
    NFS4ERR_INVAL.
 
-   The "Class" column in Table 17 is informational and indicates the
+   The "Class" column in Table 18 is informational and indicates the
    threat model the algorithm supports; see Section 27.1.
 
 29.  XDR Description of the Flexible File Version 2 Layout Type
