@@ -1426,7 +1426,7 @@ discussion venue, latest rendering, and source location.<a href="#section-note.2
                     <p id="section-toc.1-1.11.2.4.2.6.1"><a href="#section-11.4.6" class="auto internal xref">11.4.6</a>.  <a href="#name-rs-interoperability-require" class="internal xref">RS Interoperability Requirements</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.4.2.7">
-                    <p id="section-toc.1-1.11.2.4.2.7.1"><a href="#section-11.4.7" class="auto internal xref">11.4.7</a>.  <a href="#name-rs-interoperability-test-ve" class="internal xref">RS Interoperability Test Vector</a></p>
+                    <p id="section-toc.1-1.11.2.4.2.7.1"><a href="#section-11.4.7" class="auto internal xref">11.4.7</a>.  <a href="#name-rs-interoperability-test-ve" class="internal xref">RS Interoperability Test Vectors</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.4.2.8">
                     <p id="section-toc.1-1.11.2.4.2.8.1"><a href="#section-11.4.8" class="auto internal xref">11.4.8</a>.  <a href="#name-rs-shard-sizes" class="internal xref">RS Shard Sizes</a></p>
@@ -4071,7 +4071,7 @@ intended scope -- Standards Track, Experimental, Vendor (open),
 and Private / proprietary -- with different allocation policies
 per range, so that vendors can assign encoding values without
 consuming standards-track codepoints.  See
-<a href="#tbl-coding-ranges" class="auto internal xref">Table 15</a> and the accompanying prose in
+<a href="#tbl-coding-ranges" class="auto internal xref">Table 16</a> and the accompanying prose in
 <a href="#iana-considerations" class="auto internal xref">Section 28</a> for the range assignments and allocation
 policies.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
 <div id="sec-heterogeneous-mirrors">
@@ -4337,11 +4337,15 @@ parity row is sum(2^i * data_i) evaluated in GF(2^8), with
 the exponentiation done over the RAID-6 generator (see the
 Linux kernel <code>lib/raid6</code> sources <span>[<a href="#LINUX-RAID6" class="cite xref">LINUX-RAID6</a>]</span> for the
 reference implementation).<a href="#section-8.1.6-2" class="pilcrow">¶</a></p>
-<p id="section-8.1.6-3">Wire-compatibility with FFV2_ENCODING_SNAPRAID_CAUCHY at m=2
-and with FFV2_ENCODING_ISA_L_RS at m&lt;=2 is guaranteed by
-construction: all three encoders emit byte-identical P and Q
-for the same (k, data) input at m&lt;=2.  This lets a client
-implementing any one of them consume the others without
+<p id="section-8.1.6-3">Wire-compatibility with FFV2_ENCODING_SNAPRAID_CAUCHY,
+FFV2_ENCODING_ISA_L_RS, and FFV2_ENCODING_RS_VANDERMONDE at
+m&lt;=2 is guaranteed by construction: all four encoders emit
+byte-identical P and Q for the same (k, data) input at m&lt;=2.
+RS_VANDERMONDE joined the m&lt;=2 set as a wire-format revision
+(hand-crafted P/Q parity rows at m&lt;=2 instead of the
+normalized-Vandermonde bottom rows; see
+<a href="#sec-rs-encoding" class="auto internal xref">Section 11.4</a> below).  This lets a client
+implementing any one of the four consume the others without
 re-encoding.<a href="#section-8.1.6-3" class="pilcrow">¶</a></p>
 <p id="section-8.1.6-4">The k=1 case (a single data shard with P and Q) is
 degenerate and <span class="bcp14">MUST NOT</span> be used with FFV2_ENCODING_LINUX_MD_RAID;
@@ -4367,35 +4371,35 @@ GF(2^8).<a href="#section-8.1.7-1" class="pilcrow">¶</a></p>
 <li class="normal" id="section-8.1.7-3.1">
               <p id="section-8.1.7-3.1.1">At m=1, the parity row is <code>[1, 1, ..., 1]</code>, so
 FFV2_ENCODING_ISA_L_RS at m=1 is byte-identical to
-FFV2_ENCODING_XOR_PARITY and to FFV2_ENCODING_LINUX_MD_RAID's
-P shard.<a href="#section-8.1.7-3.1.1" class="pilcrow">¶</a></p>
+FFV2_ENCODING_XOR_PARITY, to FFV2_ENCODING_LINUX_MD_RAID's
+P shard, and to FFV2_ENCODING_RS_VANDERMONDE at m=1
+(whose sole parity row is fixed at <code>[1, 1, ..., 1]</code>).<a href="#section-8.1.7-3.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-8.1.7-3.2">
               <p id="section-8.1.7-3.2.1">At m=2, the second parity row is <code>[1, 2, 4, 8, ...]</code> in
-GF(2^8), byte-identical to LINUX_MD_RAID's Q shard and to
-the second row of SNAPRAID_CAUCHY's matrix.  So the three
-GF(2^8) codes coexist at m&lt;=2.<a href="#section-8.1.7-3.2.1" class="pilcrow">¶</a></p>
+GF(2^8), byte-identical to LINUX_MD_RAID's Q shard, to
+the second row of SNAPRAID_CAUCHY's matrix, and to the
+second row of FFV2_ENCODING_RS_VANDERMONDE at m=2.  All
+four GF(2^8) codes coexist at m&lt;=2.<a href="#section-8.1.7-3.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-8.1.7-3.3">
               <p id="section-8.1.7-3.3.1">At m&gt;=3, the ISA-L matrix continues the Vandermonde
 sequence.  SNAPRAID_CAUCHY diverges at m&gt;=3 (different
 Cauchy point choice); LINUX_MD_RAID does not support
-m&gt;=3.<a href="#section-8.1.7-3.3.1" class="pilcrow">¶</a></p>
+m&gt;=3.  RS_VANDERMONDE at m&gt;=3 uses the
+normalized-Vandermonde bottom rows (its own point set is
+still {1, 2, 3, 4, ...} pre-normalization) and diverges
+from all three; ISA_L_RS thus requires its own registry
+value despite sharing the field with RS_VANDERMONDE at
+m&lt;=2.<a href="#section-8.1.7-3.3.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
-<p id="section-8.1.7-4">Wire-incompatibility with FFV2_ENCODING_RS_VANDERMONDE (0x4):
-the reffs reference RS encoding uses a normalized
-Vandermonde construction (Vandermonde multiplied by the
-inverse of the top k x k block to force identity on top),
-whose parity coefficients differ from ISA-L's from row 0
-onward.  ISA_L_RS thus requires its own registry value
-despite sharing the field with RS_VANDERMONDE.<a href="#section-8.1.7-4" class="pilcrow">¶</a></p>
-<p id="section-8.1.7-5">The ISA-L codebase <span>[<a href="#ISA-L" class="cite xref">ISA-L</a>]</span> (BSD-3-Clause) provides the
+<p id="section-8.1.7-4">The ISA-L codebase <span>[<a href="#ISA-L" class="cite xref">ISA-L</a>]</span> (BSD-3-Clause) provides the
 reference implementation of the encoding, decoding, and
 matrix construction.  On x86-64 CPUs supporting AVX2 or
 newer, the encoder achieves multi-GB/s throughput per core
 via shuffle-based inner loops; a portable-C fallback is also
-provided.<a href="#section-8.1.7-5" class="pilcrow">¶</a></p>
+provided.<a href="#section-8.1.7-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="encoding-type-interoperability">
@@ -7053,24 +7057,74 @@ which covers certain SIMD-based GF multiplication techniques.<a href="#section-1
           <h4 id="name-encoding-matrix">
 <a href="#section-11.4.3" class="section-number selfRef">11.4.3. </a><a href="#name-encoding-matrix" class="section-name selfRef">Encoding Matrix</a>
           </h4>
-<p id="section-11.4.3-1">The encoding process uses a (k+m) x k Vandermonde matrix, normalized
-so that its top k rows form the identity matrix:<a href="#section-11.4.3-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-11.4.3-2">
-<li id="section-11.4.3-2.1">
-              <p id="section-11.4.3-2.1.1">Assign each of the k+m shards a distinct non-zero evaluation
+<p id="section-11.4.3-1">The systematic encoding matrix E has (k + m) rows and k columns.
+The top k rows are always the k x k identity, so data shards pass
+through unchanged.  The bottom m parity rows are chosen as
+follows.<a href="#section-11.4.3-1" class="pilcrow">¶</a></p>
+<div id="at-m-1-single-parity-row">
+<section id="section-11.4.3.1">
+            <h5 id="name-at-m-1-single-parity-row">
+<a href="#section-11.4.3.1" class="section-number selfRef">11.4.3.1. </a><a href="#name-at-m-1-single-parity-row" class="section-name selfRef">At m = 1: single parity row</a>
+            </h5>
+<p id="section-11.4.3.1-1">The single parity row is <code>[1, 1, ..., 1]</code>:<a href="#section-11.4.3.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.4.3.1-2">
+<pre>
+E\[k\]\[j\] = 1    for j = 0, 1, ..., k-1
+</pre><a href="#section-11.4.3.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-11.4.3.1-3">Encoded parity is the bitwise XOR of every data shard.  This
+matches the P row of Linux md's RAID6 construction and the sole
+parity row of FFV2_ENCODING_XOR_PARITY byte-for-byte; a receiver
+that speaks either of those consumes RS_VANDERMONDE at m=1
+without re-encoding.<a href="#section-11.4.3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="at-m-2-p-q-parity-rows">
+<section id="section-11.4.3.2">
+            <h5 id="name-at-m-2-p-q-parity-rows">
+<a href="#section-11.4.3.2" class="section-number selfRef">11.4.3.2. </a><a href="#name-at-m-2-p-q-parity-rows" class="section-name selfRef">At m = 2: P + Q parity rows</a>
+            </h5>
+<p id="section-11.4.3.2-1">The two parity rows are:<a href="#section-11.4.3.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.4.3.2-2">
+<pre>
+E\[k\]\[j\]     = 1              for j = 0, 1, ..., k-1   (P row)
+E\[k+1\]\[j\]   = g^j            for j = 0, 1, ..., k-1   (Q row)
+</pre><a href="#section-11.4.3.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-11.4.3.2-3">where g = 2 is the primitive element of GF(2^8) with polynomial
+0x11d.  These are exactly the coefficients Linux md RAID6 uses
+for its P and Q shards, exactly the first two rows of ISA-L's
+Reed-Solomon Vandermonde matrix, and exactly the first two
+Cauchy rows of the SnapRAID construction.  A receiver that
+speaks any of FFV2_ENCODING_LINUX_MD_RAID,
+FFV2_ENCODING_ISA_L_RS, or FFV2_ENCODING_SNAPRAID_CAUCHY at
+m &lt;= 2 also consumes RS_VANDERMONDE at m &lt;= 2 byte-for-byte
+(and vice versa).<a href="#section-11.4.3.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="at-m-3-normalized-vandermonde-bottom-rows">
+<section id="section-11.4.3.3">
+            <h5 id="name-at-m-3-normalized-vandermon">
+<a href="#section-11.4.3.3" class="section-number selfRef">11.4.3.3. </a><a href="#name-at-m-3-normalized-vandermon" class="section-name selfRef">At m &gt;= 3: normalized Vandermonde bottom rows</a>
+            </h5>
+<p id="section-11.4.3.3-1">The parity rows are the bottom m rows of a normalized
+Vandermonde encoding matrix, constructed as follows.<a href="#section-11.4.3.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-11.4.3.3-2">
+<li id="section-11.4.3.3-2.1">
+                <p id="section-11.4.3.3-2.1.1">Assign each of the k+m shards a distinct non-zero evaluation
 point in GF(2^8): shard i (for i = 0, 1, ..., k+m-1) is assigned
 the point alpha_i = i + 1.  This gives evaluation points
-1, 2, ..., k+m, all non-zero and distinct.  The value k+m <span class="bcp14">MUST NOT</span> exceed 255 so that all points fit in GF(2^8) \ {0}.<a href="#section-11.4.3-2.1.1" class="pilcrow">¶</a></p>
+1, 2, ..., k+m, all non-zero and distinct.  The value k+m <span class="bcp14">MUST NOT</span> exceed 255 so that all points fit in GF(2^8) \ {0}.<a href="#section-11.4.3.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-11.4.3-2.2">
-              <p id="section-11.4.3-2.2.1">Construct a (k+m) x k Vandermonde matrix V where the row for
-shard i is the geometric progression of alpha_i:<a href="#section-11.4.3-2.2.1" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-11.4.3-2.2.2">
+              <li id="section-11.4.3.3-2.2">
+                <p id="section-11.4.3.3-2.2.1">Construct a (k+m) x k Vandermonde matrix V where the row for
+shard i is the geometric progression of alpha_i:<a href="#section-11.4.3.3-2.2.1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.4.3.3-2.2.2">
 <pre>
 V\[i\]\[j\] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
-</pre><a href="#section-11.4.3-2.2.2" class="pilcrow">¶</a>
+</pre><a href="#section-11.4.3.3-2.2.2" class="pilcrow">¶</a>
 </div>
-<p id="section-11.4.3-2.2.3">
+<p id="section-11.4.3.3-2.2.3">
 Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  The
 exponent zero is defined as <code>x^0 = 1</code> for all <code>x</code> in GF(2^8),
 including x = 0 (this is the standard combinatorial
@@ -7083,23 +7137,28 @@ code its Maximum Distance Separable (any k of k+m shards
 recover the data) guarantee.  The minimum useful geometry
 is <code>k &gt;= 1</code> and <code>m &gt;= 1</code> (<code>k = 0</code> gives no data and <code>m = 0</code>
 gives no redundancy); the maximum is bounded by <code>k + m &lt;= 255</code>
-as stated in step 1.<a href="#section-11.4.3-2.2.3" class="pilcrow">¶</a></p>
+as stated in step 1.<a href="#section-11.4.3.3-2.2.3" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-11.4.3-2.3">
-              <p id="section-11.4.3-2.3.1">Extract the top k x k sub-matrix T from V.  T is the Vandermonde
-on evaluation points alpha_0 = 1, alpha_1 = 2, ..., alpha_(k-1) = k.<a href="#section-11.4.3-2.3.1" class="pilcrow">¶</a></p>
+              <li id="section-11.4.3.3-2.3">
+                <p id="section-11.4.3.3-2.3.1">Extract the top k x k sub-matrix T from V.  T is the Vandermonde
+on evaluation points alpha_0 = 1, alpha_1 = 2, ..., alpha_(k-1) = k.<a href="#section-11.4.3.3-2.3.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-11.4.3-2.4">
-              <p id="section-11.4.3-2.4.1">Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).<a href="#section-11.4.3-2.4.1" class="pilcrow">¶</a></p>
+              <li id="section-11.4.3.3-2.4">
+                <p id="section-11.4.3.3-2.4.1">Compute T_inv = T^(-1) using Gaussian elimination in GF(2^8).<a href="#section-11.4.3.3-2.4.1" class="pilcrow">¶</a></p>
 </li>
-            <li id="section-11.4.3-2.5">
-              <p id="section-11.4.3-2.5.1">Multiply: E = V * T_inv.  The result has an identity block on top
+              <li id="section-11.4.3.3-2.5">
+                <p id="section-11.4.3.3-2.5.1">Multiply: E = V * T_inv.  The result has an identity block on top
 (rows 0 through k-1) and the parity generation matrix P on the
-bottom (rows k through k+m-1).<a href="#section-11.4.3-2.5.1" class="pilcrow">¶</a></p>
+bottom (rows k through k+m-1).<a href="#section-11.4.3.3-2.5.1" class="pilcrow">¶</a></p>
 </li>
-          </ol>
-<p id="section-11.4.3-3">The identity block makes the code systematic: data shards pass through
-unchanged, and only the parity sub-matrix P is needed during encoding.<a href="#section-11.4.3-3" class="pilcrow">¶</a></p>
+            </ol>
+<p id="section-11.4.3.3-3">The identity block makes the code systematic: data shards pass through
+unchanged, and only the parity sub-matrix P is needed during encoding.
+These bottom rows do not match any external encoding at m &gt;= 3;
+implementations that need cross-family interop at m &gt;= 3 <span class="bcp14">SHOULD</span> use
+FFV2_ENCODING_ISA_L_RS or FFV2_ENCODING_SNAPRAID_CAUCHY instead.<a href="#section-11.4.3.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="encoding">
@@ -7188,122 +7247,274 @@ sub-matrix (rows for shards 0..k-1)<a href="#section-11.4.6-2.5.1" class="pilcro
 (k, m) configuration in the permitted range.<a href="#section-11.4.6-3" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="rs-interoperability-test-vector">
+<div id="rs-interoperability-test-vectors">
 <section id="section-11.4.7">
           <h4 id="name-rs-interoperability-test-ve">
-<a href="#section-11.4.7" class="section-number selfRef">11.4.7. </a><a href="#name-rs-interoperability-test-ve" class="section-name selfRef">RS Interoperability Test Vector</a>
+<a href="#section-11.4.7" class="section-number selfRef">11.4.7. </a><a href="#name-rs-interoperability-test-ve" class="section-name selfRef">RS Interoperability Test Vectors</a>
           </h4>
-<p id="section-11.4.7-1">The following worked example pins the encoding matrix and one
-end-to-end encoding for the smallest useful geometry (k=2, m=1).
-An implementation whose encoded output matches this example is
-using the same GF(2^8) representation, the same evaluation-point
-assignment, and the same matrix normalization as required by the
-interoperability parameters above.<a href="#section-11.4.7-1" class="pilcrow">¶</a></p>
-<p id="section-11.4.7-2">Evaluation points: <code>alpha_0 = 1</code>, <code>alpha_1 = 2</code>, <code>alpha_2 = 3</code>
-(values 1, 2, 3 in GF(2^8)).<a href="#section-11.4.7-2" class="pilcrow">¶</a></p>
-<p id="section-11.4.7-3">Vandermonde matrix V (3 rows x 2 columns):<a href="#section-11.4.7-3" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-11.4.7-4">
-<pre>
-V = [ [1, 1],    // row 0: (1^0, 1^1) = (1, 1)
-      [1, 2],    // row 1: (2^0, 2^1) = (1, 2)
-      [1, 3] ]   // row 2: (3^0, 3^1) = (1, 3)
-</pre><a href="#section-11.4.7-4" class="pilcrow">¶</a>
-</div>
-<p id="section-11.4.7-5">Top k x k sub-matrix <code>T = [[1, 1], [1, 2]]</code> has determinant
-<code>det(T) = 1*2 XOR 1*1 = 3</code> in GF(2^8).  The inverse of 3 in
-GF(2^8) with irreducible polynomial <code>0x11d</code> is
-<code>3^-1 = 0xF4</code> (verifiable: <code>(x+1) * (x^7+x^6+x^5+x^4+x^2) mod
-(x^8+x^4+x^3+x^2+1) = 1</code>).  Applying <code>T_inv = (1/det) *
-[[T\[1\]\[1\], T\[0\]\[1\]], [T\[1\]\[0\], T\[0\]\[0\]]]</code>
-(characteristic 2, so no sign changes):<a href="#section-11.4.7-5" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-11.4.7-6">
-<pre>
-T_inv = [ [0xF5, 0xF4],
-          [0xF4, 0xF4] ]
-</pre><a href="#section-11.4.7-6" class="pilcrow">¶</a>
-</div>
-<p id="section-11.4.7-7">Systematic-normalized encoding matrix <code>E = V * T_inv</code>:<a href="#section-11.4.7-7" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-11.4.7-8">
+<p id="section-11.4.7-1">The following worked examples pin the encoding matrix and
+end-to-end encodings for two representative geometries: k=2 m=1
+(exercises the m=1 all-ones parity row) and k=3 m=2 (exercises
+the m=2 P + Q parity rows).  An implementation whose encoded
+output matches these tables is using the same GF(2^8)
+representation and the same parity-row construction as required
+by the interoperability parameters above.<a href="#section-11.4.7-1" class="pilcrow">¶</a></p>
+<div id="k2-m1">
+<section id="section-11.4.7.1">
+            <h5 id="name-k2-m1">
+<a href="#section-11.4.7.1" class="section-number selfRef">11.4.7.1. </a><a href="#name-k2-m1" class="section-name selfRef">k=2, m=1</a>
+            </h5>
+<p id="section-11.4.7.1-1">Encoding matrix <code>E</code>:<a href="#section-11.4.7.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.4.7.1-2">
 <pre>
 E = [ [0x01, 0x00],    // identity block for data shard 0
       [0x00, 0x01],    // identity block for data shard 1
-      [0xF4, 0xF5] ]   // parity generator P = E[2]
-</pre><a href="#section-11.4.7-8" class="pilcrow">¶</a>
+      [0x01, 0x01] ]   // parity row P = [1, 1]
+</pre><a href="#section-11.4.7.1-2" class="pilcrow">¶</a>
 </div>
-<p id="section-11.4.7-9">For k=2, m=1 the parity generator is <code>P = [0xF4, 0xF5]</code>; the
-parity shard is computed byte-wise as
-<code>parity\[j\] = 0xF4 * data\[0\]\[j\] XOR 0xF5 * data\[1\]\[j\]</code> where the
-multiplication is in GF(2^8) with polynomial <code>0x11d</code>.<a href="#section-11.4.7-9" class="pilcrow">¶</a></p>
-<p id="section-11.4.7-10">Concrete byte-level test vector with <code>shard_len = 1</code>:<a href="#section-11.4.7-10" class="pilcrow">¶</a></p>
-<span id="name-rs-vandermonde-test-vector-"></span><div id="tbl-rs-test-vector">
+<p id="section-11.4.7.1-3">The parity shard is the bitwise XOR of both data shards:
+<code>parity\[j\] = data\[0\]\[j\] XOR data\[1\]\[j\]</code>.<a href="#section-11.4.7.1-3" class="pilcrow">¶</a></p>
+<p id="section-11.4.7.1-4">Concrete byte-level test vector with <code>shard_len = 1</code>:<a href="#section-11.4.7.1-4" class="pilcrow">¶</a></p>
+<span id="name-rs-vandermonde-test-vector-"></span><div id="tbl-rs-test-vector-k2m1">
 <table class="center" id="table-2">
-            <caption>
+              <caption>
 <a href="#table-2" class="selfRef">Table 2</a>:
-<a href="#name-rs-vandermonde-test-vector-" class="selfRef">RS Vandermonde test vector: k=2, m=1, single-byte shards</a>
-            </caption>
+<a href="#name-rs-vandermonde-test-vector-" class="selfRef">RS Vandermonde test vector: k=2, m=1</a>
+              </caption>
 <thead>
-              <tr>
-                <th class="text-left" rowspan="1" colspan="1">data[0]</th>
-                <th class="text-left" rowspan="1" colspan="1">data[1]</th>
-                <th class="text-left" rowspan="1" colspan="1">parity</th>
-                <th class="text-left" rowspan="1" colspan="1">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
+                <tr>
+                  <th class="text-left" rowspan="1" colspan="1">data[0]</th>
+                  <th class="text-left" rowspan="1" colspan="1">data[1]</th>
+                  <th class="text-left" rowspan="1" colspan="1">parity</th>
+                  <th class="text-left" rowspan="1" colspan="1">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">zero input</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x01</code>
+                  <td class="text-left" rowspan="1" colspan="1">zero input</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x01</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0xF4</code>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x01</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">0xF4 * 0x01 XOR 0xF5 * 0x00 = 0xF4</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
+                  <td class="text-left" rowspan="1" colspan="1">0x01 XOR 0x00 = 0x01</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x01</code>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x01</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0xF5</code>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x01</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">0xF4 * 0x00 XOR 0xF5 * 0x01 = 0xF5</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x01</code>
+                  <td class="text-left" rowspan="1" colspan="1">0x00 XOR 0x01 = 0x01</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x01</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x01</code>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x01</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x01</code>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">0xF4 XOR 0xF5 = 0x01 (the polynomial diff of adjacent bytes)</td>
-              </tr>
-            </tbody>
-          </table>
+                  <td class="text-left" rowspan="1" colspan="1">0x01 XOR 0x01 = 0x00</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">0x80 XOR 0x80 = 0x00</td>
+                </tr>
+              </tbody>
+            </table>
 </div>
-<p id="section-11.4.7-12">Implementations that produce different values for any row of
-<a href="#tbl-rs-test-vector" class="auto internal xref">Table 2</a> disagree with this specification and will
-not interoperate.<a href="#section-11.4.7-12" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="k3-m2">
+<section id="section-11.4.7.2">
+            <h5 id="name-k3-m2">
+<a href="#section-11.4.7.2" class="section-number selfRef">11.4.7.2. </a><a href="#name-k3-m2" class="section-name selfRef">k=3, m=2</a>
+            </h5>
+<p id="section-11.4.7.2-1">Encoding matrix <code>E</code>:<a href="#section-11.4.7.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.4.7.2-2">
+<pre>
+E = [ [0x01, 0x00, 0x00],   // identity block for data shard 0
+      [0x00, 0x01, 0x00],   // identity block for data shard 1
+      [0x00, 0x00, 0x01],   // identity block for data shard 2
+      [0x01, 0x01, 0x01],   // P row = [1, 1, 1]
+      [0x01, 0x02, 0x04] ]  // Q row = [g^0, g^1, g^2] with g = 2
+</pre><a href="#section-11.4.7.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-11.4.7.2-3">The two parity shards are computed byte-wise as:<a href="#section-11.4.7.2-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-11.4.7.2-4">
+<pre>
+P\[j\] = data\[0\]\[j\] XOR data\[1\]\[j\] XOR data\[2\]\[j\]
+Q\[j\] = 1 * data\[0\]\[j\] XOR 2 * data\[1\]\[j\] XOR 4 * data\[2\]\[j\]
+</pre><a href="#section-11.4.7.2-4" class="pilcrow">¶</a>
+</div>
+<p id="section-11.4.7.2-5">where the multiplication is in GF(2^8) with polynomial <code>0x11d</code>.<a href="#section-11.4.7.2-5" class="pilcrow">¶</a></p>
+<p id="section-11.4.7.2-6">Concrete byte-level test vector with <code>shard_len = 1</code>:<a href="#section-11.4.7.2-6" class="pilcrow">¶</a></p>
+<span id="name-rs-vandermonde-test-vector-k"></span><div id="tbl-rs-test-vector-k3m2">
+<table class="center" id="table-3">
+              <caption>
+<a href="#table-3" class="selfRef">Table 3</a>:
+<a href="#name-rs-vandermonde-test-vector-k" class="selfRef">RS Vandermonde test vector: k=3, m=2</a>
+              </caption>
+<thead>
+                <tr>
+                  <th class="text-left" rowspan="1" colspan="1">data[0]</th>
+                  <th class="text-left" rowspan="1" colspan="1">data[1]</th>
+                  <th class="text-left" rowspan="1" colspan="1">data[2]</th>
+                  <th class="text-left" rowspan="1" colspan="1">P</th>
+                  <th class="text-left" rowspan="1" colspan="1">Q</th>
+                  <th class="text-left" rowspan="1" colspan="1">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">zero input</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x01</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x02</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x03</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x09</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">1 XOR (2<em>2) XOR (4</em>3) = 1 XOR 4 XOR 12 = 9</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">Q = 1 * 0x80 = 0x80</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x1d</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">Q = 2 * 0x80 = 0x100 -&gt; reduce by 0x11d -&gt; 0x1d</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x00</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x80</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x3a</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">Q = 4 * 0x80 = (2 * 0x1d) = 0x3a</td>
+                </tr>
+                <tr>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x37</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x91</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0xac</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x0a</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">
+                    <code>0x82</code>
+</td>
+                  <td class="text-left" rowspan="1" colspan="1">general non-degenerate case</td>
+                </tr>
+              </tbody>
+            </table>
+</div>
+<p id="section-11.4.7.2-8">Implementations that produce different values for any row of
+either table disagree with this specification and will not
+interoperate.  m &gt;= 3 test vectors are not included here because
+the normalized-Vandermonde parity rows are not easily
+hand-computed; implementations that need m &gt;= 3 verification
+<span class="bcp14">SHOULD</span> cross-check against a reference implementation.<a href="#section-11.4.7.2-8" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="rs-shard-sizes">
@@ -7315,9 +7526,9 @@ not interoperate.<a href="#section-11.4.7-12" class="pilcrow">¶</a></p>
 simplifies the CHUNK operation protocol: chunk_size is exactly the
 shard size for all mirrors.<a href="#section-11.4.8-1" class="pilcrow">¶</a></p>
 <span id="name-rs-shard-sizes-for-common-c"></span><div id="tbl-rs-shards">
-<table class="center" id="table-3">
+<table class="center" id="table-4">
             <caption>
-<a href="#table-3" class="selfRef">Table 3</a>:
+<a href="#table-4" class="selfRef">Table 4</a>:
 <a href="#name-rs-shard-sizes-for-common-c" class="selfRef">RS shard sizes for common configurations</a>
             </caption>
 <thead>
@@ -7664,9 +7875,9 @@ present their W-byte grid elements in).<a href="#section-11.5.9-3" class="pilcro
 <p id="section-11.5.9-4"><strong>Projection sizes.</strong>  Unlike RS, Mojette parity shard sizes
 vary by direction:<a href="#section-11.5.9-4" class="pilcrow">¶</a></p>
 <span id="name-mojette-projection-sizes-fo"></span><div id="tbl-mojette-proj-sizes">
-<table class="center" id="table-4">
+<table class="center" id="table-5">
             <caption>
-<a href="#table-4" class="selfRef">Table 4</a>:
+<a href="#table-5" class="selfRef">Table 5</a>:
 <a href="#name-mojette-projection-sizes-fo" class="selfRef">Mojette projection sizes for 4+2, 4KB shards, W=8</a>
             </caption>
 <thead>
@@ -7715,7 +7926,7 @@ projection shard is written via <code>CHUNK_WRITE</code> /
 <code>CHUNK_FINALIZE</code> / <code>CHUNK_COMMIT</code>, the shard is divided into
 chunks by the following mapping.  Let <code>shard_bytes = B * W</code> be
 the projection shard's total byte size (where B is the number
-of bins per the B formula above (<a href="#tbl-mojette-proj-sizes" class="auto internal xref">Table 4</a> uses it) applied to the shard's
+of bins per the B formula above (<a href="#tbl-mojette-proj-sizes" class="auto internal xref">Table 5</a> uses it) applied to the shard's
 direction (p, q) and the grid dimensions (P, Q)):<a href="#section-11.5.9-6" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-11.5.9-7.1">
@@ -7750,9 +7961,9 @@ short read reporting the shard's true byte length.<a href="#section-11.5.9-8" cl
 <a href="#section-11.6" class="section-number selfRef">11.6. </a><a href="#name-comparison-of-encoding-type" class="section-name selfRef">Comparison of Encoding Types</a>
         </h3>
 <span id="name-comparison-of-erasure-encod"></span><div id="tbl-encoding-comparison">
-<table class="center" id="table-5">
+<table class="center" id="table-6">
           <caption>
-<a href="#table-5" class="selfRef">Table 5</a>:
+<a href="#table-6" class="selfRef">Table 6</a>:
 <a href="#name-comparison-of-erasure-encod" class="selfRef">Comparison of erasure encoding types</a>
           </caption>
 <thead>
@@ -9304,9 +9515,9 @@ data-server path in this document.<a href="#section-13.4-2.8.1" class="pilcrow">
         <dd class="break"></dd>
 </dl>
 <span id="name-nfsv42-operations-allowed-o"></span><div id="tbl-ops-allowed">
-<table class="center" id="table-6">
+<table class="center" id="table-7">
           <caption>
-<a href="#table-6" class="selfRef">Table 6</a>:
+<a href="#table-7" class="selfRef">Table 7</a>:
 <a href="#name-nfsv42-operations-allowed-o" class="selfRef">NFSv4.2 operations allowed on data files</a>
           </caption>
 <thead>
@@ -10092,9 +10303,9 @@ servers.<a href="#section-20-2.6.1" class="pilcrow">¶</a></p>
 <a href="#section-21.1" class="section-number selfRef">21.1. </a><a href="#name-error-definitions" class="section-name selfRef">Error Definitions</a>
         </h3>
 <span id="name-error-definitions-2"></span><div id="tbl-protocol-errors">
-<table class="center" id="table-7">
+<table class="center" id="table-8">
           <caption>
-<a href="#table-7" class="selfRef">Table 7</a>:
+<a href="#table-8" class="selfRef">Table 8</a>:
 <a href="#name-error-definitions-2" class="selfRef">Error Definitions</a>
           </caption>
 <thead>
@@ -10262,12 +10473,12 @@ layout for some other reason" and respond accordingly.<a href="#section-21.1.6-4
 <a href="#section-21.2" class="section-number selfRef">21.2. </a><a href="#name-operations-and-their-valid-" class="section-name selfRef">Operations and Their Valid Errors</a>
         </h3>
 <p id="section-21.2-1">The operations and their valid errors are presented in
-<a href="#tbl-ops-and-errors" class="auto internal xref">Table 8</a>.  All error codes not defined in this document
+<a href="#tbl-ops-and-errors" class="auto internal xref">Table 9</a>.  All error codes not defined in this document
 are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 11 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.2-1" class="pilcrow">¶</a></p>
 <span id="name-operations-and-their-valid-e"></span><div id="tbl-ops-and-errors">
-<table class="center" id="table-8">
+<table class="center" id="table-9">
           <caption>
-<a href="#table-8" class="selfRef">Table 8</a>:
+<a href="#table-9" class="selfRef">Table 9</a>:
 <a href="#name-operations-and-their-valid-e" class="selfRef">Operations and Their Valid Errors</a>
           </caption>
 <thead>
@@ -10344,12 +10555,12 @@ are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881
 <a href="#section-21.3" class="section-number selfRef">21.3. </a><a href="#name-callback-operations-and-the" class="section-name selfRef">Callback Operations and Their Valid Errors</a>
         </h3>
 <p id="section-21.3-1">The callback operations and their valid errors are presented in
-<a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 9</a>.  All error codes not defined in this document
+<a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 10</a>.  All error codes not defined in this document
 are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 11 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.3-1" class="pilcrow">¶</a></p>
 <span id="name-callback-operations-and-thei"></span><div id="tbl-cb-ops-and-errors">
-<table class="center" id="table-9">
+<table class="center" id="table-10">
           <caption>
-<a href="#table-9" class="selfRef">Table 9</a>:
+<a href="#table-10" class="selfRef">Table 10</a>:
 <a href="#name-callback-operations-and-thei" class="selfRef">Callback Operations and Their Valid Errors</a>
           </caption>
 <thead>
@@ -10374,12 +10585,12 @@ are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881
 <a href="#section-21.4" class="section-number selfRef">21.4. </a><a href="#name-errors-and-the-operations-t" class="section-name selfRef">Errors and the Operations That Use Them</a>
         </h3>
 <p id="section-21.4-1">The operations and their valid errors are presented in
-<a href="#tbl-errors-and-ops" class="auto internal xref">Table 10</a>.  All operations not defined in this document
+<a href="#tbl-errors-and-ops" class="auto internal xref">Table 11</a>.  All operations not defined in this document
 are defined in Section 18 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 15 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.4-1" class="pilcrow">¶</a></p>
 <span id="name-errors-and-the-operations-th"></span><div id="tbl-errors-and-ops">
-<table class="center" id="table-10">
+<table class="center" id="table-11">
           <caption>
-<a href="#table-10" class="selfRef">Table 10</a>:
+<a href="#table-11" class="selfRef">Table 11</a>:
 <a href="#name-errors-and-the-operations-th" class="selfRef">Errors and the Operations That Use Them</a>
           </caption>
 <thead>
@@ -10431,7 +10642,7 @@ EXCHGID4_FLAG_USE_ERASURE_DS.  I.e., EXCHGID4_FLAG_USE_ERASURE_DS can
 be used in combination with all of the pNFS flags.<a href="#section-22-2" class="pilcrow">¶</a></p>
 <p id="section-22-3">If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
 EXCHANGE_ID operation, then it <span class="bcp14">MUST</span> support all of the operations
-in <a href="#tbl-protocol-ops" class="auto internal xref">Table 11</a>.  Further, this support is orthogonal to the
+in <a href="#tbl-protocol-ops" class="auto internal xref">Table 12</a>.  Further, this support is orthogonal to the
 Erasure Coding Type selected.  The data server is unaware of which type
 is driving the I/O.<a href="#section-22-3" class="pilcrow">¶</a></p>
 </section>
@@ -11018,9 +11229,9 @@ undefined.  See <a href="#sec-system-model-chunk-not-block" class="auto internal
 distinction between the CHUNK_* surface and a generic block I/O
 interface.<a href="#section-25-7" class="pilcrow">¶</a></p>
 <span id="name-protocol-ops"></span><div id="tbl-protocol-ops">
-<table class="center" id="table-11">
+<table class="center" id="table-12">
         <caption>
-<a href="#table-11" class="selfRef">Table 11</a>:
+<a href="#table-12" class="selfRef">Table 12</a>:
 <a href="#name-protocol-ops" class="selfRef">Protocol OPs</a>
         </caption>
 <thead>
@@ -15359,7 +15570,7 @@ ranges into an implementation-defined damaged state.  See
 </dd>
           <dd class="break"></dd>
 </dl>
-<p id="section-26.1.4-3">All other error codes listed in <a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 9</a> are
+<p id="section-26.1.4-3">All other error codes listed in <a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 10</a> are
 treated by the metadata server as retriable: the metadata server
 <span class="bcp14">MAY</span> issue a subsequent CB_CHUNK_REPAIR to the same or a
 different client.  If the client becomes unreachable (no
@@ -15850,11 +16061,11 @@ only.<a href="#section-27.6.2-2" class="pilcrow">¶</a></p>
 <p id="section-28-1"><span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> introduced the "pNFS Layout Types Registry"; new layout
 type numbers in this registry need to be assigned by IANA.  This
 document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
-(see <a href="#tbl_layout_types" class="auto internal xref">Table 12</a>).<a href="#section-28-1" class="pilcrow">¶</a></p>
+(see <a href="#tbl_layout_types" class="auto internal xref">Table 13</a>).<a href="#section-28-1" class="pilcrow">¶</a></p>
 <span id="name-layout-type-assignments"></span><div id="tbl_layout_types">
-<table class="center" id="table-12">
+<table class="center" id="table-13">
         <caption>
-<a href="#table-12" class="selfRef">Table 12</a>:
+<a href="#table-13" class="selfRef">Table 13</a>:
 <a href="#name-layout-type-assignments" class="selfRef">Layout Type Assignments</a>
         </caption>
 <thead>
@@ -15880,11 +16091,11 @@ document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
 <p id="section-28-3"><span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> also introduced the "NFSv4 Recallable Object Types
 Registry".  This document defines new recallable objects for
 RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
-(see <a href="#tbl_recallables" class="auto internal xref">Table 13</a>).<a href="#section-28-3" class="pilcrow">¶</a></p>
+(see <a href="#tbl_recallables" class="auto internal xref">Table 14</a>).<a href="#section-28-3" class="pilcrow">¶</a></p>
 <span id="name-recallable-object-type-assi"></span><div id="tbl_recallables">
-<table class="center" id="table-13">
+<table class="center" id="table-14">
         <caption>
-<a href="#table-13" class="selfRef">Table 13</a>:
+<a href="#table-14" class="selfRef">Table 14</a>:
 <a href="#name-recallable-object-type-assi" class="selfRef">Recallable Object Type Assignments</a>
         </caption>
 <thead>
@@ -15923,9 +16134,9 @@ case the numeric value in <a href="#fig-EXCHGID4_FLAG_USE_ERASURE_DS" class="aut
 and its uses throughout the document are updated to match the
 assignment.<a href="#section-28-5" class="pilcrow">¶</a></p>
 <span id="name-exchgid4-flag-assignments"></span><div id="tbl_exchgid_flags">
-<table class="center" id="table-14">
+<table class="center" id="table-15">
         <caption>
-<a href="#table-14" class="selfRef">Table 14</a>:
+<a href="#table-15" class="selfRef">Table 15</a>:
 <a href="#name-exchgid4-flag-assignments" class="selfRef">EXCHGID4 Flag Assignments</a>
         </caption>
 <thead>
@@ -15950,11 +16161,11 @@ assignment.<a href="#section-28-5" class="pilcrow">¶</a></p>
 <p id="section-28-7">This document introduces the 'Flexible File Version 2 Layout Type
 Erasure Coding Type Registry'.  The registry uses a 32-bit value
 space partitioned into ranges based on the intended scope of the
-encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table 15</a>).<a href="#section-28-7" class="pilcrow">¶</a></p>
+encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table 16</a>).<a href="#section-28-7" class="pilcrow">¶</a></p>
 <span id="name-erasure-coding-type-value-r"></span><div id="tbl-coding-ranges">
-<table class="center" id="table-15">
+<table class="center" id="table-16">
         <caption>
-<a href="#table-15" class="selfRef">Table 15</a>:
+<a href="#table-16" class="selfRef">Table 16</a>:
 <a href="#name-erasure-coding-type-value-r" class="selfRef">Erasure Coding Type Value Ranges (32-bit space)</a>
         </caption>
 <thead>
@@ -16057,11 +16268,11 @@ what level of interoperability to expect.<a href="#section-28-11" class="pilcrow
 <p id="section-28-12">This document defines five encoding types: the flexible file v1 layout-compatible
 PASSTHROUGH (see <a href="#sec-encoding-passthrough" class="auto internal xref">Section 8.1.2</a>), the chunked
 MIRRORED (see <a href="#sec-encoding-mirrored" class="auto internal xref">Section 8.1.3</a>), and three chunked
-erasure coding types (see <a href="#tbl-coding-types" class="auto internal xref">Table 16</a>).<a href="#section-28-12" class="pilcrow">¶</a></p>
+erasure coding types (see <a href="#tbl-coding-types" class="auto internal xref">Table 17</a>).<a href="#section-28-12" class="pilcrow">¶</a></p>
 <span id="name-flexible-file-version-2-layout-t"></span><div id="tbl-coding-types">
-<table class="center" id="table-16">
+<table class="center" id="table-17">
         <caption>
-<a href="#table-16" class="selfRef">Table 16</a>:
+<a href="#table-17" class="selfRef">Table 17</a>:
 <a href="#name-flexible-file-version-2-layout-t" class="selfRef">Flexible File Version 2 Layout Type Encoding Type Assignments</a>
         </caption>
 <thead>
@@ -16145,11 +16356,11 @@ registration).<a href="#section-28.1-3.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-28.1-4">Initial registrations are listed in
-<a href="#tbl-checksum-algorithms" class="auto internal xref">Table 17</a>.<a href="#section-28.1-4" class="pilcrow">¶</a></p>
+<a href="#tbl-checksum-algorithms" class="auto internal xref">Table 18</a>.<a href="#section-28.1-4" class="pilcrow">¶</a></p>
 <span id="name-initial-checksum-algorithm-"></span><div id="tbl-checksum-algorithms">
-<table class="center" id="table-17">
+<table class="center" id="table-18">
           <caption>
-<a href="#table-17" class="selfRef">Table 17</a>:
+<a href="#table-18" class="selfRef">Table 18</a>:
 <a href="#name-initial-checksum-algorithm-" class="selfRef">Initial Checksum Algorithm Registrations</a>
           </caption>
 <thead>
@@ -16279,7 +16490,7 @@ defined by <span>[<a href="#BLAKE3-SPEC" class="cite xref">BLAKE3-SPEC</a>]</spa
 <p id="section-28.1-12">A checksum4 whose cs_value length does not match the
 registered cs_value bytes for its cs_algorithm <span class="bcp14">MUST</span> be
 rejected with NFS4ERR_INVAL.<a href="#section-28.1-12" class="pilcrow">¶</a></p>
-<p id="section-28.1-13">The "Class" column in <a href="#tbl-checksum-algorithms" class="auto internal xref">Table 17</a> is
+<p id="section-28.1-13">The "Class" column in <a href="#tbl-checksum-algorithms" class="auto internal xref">Table 18</a> is
 informational and indicates the threat model the algorithm
 supports; see <a href="#sec-security-checksum-scope" class="auto internal xref">Section 27.1</a>.<a href="#section-28.1-13" class="pilcrow">¶</a></p>
 </section>
