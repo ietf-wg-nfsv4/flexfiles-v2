@@ -367,10 +367,12 @@ operations.
 
 **Wire-compatibility:** At m=1, FFV2_ENCODING_XOR_PARITY is
 byte-identical to FFV2_ENCODING_LINUX_MD_RAID's P shard, to
-the first parity row of FFV2_ENCODING_SNAPRAID_CAUCHY, and
-to the first parity row of FFV2_ENCODING_ISA_L_RS.  A
-receiver that speaks any of those at m=1 also correctly
-consumes FFV2_ENCODING_XOR_PARITY output.
+the first parity row of FFV2_ENCODING_SNAPRAID_CAUCHY, to
+the first parity row of FFV2_ENCODING_ISA_L_RS, and to
+FFV2_ENCODING_RS_VANDERMONDE at m=1 (whose sole parity row
+is fixed at `[1, 1, ..., 1]`).  A receiver that speaks any
+of those at m=1 also correctly consumes FFV2_ENCODING_XOR_PARITY
+output.
 
 ### FFV2_ENCODING_SNAPRAID_CAUCHY {#sec-encoding-snapraid-cauchy-annex}
 
@@ -402,11 +404,14 @@ shard bytes to recover the original data shards.  Missing
 parity shards are then re-computed from the recovered data
 via the forward encoding formula.
 
-**Wire-compatibility:** Matches FFV2_ENCODING_LINUX_MD_RAID
-and FFV2_ENCODING_ISA_L_RS at m<=2 (all three emit
-byte-identical P and Q).  Diverges from ISA_L_RS at m>=3
-(different construction family) and from LINUX_MD_RAID at
-m>=3 (LINUX_MD_RAID does not support m>=3).
+**Wire-compatibility:** Matches FFV2_ENCODING_LINUX_MD_RAID,
+FFV2_ENCODING_ISA_L_RS, and FFV2_ENCODING_RS_VANDERMONDE at
+m<=2 (all four emit byte-identical P and Q).  Diverges from
+ISA_L_RS at m>=3 (different construction family), from
+LINUX_MD_RAID at m>=3 (LINUX_MD_RAID does not support m>=3),
+and from RS_VANDERMONDE at m>=3 (RS_VANDERMONDE at m>=3 uses
+the normalized-Vandermonde parity rows from
+{{I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde}}).
 
 **Reference implementation:** SnapRAID codebase {{SNAPRAID}}
 (GPL-3.0-or-later).
@@ -443,10 +448,13 @@ from data; a missing Q is regenerated via re-encoding.
 
 **Wire-compatibility:** Byte-identical to
 FFV2_ENCODING_SNAPRAID_CAUCHY at m<=2 (SnapRAID's first two
-Cauchy rows are exactly Linux md's P and Q coefficients) and
+Cauchy rows are exactly Linux md's P and Q coefficients),
 to FFV2_ENCODING_ISA_L_RS at m<=2 (ISA-L's Vandermonde first
-two rows are the same in GF(2^8)).  This lets a client that
-speaks any of the three consume the others at m=2.
+two rows are the same in GF(2^8)), and to
+FFV2_ENCODING_RS_VANDERMONDE at m<=2 (which fixes its m<=2
+parity rows to the same coefficients -- see
+{{I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde}}).  A client
+that speaks any of the four consumes the others at m<=2.
 
 **Reference implementation:** Linux kernel `lib/raid6/`
 {{LINUX-RAID6}} (GPL-2.0-or-later).
@@ -487,15 +495,19 @@ recovered data via the forward encoding formula.
 
 -  At m=1, the parity row is `[1, 1, ..., 1]`, so
    FFV2_ENCODING_ISA_L_RS at m=1 is byte-identical to
-   FFV2_ENCODING_XOR_PARITY and to FFV2_ENCODING_LINUX_MD_RAID's
-   P shard.
+   FFV2_ENCODING_XOR_PARITY, to FFV2_ENCODING_LINUX_MD_RAID's
+   P shard, and to FFV2_ENCODING_RS_VANDERMONDE at m=1.
 -  At m=2, the second parity row is `[1, 2, 4, 8, ...]` in
-   GF(2^8), byte-identical to LINUX_MD_RAID's Q shard and to
-   the second row of SNAPRAID_CAUCHY's matrix.
+   GF(2^8), byte-identical to LINUX_MD_RAID's Q shard, to
+   the second row of SNAPRAID_CAUCHY's matrix, and to the
+   second row of FFV2_ENCODING_RS_VANDERMONDE at m=2.
 -  At m>=3, the ISA-L matrix continues the Vandermonde
    sequence.  SNAPRAID_CAUCHY diverges at m>=3 (different
    Cauchy point choice); LINUX_MD_RAID does not support
-   m>=3.
+   m>=3; RS_VANDERMONDE at m>=3 uses the
+   normalized-Vandermonde bottom rows from
+   {{I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde}}, which
+   differ from ISA-L's.
 
 **Wire-incompatibility with FFV2_ENCODING_RS_VANDERMONDE (0x4):**
 the encoding registered by {{I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde}}
