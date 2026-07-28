@@ -444,7 +444,14 @@ Multiple writers, disjoint regions (rare):
    The protocol relies on block alignment to keep per-chunk
    contention rare despite overall high writer count.  Contention
    that does occur is resolved via the deterministic tiebreaker
-   rule defined in {{sec-chunk_guard4}}.
+   rule defined in {{sec-chunk_guard4}}.  Deployments that use an
+   XOR-based erasure encoding (see {{sec-mojette-encoding}}) and
+   expect frequent small edits from this workload class MAY use the
+   optional delta-write protocol defined in
+   {{I-D.haynes-nfsv4-flexfiles-v2-delta-writes}}, which lets the
+   client forward per-projection XOR deltas directly to each data
+   server, avoiding client-side read-modify-write of the full
+   stripe on the small-edit path.
 
 Scale targets include multi-thousand-client deployments (on the
 order of tens of thousands of concurrent clients for HPC
