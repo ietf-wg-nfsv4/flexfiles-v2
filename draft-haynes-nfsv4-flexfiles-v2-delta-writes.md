@@ -68,14 +68,20 @@ lets a client transmit a per-projection XOR delta directly to each
 data server holding a projection of the affected stripe.  The data
 server applies the delta locally without fetching or reconstructing
 the stripe.  The extension is restricted to erasure encodings whose parity is
-defined as an XOR combination of source bytes -- including the
-degenerate identity-encoding case (FFV2_ENCODING_MIRRORED,
-FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, FFV2_ENCODING_XOR_PARITY) --
-and to checksum algorithms whose value is XOR-homomorphic (the CRC
-family).  Capability is derived from the layout's declared encoding
-and checksum algorithm via registry lookup; no new layout field is
-introduced.
+defined as an XOR combination of source bytes AND whose data-shard
+bytes are directly readable from a single projection -- the
+systematic subset (FFV2_ENCODING_MIRRORED,
+FFV2_ENCODING_MOJETTE_SYSTEMATIC, FFV2_ENCODING_XOR_PARITY) -- and
+to checksum algorithms whose value is XOR-affine (the CRC family).
+Non-systematic encodings such as
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC are excluded from this
+document: recovering D_old to compute the delta requires reading k
+projections and running the inverse transform, which is the
+read-modify-write cost delta writes exist to eliminate.  Support
+for non-systematic and non-XOR encodings is deferred to a
+gf-delta-writes follow-up.  Capability is derived from the
+layout's declared encoding and checksum algorithm via registry
+lookup; no new layout field is introduced.
 
 The atomicity, concurrency, and repair semantics required by delta
 writes are expressed in terms of the existing chunk state machine
@@ -138,14 +144,16 @@ transmits per-projection deltas.  Applicability is bounded by two
 independent capability flags, both derived from static properties of
 the encoding-plus-checksum pair the layout already carries:
 
-- The erasure encoding is XOR-linear in its parity computation
-  (registry flag EC_ENC_FLAGS_XOR_DELTA_CAPABLE, this document).
-  FFV2_ENCODING_MIRRORED (identity encoding, degenerate case),
-  FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-  FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, and FFV2_ENCODING_XOR_PARITY
-  all qualify.
-- The chunk envelope's checksum algorithm is XOR-homomorphic (registry
-  flag CHECKSUM_FLAGS_XOR_HOMOMORPHIC, this document); the CRC family
+- The erasure encoding is XOR-linear in its parity computation AND
+  systematic (D_old for any byte range is directly readable from a
+  single projection).  Registry flag EC_ENC_FLAGS_XOR_DELTA_CAPABLE,
+  this document.  FFV2_ENCODING_MIRRORED (identity encoding,
+  degenerate case), FFV2_ENCODING_MOJETTE_SYSTEMATIC, and
+  FFV2_ENCODING_XOR_PARITY qualify.
+  FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC is XOR-linear but not
+  systematic; see {{sec-scope}} for why it is excluded.
+- The chunk envelope's checksum algorithm is XOR-affine (registry
+  flag CHECKSUM_FLAGS_XOR_AFFINE, this document); the CRC family
   qualifies, cryptographic hashes and modular-sum checksums do not.
 
 The client determines capability for a given layout by looking up
@@ -214,25 +222,39 @@ XOR-linear encoding:
   the same D to each parity projection at the projection-specific
   offset preserves encode-correctness.  FFV2_ENCODING_MIRRORED (as
   the degenerate identity-encoding case; every mirror is a byte-
-  identical replica),
-  FFV2_ENCODING_MOJETTE_SYSTEMATIC and
-  FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC (defined in
+  identical replica), FFV2_ENCODING_MOJETTE_SYSTEMATIC (defined in
   {{I-D.haynes-nfsv4-flexfiles-v2-mojette}}; the underlying discrete
   Radon transform is due to {{MOJETTE-1995}}), and
-  FFV2_ENCODING_XOR_PARITY are all XOR-linear.
-  FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_ISA_L_RS, and
-  FFV2_ENCODING_SNAPRAID_CAUCHY are not (they are linear over
-  GF(2^8), which requires per-coefficient multiplication that XOR
-  alone does not express).
+  FFV2_ENCODING_XOR_PARITY are all XOR-linear AND systematic
+  (D_old readable from a single projection).
+  FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC is XOR-linear but not
+  systematic: recovering D_old requires reading k projections and
+  inverting the transform.  FFV2_ENCODING_RS_VANDERMONDE,
+  FFV2_ENCODING_ISA_L_RS, and FFV2_ENCODING_SNAPRAID_CAUCHY are
+  not XOR-linear at all (they are linear over GF(2^8), which
+  requires per-coefficient multiplication that XOR alone does not
+  express).  Only the XOR-linear AND systematic subset qualifies
+  for CHUNK_XOR_DELTA under this document.
 
-XOR-homomorphic checksum:
+XOR-affine checksum:
 
-: A checksum algorithm f whose values combine under XOR: for any two
-  byte sequences X and Y of equal length, f(X XOR Y) = f(X) XOR f(Y).
-  CHECKSUM_ALG_CRC32 and CHECKSUM_ALG_CRC32C are XOR-homomorphic.
-  Cryptographic hashes (CHECKSUM_ALG_SHA256, CHECKSUM_ALG_SHA512,
-  CHECKSUM_ALG_BLAKE3) and CHECKSUM_ALG_FLETCHER4 (a modular-sum
-  checksum) are not.
+: A checksum algorithm f such that for any two byte sequences X and
+  Y of equal length L, f(X XOR Y) = f(X) XOR f(Y) XOR f(0^L), where
+  0^L is the L-byte all-zero sequence.  Equivalently, the "raw"
+  form of f with init/xorout constants set to zero satisfies the
+  homomorphism f_raw(X XOR Y) = f_raw(X) XOR f_raw(Y).  Standard
+  CRC32 and CRC32C (as deployed with init and xorout both
+  0xFFFFFFFF) satisfy the affine identity above but do not
+  satisfy the stricter homomorphism f(X XOR Y) = f(X) XOR f(Y); the
+  affine constant f(0^L) is a function of length alone, so any two
+  implementations agreeing on the algorithm and the operand length
+  agree on the result.  All incremental formulas in this document
+  are expressed in terms that make the affine correction explicit
+  (see {{sec-checksum}}).  CHECKSUM_ALG_CRC32 and
+  CHECKSUM_ALG_CRC32C qualify.  Cryptographic hashes
+  (CHECKSUM_ALG_SHA256, CHECKSUM_ALG_SHA512, CHECKSUM_ALG_BLAKE3)
+  and CHECKSUM_ALG_FLETCHER4 (a modular-sum checksum) do not
+  qualify under any construction.
 
 # Encoding-Family Scope {#sec-scope}
 
@@ -247,7 +269,7 @@ chunk's governing layout:
   i.e., the encoding is XOR-linear as defined in
   {{sec-terminology}}.
 - The layout's `ffv2m_checksum_algorithm` has the flag
-  CHECKSUM_FLAGS_XOR_HOMOMORPHIC set in the checksum algorithm
+  CHECKSUM_FLAGS_XOR_AFFINE set in the checksum algorithm
   registry defined by {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}
   ({{sec-iana-checksum-flag}}).
 
@@ -261,17 +283,20 @@ result for the layout's lifetime; the DS MUST perform the check on
 each operation received (the DS cannot assume clients have honoured
 the SHOULD).
 
-Encodings registered as XOR-linear MUST specify, in their own
-document, the mapping from `(chunk_offset, byte_offset_within_chunk)`
-to the projection-local offset at which a delta is XORed.  For
-FFV2_ENCODING_MOJETTE_SYSTEMATIC and
-FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC this mapping is defined in
+Encodings that register EC_ENC_FLAGS_XOR_DELTA_CAPABLE MUST specify,
+in their own document, the mapping from
+`(chunk_offset, byte_offset_within_chunk)` to the projection-local
+offset at which a delta is XORed.  For
+FFV2_ENCODING_MOJETTE_SYSTEMATIC this mapping is defined in
 {{I-D.haynes-nfsv4-flexfiles-v2-mojette}}.  For
 FFV2_ENCODING_XOR_PARITY the mapping is trivial: for the parity
 projection the delta is XORed at the same offset as it appears in
 the source chunk.  For FFV2_ENCODING_MIRRORED the mapping is also
 trivial: on each mirror the delta is XORed at the same offset as in
-the source chunk.
+the source chunk.  FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC is
+XOR-linear but does not register the flag, because computing D_old
+requires reading and inverse-transforming k projections, which is
+the read-modify-write cost this document exists to eliminate.
 
 This document adds the EC_ENC_FLAGS_XOR_DELTA_CAPABLE flag to the
 encoding registry.  Encodings that do not qualify
@@ -335,6 +360,7 @@ definitions in this document use the language of {{RFC4506}}.
    ///     chunk_owner4              cxda_owner;
    ///     uint32_t                  cxda_flags;
    ///     chunk_guard4              cxda_guard;
+   ///     chunk_guard4              cxda_predecessor_guard;
    ///     chunk_xor_delta_entry4 cxda_deltas<CHUNK_XOR_DELTA_MAX_ENTRIES>;
    /// };
 ~~~
@@ -373,16 +399,37 @@ combination is not XOR-delta-capable (see {{sec-scope}}).
 The operation targets the chunk identified by `cxda_chunk_offset`.
 `cxda_flags` indicates the role of the operation within a delta epoch:
 
-- CHUNK_XOR_DELTA_FLAGS_EPOCH_OPEN opens a new delta epoch.  The DS
-  MUST perform a chunk_guard4 CAS on `cxda_guard` and reject with
-  NFS4ERR_CHUNK_GUARDED if the current stored guard differs.  On
-  success the DS allocates a fresh delta log for the chunk keyed by
-  the (chunk_guard4, cxda_owner) pair.
+- CHUNK_XOR_DELTA_FLAGS_EPOCH_OPEN opens a new delta epoch.
+  `cxda_guard` carries a fresh, client-chosen guard value that
+  will become the epoch's identifier if the open succeeds;
+  `cxda_predecessor_guard` carries the guard value the client
+  believes is currently COMMITTED on this chunk (the value under
+  which D_old was read).  The DS MUST:
+
+    (1) Reject with NFS4ERR_CHUNK_GUARDED if any other delta epoch
+        (owned by any client) is currently open on this chunk.
+    (2) Reject with NFS4ERR_CHUNK_GUARDED if the chunk's current
+        COMMITTED guard does not equal `cxda_predecessor_guard` --
+        the client's D_old is stale, and applying the delta would
+        silently corrupt the parity.
+    (3) On success, atomically install `cxda_guard` as the new
+        PENDING guard and allocate a fresh delta log for the chunk
+        keyed by (cxda_guard, cxda_owner).
+
+  Retransmit handling: if the DS receives an EPOCH_OPEN whose
+  (cxda_guard, cxda_owner) exactly matches an already-open epoch it
+  owns, the DS MUST treat this as a retransmit of the original
+  request and return the original success response, not
+  NFS4ERR_CHUNK_GUARDED.  This preserves idempotent replay under
+  RPC retransmission (see {{sec-concurrency}}).
 - CHUNK_XOR_DELTA_FLAGS_EPOCH_CONTINUE indicates the operation is
   part of an already-open epoch.  The DS MUST verify that the epoch
   identified by (cxda_guard, cxda_owner) is open and that
   `cxda_owner` matches the owner of the open epoch; mismatch is
-  rejected with NFS4ERR_CHUNK_GUARDED.
+  rejected with NFS4ERR_CHUNK_GUARDED.  `cxda_predecessor_guard` is
+  ignored on EPOCH_CONTINUE operations; the DS SHOULD verify it is
+  present in the wire message (per XDR) but MUST NOT use its value
+  to gate acceptance.
 Exactly one of EPOCH_OPEN or EPOCH_CONTINUE MUST be set; setting
 neither or both MUST be rejected with NFS4ERR_INVAL.  Bit value
 0x00000004 in cxda_flags is reserved (formerly intended as an
@@ -447,7 +494,7 @@ both parts of that sequence:
 
 The checksum algorithm registry defined by
 {{I-D.haynes-nfsv4-flexfiles-v2-chunks}} MUST be extended with a
-boolean capability flag CHECKSUM_FLAGS_XOR_HOMOMORPHIC
+boolean capability flag CHECKSUM_FLAGS_XOR_AFFINE
 ({{sec-iana-checksum-flag}}).  CHECKSUM_ALG_CRC32 and
 CHECKSUM_ALG_CRC32C set this flag; CHECKSUM_ALG_FLETCHER4 and the
 cryptographic-hash algorithms (CHECKSUM_ALG_SHA256,
@@ -455,28 +502,48 @@ CHECKSUM_ALG_SHA512, CHECKSUM_ALG_BLAKE3) do not.
 
 At CHUNK_FINALIZE time -- not per CHUNK_XOR_DELTA -- the DS is
 responsible for computing the new envelope checksum.  For an
-XOR-homomorphic checksum, the DS MAY compute the new checksum
-incrementally as:
+XOR-affine checksum (see the terminology definition in
+{{sec-terminology}} for the exact identity), the DS MAY compute the
+new checksum incrementally.  Let L be the length of the covered
+envelope (chunk_header || chunk_data), let X be the pre-delta
+envelope contents, and let Y be the post-delta envelope contents
+zero-extended to length L in the same layout.  The affine identity
+gives:
 
-    checksum_new = checksum_old XOR checksum_of(delta_bytes_at_offsets)
-                                XOR checksum_of(header_old_bytes)
-                                XOR checksum_of(header_new_bytes)
+    f(Y) = f(X) XOR f(X XOR Y) XOR f(0^L)
 
-where each `checksum_of(...)` uses the zero-extension property
-of the CRC family to place the byte sequences at their canonical
-offsets within the covered range.  Full-recomputation is also
-permitted and is required for algorithms that do not implement the
-incremental combine.  In either case the client does not supply the
-envelope checksum; the DS is the sole computing authority.
+where (X XOR Y) is the L-byte sequence containing zeros everywhere
+X and Y agree, and the applied header + data delta bytes at their
+canonical byte offsets everywhere they differ.  Equivalently, using
+the zero-initialised "raw" form of f (per {{sec-terminology}}):
+
+    f_raw(Y) = f_raw(X) XOR f_raw(X XOR Y)
+
+The `f(0^L)` term is a length-only constant that any two
+conforming implementations agreeing on the algorithm and the
+covered length compute identically.
+
+Full-recomputation is also permitted and is required for algorithms
+that do not implement the incremental combine.  In either case the
+client does not supply the envelope checksum; the DS is the sole
+computing authority.  Implementations MUST NOT combine partial
+checksums across differing covered lengths; the affine correction
+term is a function of length and combining across differing lengths
+silently yields the wrong value.
 
 At CHUNK_FINALIZE time the DS MUST include the newly computed
 envelope checksum in its response, in the same field
 {{I-D.haynes-nfsv4-flexfiles-v2-chunks}} uses for CHUNK_WRITE-driven
-finalization.  The client MAY optionally verify this against its
-own predicted post-delta checksum computed from D_old and the delta
-sequence; a client that performs this verification MUST treat a
+finalization.  A client that participated in the epoch SHOULD verify
+this against its own predicted post-delta checksum computed from
+D_old and the delta sequence (using the same affine identity
+above); a client that performs this verification MUST treat a
 mismatch as chunk corruption (the same treatment applied to a
-CHUNK_READ checksum mismatch on COMMITTED data).
+CHUNK_READ checksum mismatch on COMMITTED data).  End-to-end
+verification is SHOULD rather than MUST because the DS's checksum
+is itself protected by the base checksum-registry semantics; the
+client-side check adds a second, independent detector for
+lost-or-corrupt-delta cases that the DS side alone cannot detect.
 
 # Delta Epochs and Per-Chunk State {#sec-epochs}
 
@@ -568,11 +635,37 @@ the HPC checkpoint workload, whose block-alignment discipline (base
 spec Use Cases section) already gives stable per-chunk ownership
 within a checkpoint interval.
 
+## Split-Open Recovery {#sec-split-open}
+
+Because a client opens the epoch independently against each of the
+chunk's k+m projection DSes, two clients A and B racing for the
+same chunk can produce a split-open outcome: A wins EPOCH_OPEN on
+some projections, B wins on others.  Neither can then close its
+epoch on the full projection set, and both sets of deltas remain
+in invisible PENDING state indefinitely -- blocking not only
+subsequent writes to that chunk but also repair (see {{sec-repair}}).
+
+To prevent this liveness hazard: on receiving NFS4ERR_CHUNK_GUARDED
+from ANY projection's EPOCH_OPEN, a client MUST issue CHUNK_ROLLBACK
+against every projection where its own EPOCH_OPEN had succeeded,
+before falling back to CHUNK_WRITE.  A client MUST NOT abandon
+partially-open epochs.  The rollback is CAS-guarded by the
+client's own `cxda_guard` value, so it cannot disturb the winner's
+epoch state on projections the winner controls.  A client that
+crashes mid-recovery relies on lease-expiry rollback per
+{{sec-repair}}.
+
+## Retransmission {#sec-retransmit}
+
 Idempotency across RPC retransmission is achieved by the sequence
 number + CAS-guard pair.  A client retrying a CHUNK_XOR_DELTA after
 network loss re-uses the same (cxda_guard, cxda_owner, cxde_seq)
 tuple; the DS deduplicates using the recorded sequence number and
-returns the same response.
+returns the same response.  Retransmit handling for EPOCH_OPEN
+specifically is normatively described in the CHUNK_XOR_DELTA
+DESCRIPTION section: a duplicate EPOCH_OPEN whose
+(cxda_guard, cxda_owner) matches an already-open epoch MUST be
+served as a retransmit, not rejected with NFS4ERR_CHUNK_GUARDED.
 
 # Interaction with the Chunk State Machine {#sec-state-machine}
 
@@ -614,6 +707,35 @@ open delta epoch, the DS MUST:
   CHUNK_ROLLBACK, undo the deltas by re-applying them (XOR
   self-inverse) and discard the log.
 
+### Gap Recovery on NFS4ERR_DELTA_INCOMPLETE {#sec-gap-recovery}
+
+The CHUNK_FINALIZE result union defined in
+{{I-D.haynes-nfsv4-flexfiles-v2-chunks}} does not carry a
+missing-seq array on error return, so the client cannot directly
+enumerate which sequence numbers the DS is missing.  Until a
+future revision of the CHUNK_FINALIZE result union provides such
+enumeration, the client MUST implement gap recovery as follows:
+
+1. The client MUST retain a per-epoch "outstanding" set: every
+   `(cxda_guard, cxde_seq)` for which it has issued
+   CHUNK_XOR_DELTA but not yet received a success response.
+2. On NFS4ERR_DELTA_INCOMPLETE from CHUNK_FINALIZE, the client
+   MUST re-issue every `cxde_seq` still in its outstanding set as
+   an EPOCH_CONTINUE operation.  Duplicates already seen by the
+   DS are deduplicated per {{sec-concurrency}} (return the
+   original response with no re-apply); genuine gaps are filled.
+3. Once the outstanding set is empty, the client MUST re-issue
+   CHUNK_FINALIZE.  If the DS still returns
+   NFS4ERR_DELTA_INCOMPLETE, the client MUST issue CHUNK_ROLLBACK
+   and restart the edit sequence as CHUNK_WRITE operations under
+   a fresh epoch (the epoch is unrecoverable).
+
+This is O(outstanding-set-size) worst-case wire traffic for gap
+recovery, versus O(1) for an enumerated missing-seq array.  In
+practice the outstanding set is bounded by the delta-log capacity
+divided by the mean delta size (typically low hundreds of
+entries).
+
 The CHUNK_COMMIT semantics of
 {{I-D.haynes-nfsv4-flexfiles-v2-chunks}} apply unchanged: the
 FINALIZED generation becomes COMMITTED atomically.
@@ -639,11 +761,16 @@ document adds one new rule for the repair coordinator:
   coordinator MUST NOT reconstruct from the majority.  Instead, it
   MUST wait for the epoch to close (CHUNK_FINALIZE or
   CHUNK_ROLLBACK) before beginning reconstruction.
-- If the epoch's writer has failed and the epoch cannot be closed,
-  the repair coordinator MAY drive CHUNK_ROLLBACK on each
-  participating DS (using the CAS guard from the epoch's OPEN
-  record) and then proceed with base-specification repair semantics
-  on the resulting pre-epoch generation.
+- If the epoch's owner lease has expired, OR the epoch's owning
+  stateid has been revoked (per
+  {{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}), the repair
+  coordinator MUST drive CHUNK_ROLLBACK on each participating DS
+  (using the CAS guard from the epoch's OPEN record) and then
+  proceed with base-specification repair semantics on the resulting
+  pre-epoch generation.  Both triggers are wall-clock bounded --
+  lease-expiry by the server's lease-time attribute and stateid
+  revocation by the trust-stateid revocation paths -- so repair
+  cannot stall indefinitely on a wedged writer.
 
 Rationale: if the epoch has partially applied to some but not all
 projections, reconstructing from the majority would silently commit
@@ -825,15 +952,19 @@ The column is called EC_ENC_FLAGS_XOR_DELTA_CAPABLE in prose
 references.
 
 Set for encodings whose parity is expressible as an XOR combination
-of source bytes -- including the degenerate identity-encoding case
-where the "parity" is a byte-identical replica.  Clear otherwise.
+of source bytes AND whose data-shard bytes are directly readable
+from a single projection (systematic property).  Clear otherwise.
 Initial assignments:
 
 - FFV2_ENCODING_MIRRORED: SET (identity encoding; delta at
   `(chunk_offset, bin_offset)` applied to every mirror at the same
   offset converges to the correct state)
 - FFV2_ENCODING_MOJETTE_SYSTEMATIC: SET
-- FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC: SET
+- FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC: CLEAR (XOR-linear but
+  non-systematic; recovering D_old requires k projection reads and
+  an inverse transform, defeating the delta-write purpose.
+  Support for non-systematic XOR-linear encodings is deferred to
+  a follow-up specification.)
 - FFV2_ENCODING_XOR_PARITY: SET
 - FFV2_ENCODING_LINUX_MD_RAID: CLEAR (Q shard is GF-multiplicative;
   P shard alone is not sufficient to support delta writes on the
@@ -848,16 +979,15 @@ Initial assignments:
   flag value is nominally CLEAR but the operation itself is
   structurally inapplicable.
 
-## Checksum Registry: XOR-Homomorphic Column {#sec-iana-checksum-flag}
+## Checksum Registry: XOR-Affine Column {#sec-iana-checksum-flag}
 
-Add a new column named "XOR-Homomorphic" (boolean) to the
+Add a new column named "XOR-Affine" (boolean) to the
 "Flexible File Version 2 Layout Type Checksum Algorithm Registry"
 defined in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}.  The column is
-called CHECKSUM_FLAGS_XOR_HOMOMORPHIC in prose references.
+called CHECKSUM_FLAGS_XOR_AFFINE in prose references.
 
-Set for algorithms whose values combine under XOR (f(X XOR Y) =
-f(X) XOR f(Y) for equal-length inputs); clear otherwise.  Initial
-assignments:
+Set for algorithms that satisfy the XOR-affine identity defined
+in {{sec-terminology}}; clear otherwise.  Initial assignments:
 
 - CHECKSUM_ALG_NONE: not applicable (no checksum computed; delta
   writes are permitted under the encoding-registry flag alone, but
@@ -872,22 +1002,37 @@ assignments:
 
 ## New Error Codes
 
-Assign the following nfsstat4 codes (values TBD by IANA):
+Following the pattern established by
+{{I-D.haynes-nfsv4-flexfiles-v2-chunks}} that nfsstat4 codes
+scoped to the FFv2 protocol family are assigned by publication of
+the specifying document (no IANA nfsstat4 registry exists), this
+document assigns:
 
-- NFS4ERR_DELTA_INCOMPLETE: returned by CHUNK_FINALIZE when the
-  recorded delta-log sequence numbers do not form a contiguous
+- NFS4ERR_DELTA_INCOMPLETE = 10110: returned by CHUNK_FINALIZE when
+  the recorded delta-log sequence numbers do not form a contiguous
   range from 1 to N.
-- NFS4ERR_DELTA_LOG_FULL: returned by CHUNK_XOR_DELTA when the
-  per-chunk delta log would overflow.  The client SHOULD close the
-  current epoch and open a new one.
+- NFS4ERR_DELTA_LOG_FULL = 10111: returned by CHUNK_XOR_DELTA when
+  the per-chunk delta log would overflow.  The client SHOULD close
+  the current epoch and open a new one.
+
+No IANA action is requested for these codes.  The values 10110 and
+10111 are chosen to sit above the chunks draft's cluster (10100 =
+NFS4ERR_CHUNK_GUARDED and neighbours) with a gap for future
+CHUNK_* codes.
 
 ## New Layout Flag
 
-Assign the following bit in the FFv2 layout flags (base spec's
-`ffv2_flags4`):
+Following the same pattern (no IANA registry for FFv2 layout
+flags), this document assigns:
 
-- FFV2_FLAGS_DELTA_OWNER_ONLY (bit value TBD): restricts CHUNK_XOR_DELTA
-  epochs to the current chunk_owner4 of the target chunk.
+- FFV2_FLAGS_DELTA_OWNER_ONLY = 0x00000100: restricts
+  CHUNK_XOR_DELTA epochs to the current chunk_owner4 of the target
+  chunk.
+
+The bit value 0x00000100 is chosen to sit clear of
+FFV2_FLAGS_ONLY_ONE_WRITER (0x00000010, base FFv2 spec) and the
+low-order bits inherited from ff_flags4.  No IANA action is
+requested.
 
 --- back
 
@@ -909,7 +1054,7 @@ a canonical HPC checkpoint workload.
 - Ranks are block-aligned per the HPC guidance in
   {{I-D.haynes-nfsv4-flexfiles-v2-requirements}}; no two ranks write
   into the same 2 MiB stripe within a single checkpoint interval
-- CHECKSUM_ALG_CRC32C checksums (XOR-homomorphic)
+- CHECKSUM_ALG_CRC32C checksums (XOR-affine)
 - Twelve data servers, one per projection
 
 Per-rank per-interval work: 256 writes of 4 KiB each.  Each 4 KiB
@@ -996,25 +1141,34 @@ Path B = CHUNK_XOR_DELTA (this document).
 | Client compute per write      |    ~315us |     ~1 us |   300x |
 | DS compute per parity per op  | 256 KiB   |    4 KiB  |    64x |
 
-The dominant effect is the wire-traffic reduction.  For a workload
-running on a 10 Gbps interconnect, Path A saturates at roughly
-80 MiB/s per NIC, giving each rank a wall-clock lower bound of 4
-seconds per checkpoint interval for wire transmission alone; Path B's
-5 MiB per rank per interval is well below one wire second.
+The dominant effect is aggregate wire traffic against fabric
+capacity.  Per-rank per-interval Path A is 320 MiB; on a
+dedicated 10 Gbps NIC (~1.19 GiB/s) this is a lower bound of
+~0.26 s of wire transmission per rank, well within the 10-second
+checkpoint interval considered in isolation.  The problem is not
+per-rank wall clock; it is aggregate contention.
 
-Path B's aggregate wire cost of 5 GiB per interval per 1 000 ranks
-is 62x lower than Path A's 312.5 GiB.  Depending on the network
-topology this can be the difference between checkpointing at the
-configured 10-second interval and checkpointing being backlogged.
+Aggregate across 1 000 ranks per interval: Path A is 312.5 GiB.
+On a shared fabric where per-DS ingress and cross-rank bandwidth
+compete, this saturates commodity checkpoint fabrics -- a
+100 GbE core (~11.9 GiB/s) needs ~26 s just to drain the write
+volume, exceeding the interval and backlogging subsequent
+checkpoints.  Path B's 5 GiB per interval per 1 000 ranks (~62x
+reduction) drains in roughly ~0.4 s on the same fabric,
+comfortably fitting the interval with headroom for reads,
+callbacks, and interference.  The point of the extension is not
+the per-rank wall clock but the aggregate-fabric budget:
+delta writes convert an at-the-fabric-limit workload into a
+comfortably-under-the-limit workload.
 
 ## Assumptions and Caveats
 
 The comparison above assumes:
 
 - All parity projections have the same size as data shards
-  (holds for FFV2_ENCODING_MOJETTE_SYSTEMATIC by construction;
-  FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC projections are similar
-  within the (rows + cols - 1) formula)
+  (holds for FFV2_ENCODING_MOJETTE_SYSTEMATIC by construction).
+  Non-systematic encodings are out of scope for this document
+  (see {{sec-scope}}).
 - The client can XOR at memory-bandwidth speed (holds on
   commodity hardware for 4 KiB payloads)
 - Each RPC has non-trivial fixed overhead; the small-payload path
