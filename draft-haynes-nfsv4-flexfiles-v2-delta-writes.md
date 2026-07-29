@@ -289,12 +289,12 @@ extension is out of scope here.
 
 Following the pattern in
 {{I-D.haynes-nfsv4-flexfiles-v2-chunks}} for CHUNK_*
-operations, this document allocates operation number 92 and adds
+operations, this document allocates operation number 97 and adds
 corresponding arms to the argument and result unions.  All XDR
 definitions in this document use the language of {{RFC4506}}.
 
 ~~~ xdr
-   /// const OP_CHUNK_XOR_DELTA = 92;
+   /// const OP_CHUNK_XOR_DELTA = 97;
 ~~~
 {: #fig-OP_CHUNK_XOR_DELTA title="XDR for OP_CHUNK_XOR_DELTA" }
 
@@ -910,14 +910,15 @@ the capability conjunction structurally excludes them.
 Following the pattern established by the FFv2 family
 ({{I-D.haynes-nfsv4-flexfiles-v2-chunks}}) that operation numbers
 in the layout-type-scoped opnum space are assigned by publication
-of the specifying document, operation number 92 is assigned to
+of the specifying document, operation number 97 is assigned to
 CHUNK_XOR_DELTA by publication of this document.  No IANA action
 is requested for the operation number.  The CHUNK_* cluster in the
-FFv2 op-number allocation is therefore 78-88 plus 92, with 89-91
+FFv2 op-number allocation is therefore 78-88 plus 97, with 89-91
 occupied by the STATEID control-ops cluster from
-{{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}}; this documents a
-small non-contiguity that reflects allocation order rather than any
-structural distinction.
+{{I-D.haynes-nfsv4-flexfiles-v2-trust-stateid}} and 92-96 reserved
+for a forthcoming proxy-server document and its EXCHANGE_RANGE
+companion; this documents a small non-contiguity that reflects
+allocation order rather than any structural distinction.
 
 This document requests the following IANA actions:
 
