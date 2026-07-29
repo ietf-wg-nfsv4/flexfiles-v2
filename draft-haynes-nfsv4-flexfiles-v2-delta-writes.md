@@ -36,12 +36,12 @@ normative:
   I-D.haynes-nfsv4-flexfiles-v2-requirements:
   I-D.haynes-nfsv4-flexfiles-v2-chunks:
   I-D.haynes-nfsv4-flexfiles-v2-encoding-registry:
+  I-D.haynes-nfsv4-flexfiles-v2-mojette:
+  I-D.haynes-nfsv4-flexfiles-v2-trust-stateid:
 
 informative:
   I-D.haynes-nfsv4-flexfiles-v2:
   I-D.haynes-nfsv4-flexfiles-v2-layout:
-  I-D.haynes-nfsv4-flexfiles-v2-mojette:
-  I-D.haynes-nfsv4-flexfiles-v2-trust-stateid:
   MOJETTE-1995:
     title: "The Mojette Transform: Application to Image Coding"
     author:
@@ -52,43 +52,20 @@ informative:
 --- abstract
 
 The Flexible File Version 2 (FFv2) pNFS layout type
-{{I-D.haynes-nfsv4-flexfiles-v2}} defines a chunk-oriented data-server
-protocol where every write is a full-chunk payload replaced atomically
-at the data server.  For workloads that make small edits to files
-protected by an XOR-based erasure encoding -- notably the HPC
-checkpoint workload class named in the Use Cases section of
-{{I-D.haynes-nfsv4-flexfiles-v2-requirements}} -- the atomic-chunk
-write model forces the client to fetch the
-old stripe, re-encode, and transmit the new stripe on every edit, with
-wire amplification of three to four orders of magnitude on a
-per-byte-edited basis.
-
-This document defines an optional extension, CHUNK_XOR_DELTA, that
-lets a client transmit a per-projection XOR delta directly to each
-data server holding a projection of the affected stripe.  The data
-server applies the delta locally without fetching or reconstructing
-the stripe.  The extension is restricted to erasure encodings whose parity is
-defined as an XOR combination of source bytes AND whose data-shard
-bytes are directly readable from a single projection -- the
-systematic subset (FFV2_ENCODING_MIRRORED,
-FFV2_ENCODING_MOJETTE_SYSTEMATIC, FFV2_ENCODING_XOR_PARITY) -- and
-to checksum algorithms whose value is XOR-affine (the CRC family).
-Non-systematic encodings such as
-FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC are excluded from this
-document: recovering D_old to compute the delta requires reading k
-projections and running the inverse transform, which is the
-read-modify-write cost delta writes exist to eliminate.  Support
-for non-systematic and non-XOR encodings is deferred to a
-gf-delta-writes follow-up.  Capability is derived from the
-layout's declared encoding and checksum algorithm via registry
-lookup; no new layout field is introduced.
-
-The atomicity, concurrency, and repair semantics required by delta
-writes are expressed in terms of the existing chunk state machine
-defined in {{I-D.haynes-nfsv4-flexfiles-v2-chunks}}
-(chunk_guard4 CAS, CHUNK_FINALIZE, CHUNK_ROLLBACK); delta epochs
-themselves are introduced by this document.  No new commit protocol
-is introduced.
+{{I-D.haynes-nfsv4-flexfiles-v2}} defines a chunk-oriented
+data-server protocol in which every write is a full-chunk payload.
+For workloads that make small edits to files protected by an
+XOR-based erasure encoding, this forces client-side stripe fetch,
+re-encode, and transmit on every edit, with wire amplification of
+three to four orders of magnitude per byte edited.  This document
+defines an optional extension, CHUNK_XOR_DELTA, that lets a client
+transmit a per-projection XOR delta directly to each data server
+holding a projection of the affected stripe; the data server
+applies the delta locally.  The extension is restricted to
+XOR-linear systematic encodings and XOR-affine checksums, using
+the existing chunk state machine
+({{I-D.haynes-nfsv4-flexfiles-v2-chunks}}) with no new commit
+protocol.
 
 --- middle
 
@@ -361,7 +338,8 @@ definitions in this document use the language of {{RFC4506}}.
    ///     uint32_t                  cxda_flags;
    ///     chunk_guard4              cxda_guard;
    ///     chunk_guard4              cxda_predecessor_guard;
-   ///     chunk_xor_delta_entry4 cxda_deltas<CHUNK_XOR_DELTA_MAX_ENTRIES>;
+   ///     chunk_xor_delta_entry4
+   ///                        cxda_deltas<CHUNK_XOR_DELTA_MAX_ENTRIES>;
    /// };
 ~~~
 {: #fig-CHUNK_XOR_DELTA4args title="XDR for CHUNK_XOR_DELTA4args" }
@@ -697,9 +675,9 @@ open delta epoch, the DS MUST:
 
 - Verify that the recorded delta-log sequence numbers form a
   contiguous range from 1 to some N (no gaps).  If gaps are present,
-  reject with NFS4ERR_DELTA_INCOMPLETE and DO NOT discard the log --
-  the client may retry the missing deltas and re-attempt
-  CHUNK_FINALIZE.
+  reject with NFS4ERR_DELTA_INCOMPLETE and DO NOT discard the log;
+  the client MAY retry the missing deltas and re-attempt
+  CHUNK_FINALIZE (see {{sec-gap-recovery}}).
 - Compute the new envelope checksum per {{sec-checksum}}
 - Assign the new chunk generation identifier
 - Transition the chunk to FINALIZED
