@@ -9008,16 +9008,16 @@ payload is ceil(len(cwa_chunks) / cwa_chunk_size).
 
 cwa_owner ({{fig-chunk_owner4}}) names the writer's
 chunk_owner4: cg_gen_id is the writer's per-chunk
-generation counter, cg_client_id is the writer's
-metadata-server-assigned client identifier (the reserved
-sentinels CHUNK_GUARD_CLIENT_ID_NONE and
-CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear in cwa_owner;
-see {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}),
-and co_id is the chunk-index identifier of the first
-chunk in the payload (redundant with cwa_offset for a
-single-chunk write; the data server MUST treat them as
-the same value and MAY reject a mismatch with
-NFS4ERR_INVAL).
+generation counter, cg_client_id identifies the writer
+(client-chosen, with the reserved sentinels
+CHUNK_GUARD_CLIENT_ID_NONE and CHUNK_GUARD_CLIENT_ID_MDS
+that MUST NOT appear in cwa_owner; see
+{{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}),
+and co_id is a writer-chosen opaque identifier the data
+server tracks alongside cg_client_id and cg_gen_id for
+CAS-guard bookkeeping and repair correlation (typically
+a monotonic per-writer serial; the data server MUST NOT
+require co_id to equal cwa_offset).
 
 cwa_payload_id is a writer-chosen identifier that lets a
 repair coordinator correlate chunks of the same logical
