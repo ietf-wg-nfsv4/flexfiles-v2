@@ -184,13 +184,9 @@ The two parity rows are:
 
 where g = 2 is the primitive element of GF(2^8) with polynomial
 0x11d.  These are exactly the coefficients Linux md RAID6 uses
-for its P and Q shards, exactly the first two rows of ISA-L's
-Reed-Solomon Vandermonde matrix, and exactly the first two
-Cauchy rows of the SnapRAID construction.  A receiver that
-speaks any of FFV2_ENCODING_LINUX_MD_RAID,
-FFV2_ENCODING_ISA_L_RS, or FFV2_ENCODING_SNAPRAID_CAUCHY at
-m <= 2 also consumes RS_VANDERMONDE at m <= 2 byte-for-byte
-(and vice versa).
+for its P and Q shards.  A receiver that speaks
+FFV2_ENCODING_LINUX_MD_RAID at m <= 2 also consumes
+RS_VANDERMONDE at m <= 2 byte-for-byte (and vice versa).
 
 ### At m >= 3: normalized Vandermonde bottom rows
 
@@ -234,8 +230,7 @@ Vandermonde encoding matrix, constructed as follows.
 The identity block makes the code systematic: data shards pass through
 unchanged, and only the parity sub-matrix P is needed during encoding.
 These bottom rows do not match any external encoding at m >= 3;
-implementations that need cross-family interop at m >= 3 SHOULD use
-FFV2_ENCODING_ISA_L_RS or FFV2_ENCODING_SNAPRAID_CAUCHY instead.
+this encoding stands on its own at m >= 3.
 
 ## Encoding
 
@@ -297,11 +292,9 @@ These parameters fully determine the encoding matrix for any
 (k, m) configuration in the permitted range.  The m <= 2 case
 was chosen (revision from earlier drafts) to make
 RS_VANDERMONDE byte-for-byte interoperable with
-FFV2_ENCODING_LINUX_MD_RAID, FFV2_ENCODING_SNAPRAID_CAUCHY,
-and FFV2_ENCODING_ISA_L_RS at m <= 2, so that a receiver
-that speaks any one of the four consumes any of the others'
-output without re-encoding.  See the wire-compat
-cross-references in
+FFV2_ENCODING_LINUX_MD_RAID at m <= 2, so that a receiver
+that speaks either encoding consumes the other's output
+without re-encoding.  See the wire-compat cross-references in
 {{I-D.haynes-nfsv4-flexfiles-v2-encoding-registry}}
 `sec-encoding-linux-md-raid-annex`.
 

@@ -206,12 +206,11 @@ XOR-linear encoding:
   (D_old readable from a single projection).
   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC is XOR-linear but not
   systematic: recovering D_old requires reading k projections and
-  inverting the transform.  FFV2_ENCODING_RS_VANDERMONDE,
-  FFV2_ENCODING_ISA_L_RS, and FFV2_ENCODING_SNAPRAID_CAUCHY are
-  not XOR-linear at all (they are linear over GF(2^8), which
-  requires per-coefficient multiplication that XOR alone does not
-  express).  Only the XOR-linear AND systematic subset qualifies
-  for CHUNK_XOR_DELTA under this document.
+  inverting the transform.  FFV2_ENCODING_RS_VANDERMONDE is not
+  XOR-linear at all (it is linear over GF(2^8), which requires
+  per-coefficient multiplication that XOR alone does not express).
+  Only the XOR-linear AND systematic subset qualifies for
+  CHUNK_XOR_DELTA under this document.
 
 XOR-affine checksum:
 
@@ -277,8 +276,7 @@ the read-modify-write cost this document exists to eliminate.
 
 This document adds the EC_ENC_FLAGS_XOR_DELTA_CAPABLE flag to the
 encoding registry.  Encodings that do not qualify
-(FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_ISA_L_RS,
-FFV2_ENCODING_SNAPRAID_CAUCHY; also FFV2_ENCODING_LINUX_MD_RAID for
+(FFV2_ENCODING_RS_VANDERMONDE; also FFV2_ENCODING_LINUX_MD_RAID for
 its Q shard) MAY be extended by a separate document defining a
 GF-multiply-per-parity variant of the delta-write operation; that
 extension is out of scope here.
@@ -949,8 +947,6 @@ Initial assignments:
   P shard alone is not sufficient to support delta writes on the
   full parity set)
 - FFV2_ENCODING_RS_VANDERMONDE: CLEAR
-- FFV2_ENCODING_SNAPRAID_CAUCHY: CLEAR
-- FFV2_ENCODING_ISA_L_RS: CLEAR
 - FFV2_ENCODING_PASSTHROUGH: not applicable -- PASSTHROUGH layouts
   do not carry the chunk envelope this document operates on;
   CHUNK_XOR_DELTA is undefined for PASSTHROUGH layouts and a data
