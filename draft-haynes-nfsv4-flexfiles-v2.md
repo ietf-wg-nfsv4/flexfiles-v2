@@ -1882,9 +1882,10 @@ each erasure coding, we define a new Erasure Coding Type.  The
 encoding types this document defines fall into two groups:
 
 -  FFV2_ENCODING_PASSTHROUGH is the non-chunked, non-integrity
-   on-ramp from flexible file v1 layout.  It uses NFSv3 WRITE / READ directly
-   against each replica's data server.  No CHUNK_WRITE, no
-   CHUNK_READ, no per-chunk CRC.  See {{sec-encoding-passthrough}}.
+   on-ramp from flexible file v1 layout.  It uses NFSv3 WRITE / READ
+   or NFSv4 READ / WRITE directly against each replica's data server.
+   No CHUNK_WRITE, no CHUNK_READ, no per-chunk CRC.  See
+   {{sec-encoding-passthrough}}.
 
 -  FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
    FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
@@ -5372,7 +5373,8 @@ Erasure-coded reads:
 
 Rollback invariant:
 :  The data server MUST retain the prior FINALIZED or COMMITTED
-   content of a chunk while any successor PENDING chunk exists.
+   content of a chunk while any successor PENDING or FINALIZED
+   chunk exists.
    A corollary of this rule is the **lowest-guard-recoverable**
    property: as long as at least k data servers in the mirror
    set retain the chunk at some generation G or lower, the
@@ -5403,8 +5405,8 @@ Visibility of non-committed state:
 
 The rollback invariant in {{sec-system-model-consistency}}
 requires a data server to retain the prior FINALIZED or
-COMMITTED content of a chunk while any successor PENDING chunk
-exists.  That retained content -- sometimes informally called
+COMMITTED content of a chunk while any successor PENDING or
+FINALIZED chunk exists.  That retained content -- sometimes informally called
 the "safe buffer" -- is not global state.  It is scoped to the
 stateid that wrote the PENDING successor, and its retention and
 visibility are governed by that owning stateid's lease.
@@ -5825,16 +5827,19 @@ control-plane operation.
 This rule explicitly covers truncate (SETATTR with size in the
 bitmap): a client MUST NOT truncate a data file directly.  See
 {{sec-mds-truncate-ec}} for how the metadata server handles
-truncate on erasure-coded files.  Similarly, a client MUST NOT
+truncate on chunked files.  Similarly, a client MUST NOT
 issue DEALLOCATE against a data file; see the next subsection.
 
-### MDS-Driven Truncate on Erasure-Coded Files {#sec-mds-truncate-ec}
+### MDS-Driven Truncate on Chunked Files {#sec-mds-truncate-ec}
 
-A client that wants to truncate an erasure-coded file MUST
+A client that wants to truncate a chunked file MUST
 issue SETATTR(FATTR4_SIZE) to the metadata-server filehandle
 (see {{sec-setattr-on-data-file}}).  The metadata server
 translates the logical truncate into per-shard size changes
-across the data servers in each mirror.
+across the data servers in each mirror.  For
+FFV2_ENCODING_MIRRORED, per-shard size equals the logical
+truncate size; for erasure-coded encodings the per-shard sizes
+are derived from the geometry parameters below.
 
 Stripe-aligned truncate:
 :  When the new size lies on a stripe boundary (including
@@ -5893,16 +5898,18 @@ The client MUST NOT send:
    on the metadata-server filehandle, and the metadata server
    fans out to the data servers as a control-plane operation.
 
-### Chunked Data Files (FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_*, FFV2_ENCODING_RS_VANDERMONDE)
+### Chunked Data Files
 
 For a mirror whose ffv2m_coding_type_data is any of the chunked
-coding types defined in this document
-(FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
-FFV2_ENCODING_RS_VANDERMONDE), client operations use the CHUNK_*
-operations rather than READ / WRITE / COMMIT.
+coding types defined in this document -- i.e., every
+FFV2_ENCODING_* value except FFV2_ENCODING_PASSTHROUGH (see
+{{sec-encoding-passthrough}}) -- client operations use the
+CHUNK_* operations rather than READ / WRITE / COMMIT.  This
+includes FFV2_ENCODING_MIRRORED despite its name: the "mirrored"
+refers to the encoding's verbatim payload replication, not to
+the wire dispatch (see {{tbl-ops-allowed}} legend).
 
-Required for all erasure-coded clients:
+Required for all chunked clients:
 
 -  CHUNK_WRITE ({{sec-CHUNK_WRITE}}).
 -  CHUNK_READ ({{sec-CHUNK_READ}}).
@@ -5921,14 +5928,15 @@ Required for clients that participate in repair:
 
 Clients MUST NOT send:
 
--  READ, WRITE, COMMIT against an erasure-coded data file.  A
+-  READ, WRITE, COMMIT against a chunked data file.  A
    data server MUST reject these with NFS4ERR_NOTSUPP and MAY
    log the client for operator attention; this case is almost
    always a client bug in which the client did not inspect the
    mirror's ffv2m_coding_type_data before issuing I/O.
--  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against an erasure-coded data file.  Chunk-level allocation is a
-   metadata-server responsibility.
--  SETATTR against an erasure-coded data file (the general
+-  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against a chunked
+   data file.  Chunk-level allocation is a metadata-server
+   responsibility.
+-  SETATTR against a chunked data file (the general
    prohibition in {{sec-setattr-on-data-file}} applies to all
    data files; truncate in particular is handled by the
    metadata server per {{sec-mds-truncate-ec}}).
@@ -5945,8 +5953,8 @@ MUST return NFS4ERR_NOTSUPP:
    data path.
 -  LOCK, LOCKU, LOCKT, RELEASE_LOCKOWNER ({{RFC8881}} Sections
    18.10, 18.11, 18.13, 18.24).  Byte-range locks on data files
-   are not supported; erasure-coded files use CHUNK_LOCK, and
-   mirrored files rely on metadata-server coordination.
+   are not supported; chunked files use CHUNK_LOCK, and
+   PASSTHROUGH files rely on metadata-server coordination.
 -  DELEGPURGE, DELEGRETURN, WANT_DELEGATION ({{RFC8881}} Sections
    18.5, 18.6 and {{RFC7862}} Section 15.3).  Delegations are
    issued by the metadata server.
@@ -6031,11 +6039,11 @@ MAY:
  | GETATTR                           | OPTIONAL (non-authoritative) | REQUIRED         |
  | SETATTR                           | MUST NOT                   | REQUIRED           |
  | LOOKUP, CREATE, REMOVE            | MUST NOT                   | REQUIRED           |
- | READ, WRITE, COMMIT               | REQUIRED (mirrored); MUST NOT (erasure-coded) | MAY |
- | READ_PLUS, SEEK, ALLOCATE         | OPTIONAL (mirrored); MUST NOT (erasure-coded) | MAY |
+ | READ, WRITE, COMMIT               | REQUIRED (PASSTHROUGH); MUST NOT (chunked) | MAY |
+ | READ_PLUS, SEEK, ALLOCATE         | OPTIONAL (PASSTHROUGH); MUST NOT (chunked) | MAY |
  | DEALLOCATE                        | MUST NOT                   | MAY                |
- | CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_HEADER_READ, CHUNK_LOCK, CHUNK_UNLOCK, CHUNK_ROLLBACK | REQUIRED (erasure-coded); MUST NOT (mirrored) | not used |
- | CHUNK_ERROR, CHUNK_REPAIRED, CHUNK_WRITE_REPAIR | REQUIRED (erasure-coded repair clients); MUST NOT (mirrored) | not used |
+ | CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_HEADER_READ, CHUNK_LOCK, CHUNK_UNLOCK, CHUNK_ROLLBACK | REQUIRED (chunked); MUST NOT (PASSTHROUGH) | not used |
+ | CHUNK_ERROR, CHUNK_REPAIRED, CHUNK_WRITE_REPAIR | REQUIRED (chunked repair clients); MUST NOT (PASSTHROUGH) | not used |
  | OPEN, CLOSE, OPEN_DOWNGRADE, OPEN_CONFIRM | MUST NOT           | OPTIONAL (proxy I/O) |
  | LOCK, LOCKU, LOCKT, RELEASE_LOCKOWNER | MUST NOT               | MUST NOT           |
  | DELEGPURGE, DELEGRETURN, WANT_DELEGATION | MUST NOT            | MUST NOT           |
@@ -6045,6 +6053,24 @@ MAY:
  | ACL-scoped GETATTR/SETATTR bits   | MUST NOT                   | MAY                |
  | TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID | MUST NOT  | REQUIRED (tight coupling) |
 {: #tbl-ops-allowed title="NFSv4.2 operations allowed on data files"}
+
+The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-
+server column select by the mirror's ffv2m_coding_type_data value.
+FFV2_ENCODING_PASSTHROUGH ({{sec-encoding-passthrough}}) uses
+NFSv3 WRITE / READ or NFSv4 READ / WRITE directly and does not
+use the CHUNK operations.  Every other standards-track encoding
+-- FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
+FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_XOR_PARITY, and
+FFV2_ENCODING_LINUX_MD_RAID -- is (chunked): it uses CHUNK_WRITE
+({{sec-CHUNK_WRITE}}) and CHUNK_READ ({{sec-CHUNK_READ}}) and
+MUST NOT use the RFC 8881 READ / WRITE / COMMIT operations
+against the data server.  FFV2_ENCODING_MIRRORED is (chunked)
+despite its name -- the "mirrored" refers to the encoding's
+verbatim replication of the payload, not to the wire dispatch;
+it uses the CHUNK operations for the per-chunk checksum this
+version of the layout type relies on for end-to-end integrity
+({{sec-encoding-mirrored}}).
 
 
 #  Flexible File Version 2 Layout Type Return {#sec-layouthint}
@@ -6459,17 +6485,17 @@ Tightly coupled, trusted stateid:
    across a data server.  Subsequent I/O from the revoked
    client carrying the revoked stateid receives
    NFS4ERR_BAD_STATEID.  This is the preferred mechanism for
-   erasure-coded layouts because it is per-client and avoids
-   the FFv1 limitation of fencing all clients on a data file
-   when only one needs to be revoked.
+   chunked layouts because it is per-client and avoids the
+   FFv1 limitation of fencing all clients on a data file when
+   only one needs to be revoked.
 
 Mixed:
 :  A metadata server MAY combine the two mechanisms when a
    file's layout includes both PASSTHROUGH mirrors (where
-   stateid registration is not in play) and erasure-coded
-   mirrors with trusted stateids.  The metadata server rotates
+   stateid registration is not in play) and chunked mirrors
+   with trusted stateids.  The metadata server rotates
    synthetic ids for the PASSTHROUGH mirror's data file and
-   issues REVOKE_STATEID for the erasure-coded mirror's data
+   issues REVOKE_STATEID for the chunked mirror's data
    servers.
 
 #  New NFSv4.2 Error Values
@@ -7187,10 +7213,14 @@ cca_offset:
 
 cca_count:
 :  number of chunks the range covers, starting at
-   cca_offset.  A zero cca_count, or a cca_offset beyond
-   the data server's highest chunk, is not an error; the
-   data server returns NFS4_OK with an empty ccr_status
-   array.
+   cca_offset.  When cca_count is zero, the client MUST
+   also supply an empty cca_chunks array, and the data
+   server returns NFS4_OK with an empty ccr_status array.
+   A cca_offset beyond the data server's highest chunk
+   with a non-zero cca_count is not itself an error at the
+   operation level: the data server evaluates each
+   cca_chunks entry per its normal per-entry rules and
+   returns the co-indexed ccr_status.
 
 cca_chunks:
 :  an array of chunk_owner4 entries
@@ -7310,7 +7340,7 @@ and the CHUNK_WRITE per-block status array reports only
 local-failure cases (NFS4ERR_NOSPC, NFS4ERR_IO, and so on).
 
 Same-compound pipelining is NOT RECOMMENDED in multiple-writer
-mode.  CHUNK_WRITE reports per-block outcomes in cwr_status
+mode.  CHUNK_WRITE reports per-block outcomes in cwr_block_status
 ({{sec-CHUNK_WRITE}}); a partial-success outcome (some chunks
 accepted, others rejected with NFS4ERR_CHUNK_GUARDED on a lost
 race) leaves the client without an opportunity to react before
@@ -7617,10 +7647,14 @@ cfa_offset:
 
 cfa_count:
 :  number of chunks the range covers, starting at
-   cfa_offset.  A zero cfa_count, or a cfa_offset beyond
-   the data server's highest chunk, is not an error; the
-   data server returns NFS4_OK with an empty cfr_status
-   array.
+   cfa_offset.  When cfa_count is zero, the client MUST
+   also supply an empty cfa_chunks array, and the data
+   server returns NFS4_OK with an empty cfr_status array.
+   A cfa_offset beyond the data server's highest chunk
+   with a non-zero cfa_count is not itself an error at the
+   operation level: the data server evaluates each
+   cfa_chunks entry per its normal per-entry rules and
+   returns the co-indexed cfr_status.
 
 cfa_chunks:
 :  an array of chunk_owner4 entries
@@ -8420,7 +8454,7 @@ synthetic zero-filled payload.
   |             cg_client_id: 6    |
   |     cr_payload_id: 1           |
   |     cr_chunk: ....             |
-  | crr_chunks[0]:                 |
+  | crr_chunks[1]:                 |
   |     cr_checksum: 0xdeade4e5    |
   |     cr_owner:                  |
   |         co_chunk_id: 3         |
@@ -8429,7 +8463,7 @@ synthetic zero-filled payload.
   |             cg_client_id: 0    |
   |     cr_payload_id: 1           |
   |     cr_chunk: 0000...00000     |
-  | crr_chunks[0]:                 |
+  | crr_chunks[2]:                 |
   |     cr_checksum: 0x7778abcd    |
   |     cr_owner:                  |
   |         co_chunk_id: 4         |
@@ -8631,6 +8665,7 @@ NFS4ERR_SERVERFAULT:
 ~~~ xdr
    /// struct CHUNK_ROLLBACK4resok {
    ///     verifier4       crr_writeverf;
+   ///     nfsstat4        crr_chunk_status<>;
    /// };
 ~~~
 {: #fig-CHUNK_ROLLBACK4resok title="XDR for CHUNK_ROLLBACK4resok" }
@@ -8685,9 +8720,8 @@ cra_chunks:
    back.  Each entry's co_id MUST fall within
    [cra_offset, cra_offset + cra_count); entries outside
    the range are rejected with NFS4ERR_INVAL in the
-   corresponding crr_status slot (the result struct is
-   sized to match cra_chunks).  The reserved sentinels
-   CHUNK_GUARD_CLIENT_ID_NONE and
+   corresponding crr_chunk_status slot.  The reserved
+   sentinels CHUNK_GUARD_CLIENT_ID_NONE and
    CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
    cg_client_id of any cra_chunks entry; see
    {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
@@ -8697,6 +8731,21 @@ The CHUNK_ROLLBACK result returns:
 crr_writeverf:
 :  a verifier identifying the data server's incarnation.
    Semantics match cwr_writeverf in CHUNK_WRITE.
+
+crr_chunk_status:
+:  per-chunk rollback status, one entry per cra_chunks
+   entry, co-indexed.  NFS4_OK indicates that the named
+   generation was reverted (either to a retained
+   predecessor COMMITTED or FINALIZED generation, or to
+   EMPTY when no predecessor exists).  NFS4ERR_INVAL
+   indicates the named generation is not in PENDING or
+   FINALIZED at the named co_id (the chunk is EMPTY or
+   COMMITTED, or the chunk_owner4 does not match the
+   generation the data server holds), or co_id is outside
+   [cra_offset, cra_offset + cra_count).  Other per-entry
+   failures use the appropriate NFS4ERR_* code; the
+   top-level operation status is NFS4_OK as long as the
+   data server could evaluate each entry.
 
 CHUNK_ROLLBACK has two principal scenarios:
 
@@ -8730,7 +8779,7 @@ The data server effects the rollback as follows:
 
 -  Chunks not in PENDING or FINALIZED at the named
    generation, or whose chunk_owner4 does not match: the
-   corresponding crr_status slot reports NFS4ERR_INVAL
+   corresponding crr_chunk_status slot reports NFS4ERR_INVAL
    and the chunk is left unchanged.
 
 #### Rollback of COMMITTED Chunks
