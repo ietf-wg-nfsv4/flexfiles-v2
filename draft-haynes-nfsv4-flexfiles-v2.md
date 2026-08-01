@@ -11550,12 +11550,22 @@ for the new callback operation defined in this document.
    ///     nfsstat4        ccr_error;
    /// };
    ///
+   /// /* Upper bound on the number of ranges named in a
+   ///  * single CB_CHUNK_REPAIR (bounds both ccra_ranges
+   ///  * and its co-indexed ccrr_range_status).  Draft-
+   ///  * edit constant; recommend a modest value that
+   ///  * lets one callback describe a coherent repair
+   ///  * batch without unbounded growth. */
+   /// const uint32_t   CB_CHUNK_REPAIR_MAX_RANGES4 = 64;
+   ///
    /// struct CB_CHUNK_REPAIR4args {
    ///     nfs_fh4                     ccra_fh;
    ///     stateid4                    ccra_layout_stateid;
    ///     nfstime4                    ccra_deadline;
    ///     cb_chunk_repair_reason4     ccra_reason;
-   ///     cb_chunk_range4             ccra_ranges<>;
+   ///     escrow_id4                  ccra_escrow_id;
+   ///     cb_chunk_range4
+   ///         ccra_ranges<CB_CHUNK_REPAIR_MAX_RANGES4>;
    /// };
 ~~~
 {: #fig-CB_CHUNK_REPAIR4args title="XDR for CB_CHUNK_REPAIR4args" }
@@ -11564,7 +11574,9 @@ for the new callback operation defined in this document.
 
 ~~~ xdr
    /// struct CB_CHUNK_REPAIR4res {
-   ///     nfsstat4           ccrr_status;
+   ///     nfsstat4        ccrr_status;
+   ///     nfsstat4
+   ///         ccrr_range_status<CB_CHUNK_REPAIR_MAX_RANGES4>;
    /// };
 ~~~
 {: #fig-CB_CHUNK_REPAIR4res title="XDR for CB_CHUNK_REPAIR4res" }
@@ -11658,13 +11670,33 @@ ccra_reason:
    deadline contract.  Only the priority and retry
    behaviour differs.
 
+ccra_escrow_id:
+:  the escrow_id4 ({{sec-escrow_id4}}) of the MDS-escrow
+   lock the metadata server installed to cover every
+   range in this callback.  The client presents this
+   same escrow_id4 in the cla_adopt discriminant of the
+   CHUNK_LOCK request that adopts the escrow (see
+   {{sec-CHUNK_LOCK}} "Lock Transfer via
+   CHUNK_LOCK_FLAGS_ADOPT"); the data server matches on
+   full identity, so a callback ranges over a single
+   escrow identity.  If the repair spans ranges the
+   metadata server installed under distinct escrow
+   identities (for example, when a multi-data-server
+   repair needs its own escrow per data server), the
+   metadata server MUST issue one CB_CHUNK_REPAIR per
+   escrow identity rather than mixing them into a
+   single callback.
+
 ccra_ranges:
 :  the list of every chunk range the metadata server
    requests the client to repair.  Each entry carries its
    own ccr_error describing the failure mode the client
    is being asked to remedy.  The repair strategy depends
    on the error code; see {{sec-repair-selection}} for
-   the normative and guidance split.
+   the normative and guidance split.  The array is
+   bounded by CB_CHUNK_REPAIR_MAX_RANGES4; if a repair
+   set exceeds that bound, the metadata server splits
+   it across multiple callbacks.
 
 The metadata server SHOULD keep each CB_CHUNK_REPAIR
 compound within the back-channel maximum
@@ -11685,10 +11717,39 @@ CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT
 issuing CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK, or CHUNK_WRITE
 on any chunk in a requested range.
 
-CB_CHUNK_REPAIR returns only a top-level status in
-ccrr_status; see "RESPONSE CODES" below for the normative
-meanings the metadata server attaches to each returned
-nfsstat4.
+CB_CHUNK_REPAIR returns a top-level ccrr_status plus a
+co-indexed per-range status array ccrr_range_status:
+
+- **Operation-wide errors** (decode failure,
+  authorization failure, session-stale, and other
+  conditions that fail every range at once): the
+  operation-wide error is placed in ccrr_status and
+  ccrr_range_status MUST be empty (zero entries).
+- **Per-range dispositions** (the callback is
+  otherwise well-formed and evaluated per range):
+  ccrr_range_status carries exactly one nfsstat4 per
+  entry in ccra_ranges, co-indexed.  The top-level
+  ccrr_status in this case is one of:
+    - **NFS4_OK**: every range reached CHUNK_REPAIRED
+      or CHUNK_UNLOCK per the completion contract;
+      every ccrr_range_status entry is NFS4_OK.
+    - **NFS4ERR_PARTIAL** ({{sec-NFS4ERR_PARTIAL}}): at
+      least one range did not reach the completion
+      state.  The metadata server MUST consume the
+      ccrr_range_status array to determine per-range
+      outcome; the array is authoritative.  A
+      NFS4ERR_PARTIAL response with an empty array
+      is malformed and MUST be rejected.
+
+The precedence rule between top-level and per-range
+status is that a non-empty ccrr_range_status pairs
+only with NFS4_OK or NFS4ERR_PARTIAL at the top
+level; every other top-level nfsstat4 carries an
+empty ccrr_range_status.
+
+See "RESPONSE CODES" below for the normative
+meanings the metadata server attaches to each
+returned top-level nfsstat4.
 
 ### RESPONSE CODES
 
