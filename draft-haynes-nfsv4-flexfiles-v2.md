@@ -12729,6 +12729,79 @@ The "Class" column in {{tbl-checksum-algorithms}} is
 informational and indicates the threat model the algorithm
 supports; see {{sec-security-checksum-scope}}.
 
+##  Proof-Profile Registry {#iana-proof-profile}
+
+This document introduces the "Flexible File Version 2
+Proof-Profile Registry".  Values in this registry name
+the proof_profile_id4 ({{sec-proof-profile}}) that a
+metadata server presents in CHUNK_ESCROW_TAKEOVER
+({{sec-CHUNK_ESCROW_TAKEOVER}}) to identify which
+incarnation-lease proof format the accompanying
+ceta_proof_data carries.
+
+The registry uses a 32-bit value space.  Registration
+policy is Specification Required {{RFC8126}}; the
+Designated Expert reviews each request for:
+
+-  a complete and publicly available specification of
+   the proof format sufficient for independent
+   interoperable implementations (envelope, signature
+   algorithm, payload field set, replay-cache
+   semantics, and expiry handling);
+
+-  compatibility with the strict evaluation ordering
+   specified in {{sec-proof-profile}} (session replay
+   → presenter authorization → profile support →
+   proof verification → epoch compare-and-advance);
+   a registration whose verification cannot be
+   evaluated after presenter authorization MUST be
+   declined;
+
+-  a clear statement of the trust anchor the profile
+   relies on (deployment-provisioned public key set,
+   Kerberos KDC, etc.), and whether the profile
+   requires wire negotiation of any parameter (a
+   profile that requires wire negotiation not
+   defined in this document or its cited references
+   MUST be declined).
+
+The mandatory-to-implement profile defined in
+{{sec-proof-profile}} is registered with a specific
+value from this registry (draft-edit constant; the
+final value MUST be assigned before publication).
+Registrations for the optional profiles enumerated
+in {{sec-proof-profile}} (ECDSA-P256 alg -7,
+RSASSA-PSS-SHA256 alg -37, or HA-manager-native
+tokens) MAY be added later per the Specification
+Required policy above.
+
+##  New Status Codes {#iana-nfsstat4}
+
+This document registers new values in the "NFSv4
+Status Codes" registry {{RFC8881}}.  The initial
+FFv2 error additions
+(NFS4ERR_CODING_NOT_SUPPORTED through
+NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED, values 10097
+through 10102) were registered by the initial FFv2
+publication; the five additional values introduced
+by the A.1b family are listed in
+{{tbl-iana-nfsstat4-additions}}.
+
+ | Name | Value | Reference |
+ | ---
+ | NFS4ERR_NO_PREDECESSOR    | 10103 | {{sec-NFS4ERR_NO_PREDECESSOR}} |
+ | NFS4ERR_NO_ADOPTABLE_LOCK | 10104 | {{sec-NFS4ERR_NO_ADOPTABLE_LOCK}} |
+ | NFS4ERR_STALE_ESCROW      | 10105 | {{sec-NFS4ERR_STALE_ESCROW}} |
+ | NFS4ERR_STALE_MDS_EPOCH   | 10106 | {{sec-NFS4ERR_STALE_MDS_EPOCH}} |
+ | NFS4ERR_PARTIAL           | 10107 | {{sec-NFS4ERR_PARTIAL}} |
+{: #tbl-iana-nfsstat4-additions title="Status Code Additions"}
+
+The numeric value 10107 for NFS4ERR_PARTIAL is
+provisional and subject to a collision scan against
+the current NFSv4 Status Codes registry at
+publication time; the other four values are
+requested as listed.
+
 #  XDR Description of the Flexible File Version 2 Layout Type
 
 This document contains the External Data Representation (XDR)
