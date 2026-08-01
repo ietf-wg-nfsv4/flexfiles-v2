@@ -5618,10 +5618,16 @@ one while retaining the other:
   those operations name generations by full owner
   triple ({{sec-chunk_owner4}}).  A data server that
   cannot locate the recorded chunk index for a
-  presented triple returns NFS4ERR_INVAL per each
-  operation's per-entry rules; retaining the payload
-  while making it unaddressable serves no purpose and
-  is prohibited.  The payload MUST be released
+  presented triple returns the appropriate per-entry
+  error under the release-scope split at
+  {{sec-NFS4ERR_NO_PREDECESSOR}}: NFS4ERR_INVAL when
+  the data server holds a concrete invalidation
+  context that identifies the triple (structurally
+  invalid, or released by an explicit CHUNK_ROLLBACK
+  delete case within the session slot's replay-cache
+  window), NFS4ERR_NO_PREDECESSOR otherwise.
+  Retaining the payload while making it unaddressable
+  serves no purpose and is prohibited.  The payload MUST be released
   atomically with the association.
 - **MUST NOT release association while retaining
   payload.**  A recorded owner-to-index association
@@ -6893,7 +6899,7 @@ An implementation following the no-tombstone model
 cannot distinguish "the data server never recorded
 this triple" from "the data server recorded and later
 released this triple" outside a live invalidation
-context, and this specification does NOT require it
+context, and this specification does not require it
 to: both cases resolve to NFS4ERR_NO_PREDECESSOR under
 (c) above.  The two errors are
 not interchangeable: NFS4ERR_INVAL is a caller-side
@@ -7099,7 +7105,7 @@ are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
  | ---
  | NFS4ERR_CODING_NOT_SUPPORTED     | CB_CHUNK_REPAIR, LAYOUTGET  |
  | NFS4ERR_PAYLOAD_NOT_ATOMIC       | CHUNK_READ                  |
- | NFS4ERR_CHUNK_LOCKED             | CHUNK_WRITE, CHUNK_ESCROW_INSTALL |
+ | NFS4ERR_CHUNK_LOCKED             | CHUNK_LOCK, CHUNK_WRITE, CHUNK_ESCROW_INSTALL |
  | NFS4ERR_CHUNK_GUARDED            | CHUNK_WRITE                 |
  | NFS4ERR_PAYLOAD_LOST             | CB_CHUNK_REPAIR             |
  | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | LAYOUTGET              |
@@ -9862,16 +9868,20 @@ crr_chunk_status:
    generation was reverted (either to a retained
    predecessor COMMITTED or FINALIZED generation, or to
    EMPTY when no predecessor exists).  NFS4ERR_INVAL
-   indicates the named generation is not in PENDING or
-   FINALIZED at its recorded chunk index (the chunk is
-   EMPTY or COMMITTED at that index, or the triple does
-   not match any recorded owner association on this
-   data server for this file), or the recorded chunk
-   index lies outside [cra_offset, cra_offset +
-   cra_count).  Other per-entry failures use the
-   appropriate NFS4ERR_* code; the top-level operation
-   status is NFS4_OK as long as the data server could
-   evaluate each entry.
+   indicates the data server holds a concrete
+   invalidation context that identifies the presented
+   triple (structurally invalid, or released by an
+   explicit CHUNK_ROLLBACK delete case within the
+   session slot's replay-cache window), or the recorded
+   chunk index lies outside [cra_offset, cra_offset +
+   cra_count).  NFS4ERR_NO_PREDECESSOR indicates the
+   data server holds no association for the presented
+   triple and no concrete invalidation context — the
+   release-scope split is defined normatively at
+   {{sec-NFS4ERR_NO_PREDECESSOR}}.  Other per-entry
+   failures use the appropriate NFS4ERR_* code; the
+   top-level operation status is NFS4_OK as long as the
+   data server could evaluate each entry.
 
 CHUNK_ROLLBACK has two principal scenarios:
 
@@ -9906,7 +9916,9 @@ The data server effects the rollback as follows:
 -  Chunks not in PENDING or FINALIZED at the named
    generation, or whose chunk_owner4 does not match: the
    corresponding crr_chunk_status slot reports NFS4ERR_INVAL
-   and the chunk is left unchanged.
+   or NFS4ERR_NO_PREDECESSOR per the release-scope split at
+   {{sec-NFS4ERR_NO_PREDECESSOR}}, and the chunk is left
+   unchanged.
 
 #### Deletion Atomicity and Invalidated Triples
 
@@ -12126,7 +12138,7 @@ authoritative: each ccrr_range_status entry maps directly to
 the co-indexed entry in ccra_ranges and is evaluated on its
 own terms (NFS4_OK, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED,
 NFS4ERR_PAYLOAD_LOST, or another per-range disposition) per
-the result contract above.  A NFS4ERR_PARTIAL response with an
+the result contract above.  An NFS4ERR_PARTIAL response with an
 empty ccrr_range_status array is malformed and the metadata
 server MUST reject the callback response.  See
 {{sec-NFS4ERR_PARTIAL}}.
