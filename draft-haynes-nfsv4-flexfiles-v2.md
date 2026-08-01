@@ -7020,7 +7020,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
  | CHUNK_COMMIT       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_ERROR        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_FINALIZE     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_REP_TOO_BIG, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_NO_ADOPTABLE_LOCK, NFS4ERR_SERVERFAULT |
  | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_REPAIRED     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
@@ -8506,21 +8506,45 @@ NFS4ERR_STALE:
 ### RESULTS
 
 ~~~ xdr
-   /// /* Upper bound on the retained-predecessor list per
-   ///  * chunk in the CHUNK_HEADER_READ response.  Draft-
-   ///  * edit constant; recommend a small value (e.g. 8)
-   ///  * consistent with typical retention scopes. */
-   /// const uint32_t   CHUNK_HEADER_READ_MAX4 = 8;
+   /// /* Upper bound on both chra_count and each of the
+   ///  * four co-indexed response arrays.  Bounds argument
+   ///  * range width and response-array width together so
+   ///  * that a caller cannot request an unbounded scan
+   ///  * and a data server cannot construct an unbounded
+   ///  * response. */
+   /// const CHUNK_HEADER_READ_MAX4 = 1024;
    ///
-   /// typedef chunk_owner4
-   ///     chunk_predecessors4<CHUNK_HEADER_READ_MAX4>;
+   /// struct retained_predecessor4 {
+   ///     chunk_owner4  rp_owner;
+   /// };
+   ///
+   /// enum retained_generation_disposition4 {
+   ///     RETAINED_GENERATION_DISPOSITION_ABSENT   = 0,
+   ///     RETAINED_GENERATION_DISPOSITION_PRESENT  = 1,
+   ///     RETAINED_GENERATION_DISPOSITION_ERRORED  = 2
+   /// };
+   ///
+   /// union optional_retained4
+   ///     switch (retained_generation_disposition4
+   ///             disposition) {
+   /// case RETAINED_GENERATION_DISPOSITION_ABSENT:
+   ///     void;
+   /// case RETAINED_GENERATION_DISPOSITION_PRESENT:
+   ///     retained_predecessor4  restorable;
+   /// case RETAINED_GENERATION_DISPOSITION_ERRORED:
+   ///     retained_predecessor4  errored;
+   /// };
    ///
    /// struct CHUNK_HEADER_READ4resok {
-   ///     bool                    chrr_eof;
-   ///     nfsstat4                chrr_status<>;
-   ///     bool                    chrr_locked<>;
-   ///     chunk_owner4            chrr_chunks<>;
-   ///     chunk_predecessors4     chrr_predecessors<>;
+   ///     bool                chrr_eof;
+   ///     nfsstat4
+   ///         chrr_status<CHUNK_HEADER_READ_MAX4>;
+   ///     bool
+   ///         chrr_locked<CHUNK_HEADER_READ_MAX4>;
+   ///     chunk_owner4
+   ///         chrr_chunks<CHUNK_HEADER_READ_MAX4>;
+   ///     optional_retained4
+   ///         chrr_predecessors<CHUNK_HEADER_READ_MAX4>;
    /// };
 ~~~
 {: #fig-CHUNK_HEADER_READ4resok title="XDR for CHUNK_HEADER_READ4resok" }
@@ -8565,7 +8589,11 @@ chra_offset:
 
 chra_count:
 :  number of chunks the inspection range covers,
-   starting at chra_offset.
+   starting at chra_offset.  chra_count MUST NOT
+   exceed CHUNK_HEADER_READ_MAX4; a request that
+   exceeds the bound is rejected with NFS4ERR_INVAL.
+   The bound protects the data server against
+   arbitrarily large response construction.
 
 The CHUNK_HEADER_READ result returns four co-indexed
 arrays, one entry per chunk in the requested range in
@@ -8599,41 +8627,82 @@ chrr_chunks:
    unspecified.
 
 chrr_predecessors:
-:  per-chunk retained-predecessor list, one
-   chunk_predecessors4 entry per chunk in the requested
-   range, co-indexed with chrr_chunks.  Each entry
-   enumerates the owner triples of any retained
-   predecessor generations the data server holds for
+:  per-chunk immediate-predecessor disposition, one
+   optional_retained4 entry per chunk in the returned
+   range, co-indexed with chrr_status, chrr_locked, and
+   chrr_chunks.  Each entry names the read-time state
+   of the single most recent retained predecessor of
+   the current generation the data server holds for
    that chunk index under the retention scope rule
-   ({{sec-system-model-retention-scope}}), most-recent
-   first, up to CHUNK_HEADER_READ_MAX4 entries.  An
-   empty per-chunk list means the data server holds no
-   retained predecessor at that index (either the
-   current chrr_chunks generation is the only one, or
-   the chunk is EMPTY).  The list is a discovery input
-   for CHUNK_ROLLBACK's restore case
-   ({{sec-CHUNK_ROLLBACK}} "Rollback of COMMITTED
-   Chunks"): a caller MAY select a specific
-   predecessor triple to restore from the list, and
-   the AVAILABLE / ERRORED / ABSENT read-time status
-   of each listed predecessor is discoverable by a
-   follow-up CHUNK_READ or by inspecting chrr_status
-   for the earlier chunk_owner4.  The list is
-   informational — the data server is under no
-   obligation to retain any specific predecessor past
-   its retention scope, and a subsequent
-   CHUNK_HEADER_READ MAY return a shorter list as the
-   retention scope permits release.  A data server
-   that implements CHUNK_ROLLBACK's restore case
-   without exposing its retained predecessors here
-   provides no useful discovery to the client, so a
-   conforming data server SHOULD populate this list
-   with every predecessor it holds up to the
-   CHUNK_HEADER_READ_MAX4 bound.  When more than
-   CHUNK_HEADER_READ_MAX4 predecessors are retained
-   for a single chunk, the data server MUST include
-   the most-recent CHUNK_HEADER_READ_MAX4 entries and
-   MAY omit older ones from the response.
+   ({{sec-system-model-retention-scope}}); the entry's
+   discriminant is exactly one of:
+
+   - **RETAINED_GENERATION_DISPOSITION_ABSENT**: the
+     data server holds no retained predecessor at
+     that index (either the current chrr_chunks
+     generation is the only one, or the chunk is
+     EMPTY).  The arm carries no owner triple.
+   - **RETAINED_GENERATION_DISPOSITION_PRESENT**: the
+     data server retains an immediate predecessor
+     whose owner triple is carried in the restorable
+     arm and whose payload is in the AVAILABLE
+     read-time state
+     ({{sec-system-model-read-time-status}}).  A
+     CHUNK_ROLLBACK naming this owner triple
+     satisfies "Rollback of COMMITTED Chunks" case
+     (a) ({{sec-CHUNK_ROLLBACK}}).
+   - **RETAINED_GENERATION_DISPOSITION_ERRORED**: the
+     data server retains the immediate predecessor's
+     owner triple (in the errored arm) but its
+     payload is in the ERRORED read-time state and
+     cannot be restored by CHUNK_ROLLBACK.  A
+     CHUNK_ROLLBACK naming this owner triple MUST
+     return NFS4ERR_NO_PREDECESSOR
+     ({{sec-NFS4ERR_NO_PREDECESSOR}}); the client
+     invokes b1 fallback via CHUNK_WRITE_REPAIR
+     ({{sec-CHUNK_WRITE_REPAIR}}) with an
+     authoritative source of its own choosing.
+     The owner triple is disclosed so a caller can
+     coordinate reconstruction from surviving
+     shards.
+
+   The list is informational and MAY change between
+   successive CHUNK_HEADER_READ calls — the data
+   server MAY release a predecessor between calls
+   under the retention scope rule.  A caller that
+   observes a PRESENT disposition and issues
+   CHUNK_ROLLBACK before that release remains
+   guaranteed by the composed rollback guarantee
+   ({{sec-composed-rollback}}) when it holds a
+   qualifying lock or escrow; without such a lock,
+   the retention scope MAY release the predecessor
+   at any time and a subsequent CHUNK_ROLLBACK MAY
+   return NFS4ERR_NO_PREDECESSOR even though a
+   previous CHUNK_HEADER_READ observed PRESENT.
+
+**Cardinality and short responses**:
+
+- All four response arrays are the same length; the
+  data server MUST NOT sparsify or truncate one
+  array independently of the others.
+- The response array length N MAY be smaller than
+  chra_count when the requested range extends past
+  the data server's last chunk (chrr_eof = TRUE, N
+  = the number of chunks the data server holds
+  within the requested range) or when the fully-
+  populated response would exceed the session-
+  negotiated ca_maxresponsesize (Section 18.36.3 of
+  {{RFC8881}}).  In the response-size case the data
+  server returns a SHORT response with chrr_eof =
+  FALSE containing as many entries N as fit under
+  ca_maxresponsesize minus COMPOUND/RPC overhead;
+  the client resumes at chra_offset + N.  If even
+  the minimum useful response (a single entry) will
+  not fit, the data server returns NFS4ERR_REP_TOO_BIG
+  per {{RFC8881}}; the client MUST NOT retry with a
+  smaller chra_count (there is no positive integer
+  below 1) and instead uses a session or COMPOUND
+  with more available response budget.
 
 The operation has several uses:
 
@@ -8681,25 +8750,36 @@ Read-side atomicity check:
 
 Predecessor-guided rollback discovery:
 :  A caller preparing a CHUNK_ROLLBACK against a
-   COMMITTED chunk MAY inspect the corresponding
-   chrr_predecessors entry to discover the specific
-   owner triples the data server still retains for
-   that chunk index.  If the intended predecessor's
-   triple appears in the list, the caller can name
-   that triple in the cra_chunks entry of the
-   subsequent CHUNK_ROLLBACK with high confidence
-   that "Rollback of COMMITTED Chunks" case (a)
-   (retained predecessor) will succeed.  If the
-   intended predecessor is absent from the list, the
-   caller can anticipate NFS4ERR_NO_PREDECESSOR
-   ({{sec-NFS4ERR_NO_PREDECESSOR}}) and either fall
-   back to reconstruction via CHUNK_WRITE_REPAIR
-   ({{sec-CHUNK_WRITE_REPAIR}}) or defer to whatever
-   guaranteed-pinning mechanism the ecosystem
-   provides.  As with the atomicity check, a
-   subsequent lifecycle event MAY change the
-   retained set between the CHUNK_HEADER_READ
-   response and the CHUNK_ROLLBACK.
+   COMMITTED chunk inspects the corresponding
+   chrr_predecessors entry to decide whether
+   CHUNK_ROLLBACK will succeed:
+   - **PRESENT**: name the disclosed owner triple
+     in the cra_chunks entry of the subsequent
+     CHUNK_ROLLBACK.  "Rollback of COMMITTED
+     Chunks" case (a) will succeed subject to the
+     composed rollback guarantee's continuous-
+     custody condition
+     ({{sec-composed-rollback}}).
+   - **ERRORED**: do NOT issue CHUNK_ROLLBACK
+     against the disclosed owner triple.  The
+     data server MUST return NFS4ERR_NO_PREDECESSOR
+     for that owner; invoke b1 fallback directly.
+     The disclosed owner triple lets the caller
+     coordinate reconstruction from other sources.
+   - **ABSENT**: no restorable predecessor exists.
+     Skip CHUNK_ROLLBACK; invoke b1 fallback via
+     CHUNK_WRITE_REPAIR
+     ({{sec-CHUNK_WRITE_REPAIR}}) if reconstruction
+     is possible, or defer to a guaranteed-pinning
+     mechanism when the caller requires the
+     original owner triple be preserved.
+   As with the atomicity check, a subsequent
+   lifecycle event MAY change a chunk's disposition
+   between the CHUNK_HEADER_READ response and the
+   CHUNK_ROLLBACK (a PRESENT observation MAY
+   become ABSENT if the retention scope releases
+   the predecessor and the caller does not hold a
+   qualifying lock or escrow).
 
 Lock probe before write:
 :  A client MAY issue CHUNK_HEADER_READ and inspect the
