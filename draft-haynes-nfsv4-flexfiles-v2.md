@@ -7341,6 +7341,30 @@ The MDS-escrow owner is released only by a CHUNK_LOCK from the
 client selected via CB_CHUNK_REPAIR, carrying
 CHUNK_LOCK_FLAGS_ADOPT.  See {{sec-CHUNK_LOCK}}.
 
+Each MDS-escrow lock carries an escrow_id4
+({{sec-escrow_id4}}) the metadata server chose at
+CHUNK_ESCROW_INSTALL ({{sec-CHUNK_ESCROW_INSTALL}}) time
+and presents on every subsequent operation that refers
+to that lock (CHUNK_ESCROW_RELEASE, CB_CHUNK_REPAIR,
+CHUNK_LOCK adoption via cla_adopt).  When a repair
+client adopts the MDS-escrow lock (CHUNK_LOCK with
+CHUNK_LOCK_FLAGS_ADOPT), the data server MUST retain
+the adopted escrow_id4 as durable custody metadata on
+the resulting client-owned lock, for as long as a
+subsequent revocation-transfer can occur that would
+convert the client-owned lock back to an MDS-escrow
+lock (for example, when the client's lease later
+expires while the lock is still held).  If such a
+revocation-transfer occurs, the resulting new
+MDS-escrow lock MUST be installed with the SAME
+escrow_id4 that was preserved as custody metadata,
+not a fresh identity: this preserves the full durable
+key `(file, escrow_id, DS-set)` across the entire
+custody chain so that a metadata server's tuple
+records can re-associate with the reappeared escrow
+across an incarnation change (see
+{{sec-CHUNK_ESCROW_ENUMERATE}} discovery).
+
 ## chunk_owner4 {#sec-chunk_owner4}
 
 ~~~ xdr
