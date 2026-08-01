@@ -7237,6 +7237,53 @@ chunk-write transaction from a given client MUST carry a unique
 co_guard, so lifecycle operations can be correlated with the
 transactions that produced them across all data files.
 
+## escrow_id4 {#sec-escrow_id4}
+
+~~~ xdr
+   /// typedef opaque   escrow_id4[16];
+~~~
+{: #fig-escrow_id4 title="XDR for escrow_id4" }
+
+The escrow_id4 is a 128-bit opaque identifier the
+metadata server chooses for each MDS-escrow lock
+({{sec-chunk_guard_mds}}) it installs on a data
+server.  It is distinct from the chunk_owner4 owner
+triple ({{sec-chunk_owner4}}) that identifies a chunk
+generation: the escrow identity refers to the
+custody of a repair-scope lock, while the owner
+triple refers to a specific generation's bytes.  The
+two namespaces do not overlap and are compared only
+within their own contexts (an escrow_id4 is never
+matched against a chunk_owner4 field).
+
+The escrow identity is threaded through the
+metadata-server operations that manage escrow
+custody: it appears in each escrow-family operation
+this specification defines (CHUNK_ESCROW_INSTALL /
+CHUNK_ESCROW_RELEASE / CHUNK_ESCROW_ENUMERATE /
+CHUNK_ESCROW_TAKEOVER), in the callback that carries
+the repair instruction (CB_CHUNK_REPAIR), and in the
+CHUNK_LOCK argument variant that adopts an escrow
+lock (see {{sec-CHUNK_LOCK}}).  A conforming
+metadata server MUST choose escrow_id4 values that
+are unique across every escrow it has ever installed
+on any data server that might still recognize a
+prior installation — sufficient uniqueness is
+provided by a 128-bit identifier drawn from a
+metadata-server-incarnation prefix and a
+per-incarnation monotonic counter, or by any
+mechanism whose collision probability is negligible
+across the lifetime of the deployment.  The metadata
+server MUST NOT reuse an escrow_id4 whose lifecycle
+is not provably complete.
+
+The data server treats escrow_id4 opaquely: it
+compares two escrow_id4 values for equality when
+matching an CHUNK_LOCK adoption against an
+installed escrow, or when reconciling an escrow
+tuple against a discovery response, and does not
+interpret the internal structure.
+
 ## checksum4 {#sec-checksum4}
 
 ~~~ xdr
