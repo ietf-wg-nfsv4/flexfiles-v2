@@ -11969,6 +11969,135 @@ predecessor data (the actor MAY invoke b1
 fallback).  A client that receives one MUST NOT
 treat it as the other.
 
+##  Worked Example: Composed Rollback and Fallback {#sec-composed-rollback-trace}
+
+The following worked example exercises the three
+composed conditions.  A single file has chunk index
+5 previously written by client 7 with cg_gen_id 41
+and co_id 100 (owner triple (41, 7, 100)) and then
+overwritten by client 7 with cg_gen_id 42 and co_id
+101 (owner triple (42, 7, 101)), which reached the
+COMMITTED state.  The metadata server determines
+that the (42, 7, 101) commit was incorrect and
+initiates rollback.  The trace shows the happy
+path, the lost-callback branch, and the fallback
+contrast.
+
+**Happy path (all three conditions hold).**
+
+1. The metadata server proactively installs an
+   MDS-escrow lock over chunk index 5 by sending
+   CHUNK_ESCROW_INSTALL with escrow_id4 E1 while
+   the (41, 7, 100) predecessor is still
+   AVAILABLE on the data server.  The data server
+   accepts and echoes E1 in ceir_escrow_id.  Per
+   {{sec-composed-rollback-scope}} conditions 1
+   and 3, the predecessor is now under continuous
+   MDS-escrow custody and remains AVAILABLE.
+
+2. The metadata server sends CB_CHUNK_REPAIR to a
+   selected repair client with ccra_escrow_id =
+   E1 and a range naming chunk index 5.
+
+3. The repair client issues CHUNK_LOCK with
+   CHUNK_LOCK_FLAGS_ADOPT and cla_adopt = { TRUE,
+   cla_escrow_id = E1 }.  The data server
+   validates identity and atomically transfers
+   custody: E1 dissolves as an MDS-escrow lock,
+   the client owns the lock, the predecessor's
+   payload and owner association survive intact,
+   and E1 is retained as durable custody metadata
+   on the client-owned lock (per
+   {{sec-chunk_guard_mds}}).  Condition 2
+   (continuous custody) is preserved through the
+   adoption.
+
+4. The repair client issues CHUNK_HEADER_READ over
+   chunk index 5.  The response shows chrr_chunks
+   as the (42, 7, 101) current generation and
+   chrr_predecessors[0] as the (41, 7, 100)
+   retained predecessor
+   ({{sec-CHUNK_HEADER_READ}}).
+
+5. The repair client issues CHUNK_ROLLBACK naming
+   the predecessor's triple (41, 7, 100).  The
+   data server executes "Rollback of COMMITTED
+   Chunks" case (a)
+   ({{sec-CHUNK_ROLLBACK}}): the retained
+   predecessor is restored as the current
+   COMMITTED generation under its original triple
+   (41, 7, 100), and the displaced successor's
+   triple (42, 7, 101) is atomically invalidated
+   ("Deletion Atomicity and Invalidated
+   Triples").
+
+6. The repair client issues CHUNK_UNLOCK.  The
+   client-owned lock is released; the preserved
+   escrow_id4 custody metadata is cleared.
+
+7. The repair client returns NFS4_OK on the
+   CB_CHUNK_REPAIR response with a co-indexed
+   NFS4_OK in ccrr_range_status.  The metadata
+   server issues CHUNK_ESCROW_RELEASE with
+   cera_escrow_id = E1.  Because E1 was consumed
+   by the adoption in step 3, the data server
+   returns NFS4ERR_STALE_ESCROW; the metadata
+   server interprets this as "the escrow was
+   consumed by ADOPT and the callback response
+   confirms completion," and clears its
+   durable escrow-tuple record for (file, E1,
+   {this data server}).
+
+**Lost-callback branch.**  Steps 1-6 proceed as
+above but the CB_CHUNK_REPAIR response is lost in
+transit (data server restart or network failure
+before the metadata server receives the reply).
+The metadata server never observes step-7 confirmation.
+The repair client's lock lease eventually expires
+without an explicit release, and the data server
+transitions the lock through the revocation-transfer
+path (see {{sec-chunk_guard_mds}}): a new MDS-escrow
+lock is installed on the same range with the same
+preserved escrow_id4 = E1.  On the next
+CHUNK_ESCROW_ENUMERATE
+({{sec-CHUNK_ESCROW_ENUMERATE}}) the metadata server
+observes the reappeared E1 and reissues repair
+under it.
+
+**Fallback contrast (condition 1 fails).**  Under
+an alternative setup where the metadata server did
+NOT install an MDS-escrow before the retention
+scope
+({{sec-system-model-retention-scope}}) released the
+(41, 7, 100) predecessor, condition 1 fails.  By
+the time repair is initiated the predecessor is
+ABSENT on the data server, and the escrow the
+metadata server installs pins only what still
+exists (there is no predecessor to pin).  The
+repair client's CHUNK_LOCK / CHUNK_HEADER_READ
+sequence discovers no retained predecessor for
+index 5.  A subsequent CHUNK_ROLLBACK against the
+(41, 7, 100) triple returns NFS4ERR_NO_PREDECESSOR
+({{sec-NFS4ERR_NO_PREDECESSOR}}).  The client
+falls back to CHUNK_WRITE_REPAIR
+({{sec-CHUNK_WRITE_REPAIR}}), reconstructing
+authoritative bytes from surviving data-server
+shards and writing them under a new owner triple
+of its own choosing — for example (43, 7, 102).
+The resulting COMMITTED generation carries the
+new triple, NOT the released (41, 7, 100).  Any
+subsequent lifecycle operation that names the
+released (41, 7, 100) triple still returns
+NFS4ERR_INVAL per the invalidated-triple rule
+({{sec-CHUNK_ROLLBACK}} "Deletion Atomicity and
+Invalidated Triples"): the fallback creates a
+new generation, it does not resurrect the
+released predecessor.  When no authoritative
+source exists for reconstruction, the fallback
+itself terminates at NFS4ERR_PAYLOAD_LOST
+({{sec-NFS4ERR_PAYLOAD_LOST}}) via
+CB_CHUNK_REPAIR.
+
 #  Security Considerations
 
 The combination of components in a pNFS system is required to
