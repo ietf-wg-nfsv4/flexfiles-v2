@@ -8111,11 +8111,21 @@ NFS4ERR_STALE:
 ### RESULTS
 
 ~~~ xdr
+   /// /* Upper bound on the retained-predecessor list per
+   ///  * chunk in the CHUNK_HEADER_READ response.  Draft-
+   ///  * edit constant; recommend a small value (e.g. 8)
+   ///  * consistent with typical retention scopes. */
+   /// const uint32_t   CHUNK_HEADER_READ_MAX4 = 8;
+   ///
+   /// typedef chunk_owner4
+   ///     chunk_predecessors4<CHUNK_HEADER_READ_MAX4>;
+   ///
    /// struct CHUNK_HEADER_READ4resok {
-   ///     bool            chrr_eof;
-   ///     nfsstat4        chrr_status<>;
-   ///     bool            chrr_locked<>;
-   ///     chunk_owner4    chrr_chunks<>;
+   ///     bool                    chrr_eof;
+   ///     nfsstat4                chrr_status<>;
+   ///     bool                    chrr_locked<>;
+   ///     chunk_owner4            chrr_chunks<>;
+   ///     chunk_predecessors4     chrr_predecessors<>;
    /// };
 ~~~
 {: #fig-CHUNK_HEADER_READ4resok title="XDR for CHUNK_HEADER_READ4resok" }
@@ -8193,6 +8203,43 @@ chrr_chunks:
    For NFS4ERR_NOENT (EMPTY chunk) the chunk_owner4 is
    unspecified.
 
+chrr_predecessors:
+:  per-chunk retained-predecessor list, one
+   chunk_predecessors4 entry per chunk in the requested
+   range, co-indexed with chrr_chunks.  Each entry
+   enumerates the owner triples of any retained
+   predecessor generations the data server holds for
+   that chunk index under the retention scope rule
+   ({{sec-system-model-retention-scope}}), most-recent
+   first, up to CHUNK_HEADER_READ_MAX4 entries.  An
+   empty per-chunk list means the data server holds no
+   retained predecessor at that index (either the
+   current chrr_chunks generation is the only one, or
+   the chunk is EMPTY).  The list is a discovery input
+   for CHUNK_ROLLBACK's restore case
+   ({{sec-CHUNK_ROLLBACK}} "Rollback of COMMITTED
+   Chunks"): a caller MAY select a specific
+   predecessor triple to restore from the list, and
+   the AVAILABLE / ERRORED / ABSENT read-time status
+   of each listed predecessor is discoverable by a
+   follow-up CHUNK_READ or by inspecting chrr_status
+   for the earlier chunk_owner4.  The list is
+   informational — the data server is under no
+   obligation to retain any specific predecessor past
+   its retention scope, and a subsequent
+   CHUNK_HEADER_READ MAY return a shorter list as the
+   retention scope permits release.  A data server
+   that implements CHUNK_ROLLBACK's restore case
+   without exposing its retained predecessors here
+   provides no useful discovery to the client, so a
+   conforming data server SHOULD populate this list
+   with every predecessor it holds up to the
+   CHUNK_HEADER_READ_MAX4 bound.  When more than
+   CHUNK_HEADER_READ_MAX4 predecessors are retained
+   for a single chunk, the data server MUST include
+   the most-recent CHUNK_HEADER_READ_MAX4 entries and
+   MAY omit older ones from the response.
+
 The operation has several uses:
 
 Whole-file repair scan:
@@ -8236,6 +8283,28 @@ Read-side atomicity check:
    MAY advance a chunk's state between the
    CHUNK_HEADER_READ response and the subsequent
    CHUNK_READ.
+
+Predecessor-guided rollback discovery:
+:  A caller preparing a CHUNK_ROLLBACK against a
+   COMMITTED chunk MAY inspect the corresponding
+   chrr_predecessors entry to discover the specific
+   owner triples the data server still retains for
+   that chunk index.  If the intended predecessor's
+   triple appears in the list, the caller can name
+   that triple in the cra_chunks entry of the
+   subsequent CHUNK_ROLLBACK with high confidence
+   that "Rollback of COMMITTED Chunks" case (a)
+   (retained predecessor) will succeed.  If the
+   intended predecessor is absent from the list, the
+   caller can anticipate NFS4ERR_NO_PREDECESSOR
+   ({{sec-NFS4ERR_NO_PREDECESSOR}}) and either fall
+   back to reconstruction via CHUNK_WRITE_REPAIR
+   ({{sec-CHUNK_WRITE_REPAIR}}) or defer to whatever
+   guaranteed-pinning mechanism the ecosystem
+   provides.  As with the atomicity check, a
+   subsequent lifecycle event MAY change the
+   retained set between the CHUNK_HEADER_READ
+   response and the CHUNK_ROLLBACK.
 
 Lock probe before write:
 :  A client MAY issue CHUNK_HEADER_READ and inspect the
