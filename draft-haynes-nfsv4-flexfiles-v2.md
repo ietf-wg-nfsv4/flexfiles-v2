@@ -7479,7 +7479,7 @@ takeover names.
    ///  * a metadata server MAY present.  Draft-edit
    ///  * constant; recommend 4096 to accommodate a
    ///  * typical signature envelope. */
-   /// const uint32_t   CETA_INCARNATION_PROOF_MAX4 = 4096;
+   /// const CETA_INCARNATION_PROOF_MAX4 = 4096;
 ~~~
 {: #fig-proof-profile-typedef title="XDR for proof_profile_id4" }
 
@@ -11327,18 +11327,29 @@ NFS4ERR_STALE_MDS_EPOCH.
 ### RESULTS
 
 ~~~ xdr
+   /// /* Upper bound on the number of escrow_enum_entry4
+   ///  * values returned in a single ENUMERATE call.
+   ///  * Bounds ceer_entries; the caller may still page
+   ///  * via ceer_cookie for larger snapshots. */
+   /// const CHUNK_ESCROW_ENUMERATE_MAX4 = 256;
+   ///
    /// struct escrow_enum_entry4 {
    ///     offset4         eee_offset;
    ///     count4          eee_count;
    ///     escrow_id4      eee_escrow_id;
    /// };
    ///
+   /// struct CHUNK_ESCROW_ENUMERATE4resok {
+   ///     bool                 ceer_eof;
+   ///     opaque               ceer_cookie<>;
+   ///     escrow_enum_entry4
+   ///         ceer_entries<CHUNK_ESCROW_ENUMERATE_MAX4>;
+   /// };
+   ///
    /// union CHUNK_ESCROW_ENUMERATE4res
    ///     switch (nfsstat4 ceer_status) {
    /// case NFS4_OK:
-   ///     bool                 ceer_eof;
-   ///     opaque               ceer_cookie<>;
-   ///     escrow_enum_entry4   ceer_entries<>;
+   ///     CHUNK_ESCROW_ENUMERATE4resok ceer_resok4;
    /// default:
    ///     void;
    /// };
@@ -11556,7 +11567,7 @@ for the new callback operation defined in this document.
    ///  * edit constant; recommend a modest value that
    ///  * lets one callback describe a coherent repair
    ///  * batch without unbounded growth. */
-   /// const uint32_t   CB_CHUNK_REPAIR_MAX_RANGES4 = 64;
+   /// const CB_CHUNK_REPAIR_MAX_RANGES4 = 64;
    ///
    /// struct CB_CHUNK_REPAIR4args {
    ///     nfs_fh4                     ccra_fh;
