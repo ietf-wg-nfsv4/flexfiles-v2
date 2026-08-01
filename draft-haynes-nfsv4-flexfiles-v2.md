@@ -7475,11 +7475,17 @@ takeover names.
    ///  * "Proof-Profile Registry"). */
    /// typedef uint32_t   proof_profile_id4;
    ///
+   /// /* Reserved sentinel; MUST NOT appear on the wire. */
+   /// const PROOF_PROFILE_UNSPECIFIED           = 0;
+   ///
+   /// /* Mandatory-to-implement profile:
+   ///  * HA-authority-signed COSE_Sign1 lease token
+   ///  * (see "Mandatory-to-Implement Profile" below). */
+   /// const PROOF_PROFILE_HA_AUTHORITY_ED25519  = 1;
+   ///
    /// /* Upper bound (in bytes) on the proof payload
-   ///  * a metadata server MAY present.  Draft-edit
-   ///  * constant; recommend 4096 to accommodate a
-   ///  * typical signature envelope. */
-   /// const CETA_INCARNATION_PROOF_MAX4 = 4096;
+   ///  * a metadata server MAY present. */
+   /// const CETA_INCARNATION_PROOF_MAX4         = 4096;
 ~~~
 {: #fig-proof-profile-typedef title="XDR for proof_profile_id4" }
 
@@ -7521,18 +7527,44 @@ over a deterministic CBOR payload (Section 4.2 of
   The mandatory-profile keys are:
    - 1 = principal (CBOR text string): the
      metadata-server principal that holds this
-     incarnation.
+     incarnation.  Comparison is byte-for-byte
+     against the RPCSEC_GSS authenticated name of
+     the presenter (Section 5 of {{!RFC7861}}),
+     with no Unicode normalization or case
+     folding; a deployment MUST provision the
+     authority to sign tokens whose principal
+     field is exactly the RPC-authenticated name
+     the data server will observe.
    - 2 = epoch (CBOR uint): the metadata-server
      epoch value being claimed.
    - 3 = scope (CBOR text string): identifier of
      the data server or data-server set the token
-     is valid for.
-   - 4 = issued_at (CBOR standard date/time, tag 1
-     per {{!RFC8949}} Section 3.4.2): the instant
-     the authority signed the token.
-   - 5 = expires_at (CBOR standard date/time, tag
-     1): the instant the token ceases to be
-     admissible.
+     is valid for.  Comparison is byte-for-byte
+     against the data-server-side value the
+     deployment provisions at trust-anchor setup
+     (see "Trust Anchor Provisioning" below); a
+     data server accepts a token whose scope
+     field exactly matches any scope identifier
+     it has been provisioned to serve, and
+     rejects any other value.  The scope
+     namespace is deployment-local — this
+     specification neither defines a format nor
+     constrains the character set beyond
+     requiring UTF-8 CBOR text.
+   - 4 = issued_at (CBOR tag-1 epoch-based
+     date/time per {{!RFC8949}} Section 3.4.2):
+     the instant the authority signed the token.
+     A conforming issuer MUST encode this as a
+     CBOR unsigned integer number of seconds
+     since the POSIX epoch; a verifier MUST
+     reject a token whose issued_at is not an
+     unsigned integer under tag 1 (fractional or
+     negative values are rejected).
+   - 5 = expires_at (CBOR tag-1 epoch-based
+     date/time per {{!RFC8949}} Section 3.4.2):
+     the instant the token ceases to be
+     admissible.  Same encoding constraints as
+     issued_at.
    - 6 = token_id (CBOR byte string, 16 bytes):
      a nonce for replay detection.
 
@@ -7568,6 +7600,79 @@ prior check would have denied:
 The strict ordering ensures an unauthenticated
 caller learns nothing about which profiles the data
 server supports or which epoch it currently holds.
+
+Replay-cache scoping (both layers): the NFSv4.1
+session replay cache in step 1 is scoped to the
+session slot and its lifetime is bounded by session
+liveness.  The token_id replay cache in step 4 is
+scoped to the (proof_profile_id4, verified issuer)
+pair and MUST be sized and expired coherently with
+the token's own expires_at, so that a valid token
+cannot be replayed after its natural expiry and a
+recently-observed token cannot be inadvertently
+retired while still admissible.  A data server MAY
+persist the token_id replay cache across restart;
+if it does not, restart clears the cache and a
+freshly-restarting metadata server that presents a
+token already accepted by the pre-restart data
+server sees success (identical wire outcome to the
+cached case).
+
+### Uncertain-Completion Recovery for TAKEOVER
+
+CHUNK_ESCROW_TAKEOVER
+({{sec-CHUNK_ESCROW_TAKEOVER}}) is the recovery
+path a metadata server uses after an incarnation
+change; the compare-and-advance semantics make the
+successful case observable to the data server, but
+the metadata server MAY lose the response to a
+successful TAKEOVER (network drop, RPC
+retransmission timeout, session loss).  The bare
+strict-ordering rules above would rebuff a
+byte-identical reissue with NFS4ERR_ACCESS on the
+token_id replay-cache check, giving the metadata
+server no way to distinguish "the prior TAKEOVER
+succeeded and the response was lost" from "the
+proof is invalid."
+
+To close that recovery gap, a data server MUST
+accept a byte-identical CHUNK_ESCROW_TAKEOVER
+reissue as postcondition-equivalent success when
+ALL of the following hold:
+
+- the reissue presents the same proof bytes as a
+  TAKEOVER the data server previously accepted
+  (matching token_id already in the token_id
+  replay cache);
+- the reissue's ceta_new_epoch equals the data
+  server's currently-recorded metadata-server
+  epoch (the takeover the token authorized has
+  already completed); and
+- the reissue's ceta_expected_prior_epoch equals
+  the epoch that the token's own compare-and-
+  advance advanced from (recoverable from the
+  cached decision).
+
+Under these three predicates the data server
+returns NFS4_OK without side effect (the
+epoch/expires_at values are already at the
+post-advance state; the second observation is
+idempotent).  The predicates are jointly
+sufficient to distinguish a lost-response
+retransmission from a fresh presentation of an
+already-used token by a different party (a
+different party would not present the same
+proof bytes without stealing the signer's key
+material, and the token was issued to a specific
+principal).
+
+When any of the three predicates fails, the data
+server returns NFS4ERR_ACCESS per the ordinary
+strict-ordering rule and the metadata server MUST
+obtain a fresh incarnation-lease token from the
+authority.  A fresh token has a new token_id and
+does not collide with the replay cache; the fresh
+takeover uses the ordinary advance form.
 
 ### Trust Anchor Provisioning
 
