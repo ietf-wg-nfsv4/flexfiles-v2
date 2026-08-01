@@ -8970,6 +8970,54 @@ The data server effects the rollback as follows:
    corresponding crr_chunk_status slot reports NFS4ERR_INVAL
    and the chunk is left unchanged.
 
+#### Deletion Atomicity and Invalidated Triples
+
+CHUNK_ROLLBACK's delete case (successful rollback of a
+PENDING or FINALIZED generation, or the abandonment sub-case
+of the rollback of COMMITTED chunks below where a displaced
+successor is discarded) removes BOTH the payload AND the
+recorded owner-to-index association for that generation, in
+one atomic step, per the payload/association biconditional
+({{sec-system-model-payload-association-biconditional}}).
+The generation's (cg_gen_id, cg_client_id, co_id) triple
+is then INVALIDATED at that chunk index: it names no
+generation the data server holds, and no future CHUNK_WRITE
+recreates an association under the same triple.
+
+A subsequent lifecycle operation (CHUNK_COMMIT
+({{sec-CHUNK_COMMIT}}), CHUNK_FINALIZE
+({{sec-CHUNK_FINALIZE}}), CHUNK_ROLLBACK) that names an
+invalidated triple MUST be rejected with NFS4ERR_INVAL in
+the corresponding per-chunk slot; the data server MUST NOT
+attempt to "resurrect" the generation by matching the
+triple against any other record.  This applies whether
+the triple was invalidated by an explicit CHUNK_ROLLBACK
+delete case or by any other terminal transition that
+released the payload+association pair.
+
+The invalidation is on the FULL owner triple, not on any
+sub-part.  A client that legitimately reuses the same
+co_id value under a different cg_gen_id (or against a
+different cg_client_id) creates a distinct triple and
+therefore a distinct generation identity; that new triple
+is unaffected by the earlier deletion.  This is what
+allows a writer that abandoned a generation via
+CHUNK_ROLLBACK to retry with a fresh cg_gen_id — the
+retry is a new generation, not a resurrection of the
+deleted one.
+
+The uncertain-replay carve-out
+({{sec-system-model-progress}} and the CHUNK_ROLLBACK
+"Idempotence" text, when landed) is a narrow exception:
+an EXACT reissue of the same CHUNK_ROLLBACK op whose
+prior completion was uncertain MAY be treated as
+postcondition-equivalent success when the client
+independently verifies the deletion postcondition
+holds.  This is separate from — and does NOT resurrect —
+the invalidated triple; it merely acknowledges that the
+prior op already achieved the deletion the caller
+requested.
+
 #### Rollback of COMMITTED Chunks
 
 CHUNK_ROLLBACK against a COMMITTED chunk is permitted
