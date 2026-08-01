@@ -9023,14 +9023,70 @@ requested.
 CHUNK_ROLLBACK against a COMMITTED chunk is permitted
 ONLY on the repair path, when a repair client is
 restoring a prior COMMITTED generation that another
-client incorrectly advanced.  In this case the data
-server replaces the current COMMITTED generation with
-the chunk_owner4 named in the cra_chunks entry, which
-MUST itself name a generation already persisted at the
-data server (typically the prior COMMITTED kept under
-the rollback invariant).  A non-repair CHUNK_ROLLBACK
-against a COMMITTED chunk is rejected with
-NFS4ERR_INVAL.
+client incorrectly advanced.  Two cases separate by
+whether the predecessor generation the caller wants to
+restore is still present on the data server:
+
+**Case (a) — retained predecessor.**  The predecessor
+generation named in the cra_chunks entry is still held
+by the data server (typically the prior COMMITTED
+retained under the rollback invariant
+({{sec-system-model-retention-scope}}) alongside the
+displaced successor, and MUST have survived with its
+payload+association pair intact per the biconditional
+({{sec-system-model-payload-association-biconditional}})).
+The data server:
+
+- restores the retained predecessor as the current
+  COMMITTED generation UNDER ITS ORIGINAL owner triple
+  (the (cg_gen_id, cg_client_id, co_id) the predecessor
+  was written with) — its owner-to-index association is
+  preserved, so the restored generation MUST remain
+  recognizable to subsequent lifecycle operations by
+  the same triple; AND
+- atomically invalidates the displaced successor's
+  triple via the delete case above ("Deletion
+  Atomicity and Invalidated Triples") — the displaced
+  successor's payload+association pair is released as
+  one unit, and any subsequent lifecycle op naming
+  the displaced triple returns NFS4ERR_INVAL.
+
+The restore is atomic with the delete: no intermediate
+state exposes both generations as current, and no
+intermediate state exposes neither.
+
+**Case (c) — predecessor no longer retained.**  If
+the predecessor generation named in the cra_chunks
+entry is NOT held by the data server (its
+payload+association pair was released some time earlier
+under the retention scope rule, whether by lease
+expiry, by an even earlier CHUNK_ROLLBACK delete case,
+or by any other terminal transition), the CHUNK_ROLLBACK
+CANNOT restore it: the deleted association is not
+recreated by any operation defined in this document.
+The corresponding crr_chunk_status slot reports
+NFS4ERR_INVAL if the triple does not match any
+recorded owner association on this data server for
+this file (this includes the case where an earlier
+delete invalidated it), leaving the caller to consult
+whatever fallback the deployment provides — a repair
+client MAY reconstruct authoritative bytes from
+surviving shards and issue CHUNK_WRITE_REPAIR
+({{sec-CHUNK_WRITE_REPAIR}}) to write a FRESH
+generation carrying those bytes under a FRESH owner
+triple.  That fresh generation is a NEW generation for
+lifecycle purposes; it is NOT the deleted predecessor
+resurrected.  Any client that requires the restored
+generation to retain the predecessor's original owner
+triple across an unrestrained retention gap MUST use
+whatever mechanism the deployment provides for
+guaranteed predecessor pinning (see the ecosystem
+documents amending this specification), which pins the
+predecessor's payload+association pair before it can
+become GC-eligible.
+
+A non-repair CHUNK_ROLLBACK against a COMMITTED chunk
+is rejected with NFS4ERR_INVAL regardless of case.
 
 #### Stateid and Authorization
 
