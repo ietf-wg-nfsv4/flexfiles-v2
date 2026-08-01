@@ -7422,6 +7422,159 @@ installed escrow, or when reconciling an escrow
 tuple against a discovery response, and does not
 interpret the internal structure.
 
+## Incarnation-Lease Proof {#sec-proof-profile}
+
+CHUNK_ESCROW_TAKEOVER
+({{sec-CHUNK_ESCROW_TAKEOVER}}) accepts a bounded
+opaque proof payload identified by a proof profile
+identifier.  The proof is not the metadata server's
+own machine credential (which would only prove the
+role, not the current exclusive incarnation): it is
+an assertion issued by a single-writer authority
+external to the metadata server (a high-availability
+manager, a cluster-consensus service, or an
+operator-mediated recovery workflow) that only one
+metadata-server instance currently holds the
+incarnation lease.  The data server verifies the
+proof before it will compare-and-advance its
+recorded metadata-server epoch to the value the
+takeover names.
+
+~~~ xdr
+   /// /* Registered proof profile identifier.  Values
+   ///  * are allocated from the FFv2 proof-profile
+   ///  * registry (see IANA Considerations,
+   ///  * "Proof-Profile Registry"). */
+   /// typedef uint32_t   proof_profile_id4;
+   ///
+   /// /* Upper bound (in bytes) on the proof payload
+   ///  * a metadata server MAY present.  Draft-edit
+   ///  * constant; recommend 4096 to accommodate a
+   ///  * typical signature envelope. */
+   /// const uint32_t   CETA_INCARNATION_PROOF_MAX4 = 4096;
+~~~
+{: #fig-proof-profile-typedef title="XDR for proof_profile_id4" }
+
+### Mandatory-to-Implement Profile
+
+A conforming implementation MUST support at least
+one proof profile so that two independent
+implementations can verify each other's takeover
+proofs at the wire level without prior out-of-band
+negotiation.  This specification designates the
+following profile as mandatory-to-implement.
+
+The mandatory profile carries a signed token whose
+signer is the incarnation-lease authority (NOT the
+metadata server itself).  The envelope is a
+COSE_Sign1 structure (Section 4.2 of {{!RFC9052}})
+over a deterministic CBOR payload (Section 4.2 of
+{{!RFC8949}}) with the following normative choices:
+
+- **Signature algorithm** (mandatory-to-implement):
+  Ed25519 (algorithm identifier -8 per
+  {{!RFC9053}}).  A conforming signer MUST use
+  Ed25519; a conforming verifier MUST accept
+  Ed25519.  Other signature algorithms (e.g.,
+  ECDSA-P256 with identifier -7, RSASSA-PSS-SHA256
+  with identifier -37) MAY be registered as
+  additional profiles per the IANA Considerations.
+- **kid header parameter**: OPTIONAL.  A deployment
+  with a single trust anchor MAY omit it; a
+  deployment supporting key rotation or multiple
+  trust anchors SHOULD include it so a data server
+  can select the correct verification key.  Absent
+  kid, the data server attempts verification
+  against each configured trust anchor and accepts
+  on the first match.
+- **Payload map fields**: the signed CBOR payload
+  is a map with integer-keyed fields (per
+  {{!RFC9053}} convention for compact wire size).
+  The mandatory-profile keys are:
+   - 1 = principal (CBOR text string): the
+     metadata-server principal that holds this
+     incarnation.
+   - 2 = epoch (CBOR uint): the metadata-server
+     epoch value being claimed.
+   - 3 = scope (CBOR text string): identifier of
+     the data server or data-server set the token
+     is valid for.
+   - 4 = issued_at (CBOR standard date/time, tag 1
+     per {{!RFC8949}} Section 3.4.2): the instant
+     the authority signed the token.
+   - 5 = expires_at (CBOR standard date/time, tag
+     1): the instant the token ceases to be
+     admissible.
+   - 6 = token_id (CBOR byte string, 16 bytes):
+     a nonce for replay detection.
+
+### Presentation and Verification
+
+The metadata server presents the profile identifier
+and the proof bytes together in the takeover
+arguments (see {{sec-CHUNK_ESCROW_TAKEOVER}}).  The
+data server MUST evaluate the takeover in a fixed
+order so that no failure discloses state that a
+prior check would have denied:
+
+1. session replay-cache lookup: retransmission of a
+   prior request in the current session slot
+   returns the cached response;
+2. presenter authorization: RPCSEC_GSS presenter
+   authentication and credential check
+   (NFS4ERR_ACCESS if the caller lacks metadata-
+   server role);
+3. profile support: unknown proof_profile_id4
+   returns NFS4ERR_NOTSUPP;
+4. proof verification: the profile's signature and
+   payload checks are applied (NFS4ERR_ACCESS on
+   any failure — bad signature, mismatched
+   principal, mismatched epoch, mismatched scope,
+   token past expires_at, or token_id already in
+   the data server's replay cache);
+5. epoch compare-and-advance: NFS4ERR_STALE_MDS_EPOCH
+   on mismatch, otherwise the epoch and
+   epoch_expires_at are advanced atomically per
+   {{sec-CHUNK_ESCROW_TAKEOVER}}.
+
+The strict ordering ensures an unauthenticated
+caller learns nothing about which profiles the data
+server supports or which epoch it currently holds.
+
+### Trust Anchor Provisioning
+
+The verification trust anchor (the public key or
+key set the authority's signatures verify against)
+is provisioned at each data server at deployment
+time.  Key distribution mechanisms (X.509 chain,
+JWK set fetch, raw public key push) are deployment
+concerns outside the scope of this specification;
+rotation is likewise deployment-local.  The wire
+format is fully specified so that two independent
+implementations sharing the same trust anchor can
+interoperate; the trust-anchor bootstrap itself is
+not a wire-negotiated step.
+
+### Time-Related Bounds
+
+The token's issued_at MUST NOT be more than
+`skew_tolerance` in the future when the data server
+evaluates it (deployment-configured; recommend
+NTP-consistent, roughly 10 s).  The token's
+expires_at is compared strictly: the token becomes
+inadmissible at the first instant `now >=
+expires_at`.  No skew tolerance is added to the
+right edge; the incarnation-lease authority MUST
+NOT issue a successor token to a different
+metadata-server principal until at least
+`prior.expires_at + max_ds_skew_tolerance`, where
+max_ds_skew_tolerance is a deployment-configured
+bound that MUST equal or exceed the largest
+skew_tolerance any data server in the scope is
+allowed to use.  This ordering ensures that no
+data server admits the prior holder at any instant
+after the successor's token becomes admissible.
+
 ## checksum4 {#sec-checksum4}
 
 ~~~ xdr
