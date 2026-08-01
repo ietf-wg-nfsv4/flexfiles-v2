@@ -7031,6 +7031,10 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
  | TRUST_STATEID      | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
  | REVOKE_STATEID     | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
  | BULK_REVOKE_STATEID| NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_DELAY, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT |
+ | CHUNK_ESCROW_INSTALL   | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH |
+ | CHUNK_ESCROW_RELEASE   | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT, NFS4ERR_STALE_ESCROW, NFS4ERR_STALE_MDS_EPOCH |
+ | CHUNK_ESCROW_ENUMERATE | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH |
+ | CHUNK_ESCROW_TAKEOVER  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH |
 {: #tbl-ops-and-errors title="Operations and Their Valid Errors"}
 
 ## Callback Operations and Their Valid Errors
@@ -7671,6 +7675,13 @@ different algorithm.
    ///  OP_REVOKE_STATEID      = 90,
    ///  OP_BULK_REVOKE_STATEID = 91,
    ///
+   /// /* MDS-side escrow control-plane operations */
+   ///
+   ///  OP_CHUNK_ESCROW_INSTALL   = 92,
+   ///  OP_CHUNK_ESCROW_RELEASE   = 93,
+   ///  OP_CHUNK_ESCROW_ENUMERATE = 94,
+   ///  OP_CHUNK_ESCROW_TAKEOVER  = 95,
+   ///
 ~~~
 {: #fig-ops-xdr title="Operations XDR" }
 
@@ -7700,6 +7711,14 @@ XDR applies these amendments at the union's extension point.
    /// case OP_REVOKE_STATEID: REVOKE_STATEID4args oprevokestateid;
    /// case OP_BULK_REVOKE_STATEID:
    ///     BULK_REVOKE_STATEID4args opbulkrevokestateid;
+   /// case OP_CHUNK_ESCROW_INSTALL:
+   ///     CHUNK_ESCROW_INSTALL4args opchunkescrowinstall;
+   /// case OP_CHUNK_ESCROW_RELEASE:
+   ///     CHUNK_ESCROW_RELEASE4args opchunkescrowrelease;
+   /// case OP_CHUNK_ESCROW_ENUMERATE:
+   ///     CHUNK_ESCROW_ENUMERATE4args opchunkescrowenumerate;
+   /// case OP_CHUNK_ESCROW_TAKEOVER:
+   ///     CHUNK_ESCROW_TAKEOVER4args opchunkescrowtakeover;
 ~~~
 {: #fig-nfs_argop4-amend title="nfs_argop4 amendment block"}
 
@@ -7723,14 +7742,24 @@ XDR applies these amendments at the union's extension point.
    /// case OP_REVOKE_STATEID: REVOKE_STATEID4res oprevokestateid;
    /// case OP_BULK_REVOKE_STATEID:
    ///     BULK_REVOKE_STATEID4res opbulkrevokestateid;
+   /// case OP_CHUNK_ESCROW_INSTALL:
+   ///     CHUNK_ESCROW_INSTALL4res opchunkescrowinstall;
+   /// case OP_CHUNK_ESCROW_RELEASE:
+   ///     CHUNK_ESCROW_RELEASE4res opchunkescrowrelease;
+   /// case OP_CHUNK_ESCROW_ENUMERATE:
+   ///     CHUNK_ESCROW_ENUMERATE4res opchunkescrowenumerate;
+   /// case OP_CHUNK_ESCROW_TAKEOVER:
+   ///     CHUNK_ESCROW_TAKEOVER4res opchunkescrowtakeover;
 ~~~
 {: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
 
 Operations 78 through 88 (the CHUNK_* operations) are sent by
 clients to storage devices on the data path.  Operations 89
 through 91 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
-are sent by the metadata server to storage devices on the
-MDS-to-DS control session (see
+and operations 92 through 95 (CHUNK_ESCROW_INSTALL,
+CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE,
+CHUNK_ESCROW_TAKEOVER) are sent by the metadata server to
+storage devices on the MDS-to-DS control session (see
 {{sec-tight-coupling-control-session}}); they MUST NOT be sent by
 pNFS clients.
 
@@ -7770,6 +7799,10 @@ interface.
    | TRUST_STATEID          | 89     | data server (metadata server control)  | {{sec-TRUST_STATEID}} |
    | REVOKE_STATEID         | 90     | data server (metadata server control)  | {{sec-REVOKE_STATEID}} |
    | BULK_REVOKE_STATEID    | 91     | data server (metadata server control)  | {{sec-BULK_REVOKE_STATEID}} |
+   | CHUNK_ESCROW_INSTALL   | 92     | data server (metadata server control)  | {{sec-CHUNK_ESCROW_INSTALL}} |
+   | CHUNK_ESCROW_RELEASE   | 93     | data server (metadata server control)  | {{sec-CHUNK_ESCROW_RELEASE}} |
+   | CHUNK_ESCROW_ENUMERATE | 94     | data server (metadata server control)  | {{sec-CHUNK_ESCROW_ENUMERATE}} |
+   | CHUNK_ESCROW_TAKEOVER  | 95     | data server (metadata server control)  | {{sec-CHUNK_ESCROW_TAKEOVER}} |
 {: #tbl-protocol-ops title="Protocol OPs"}
 
 ## Operation 78: CHUNK_COMMIT - Activate Cached Chunk Data {#sec-CHUNK_COMMIT}
@@ -11103,6 +11136,350 @@ NFS4ERR_PERM:
 NFS4ERR_SERVERFAULT:
 :  the data server failed while processing
    the request.
+
+## Operation 92: CHUNK_ESCROW_INSTALL - Install an MDS-escrow lock {#sec-CHUNK_ESCROW_INSTALL}
+
+### ARGUMENTS
+
+~~~ xdr
+   /// struct CHUNK_ESCROW_INSTALL4args {
+   ///     /* CURRENT_FH: file */
+   ///     uint64_t        ceia_mds_epoch;
+   ///     offset4         ceia_offset;
+   ///     count4          ceia_count;
+   ///     escrow_id4      ceia_escrow_id;
+   /// };
+~~~
+{: #fig-CHUNK_ESCROW_INSTALL4args title="XDR for CHUNK_ESCROW_INSTALL4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// union CHUNK_ESCROW_INSTALL4res
+   ///     switch (nfsstat4 ceir_status) {
+   /// case NFS4_OK:
+   ///     escrow_id4      ceir_escrow_id;
+   /// default:
+   ///     void;
+   /// };
+~~~
+{: #fig-CHUNK_ESCROW_INSTALL4res title="XDR for CHUNK_ESCROW_INSTALL4res" }
+
+### DESCRIPTION
+
+CHUNK_ESCROW_INSTALL is sent by the metadata server
+to a data server on the MDS-to-DS control session to
+install an MDS-escrow lock ({{sec-chunk_guard_mds}})
+over the chunk range [ceia_offset,
+ceia_offset+ceia_count) on the file selected by
+CURRENT_FH.  The lock is created with the specified
+ceia_escrow_id, which the metadata server will later
+present to reference this specific installation on
+CHUNK_ESCROW_RELEASE ({{sec-CHUNK_ESCROW_RELEASE}}),
+in CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}), and in
+the corresponding CHUNK_LOCK adoption
+({{sec-CHUNK_LOCK}}).
+
+ceia_mds_epoch is the metadata server's current
+epoch on this data server; the data server rejects
+the operation with NFS4ERR_STALE_MDS_EPOCH
+({{sec-NFS4ERR_STALE_MDS_EPOCH}}) if the epoch does
+not match its recorded value or if the current
+epoch's expires_at has passed.
+
+The install is all-or-nothing across the range: if
+any chunk in [ceia_offset, ceia_offset+ceia_count)
+carries an incompatible existing lock, the operation
+fails with the corresponding per-chunk error at the
+operation level (typically NFS4ERR_CHUNK_LOCKED).
+
+On success, ceir_escrow_id echoes ceia_escrow_id
+to confirm the identity the data server recorded.
+The metadata server MUST retain this identity in
+its durable escrow-tuple set before issuing the
+call and MUST NOT reuse an escrow_id4 whose
+lifecycle is not provably complete
+({{sec-escrow_id4}}).
+
+### RESPONSE CODES
+
+NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
+NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP,
+NFS4ERR_PERM, NFS4ERR_SERVERFAULT,
+NFS4ERR_STALE_MDS_EPOCH.
+
+## Operation 93: CHUNK_ESCROW_RELEASE - Release an MDS-escrow lock {#sec-CHUNK_ESCROW_RELEASE}
+
+### ARGUMENTS
+
+~~~ xdr
+   /// struct CHUNK_ESCROW_RELEASE4args {
+   ///     /* CURRENT_FH: file */
+   ///     uint64_t        cera_mds_epoch;
+   ///     offset4         cera_offset;
+   ///     count4          cera_count;
+   ///     escrow_id4      cera_escrow_id;
+   /// };
+~~~
+{: #fig-CHUNK_ESCROW_RELEASE4args title="XDR for CHUNK_ESCROW_RELEASE4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// union CHUNK_ESCROW_RELEASE4res
+   ///     switch (nfsstat4 cerr_status) {
+   /// case NFS4_OK:
+   ///     void;
+   /// default:
+   ///     void;
+   /// };
+~~~
+{: #fig-CHUNK_ESCROW_RELEASE4res title="XDR for CHUNK_ESCROW_RELEASE4res" }
+
+### DESCRIPTION
+
+CHUNK_ESCROW_RELEASE is sent by the metadata server
+to release an MDS-escrow lock it previously
+installed with CHUNK_ESCROW_INSTALL
+({{sec-CHUNK_ESCROW_INSTALL}}).  The release is
+compare-and-release: the operation succeeds only
+when an escrow lock covering the requested range
+exists on the data server AND its escrow_id4
+matches cera_escrow_id.  If no escrow covers the
+range, or the covering escrow's identity differs,
+the data server returns NFS4ERR_STALE_ESCROW
+({{sec-NFS4ERR_STALE_ESCROW}}) and MUST NOT alter
+any current lock or escrow state as a side effect.
+
+The compare-and-release rule ensures that a
+metadata server which has been superseded by a
+newer incarnation cannot release an escrow the
+newer incarnation has since re-installed under a
+different identity.
+
+cera_mds_epoch is treated as in
+{{sec-CHUNK_ESCROW_INSTALL}}; a stale epoch returns
+NFS4ERR_STALE_MDS_EPOCH.
+
+Interaction with adopted locks (see
+{{sec-chunk_guard_mds}}): if a repair client has
+already adopted this escrow via CHUNK_LOCK with
+CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}), the
+escrow no longer exists on the data server as a
+distinct lock (the adoption consumes it and
+transfers ownership to the client); a subsequent
+CHUNK_ESCROW_RELEASE naming that identity returns
+NFS4ERR_STALE_ESCROW and MUST NOT affect the
+client-owned adopted lock.  The metadata server
+interprets NFS4ERR_STALE_ESCROW after possible
+adoption as "the escrow was consumed by ADOPT;
+wait for the CB_CHUNK_REPAIR response or a
+subsequent revocation-transfer signal before
+removing durable escrow-tuple bookkeeping."
+
+### RESPONSE CODES
+
+NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
+NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM,
+NFS4ERR_SERVERFAULT, NFS4ERR_STALE_ESCROW,
+NFS4ERR_STALE_MDS_EPOCH.
+
+## Operation 94: CHUNK_ESCROW_ENUMERATE - Enumerate MDS-escrow locks on a file {#sec-CHUNK_ESCROW_ENUMERATE}
+
+### ARGUMENTS
+
+~~~ xdr
+   /// struct CHUNK_ESCROW_ENUMERATE4args {
+   ///     /* CURRENT_FH: file */
+   ///     uint64_t        ceea_mds_epoch;
+   ///     offset4         ceea_offset;
+   ///     count4          ceea_count;
+   ///     uint32_t        ceea_maxcount;
+   ///     opaque          ceea_cookie<>;
+   /// };
+~~~
+{: #fig-CHUNK_ESCROW_ENUMERATE4args title="XDR for CHUNK_ESCROW_ENUMERATE4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// struct escrow_enum_entry4 {
+   ///     offset4         eee_offset;
+   ///     count4          eee_count;
+   ///     escrow_id4      eee_escrow_id;
+   /// };
+   ///
+   /// union CHUNK_ESCROW_ENUMERATE4res
+   ///     switch (nfsstat4 ceer_status) {
+   /// case NFS4_OK:
+   ///     bool                 ceer_eof;
+   ///     opaque               ceer_cookie<>;
+   ///     escrow_enum_entry4   ceer_entries<>;
+   /// default:
+   ///     void;
+   /// };
+~~~
+{: #fig-CHUNK_ESCROW_ENUMERATE4res title="XDR for CHUNK_ESCROW_ENUMERATE4res" }
+
+### DESCRIPTION
+
+CHUNK_ESCROW_ENUMERATE is sent by the metadata
+server to discover which MDS-escrow locks the
+data server currently holds on the file selected
+by CURRENT_FH.  Each returned entry names an
+installed escrow's range and identity.
+
+ceea_offset and ceea_count bound the inspection
+range; ceea_maxcount is the maximum number of
+entries the caller is willing to receive
+(ceea_maxcount = 0 is legal and is the
+op-family capability probe: the data server MUST
+return NFS4_OK with an empty ceer_entries array
+and ceer_eof = TRUE when it implements the
+operation, regardless of any escrows present.
+A data server that does not implement the
+operation returns NFS4ERR_OP_ILLEGAL at COMPOUND
+decode time per {{RFC8881}} Section 16.2, which is
+distinct from NFS4ERR_NOTSUPP).
+
+Pagination uses ceea_cookie: on the first call the
+caller supplies an empty cookie; the data server
+returns a snapshot verifier-plus-cursor in
+ceer_cookie that the caller supplies on the next
+call to continue enumeration.  The data server
+MUST return a verifier-consistent snapshot: no
+escrow installed after the first call in a
+pagination sequence appears in subsequent calls,
+and no escrow released after the first call
+disappears from subsequent calls (implementations
+may achieve this by snapshotting the escrow set
+at first-call time and streaming from the
+snapshot).  ceer_eof = TRUE signals the end of
+the enumeration.
+
+Non-mutating: the operation observes but does not
+modify escrow state.
+
+ceea_mds_epoch is treated as in the sibling
+operations; a stale epoch returns
+NFS4ERR_STALE_MDS_EPOCH.
+
+### RESPONSE CODES
+
+NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
+NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM,
+NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH.
+
+## Operation 95: CHUNK_ESCROW_TAKEOVER - Advance MDS-epoch after incarnation change {#sec-CHUNK_ESCROW_TAKEOVER}
+
+### ARGUMENTS
+
+~~~ xdr
+   /// struct CHUNK_ESCROW_TAKEOVER4args {
+   ///     /* CURRENT_FH: file (implementation-defined;
+   ///      * the operation is per-data-server, not
+   ///      * per-file; CURRENT_FH is provided per
+   ///      * NFSv4.2 COMPOUND convention). */
+   ///     uint64_t             ceta_expected_prior_epoch;
+   ///     uint64_t             ceta_new_epoch;
+   ///     proof_profile_id4    ceta_proof_profile;
+   ///     opaque               ceta_proof_data<CETA_INCARNATION_PROOF_MAX4>;
+   /// };
+~~~
+{: #fig-CHUNK_ESCROW_TAKEOVER4args title="XDR for CHUNK_ESCROW_TAKEOVER4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// union CHUNK_ESCROW_TAKEOVER4res
+   ///     switch (nfsstat4 cetar_status) {
+   /// case NFS4_OK:
+   ///     void;
+   /// default:
+   ///     void;
+   /// };
+~~~
+{: #fig-CHUNK_ESCROW_TAKEOVER4res title="XDR for CHUNK_ESCROW_TAKEOVER4res" }
+
+### DESCRIPTION
+
+CHUNK_ESCROW_TAKEOVER is the recovery path a
+metadata server uses to assume the escrow-control
+role on a data server after an incarnation change
+(a failover, a restart, or an operator-mediated
+recovery).  It carries an incarnation-lease proof
+issued by an authority external to the metadata
+server (see {{sec-proof-profile}}) which the data
+server verifies before advancing its recorded
+metadata-server epoch.
+
+The operation is a compare-and-advance:
+
+- ceta_expected_prior_epoch MUST equal the data
+  server's currently-recorded metadata-server
+  epoch;
+- ceta_new_epoch MUST either exceed the prior
+  epoch (ordinary takeover / advance) or equal the
+  prior epoch when the caller is renewing the
+  lease under the same incarnation (renewal
+  form; both values equal the data server's
+  current epoch, and only the epoch_expires_at
+  field is refreshed);
+- ceta_proof_profile MUST name a profile the data
+  server supports; and
+- ceta_proof_data MUST verify under that profile
+  per {{sec-proof-profile}}.
+
+All four conditions are evaluated atomically; on
+success the data server updates its recorded
+epoch and epoch_expires_at values in a single
+step, and subsequent CHUNK_ESCROW_INSTALL,
+CHUNK_ESCROW_RELEASE, and CHUNK_ESCROW_ENUMERATE
+operations from the new epoch are accepted.
+Concurrent takeovers serialize: exactly one
+same-expected-prior request wins, and any other
+sees NFS4ERR_STALE_MDS_EPOCH on its second
+attempt because the prior has advanced.
+
+The strict evaluation order per
+{{sec-proof-profile}} is followed:
+session-replay-cache lookup first, then
+presenter authorization (NFS4ERR_ACCESS on
+failure), then profile support (NFS4ERR_NOTSUPP
+on unknown profile), then proof verification
+(NFS4ERR_ACCESS on failure), then epoch
+compare-and-advance (NFS4ERR_STALE_MDS_EPOCH on
+mismatch).  This ordering ensures unauthenticated
+callers learn nothing about supported profiles
+or current epoch state.
+
+Unlike the other CHUNK_ESCROW_* operations,
+CHUNK_ESCROW_TAKEOVER is EXEMPT from the
+ongoing epoch_expires_at check applied to
+INSTALL, RELEASE, and ENUMERATE: TAKEOVER is
+itself the recovery path out of an expired
+epoch and carries its own compare-and-advance +
+proof-verification semantics.  A metadata server
+that has been fenced by a superseding takeover
+cannot recover by presenting another
+CHUNK_ESCROW_TAKEOVER unless it obtains a valid
+fresh incarnation-lease proof from the
+authority.
+
+Older escrow state is NOT invalidated by an
+epoch advance: escrows installed under the prior
+epoch survive; the new incarnation reconciles
+them via CHUNK_ESCROW_ENUMERATE and adopts,
+releases, or reissues each per its durable
+recovery state.  Fencing applies to control
+traffic on old epochs, not to the state those
+epochs installed.
+
+### RESPONSE CODES
+
+NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
+NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM,
+NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH.
 
 # New NFSv4.2 Callback Operations
 
