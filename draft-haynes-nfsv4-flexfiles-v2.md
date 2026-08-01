@@ -12467,6 +12467,153 @@ only succeed after credential verification and return
 NFS4ERR_ACCESS for unverified callers rather than the more
 specific error codes.
 
+The A.1b family adds NFS4ERR_NO_PREDECESSOR (10103),
+NFS4ERR_NO_ADOPTABLE_LOCK (10104), NFS4ERR_STALE_ESCROW (10105),
+NFS4ERR_STALE_MDS_EPOCH (10106), and NFS4ERR_PARTIAL (10107).
+All five reveal control-plane or discovery state that a
+compromised or curious caller could aggregate into a picture of
+which files are under repair, which are pinned, and which epoch
+is current.  A data server SHOULD enforce presenter
+authorization before returning any of these codes so that an
+unauthorized caller receives NFS4ERR_ACCESS rather than the
+specific state indicator.  In particular, NFS4ERR_STALE_MDS_EPOCH
+and unknown-profile NFS4ERR_NOTSUPP on CHUNK_ESCROW_TAKEOVER are
+gated behind presenter authorization by the strict evaluation
+order in {{sec-proof-profile}}; that ordering is a security
+requirement, not merely a diagnostic preference.
+
+##  Escrow Control Plane and Incarnation Proofs {#sec-security-escrow}
+
+The A.1b-b2 mechanisms introduce four operations
+(CHUNK_ESCROW_INSTALL, CHUNK_ESCROW_RELEASE,
+CHUNK_ESCROW_ENUMERATE, CHUNK_ESCROW_TAKEOVER —
+{{sec-CHUNK_ESCROW_INSTALL}} through
+{{sec-CHUNK_ESCROW_TAKEOVER}}) and one proof envelope
+({{sec-proof-profile}}) whose security properties merit
+dedicated treatment.
+
+###  Authorization scope
+
+CHUNK_ESCROW_INSTALL, CHUNK_ESCROW_RELEASE, and
+CHUNK_ESCROW_ENUMERATE MUST be invoked only by the metadata
+server currently holding the incarnation lease.  A data server
+MUST authenticate the presenter via RPCSEC_GSS
+({{!RFC7861}}) and verify the presenter's principal against
+the deployment-configured metadata-server principal(s) for
+the file's device before accepting any escrow-family
+operation; presenter authorization failure returns
+NFS4ERR_ACCESS with no side effect on escrow state.  This
+authorization is orthogonal to the ordinary client-facing
+NFSv4 access controls: an authenticated pNFS client's
+credentials MUST NOT authorize an escrow-family operation
+even if the client is otherwise permitted to read or write
+the file.  A data server that receives any escrow-family
+operation on a session belonging to a non-metadata-server
+principal MUST reject with NFS4ERR_ACCESS or NFS4ERR_PERM
+per the ordinary NFSv4 rules.
+
+###  Trust anchor lifecycle
+
+The proof profile depends on a deployment-provisioned trust
+anchor at each data server ({{sec-proof-profile}} "Trust
+Anchor Provisioning").  Anchor compromise permits an
+adversary to forge incarnation-lease tokens and stage
+takeovers of the escrow control plane; anchor
+unavailability blocks legitimate takeovers and inhibits
+recovery from an incarnation failure.  Deployments SHOULD:
+
+- provision separate anchors per proof profile so revocation
+  of one profile does not require replacing keys for others;
+- rotate anchors on a schedule consistent with the
+  authority's own key-management posture (this specification
+  does not mandate a rotation interval); and
+- retain the ability to revoke an anchor out-of-band without
+  requiring a wire-level protocol message, because a
+  compromised anchor's tokens will otherwise satisfy the
+  data server's strict-ordering checks by construction.
+
+An incarnation-lease authority MUST NOT delegate signing to
+any component the metadata server can spoof; the security of
+the proof mechanism rests on the assumption that the
+authority is a distinct entity from any metadata server and
+can independently attest current single-writer ownership.
+
+###  Replay-cache exhaustion and durability
+
+The token_id replay cache at the data server
+({{sec-proof-profile}} "Presentation and Verification") is a
+finite resource.  A hostile presenter that can obtain many
+valid tokens for the same profile MAY attempt to grow the
+cache without bound.  A data server SHOULD bound the cache
+size and expire entries no later than their token's
+expires_at; entries older than the longest admissible
+issued_at-to-expires_at window MAY be evicted.  The
+byte-identical uncertain-completion recovery path
+({{sec-proof-profile}} "Uncertain-Completion Recovery for
+TAKEOVER") tolerates cache eviction: a token whose replay
+entry has aged out will present as a valid new proof, and if
+its ceta_new_epoch equals the data server's currently-
+recorded epoch the operation succeeds idempotently.
+
+Data servers that persist the token_id cache across restart
+MUST persist and evict entries coherently with expires_at
+values; a data server that does not persist the cache
+returns to the freshly-initialized state after restart and
+MAY accept a token it previously observed.
+
+###  Discovery information disclosure
+
+CHUNK_ESCROW_ENUMERATE and the b1 CHUNK_HEADER_READ
+predecessor arm ({{sec-CHUNK_HEADER_READ}}) disclose
+control-plane and discovery information.
+CHUNK_ESCROW_ENUMERATE is gated behind the escrow-role
+authorization above; CHUNK_HEADER_READ's predecessor list is
+available to any pNFS client holding a valid layout for the
+file.  A deployment where predecessor identity is itself
+sensitive (for example, because owner triples encode
+information about the writer's identity that ordinary read
+authorization does not disclose) SHOULD scope the layout so
+that only appropriately-authorized clients can obtain it.
+The specification does not require the data server to
+suppress predecessor disclosure on a per-client basis; where
+that is required, deploy at the layout-authorization layer.
+
+###  Resource exhaustion via long-lived escrows
+
+A compromised or faulty metadata server can install an
+arbitrary number of long-lived MDS-escrow locks via
+CHUNK_ESCROW_INSTALL, each of which forces retention of a
+predecessor generation the data server would otherwise
+release under the retention scope rule
+({{sec-system-model-retention-scope}}).  Sustained abuse
+could exhaust data-server storage.  A data server MAY apply
+implementation-defined admission control on the total number
+of MDS-escrow locks it holds concurrently, rejecting further
+CHUNK_ESCROW_INSTALL with NFS4ERR_SERVERFAULT or a
+resource-exhaustion error when the bound is reached; the
+metadata server can then release older escrows or wait for
+their natural completion before retrying.  This
+specification does not prescribe a concrete bound; the
+choice is deployment-local and interacts with the
+data-server's storage-management policy.
+
+###  Consequence of losing durable adopted-lock escrow identity
+
+The client-owned lock that adopted an MDS-escrow retains the
+adopted escrow_id4 as durable custody metadata per
+{{sec-chunk_guard_mds}}; on data-server restart this
+metadata must survive so a subsequent revocation-transfer
+re-emits the same identity.  A data server that fails to
+persist the adopted escrow_id4 (whether by implementation
+defect or storage corruption) forces the metadata server's
+tuple bookkeeping into an unresolvable state: the recovered
+MDS-escrow appears with a fresh identity that no durable
+tuple matches, and the composed rollback guarantee
+({{sec-composed-rollback}}) is broken for repairs that
+crossed the restart.  A deployment SHOULD monitor for
+missing-adopted-id events and treat them as a data-server
+failure requiring operator investigation.
+
 ##  Transport Layer Security {#sec-tls}
 
 RPC-over-TLS {{RFC9289}} MAY be used to protect traffic between the
