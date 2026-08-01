@@ -6713,6 +6713,13 @@ Mixed:
    /// const NFS4ERR_PAYLOAD_LOST                 = 10101;
    /// const NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED = 10102;
    /// const NFS4ERR_NO_PREDECESSOR               = 10103;
+   /// const NFS4ERR_NO_ADOPTABLE_LOCK            = 10104;
+   /// const NFS4ERR_STALE_ESCROW                 = 10105;
+   /// const NFS4ERR_STALE_MDS_EPOCH              = 10106;
+   /// /* NFS4ERR_PARTIAL numeric TBD at draft-edit time
+   ///    (collision scan against the current nfsstat4
+   ///    range required before publication). */
+   /// const NFS4ERR_PARTIAL                      = 10107;
    ///
 ~~~
 {: #fig-errors-xdr title="Errors XDR" }
@@ -6730,6 +6737,10 @@ The new error codes are shown in {{fig-errors-xdr}}.
  | NFS4ERR_PAYLOAD_LOST | 10101  | {{sec-NFS4ERR_PAYLOAD_LOST}} |
  | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | 10102 | {{sec-NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED}} |
  | NFS4ERR_NO_PREDECESSOR | 10103 | {{sec-NFS4ERR_NO_PREDECESSOR}} |
+ | NFS4ERR_NO_ADOPTABLE_LOCK | 10104 | {{sec-NFS4ERR_NO_ADOPTABLE_LOCK}} |
+ | NFS4ERR_STALE_ESCROW | 10105 | {{sec-NFS4ERR_STALE_ESCROW}} |
+ | NFS4ERR_STALE_MDS_EPOCH | 10106 | {{sec-NFS4ERR_STALE_MDS_EPOCH}} |
+ | NFS4ERR_PARTIAL | 10107 | {{sec-NFS4ERR_PARTIAL}} |
 {: #tbl-protocol-errors title="Error Definitions"}
 
 ### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
@@ -6870,6 +6881,133 @@ pinning (see, e.g., any amendment that extends the
 CHUNK_LOCK model to hold the predecessor's payload
 and its owner-to-index association jointly against
 that release rule).
+
+### NFS4ERR_NO_ADOPTABLE_LOCK (Error Code 10104) {#sec-NFS4ERR_NO_ADOPTABLE_LOCK}
+
+Returned by CHUNK_LOCK ({{sec-CHUNK_LOCK}}) when a
+repair client attempts to adopt an MDS-escrow lock
+({{sec-chunk_guard_mds}}) and no such adoption is
+possible on the data server for the requested range.
+There are four state-level causes:
+
+- no MDS-escrow lock is installed on the data server
+  for the requested range;
+- an MDS-escrow lock is installed but its
+  escrow_id4 ({{sec-escrow_id4}}) does not match
+  the identity the repair client presents;
+- the range's escrow lock is currently under a
+  reconciliation hold following a metadata-server
+  incarnation change (see
+  {{sec-CHUNK_ESCROW_TAKEOVER}}) and cannot be
+  adopted until the hold clears; or
+- the escrow was already adopted by a different
+  repair client whose adoption remains active.
+
+Authorization-level failures — the caller is not
+the metadata-server-designated repair client for
+this escrow, or the caller lacks credentials for
+the escrow's scope — surface as NFS4ERR_ACCESS
+rather than NFS4ERR_NO_ADOPTABLE_LOCK, so that no
+data-plane information about the current adopter is
+leaked to an unauthorized caller.
+
+On receipt of NFS4ERR_NO_ADOPTABLE_LOCK, the repair
+client MUST report the outcome to the metadata
+server via CB_CHUNK_REPAIR's per-range status array
+({{sec-CB_CHUNK_REPAIR}}) and MUST NOT
+unilaterally acquire a fresh CHUNK_LOCK, retry the
+adoption, or invoke the discovery/fallback path of
+NFS4ERR_NO_PREDECESSOR
+({{sec-NFS4ERR_NO_PREDECESSOR}}) — the four causes
+above are all control-plane conditions the metadata
+server is best placed to resolve (by reissuing the
+escrow, waiting for the reconciliation hold to
+clear, or abandoning the repair).
+
+### NFS4ERR_STALE_ESCROW (Error Code 10105) {#sec-NFS4ERR_STALE_ESCROW}
+
+Returned by CHUNK_ESCROW_RELEASE
+({{sec-CHUNK_ESCROW_RELEASE}}) when the escrow_id4
+the metadata server presents does not match any
+escrow currently installed on the data server for
+the referenced range.  Two causes lead to the same
+wire outcome:
+
+- no escrow covers the referenced range at the
+  data server (whether never installed, released
+  earlier, or consumed by a repair adoption); or
+- an escrow covers the range but its recorded
+  escrow_id4 differs from the one presented (the
+  presented identity is a stale reference to an
+  earlier installation).
+
+The data server MUST NOT alter any current lock or
+escrow state as a side effect of returning
+NFS4ERR_STALE_ESCROW: the response reports "the
+identity you presented is not what I hold" without
+changing what is held.  In particular, if the range
+carries an MDS-escrow lock whose escrow_id4 differs
+from the presented identity, that lock survives the
+call unchanged; and if the range carries a
+client-owned lock that was previously adopted from
+an escrow whose identity matches, that adopted
+lock is not affected by a release of the presented
+(now-stale) identity.
+
+### NFS4ERR_STALE_MDS_EPOCH (Error Code 10106) {#sec-NFS4ERR_STALE_MDS_EPOCH}
+
+Returned by any of the CHUNK_ESCROW_* operations
+({{sec-CHUNK_ESCROW_INSTALL}},
+{{sec-CHUNK_ESCROW_RELEASE}},
+{{sec-CHUNK_ESCROW_ENUMERATE}}) when the requesting
+metadata server presents an epoch value the data
+server no longer accepts because a newer metadata-
+server incarnation has completed a
+CHUNK_ESCROW_TAKEOVER ({{sec-CHUNK_ESCROW_TAKEOVER}}).
+The metadata server that receives NFS4ERR_STALE_MDS_EPOCH
+has been fenced from continued escrow operations on
+this data server; it MUST NOT retry the operation
+under the same epoch and MUST fresh-take-over
+before resuming.  CHUNK_ESCROW_TAKEOVER itself is
+not subject to this rejection — it is the recovery
+path out of an expired epoch and carries its own
+compare-and-advance semantics per
+{{sec-CHUNK_ESCROW_TAKEOVER}}.
+
+NFS4ERR_STALE_MDS_EPOCH is distinct from
+NFS4ERR_ACCESS (credential-level failure) and from
+NFS4ERR_STALE_ESCROW (identity mismatch on a
+specific escrow): the stale-epoch response fences
+the presenter's entire escrow-control session, not
+a single per-escrow operation.
+
+### NFS4ERR_PARTIAL (Error Code 10107) {#sec-NFS4ERR_PARTIAL}
+
+Returned as the top-level status of a
+CB_CHUNK_REPAIR response ({{sec-CB_CHUNK_REPAIR}})
+when the repair client evaluated every named range
+but at least one range's per-range status is not
+NFS4_OK.  The per-range status array
+(ccrr_range_status) is authoritative for the
+outcome of each range; NFS4ERR_PARTIAL is the
+top-level signal that the metadata server MUST
+consume the per-range array rather than treating
+the response as uniformly successful or uniformly
+failed.
+
+NFS4ERR_PARTIAL is distinct from operation-wide
+errors (decode failures, authorization failures,
+session state failures) that fail every range at
+once: those return the operation-wide error at the
+top level with an EMPTY per-range array.
+NFS4ERR_PARTIAL requires a co-indexed array with
+one entry per named range and MAY carry any mix
+of NFS4_OK and per-range failure codes.
+
+The numeric value 10107 is provisional; a final
+draft-edit-time collision scan against the
+current nfsstat4 range in {{RFC8881}} may adjust
+the assignment.
 
 ## Operations and Their Valid Errors
 
