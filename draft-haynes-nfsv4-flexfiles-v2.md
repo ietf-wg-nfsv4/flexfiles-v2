@@ -3439,17 +3439,17 @@ the CHUNK_WRITEargs.
   | cwr_committed: FILE_SYNC4     |
   | cwr_writeverf: 0xf1234abc     |
   | cwr_owners[0]:                |
-  |        co_chunk_id: 1         |
+  |        co_id: 1         |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
   | cwr_owners[1]:                |
-  |        co_chunk_id: 2         |
+  |        co_id: 2         |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
   | cwr_owners[2]:                |
-  |        co_chunk_id: 3         |
+  |        co_id: 3         |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
@@ -6941,23 +6941,38 @@ CHUNK_LOCK_FLAGS_ADOPT.  See {{sec-CHUNK_LOCK}}.
 ~~~ xdr
    /// struct chunk_owner4 {
    ///     chunk_guard4   co_guard;
-   ///     uint32_t       co_chunk_id;
+   ///     uint32_t       co_id;
    /// };
 ~~~
 {: #fig-chunk_owner4 title="XDR for chunk_owner4" }
 
 The chunk_owner4 (see {{fig-chunk_owner4}}) is used to determine
-when and by whom a block was written.  The co_chunk_id is used
-to identify the chunk and MUST be the index of the chunk within
-the file.  I.e., it is the offset of the start of the chunk
-divided by the chunk length.  The co_guard is a chunk_guard4
-(see {{sec-chunk_guard4}}), used to identify a given
-transaction.
+when and by whom a block was written.  Together the co_guard
+and co_id form the full owner triple that identifies who wrote
+the chunk (co_guard) and which of that writer's chunks this is
+(co_id).
 
-The co_guard is like the change attribute (see Section 5.8.1.4 of
-{{RFC8881}}) in that each chunk write by a given client has to have
-an unique co_guard.  I.e., it can be determined which transaction
-across all data files that a chunk corresponds.
+The co_id is a writer-supplied opaque per-chunk identifier the
+client chooses at CHUNK_WRITE time (see {{sec-CHUNK_WRITE}}).
+It is NOT required to equal the chunk's file index; the client
+MAY choose any uint32_t value, subject only to the uniqueness
+constraint that within a single co_guard all co_id values for
+chunks written in that transaction MUST be distinct so that a
+subsequent lifecycle operation (CHUNK_FINALIZE, CHUNK_COMMIT,
+CHUNK_ROLLBACK) can name individual chunks unambiguously.
+The data server treats co_id opaquely; it does NOT interpret
+the value beyond equality comparison against the co_id values
+it previously accepted from the client for this owner
+transaction.  Writers that would otherwise choose file-index
+values MAY do so, but the wire semantics do not privilege that
+choice.
+
+The co_guard is a chunk_guard4 (see {{sec-chunk_guard4}}) that
+identifies the writing transaction, analogous to the change
+attribute (see Section 5.8.1.4 of {{RFC8881}}): each distinct
+chunk-write transaction from a given client MUST carry a unique
+co_guard, so lifecycle operations can be correlated with the
+transactions that produced them across all data files.
 
 ## checksum4 {#sec-checksum4}
 
@@ -8448,7 +8463,7 @@ synthetic zero-filled payload.
   | crr_chunks[0]:                 |
   |     cr_checksum: 0x3faddace    |
   |     cr_owner:                  |
-  |         co_chunk_id: 2         |
+  |         co_id: 2         |
   |         co_guard:              |
   |             cg_gen_id   : 3    |
   |             cg_client_id: 6    |
@@ -8457,7 +8472,7 @@ synthetic zero-filled payload.
   | crr_chunks[1]:                 |
   |     cr_checksum: 0xdeade4e5    |
   |     cr_owner:                  |
-  |         co_chunk_id: 3         |
+  |         co_id: 3         |
   |         co_guard:              |
   |             cg_gen_id   : 0    |
   |             cg_client_id: 0    |
@@ -8466,7 +8481,7 @@ synthetic zero-filled payload.
   | crr_chunks[2]:                 |
   |     cr_checksum: 0x7778abcd    |
   |     cr_owner:                  |
-  |         co_chunk_id: 4         |
+  |         co_id: 4         |
   |         co_guard:              |
   |             cg_gen_id   : 3    |
   |             cg_client_id: 6    |
