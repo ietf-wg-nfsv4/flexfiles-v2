@@ -5297,6 +5297,77 @@ that arrives while the chunk is already LOCKED by a different
 owner returns NFS4ERR_CHUNK_LOCKED with the existing owner's
 chunk_owner4 in clr_owner ({{sec-CHUNK_LOCK}}).
 
+##  Read-Time Generation Status {#sec-system-model-read-time-status}
+
+Independent of the chunk lifecycle state
+({{fig-chunk-state-machine}}) and the lock state
+({{sec-CHUNK_LOCK}}), a data server distinguishes three
+read-time statuses for any generation the caller names or
+observes at a chunk index.  These are the higher-level
+categories the CHUNK_READ ({{sec-CHUNK_READ}}) per-chunk
+status codes and the CHUNK_HEADER_READ
+({{sec-CHUNK_HEADER_READ}}) discovery response classify
+into:
+
+AVAILABLE:
+:  the generation's payload is held by the data server and
+   its integrity check succeeds at read time.  A
+   CHUNK_READ returns the payload with NFS4_OK.  A
+   CHUNK_HEADER_READ that observes an AVAILABLE
+   predecessor is the input the caller uses to decide
+   whether CHUNK_ROLLBACK's restore case
+   ({{sec-CHUNK_ROLLBACK}} "Rollback of COMMITTED
+   Chunks") can succeed under the caller's own retention
+   scope ({{sec-system-model-retention-scope}}).
+
+ERRORED:
+:  the owner-to-index association is still recorded but
+   the payload is not readable — the persisted checksum
+   or guard check fails at read time
+   ({{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}}), the underlying
+   storage is unreachable, or the chunk carries the
+   errored bit set by an earlier CHUNK_ERROR
+   ({{sec-CHUNK_ERROR}}).  A CHUNK_READ returns
+   NFS4ERR_PAYLOAD_NOT_ATOMIC (or another per-chunk
+   status appropriate to the failure); the client
+   reports the fault via LAYOUTERROR and the metadata
+   server arranges repair.  An ERRORED generation is
+   observable — its owner triple can be discovered — but
+   not consumable.
+
+ABSENT:
+:  the data server holds no generation at the requested
+   chunk index (the chunk is EMPTY) or holds no
+   generation matching the requested owner triple.  A
+   CHUNK_READ returns the synthetic-hole response
+   ({{sec-CHUNK_READ}}) or per-chunk NFS4ERR_NOENT.  A
+   CHUNK_HEADER_READ that names a predecessor and finds
+   ABSENT returns the absence in its per-chunk response
+   fields; a CHUNK_ROLLBACK that names such a
+   predecessor returns NFS4ERR_NO_PREDECESSOR
+   ({{sec-NFS4ERR_NO_PREDECESSOR}}) or NFS4ERR_INVAL per
+   the rules under "Deletion Atomicity and Invalidated
+   Triples" ({{sec-CHUNK_ROLLBACK}}).
+
+The three statuses are exhaustive at read time: any
+generation the caller might reference is exactly one of
+AVAILABLE, ERRORED, or ABSENT.  A generation can
+transition from AVAILABLE to ERRORED (via CHUNK_ERROR
+or a checksum failure) and from ERRORED back to
+AVAILABLE (via a successful repair sequence).  The
+transition from AVAILABLE or ERRORED to ABSENT is a
+release under the retention scope rule
+({{sec-system-model-retention-scope}}) coupled with the
+payload/association biconditional
+({{sec-system-model-payload-association-biconditional}}):
+the payload and its owner-to-index association are
+released together and the generation vanishes from the
+observable set.  There is no transition from ABSENT
+back to any observable status for the same owner
+triple: the invalidated-triple rule ("Deletion
+Atomicity and Invalidated Triples" under
+{{sec-CHUNK_ROLLBACK}}) forbids resurrection.
+
 ##  Consistency Guarantees {#sec-system-model-consistency}
 
 The protocol provides **per-chunk linearizability on COMMITTED
