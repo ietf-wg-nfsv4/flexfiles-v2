@@ -6255,6 +6255,7 @@ MAY:
  | LAYOUTGET, LAYOUTCOMMIT, LAYOUTRETURN, LAYOUTSTATS, LAYOUTERROR, GETDEVICEINFO, GETDEVICELIST | MUST NOT | MUST NOT |
  | ACL-scoped GETATTR/SETATTR bits   | MUST NOT                   | MAY                |
  | TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID | MUST NOT  | REQUIRED (tight coupling) |
+ | CHUNK_ESCROW_INSTALL, CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE, CHUNK_ESCROW_TAKEOVER | MUST NOT | REQUIRED |
 {: #tbl-ops-allowed title="NFSv4.2 operations allowed on data files"}
 
 The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-
@@ -7073,6 +7074,11 @@ are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
  | ---
  | NFS4ERR_CODING_NOT_SUPPORTED     | CB_CHUNK_REPAIR, LAYOUTGET  |
  | NFS4ERR_PAYLOAD_LOST             | CB_CHUNK_REPAIR             |
+ | NFS4ERR_NO_PREDECESSOR           | CHUNK_ROLLBACK              |
+ | NFS4ERR_NO_ADOPTABLE_LOCK        | CHUNK_LOCK                  |
+ | NFS4ERR_STALE_ESCROW             | CHUNK_ESCROW_RELEASE        |
+ | NFS4ERR_STALE_MDS_EPOCH          | CHUNK_ESCROW_INSTALL, CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE, CHUNK_ESCROW_TAKEOVER |
+ | NFS4ERR_PARTIAL                  | CB_CHUNK_REPAIR             |
 {: #tbl-errors-and-ops title="Errors and the Operations That Use Them"}
 
 # EXCHGID4_FLAG_USE_ERASURE_DS
