@@ -3405,11 +3405,14 @@ is in {{fig-example-chunk-write-args}}.
   | cwa_stateid: 0                     |
   | cwa_offset: 1                      |
   | cwa_stable: FILE_SYNC4             |
+  | cwa_owner_guard:                   |
+  |     cg_gen_id   : 3                |
+  |     cg_client_id: 6                |
+  | cwa_co_ids:                        |
+  |         [0]:  1                    |
+  |         [1]:  2                    |
+  |         [2]:  3                    |
   | cwa_payload_id: 0                  |
-  | cwa_owner:                         |
-  |            co_guard:               |
-  |                cg_gen_id   : 3     |
-  |                cg_client_id: 6     |
   | cwa_chunk_size  :  1048            |
   | cwa_checksums:                     |
   |         [0]:  0x32ef89             |
@@ -3421,11 +3424,15 @@ is in {{fig-example-chunk-write-args}}.
 {: #fig-example-chunk-write-args title="Example of CHUNK_WRITE_args" }
 
 This describes a 3 block write of data from an offset of 1 block
-in the file.  As each block shares the cwa_owner, it is only presented
-once.  The data server can construct the header
-for the i'th chunk from the cwa_chunks from the cwa_payload_id, the
-cwa_owner, and the i'th checksum from the cwa_checksums.  The cwa_chunks
-are sent together as a byte stream to increase performance.
+in the file.  All three chunks share cwa_owner_guard, so the guard
+is presented once; each chunk's writer-chosen opaque co_id appears
+in the co-indexed cwa_co_ids array (here the client chose 1, 2, 3,
+but any distinct-per-guard uint32_t values would be equally valid
+per {{sec-chunk_owner4}}).  The data server can construct the
+header for the i'th chunk from cwa_chunks using cwa_payload_id,
+cwa_owner_guard plus `cwa_co_ids[i]`, and the i'th checksum from
+cwa_checksums.  The cwa_chunks are sent together as a byte stream
+to increase performance.
 
 Assuming that there were no issues, {{fig-example-chunk-write-res}}
 illustrates the results.  The payload sequence id is implicit in
@@ -3439,17 +3446,17 @@ the CHUNK_WRITEargs.
   | cwr_committed: FILE_SYNC4     |
   | cwr_writeverf: 0xf1234abc     |
   | cwr_owners[0]:                |
-  |        co_id: 1         |
+  |        co_id: 1               |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
   | cwr_owners[1]:                |
-  |        co_id: 2         |
+  |        co_id: 2               |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
   | cwr_owners[2]:                |
-  |        co_id: 3         |
+  |        co_id: 3               |
   |        co_guard:              |
   |            cg_gen_id   : 3    |
   |            cg_client_id: 6    |
@@ -3502,11 +3509,12 @@ be 0x21de8.  The resulting CHUNK_WRITE is shown in {{fig-calc-crc-after}}.
   | cwa_stateid: 0                     |
   | cwa_offset: 1                      |
   | cwa_stable: FILE_SYNC4             |
+  | cwa_owner_guard:                   |
+  |     cg_gen_id   : 7                |
+  |     cg_client_id: 6                |
+  | cwa_co_ids:                        |
+  |         [0]:  1                    |
   | cwa_payload_id: 0                  |
-  | cwa_owner:                         |
-  |            co_guard:               |
-  |                cg_gen_id   : 7     |
-  |                cg_client_id: 6     |
   | cwa_chunk_size  :  1048            |
   | cwa_checksums:                     |
   |         [0]:  0x21de8              |
@@ -7241,26 +7249,39 @@ cca_chunks:
 :  an array of chunk_owner4 entries
    ({{fig-chunk_owner4}}) naming the specific
    (cg_gen_id, cg_client_id, co_id) generations to
-   commit.  Each entry's co_id MUST fall within
-   [cca_offset, cca_offset + cca_count); an entry whose
-   co_id is outside the range is rejected with
-   NFS4ERR_INVAL in the corresponding ccr_status slot.
-   The reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+   commit.  For each entry the data server looks up the
+   chunk index it associated with the complete
+   (cg_gen_id, cg_client_id, co_id) triple when the
+   client wrote it via CHUNK_WRITE or
+   CHUNK_WRITE_REPAIR.  That recorded chunk index MUST
+   lie in [cca_offset, cca_offset + cca_count); if the
+   triple does not match any recorded owner association
+   on this data server for this file, or the recorded
+   chunk index lies outside the requested range, the
+   entry is rejected with NFS4ERR_INVAL in the
+   corresponding ccr_status slot.  The co_id itself is
+   opaque per {{sec-chunk_owner4}} and is NOT compared
+   numerically with cca_offset or cca_count.  The
+   reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
    CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
    cg_client_id of any cca_chunks entry; see
    {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
 
-cca_offset and cca_count would appear redundant given
-cca_chunks contains explicit co_id values, but they exist
-because a chunk index MAY have multiple persisted
-generations at the moment CHUNK_COMMIT arrives -- an
+cca_offset and cca_count are NOT redundant with
+cca_chunks: the owner triples in cca_chunks name specific
+generations (which the data server correlates via its
+recorded owner-to-index association), while cca_offset
+and cca_count bound the intended chunk-index scope of the
+operation.  A chunk index MAY have multiple persisted
+generations at the moment CHUNK_COMMIT arrives — an
 older COMMITTED generation retained for the rollback
 invariant ({{sec-system-model-consistency}}) alongside a
 newer FINALIZED successor.  cca_chunks selects which
-(cg_gen_id, cg_client_id) generation to advance to
-COMMITTED; cca_offset and cca_count bound the work scope
-so the data server can reject malformed requests that
-name chunks outside the intended commit window.
+(cg_gen_id, cg_client_id, co_id) triple to advance to
+COMMITTED at each affected index; cca_offset and
+cca_count let the data server reject malformed requests
+that name generations whose recorded chunk index lies
+outside the intended commit window.
 
 The CHUNK_COMMIT result reports the outcome per chunk in
 the same order as cca_chunks:
@@ -7675,11 +7696,20 @@ cfa_chunks:
 :  an array of chunk_owner4 entries
    ({{fig-chunk_owner4}}) naming the specific
    (cg_gen_id, cg_client_id, co_id) generations to
-   finalize.  Each entry's co_id MUST fall within
-   [cfa_offset, cfa_offset + cfa_count); an entry whose
-   co_id is outside the range is rejected with
-   NFS4ERR_INVAL in the corresponding cfr_status slot.
-   The reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+   finalize.  For each entry the data server looks up
+   the chunk index it associated with the complete
+   (cg_gen_id, cg_client_id, co_id) triple when the
+   client wrote it via CHUNK_WRITE or
+   CHUNK_WRITE_REPAIR.  That recorded chunk index MUST
+   lie in [cfa_offset, cfa_offset + cfa_count); if the
+   triple does not match any recorded owner association
+   on this data server for this file, or the recorded
+   chunk index lies outside the requested range, the
+   entry is rejected with NFS4ERR_INVAL in the
+   corresponding cfr_status slot.  The co_id itself is
+   opaque per {{sec-chunk_owner4}} and is NOT compared
+   numerically with cfa_offset or cfa_count.  The
+   reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
    CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
    cg_client_id of any cfa_chunks entry; see
    {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
@@ -7703,10 +7733,12 @@ cfr_status:
    per-entry failure cases:
 
    *  NFS4ERR_INVAL -- the named generation is not in the
-      PENDING state at this offset (the chunk is EMPTY,
-      FINALIZED at a different generation, or COMMITTED),
-      or the entry's co_id is outside the
-      [cfa_offset, cfa_offset + cfa_count) range.
+      PENDING state at its recorded chunk index (the
+      chunk is EMPTY, FINALIZED at a different generation,
+      or COMMITTED), or the triple does not match any
+      recorded owner association, or the recorded chunk
+      index lies outside [cfa_offset, cfa_offset +
+      cfa_count).
 
    *  NFS4ERR_CHUNK_GUARDED -- the chunk is PENDING but
       at a different (cg_gen_id, cg_client_id) than the
@@ -8348,13 +8380,16 @@ cr_effective_len:
    parity shard.
 
 cr_owner:
-:  the chunk_owner4 carrying the chunk_guard4 and chunk-id
-   of the COMMITTED generation being returned.  A client
-   reading from multiple data servers in an erasure-coded
-   layout MUST compare cr_owner.co_guard across data
-   servers; agreement of the chunk_guard4 across the k
-   data shards is the atomicity invariant on which
-   reconstruction depends.  See
+:  the full (cg_gen_id, cg_client_id, co_id) owner triple
+   of the COMMITTED generation being returned (see
+   {{sec-chunk_owner4}}); co_id is the opaque writer-
+   supplied per-chunk identifier the client provided at
+   CHUNK_WRITE or CHUNK_WRITE_REPAIR time, not a chunk
+   index.  A client reading from multiple data servers in
+   an erasure-coded layout MUST compare cr_owner.co_guard
+   across data servers; agreement of the chunk_guard4
+   across the k data shards is the atomicity invariant on
+   which reconstruction depends.  See
    {{sec-system-model-consistency}}.
 
 cr_payload_id:
@@ -8398,9 +8433,13 @@ FALSE.  A successful CHUNK_READ of an empty file always
 returns crr_eof as TRUE with crr_chunks empty.  Note that
 crr_eof reflects the state at the data server only; in a
 multi-data-server erasure-coded layout the file's logical
-size is reconstructed at the client from the surviving
-shards' chunk_owner4 values, not from any single data
-server's crr_eof.
+size is reconstructed at the client from the chunk-index
+positions at which surviving shards hold non-EMPTY chunks
+(observed via successive CHUNK_READs at known offsets),
+not from any single data server's crr_eof.  Because co_id
+is opaque per {{sec-chunk_owner4}}, the reconstructing
+client MUST NOT derive positional information from the
+chunk_owner4 values themselves.
 
 Except when special stateids are used, the cra_stateid
 value represents a layout stateid returned by a prior
@@ -8463,7 +8502,7 @@ synthetic zero-filled payload.
   | crr_chunks[0]:                 |
   |     cr_checksum: 0x3faddace    |
   |     cr_owner:                  |
-  |         co_id: 2         |
+  |         co_id: 2               |
   |         co_guard:              |
   |             cg_gen_id   : 3    |
   |             cg_client_id: 6    |
@@ -8472,7 +8511,7 @@ synthetic zero-filled payload.
   | crr_chunks[1]:                 |
   |     cr_checksum: 0xdeade4e5    |
   |     cr_owner:                  |
-  |         co_id: 3         |
+  |         co_id: 0               |
   |         co_guard:              |
   |             cg_gen_id   : 0    |
   |             cg_client_id: 0    |
@@ -8481,7 +8520,7 @@ synthetic zero-filled payload.
   | crr_chunks[2]:                 |
   |     cr_checksum: 0x7778abcd    |
   |     cr_owner:                  |
-  |         co_id: 4         |
+  |         co_id: 4               |
   |         co_guard:              |
   |             cg_gen_id   : 3    |
   |             cg_client_id: 6    |
@@ -8732,11 +8771,20 @@ cra_chunks:
 :  an array of chunk_owner4 entries
    ({{fig-chunk_owner4}}) naming the specific
    (cg_gen_id, cg_client_id, co_id) generations to roll
-   back.  Each entry's co_id MUST fall within
-   [cra_offset, cra_offset + cra_count); entries outside
-   the range are rejected with NFS4ERR_INVAL in the
-   corresponding crr_chunk_status slot.  The reserved
-   sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+   back.  For each entry the data server looks up the
+   chunk index it associated with the complete
+   (cg_gen_id, cg_client_id, co_id) triple when the
+   client wrote it via CHUNK_WRITE or
+   CHUNK_WRITE_REPAIR.  That recorded chunk index MUST
+   lie in [cra_offset, cra_offset + cra_count); if the
+   triple does not match any recorded owner association
+   on this data server for this file, or the recorded
+   chunk index lies outside the requested range, the
+   entry is rejected with NFS4ERR_INVAL in the
+   corresponding crr_chunk_status slot.  The co_id
+   itself is opaque per {{sec-chunk_owner4}} and is NOT
+   compared numerically with cra_offset or cra_count.
+   The reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
    CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
    cg_client_id of any cra_chunks entry; see
    {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
@@ -8754,13 +8802,15 @@ crr_chunk_status:
    predecessor COMMITTED or FINALIZED generation, or to
    EMPTY when no predecessor exists).  NFS4ERR_INVAL
    indicates the named generation is not in PENDING or
-   FINALIZED at the named co_id (the chunk is EMPTY or
-   COMMITTED, or the chunk_owner4 does not match the
-   generation the data server holds), or co_id is outside
-   [cra_offset, cra_offset + cra_count).  Other per-entry
-   failures use the appropriate NFS4ERR_* code; the
-   top-level operation status is NFS4_OK as long as the
-   data server could evaluate each entry.
+   FINALIZED at its recorded chunk index (the chunk is
+   EMPTY or COMMITTED at that index, or the triple does
+   not match any recorded owner association on this
+   data server for this file), or the recorded chunk
+   index lies outside [cra_offset, cra_offset +
+   cra_count).  Other per-entry failures use the
+   appropriate NFS4ERR_* code; the top-level operation
+   status is NFS4_OK as long as the data server could
+   evaluate each entry.
 
 CHUNK_ROLLBACK has two principal scenarios:
 
@@ -9009,7 +9059,8 @@ NFS4ERR_SERVERFAULT:
    ///     stateid4           cwa_stateid;
    ///     offset4            cwa_offset;
    ///     stable_how4        cwa_stable;
-   ///     chunk_owner4       cwa_owner;
+   ///     chunk_guard4       cwa_owner_guard;
+   ///     uint32_t           cwa_co_ids<>;
    ///     uint32_t           cwa_payload_id;
    ///     uint32_t           cwa_flags;
    ///     write_chunk_guard4 cwa_guard;
@@ -9070,18 +9121,43 @@ variable-size Mojette parity shard
 ({{sec-mojette-encoding}}).  The number of chunks in the
 payload is ceil(len(cwa_chunks) / cwa_chunk_size).
 
-cwa_owner ({{fig-chunk_owner4}}) names the writer's
-chunk_owner4: cg_gen_id is the writer's per-chunk
-generation counter, cg_client_id identifies the writer
+The writer supplies the owner identity of the payload in
+compact form: cwa_owner_guard carries the shared
+chunk_guard4 for every chunk in the batch, and cwa_co_ids
+is an array of writer-chosen opaque per-chunk co_id
+values, one per chunk in the payload (see
+{{sec-chunk_owner4}}).  The full owner triple for the
+chunk at zero-based position i within the payload is
+`(cwa_owner_guard.cg_gen_id, cwa_owner_guard.cg_client_id,
+cwa_co_ids[i])`.
+
+`cwa_owner_guard.cg_client_id` identifies the writer
 (client-chosen, with the reserved sentinels
 CHUNK_GUARD_CLIENT_ID_NONE and CHUNK_GUARD_CLIENT_ID_MDS
-that MUST NOT appear in cwa_owner; see
-{{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}),
-and co_id is a writer-chosen opaque identifier the data
-server tracks alongside cg_client_id and cg_gen_id for
-CAS-guard bookkeeping and repair correlation (typically
-a monotonic per-writer serial; the data server MUST NOT
-require co_id to equal cwa_offset).
+that MUST NOT appear in `cwa_owner_guard`; see
+{{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}).
+`cwa_owner_guard.cg_gen_id` is the writer's per-transaction
+generation counter, shared by every chunk in the payload
+under the shared-guard model; the writer chooses a new
+`cg_gen_id` per distinct write transaction so that
+lifecycle operations can distinguish transactions across
+all data files (see {{sec-chunk_guard4}}).
+
+`cwa_co_ids<>` contains exactly one entry per chunk in the
+payload (i.e., `cwa_co_ids_len` MUST equal
+`ceil(len(cwa_chunks) / cwa_chunk_size)`); the data server
+rejects any other length with NFS4ERR_INVAL.  Within a
+single `cwa_owner_guard`, the `cwa_co_ids` values in this
+request MUST be distinct so that lifecycle operations
+(CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_ROLLBACK) can name
+individual chunks unambiguously by full triple.  The data
+server treats each `cwa_co_ids[i]` as opaque; it does NOT
+interpret the value beyond equality comparison, and it MUST
+NOT require `cwa_co_ids[i]` to equal `cwa_offset + i` or
+any other derived index.  A writer that finds it convenient
+to use monotonic per-writer serials or file-index-derived
+values MAY do so, but the wire semantics do not privilege
+that choice.
 
 cwa_payload_id is a writer-chosen identifier that lets a
 repair coordinator correlate chunks of the same logical
@@ -9161,12 +9237,22 @@ cwr_block_activated:
    CHUNK_FINALIZE and CHUNK_COMMIT to become COMMITTED.
 
 cwr_owners:
-:  per-chunk chunk_owner4 the data server recorded.  In
-   normal operation this matches cwa_owner with cg_gen_id
-   incremented for each chunk; the field is reported
-   explicitly so a client that lost track of its
-   per-chunk gen counter can recover the data server's
-   view.
+:  per-chunk chunk_owner4 the data server recorded, one
+   entry per chunk in the payload (co-indexed with
+   cwa_co_ids and cwr_block_status).  Each entry is the
+   complete owner triple `(cwa_owner_guard.cg_gen_id,
+   cwa_owner_guard.cg_client_id, cwa_co_ids[i])` that the
+   data server recorded (or, for a rejected slot, the
+   requested triple echoed for positional correlation with
+   the failure status in cwr_block_status[i]).  The data
+   server does NOT synthesize per-chunk identity by
+   modifying the writer's guard; the returned triple is
+   the value the client supplied, so a client that lost
+   track of its own transmitted co_ids array can recover
+   the data server's view.  Under the compact carrier the
+   guard is shared across every returned entry — the
+   per-chunk distinction is carried entirely by the
+   co_id.
 
 Except when special stateids are used, cwa_stateid
 represents a layout stateid returned by a prior LAYOUTGET
@@ -9388,7 +9474,8 @@ NFS4ERR_STALE:
    ///     stateid4           cwra_stateid;
    ///     offset4            cwra_offset;
    ///     stable_how4        cwra_stable;
-   ///     chunk_owner4       cwra_owner;
+   ///     chunk_guard4       cwra_owner_guard;
+   ///     uint32_t           cwra_co_ids<>;
    ///     uint32_t           cwra_payload_id;
    ///     uint32_t           cwra_chunk_size;
    ///     checksum4          cwra_checksums<>;
@@ -9404,7 +9491,8 @@ NFS4ERR_STALE:
    ///     count4          cwrr_count;
    ///     stable_how4     cwrr_committed;
    ///     verifier4       cwrr_writeverf;
-   ///     nfsstat4        cwrr_status<>;
+   ///     nfsstat4        cwrr_block_status<>;
+   ///     chunk_owner4    cwrr_owners<>;
    /// };
 ~~~
 {: #fig-CHUNK_WRITE_REPAIR4resok title="XDR for CHUNK_WRITE_REPAIR4resok" }
@@ -9495,17 +9583,32 @@ cwra_stable:
    CHUNK_WRITE (see {{sec-CHUNK_WRITE}} "Stability and
    Activation").
 
-cwra_owner:
-:  the chunk_owner4 ({{fig-chunk_owner4}}) the repair
-   client uses for the reconstructed payload.  The
+cwra_owner_guard / cwra_co_ids:
+:  the compact owner-identity carrier the repair client
+   uses for the reconstructed payload, mirroring
+   CHUNK_WRITE's cwa_owner_guard + cwa_co_ids per
+   {{sec-CHUNK_WRITE}}.  cwra_owner_guard carries the
+   shared chunk_guard4 for every reconstructed chunk in
+   the batch; cwra_co_ids is a co-indexed array of
+   writer-chosen opaque co_id values, one per chunk in
+   cwra_chunks (exactly `ceil(len(cwra_chunks) /
+   cwra_chunk_size)` entries; a length mismatch is
+   rejected with NFS4ERR_INVAL).  The full owner triple
+   for reconstructed chunk position i is
+   `(cwra_owner_guard.cg_gen_id,
+   cwra_owner_guard.cg_client_id, cwra_co_ids[i])`.  The
    cg_client_id MUST be the repair client's own
    ffv2m_client_id (not CHUNK_GUARD_CLIENT_ID_MDS); the
    cg_gen_id is the repair client's locally chosen
-   per-chunk generation counter.  The reserved sentinels
-   CHUNK_GUARD_CLIENT_ID_NONE and
+   per-transaction generation counter.  The reserved
+   sentinels CHUNK_GUARD_CLIENT_ID_NONE and
    CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear in
-   cwra_owner; see {{sec-chunk_guard_none}} and
-   {{sec-chunk_guard_mds}}.
+   cwra_owner_guard; see {{sec-chunk_guard_none}} and
+   {{sec-chunk_guard_mds}}.  Within a single
+   cwra_owner_guard, the cwra_co_ids values MUST be
+   distinct so that lifecycle operations can name
+   individual reconstructed chunks unambiguously by
+   full triple.
 
 cwra_payload_id:
 :  the payload-id the repair client associates with the
@@ -9541,20 +9644,37 @@ cwrr_writeverf:
 :  a verifier identifying the data server's incarnation.
    Semantics match cwr_writeverf in CHUNK_WRITE.
 
-cwrr_status:
+cwrr_block_status:
 :  per-chunk acceptance status, one entry per chunk in
-   the payload, co-indexed.  The top-level
-   CHUNK_WRITE_REPAIR status is NFS4_OK as long as the
-   data server could evaluate each chunk; per-chunk
-   failures are reported in cwrr_status rather than by
-   failing the whole operation.
+   the payload, co-indexed with cwra_co_ids and
+   cwrr_owners.  The top-level CHUNK_WRITE_REPAIR status
+   is NFS4_OK as long as the data server could evaluate
+   each chunk; per-chunk failures are reported in
+   cwrr_block_status rather than by failing the whole
+   operation.  (Renamed from cwrr_status to align with
+   CHUNK_WRITE's cwr_block_status naming; a top-level
+   status remains distinct from the per-chunk array.)
+
+cwrr_owners:
+:  per-chunk chunk_owner4 the data server recorded, one
+   entry per chunk in the payload (co-indexed with
+   cwra_co_ids and cwrr_block_status).  Each entry is
+   the complete owner triple
+   `(cwra_owner_guard.cg_gen_id,
+   cwra_owner_guard.cg_client_id, cwra_co_ids[i])`
+   that the data server recorded (or, for a rejected
+   slot, the requested triple echoed for positional
+   correlation with the failure status in
+   cwrr_block_status[i]).  The data server does NOT
+   synthesize per-chunk identity by modifying the
+   repair client's guard.
 
 The target chunks SHOULD be in the errored state (set by
 a prior CHUNK_ERROR) or EMPTY.  If a target chunk is
 COMMITTED with valid data, the data server MAY reject the
 repair-write with NFS4ERR_INVAL in the corresponding
-cwrr_status slot to prevent overwriting good data; the
-repair client SHOULD re-verify the chunk before
+cwrr_block_status slot to prevent overwriting good data;
+the repair client SHOULD re-verify the chunk before
 attempting another repair-write on the same range.
 
 If the current filehandle is not an ordinary file, an
