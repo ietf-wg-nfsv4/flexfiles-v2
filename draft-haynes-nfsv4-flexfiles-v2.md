@@ -6641,6 +6641,7 @@ Mixed:
    /// const NFS4ERR_CHUNK_GUARDED                = 10100;
    /// const NFS4ERR_PAYLOAD_LOST                 = 10101;
    /// const NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED = 10102;
+   /// const NFS4ERR_NO_PREDECESSOR               = 10103;
    ///
 ~~~
 {: #fig-errors-xdr title="Errors XDR" }
@@ -6657,6 +6658,7 @@ The new error codes are shown in {{fig-errors-xdr}}.
  | NFS4ERR_CHUNK_GUARDED | 10100  | {{sec-NFS4ERR_CHUNK_GUARDED}} |
  | NFS4ERR_PAYLOAD_LOST | 10101  | {{sec-NFS4ERR_PAYLOAD_LOST}} |
  | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | 10102 | {{sec-NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED}} |
+ | NFS4ERR_NO_PREDECESSOR | 10103 | {{sec-NFS4ERR_NO_PREDECESSOR}} |
 {: #tbl-protocol-errors title="Error Definitions"}
 
 ### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
@@ -6739,6 +6741,63 @@ server discriminate "client can't read this layout because
 of the checksum algorithm" from "client can't read this
 layout for some other reason" and respond accordingly.
 
+### NFS4ERR_NO_PREDECESSOR (Error Code 10103) {#sec-NFS4ERR_NO_PREDECESSOR}
+
+Returned on a CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}})
+against a COMMITTED chunk when the caller names a
+predecessor generation whose owner-to-index association
+is no longer recorded by the data server, and no other
+per-entry error covers the situation.  This is the "no
+restorable predecessor" outcome of the restore-case
+described under "Rollback of COMMITTED Chunks": the
+predecessor's payload+association pair was released some
+time earlier under the retention scope rule
+({{sec-system-model-retention-scope}}) — by lease expiry,
+by an earlier CHUNK_ROLLBACK delete case, or by any
+other terminal transition — and the data server cannot
+restore what it no longer holds.
+
+NFS4ERR_NO_PREDECESSOR is a per-entry status (a caller
+that names several generations in a single
+CHUNK_ROLLBACK MAY receive NFS4ERR_NO_PREDECESSOR on
+some slots and NFS4_OK or other per-entry errors on
+others).  It is a data-plane result, NOT a
+control-plane failure: the caller reached the data
+server successfully, was authorized, and the operation
+evaluated normally — the named predecessor simply
+does not exist to restore.
+
+NFS4ERR_NO_PREDECESSOR is distinct from NFS4ERR_INVAL
+(the triple was invalidated by an explicit delete case
+and cannot be resurrected — see "Deletion Atomicity and
+Invalidated Triples") and from NFS4ERR_PAYLOAD_LOST
+(terminal payload loss reported on CB_CHUNK_REPAIR).  A
+data server MAY use either NFS4ERR_INVAL or
+NFS4ERR_NO_PREDECESSOR when the two conditions overlap
+(a triple invalidated by an earlier delete case ALSO
+has no recorded association); NFS4ERR_INVAL SHOULD be
+preferred when the invalidation is directly attributable
+to a specific prior lifecycle operation the caller could
+have observed, and NFS4ERR_NO_PREDECESSOR SHOULD be
+preferred when the association's release cannot be
+attributed to any single observable event (e.g., lease
+expiry retention-scope discard).
+
+A client that receives NFS4ERR_NO_PREDECESSOR MAY fall
+back to reconstructing authoritative bytes from
+surviving shards and writing them via
+CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) under a
+FRESH owner triple; that fallback is best-effort and
+MAY itself terminate at NFS4ERR_PAYLOAD_LOST if no
+authoritative source exists.  A client that requires
+the restored generation to retain the predecessor's
+original owner triple across an unrestrained retention
+gap MUST use whatever mechanism the ecosystem provides
+for guaranteed predecessor pinning (see, e.g., any
+amendment introducing an MDS-escrow control plane
+that pins the predecessor's payload+association pair
+before it can become GC-eligible).
+
 ## Operations and Their Valid Errors
 
 The operations and their valid errors are presented in
@@ -6754,7 +6813,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
  | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_REPAIRED     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
- | CHUNK_ROLLBACK     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_ROLLBACK     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_NO_PREDECESSOR, NFS4ERR_SERVERFAULT |
  | CHUNK_UNLOCK       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_WRITE        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_GUARDED, NFS4ERR_CHUNK_LOCKED, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_WRITE_REPAIR | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOSPC, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
@@ -9065,11 +9124,14 @@ or by any other terminal transition), the CHUNK_ROLLBACK
 CANNOT restore it: the deleted association is not
 recreated by any operation defined in this document.
 The corresponding crr_chunk_status slot reports
-NFS4ERR_INVAL if the triple does not match any
-recorded owner association on this data server for
-this file (this includes the case where an earlier
-delete invalidated it), leaving the caller to consult
-whatever fallback the deployment provides — a repair
+NFS4ERR_NO_PREDECESSOR when the association's release
+cannot be attributed to a specific prior lifecycle
+operation the caller could have observed (e.g., lease
+expiry), or NFS4ERR_INVAL when the triple was
+invalidated by a specific earlier delete case (see
+{{sec-NFS4ERR_NO_PREDECESSOR}} for the choice between
+them).  Either way, the caller consults whatever
+fallback the deployment provides — a repair
 client MAY reconstruct authoritative bytes from
 surviving shards and issue CHUNK_WRITE_REPAIR
 ({{sec-CHUNK_WRITE_REPAIR}}) to write a FRESH
@@ -9186,6 +9248,12 @@ NFS4ERR_BAD_STATEID:
 NFS4ERR_INVAL:
 :  arguments named chunks not eligible for rollback
    or outside the file's mirror set.
+
+NFS4ERR_NO_PREDECESSOR:
+:  the named predecessor has no recorded owner-to-index
+   association on the data server (retention scope
+   released it, or it was never installed on this data
+   server).  See {{sec-NFS4ERR_NO_PREDECESSOR}}.
 
 NFS4ERR_NOTSUPP:
 :  the data server does not implement
