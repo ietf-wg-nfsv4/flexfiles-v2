@@ -10066,6 +10066,36 @@ The repair workflow that invokes CHUNK_WRITE_REPAIR is:
 7.  The repair client releases the lock via CHUNK_UNLOCK
     ({{sec-CHUNK_UNLOCK}}).
 
+CHUNK_WRITE_REPAIR is also the fallback path used by a
+client that received NFS4ERR_NO_PREDECESSOR
+({{sec-NFS4ERR_NO_PREDECESSOR}}) from CHUNK_ROLLBACK's
+restore case ({{sec-CHUNK_ROLLBACK}} "Rollback of
+COMMITTED Chunks", case (c)) — the named predecessor was
+released under the retention scope
+({{sec-system-model-retention-scope}}) and CHUNK_ROLLBACK
+cannot restore it.  Under this fallback the client
+reconstructs authoritative bytes from surviving shards
+(or from any other authoritative source it holds) and
+writes them via CHUNK_WRITE_REPAIR under a new owner
+triple of its own choosing.  The result is a distinct
+generation for lifecycle purposes: it carries the
+repair client's own cg_gen_id / cg_client_id / co_id,
+NOT the released predecessor's triple.  The released
+predecessor is not resurrected by any operation defined
+in this document, including this fallback; a subsequent
+lifecycle operation naming the released predecessor's
+triple still returns NFS4ERR_INVAL per "Deletion
+Atomicity and Invalidated Triples"
+({{sec-CHUNK_ROLLBACK}}).  A client that requires the
+restored generation to carry the released predecessor's
+original triple MUST use a guaranteed-pinning mechanism
+as noted in {{sec-NFS4ERR_NO_PREDECESSOR}}, since
+CHUNK_WRITE_REPAIR's semantics only produce a new
+generation.  When no authoritative source exists for
+reconstruction, the fallback itself may terminate at
+NFS4ERR_PAYLOAD_LOST ({{sec-NFS4ERR_PAYLOAD_LOST}})
+via CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).
+
 The arguments mirror CHUNK_WRITE except that
 CHUNK_WRITE_REPAIR has no cwa_flags field (the
 activation-shortcut behaviour is not offered on the repair
