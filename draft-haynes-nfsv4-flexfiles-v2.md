@@ -9857,13 +9857,29 @@ recreates an association under the same triple.
 A subsequent lifecycle operation (CHUNK_COMMIT
 ({{sec-CHUNK_COMMIT}}), CHUNK_FINALIZE
 ({{sec-CHUNK_FINALIZE}}), CHUNK_ROLLBACK) that names an
-invalidated triple MUST be rejected with NFS4ERR_INVAL in
-the corresponding per-chunk slot; the data server MUST NOT
-attempt to "resurrect" the generation by matching the
-triple against any other record.  This applies whether
-the triple was invalidated by an explicit CHUNK_ROLLBACK
-delete case or by any other terminal transition that
-released the payload+association pair.
+invalidated triple MUST NOT be treated as resurrecting
+the deleted generation; the data server MUST NOT attempt
+to match the triple against any other record.  The error
+returned in the corresponding per-chunk slot depends on
+the release scope observable to the caller:
+
+- Within the session slot's replay-cache window of the
+  CHUNK_ROLLBACK that performed the delete case (or an
+  equivalent slotted retransmission of it), the slot
+  reports NFS4ERR_INVAL — the caller could have observed
+  the specific invalidating operation.
+- After that replay-cache window has elapsed, or for
+  release under any other terminal transition (lease
+  expiry, storage-pressure release, retention-scope
+  release of an already-invalidated triple), the slot
+  reports NFS4ERR_NO_PREDECESSOR — the data server holds
+  no association for the presented triple and cannot
+  distinguish it from any other released generation.
+
+Both errors carry the same non-resurrection guarantee
+above; they differ only in what the caller can observe
+about how the association was released (see
+{{sec-NFS4ERR_NO_PREDECESSOR}}).
 
 The invalidation is on the FULL owner triple, not on any
 sub-part.  A client that legitimately reuses the same
@@ -9935,11 +9951,13 @@ or by any other terminal transition), the CHUNK_ROLLBACK
 CANNOT restore it: the deleted association is not
 recreated by any operation defined in this document.
 The corresponding crr_chunk_status slot reports
-NFS4ERR_NO_PREDECESSOR when the association's release
-cannot be attributed to a specific prior lifecycle
-operation the caller could have observed (e.g., lease
-expiry), or NFS4ERR_INVAL when the triple was
-invalidated by a specific earlier delete case (see
+NFS4ERR_NO_PREDECESSOR in the ordinary case (release
+under the retention scope rule, or eventual release of
+an already-invalidated triple after the delete case's
+replay-cache window has elapsed) and NFS4ERR_INVAL only
+when the caller has named a triple released by an
+explicit CHUNK_ROLLBACK delete case within the current
+session slot's replay-cache window (see
 {{sec-NFS4ERR_NO_PREDECESSOR}} for the choice between
 them).  Either way, the caller consults whatever
 fallback the deployment provides — a repair
@@ -9991,12 +10009,15 @@ CHUNK_ROLLBACK naming the same generations after the
 first has succeeded finds those generations already in
 the state the first produced.  Under the ordinary
 per-entry rules the second call returns NFS4ERR_INVAL in
-each crr_chunk_status slot, because the named triples
-were invalidated by the first call ("Deletion Atomicity
-and Invalidated Triples" above) or the retained
-predecessor was restored under its original triple with
-the displaced successor's triple invalidated ("Rollback
-of COMMITTED Chunks" above).
+each crr_chunk_status slot within the session slot's
+replay-cache window of the first call (the first call's
+delete case invalidated the triples per "Deletion
+Atomicity and Invalidated Triples" above, or the
+retained-predecessor restore invalidated the displaced
+successor's triple per "Rollback of COMMITTED Chunks"
+above); after that window has elapsed the second call
+returns NFS4ERR_NO_PREDECESSOR per the release-scope
+split at {{sec-NFS4ERR_NO_PREDECESSOR}}.
 
 **Uncertain-replay carve-out.**  When the first
 CHUNK_ROLLBACK completed at the data server but its
@@ -10006,9 +10027,11 @@ client cannot distinguish "the op did not run" from
 "the op ran and its reply was lost."  A client that
 issues an EXACT REISSUE of the same CHUNK_ROLLBACK op
 under these conditions MAY treat the resulting
-per-chunk NFS4ERR_INVAL as POSTCONDITION-EQUIVALENT
-SUCCESS on a slot-by-slot basis, PROVIDED all of the
-following hold for that slot:
+per-chunk NFS4ERR_INVAL (within the replay-cache
+window) or NFS4ERR_NO_PREDECESSOR (after the window has
+elapsed) as POSTCONDITION-EQUIVALENT SUCCESS on a
+slot-by-slot basis, PROVIDED all of the following hold
+for that slot:
 
 - the reissue is byte-identical to the original op
   (same cra_offset, same cra_count, same cra_chunks
@@ -10029,15 +10052,16 @@ following hold for that slot:
   generation.
 
 The carve-out is narrow by construction: a fresh op
-receiving NFS4ERR_INVAL never qualifies, and a reissue
-that cannot verify the postcondition also does not
-qualify — the client MUST treat the NFS4ERR_INVAL as a
-terminal per-entry failure in either case.  This
-prevents the carve-out from being conflated with the
-invalidated-triple rule, which is unconditional and
-prohibits the data server from resurrecting any
-deleted generation ("Deletion Atomicity and
-Invalidated Triples" above).  Similar reasoning applies
+receiving NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR never
+qualifies, and a reissue that cannot verify the
+postcondition also does not qualify — the client MUST
+treat the error as a terminal per-entry failure in
+either case.  This prevents the carve-out from being
+conflated with the underlying non-resurrection
+guarantee, which is unconditional and prohibits the
+data server from resurrecting any deleted generation
+("Deletion Atomicity and Invalidated Triples" above).
+Similar reasoning applies
 to exact uncertain reissues of CHUNK_COMMIT
 ({{sec-CHUNK_COMMIT}}) and CHUNK_FINALIZE
 ({{sec-CHUNK_FINALIZE}}), which are also idempotent on
@@ -10067,8 +10091,9 @@ NFS4ERR_INVAL:
 NFS4ERR_NO_PREDECESSOR:
 :  the named predecessor has no recorded owner-to-index
    association on the data server (retention scope
-   released it, or it was never installed on this data
-   server).  See {{sec-NFS4ERR_NO_PREDECESSOR}}.
+   released it, or the delete case's replay-cache window
+   has elapsed).  See {{sec-NFS4ERR_NO_PREDECESSOR}} for
+   the split against NFS4ERR_INVAL.
 
 NFS4ERR_NOTSUPP:
 :  the data server does not implement
@@ -12320,11 +12345,15 @@ of its own choosing — for example (43, 7, 102).
 The resulting COMMITTED generation carries the
 new triple, NOT the released (41, 7, 100).  Any
 subsequent lifecycle operation that names the
-released (41, 7, 100) triple still returns
-NFS4ERR_INVAL per the invalidated-triple rule
-({{sec-CHUNK_ROLLBACK}} "Deletion Atomicity and
-Invalidated Triples"): the fallback creates a
-new generation, it does not resurrect the
+released (41, 7, 100) triple returns
+NFS4ERR_NO_PREDECESSOR — the (41, 7, 100)
+association was released under the retention scope,
+not by an explicit CHUNK_ROLLBACK delete case within
+a live replay-cache window, so the release-scope
+split at {{sec-NFS4ERR_NO_PREDECESSOR}} routes to the
+NO_PREDECESSOR arm consistent with the previous
+CHUNK_ROLLBACK outcome in this trace: the fallback
+creates a new generation, it does not resurrect the
 released predecessor.  When no authoritative
 source exists for reconstruction, the fallback
 itself terminates at NFS4ERR_PAYLOAD_LOST
