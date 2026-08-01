@@ -9969,8 +9969,12 @@ The data server:
   triple via the delete case above ("Deletion
   Atomicity and Invalidated Triples") — the displaced
   successor's payload+association pair is released as
-  one unit, and any subsequent lifecycle op naming
-  the displaced triple returns NFS4ERR_INVAL.
+  one unit; a subsequent lifecycle op naming the
+  displaced triple returns NFS4ERR_INVAL within the
+  session slot's replay-cache window of this
+  CHUNK_ROLLBACK, and NFS4ERR_NO_PREDECESSOR after
+  that window has elapsed, per the release-scope
+  split at {{sec-NFS4ERR_NO_PREDECESSOR}}.
 
 The restore is atomic with the delete: no intermediate
 state exposes both generations as current, and no
@@ -10815,9 +10819,11 @@ NOT the released predecessor's triple.  The released
 predecessor is not resurrected by any operation defined
 in this document, including this fallback; a subsequent
 lifecycle operation naming the released predecessor's
-triple still returns NFS4ERR_INVAL per "Deletion
-Atomicity and Invalidated Triples"
-({{sec-CHUNK_ROLLBACK}}).  A client that requires the
+triple returns NFS4ERR_NO_PREDECESSOR under the release-
+scope split at {{sec-NFS4ERR_NO_PREDECESSOR}} — the
+predecessor was released under the retention scope, not
+by an explicit CHUNK_ROLLBACK delete case within a live
+replay-cache window.  A client that requires the
 restored generation to carry the released predecessor's
 original triple MUST use a guaranteed-pinning mechanism
 as noted in {{sec-NFS4ERR_NO_PREDECESSOR}}, since
@@ -12234,19 +12240,25 @@ recovery is attempted.
   fallback MAY terminate at NFS4ERR_PAYLOAD_LOST
   ({{sec-NFS4ERR_PAYLOAD_LOST}}) if no
   authoritative source exists.
-- **CHUNK_ROLLBACK → NFS4ERR_INVAL** for a fresh
-  op naming a released triple: terminal per-entry
-  failure.  Caller holds a stale reference; no
-  operation defined in this document resurrects
-  the deleted generation.  Compare this to the
-  uncertain-replay carve-out
+- **CHUNK_ROLLBACK → NFS4ERR_INVAL or
+  NFS4ERR_NO_PREDECESSOR** for a fresh op naming a
+  released triple: terminal per-entry failure.
+  Caller holds a stale reference; no operation
+  defined in this document resurrects the deleted
+  generation.  The data server returns
+  NFS4ERR_INVAL within the delete case's session-
+  slot replay-cache window and NFS4ERR_NO_PREDECESSOR
+  after the window has elapsed or for any other
+  terminal release (per the release-scope split at
+  {{sec-NFS4ERR_NO_PREDECESSOR}}).  Compare either
+  code to the uncertain-replay carve-out
   ({{sec-CHUNK_ROLLBACK}} "Idempotence and
   Uncertain-Replay Carve-Out") which permits an
   EXACT reissue after uncertain prior completion
-  to treat NFS4ERR_INVAL as postcondition-
-  equivalent success, but ONLY when the caller
-  independently verifies the postcondition
-  holds.
+  to treat NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR
+  as postcondition-equivalent success, but ONLY
+  when the caller independently verifies the
+  postcondition holds.
 - **Any CHUNK_ESCROW_* → NFS4ERR_STALE_ESCROW
   ({{sec-NFS4ERR_STALE_ESCROW}}):** control-plane
   identity mismatch or no covering escrow on the
