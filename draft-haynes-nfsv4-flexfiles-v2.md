@@ -6854,7 +6854,7 @@ NFS4ERR_NO_PREDECESSOR is distinct from NFS4ERR_INVAL
 (the triple was invalidated by an explicit delete case
 and cannot be resurrected — see "Deletion Atomicity and
 Invalidated Triples") and from NFS4ERR_PAYLOAD_LOST
-(terminal payload loss reported on CB_CHUNK_REPAIR).  A
+(terminal payload loss reported on CB_CHUNK_REPAIR).
 The data server distinguishes NFS4ERR_NO_PREDECESSOR
 from NFS4ERR_INVAL on the basis of what the caller
 could have named.  NFS4ERR_INVAL is returned only for a
@@ -8691,7 +8691,7 @@ NFS4ERR_STALE:
    ///         void;
    /// };
 ~~~
-{: #fig-CHUNK_HEADER_READ4res title="XDR for CHUNK_HEADER_READ4resok" }
+{: #fig-CHUNK_HEADER_READ4res title="XDR for CHUNK_HEADER_READ4res" }
 
 ### DESCRIPTION
 
@@ -12034,6 +12034,21 @@ reconstruct and rollback is also impossible.  The metadata
 server MUST NOT retry the repair and transitions the affected
 ranges into an implementation-defined damaged state.  See
 {{sec-NFS4ERR_PAYLOAD_LOST}}.
+
+NFS4ERR_PARTIAL:
+:  At least one range in the callback did not reach the
+completion contract.  The metadata server MUST consume the
+co-indexed ccrr_range_status array to determine the per-range
+outcome; NFS4ERR_PARTIAL is NOT a whole-callback retriable
+error and MUST NOT be treated as one.  The array is
+authoritative: each ccrr_range_status entry maps directly to
+the co-indexed entry in ccra_ranges and is evaluated on its
+own terms (NFS4_OK, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED,
+NFS4ERR_PAYLOAD_LOST, or another per-range disposition) per
+the result contract above.  A NFS4ERR_PARTIAL response with an
+empty ccrr_range_status array is malformed and the metadata
+server MUST reject the callback response.  See
+{{sec-NFS4ERR_PARTIAL}}.
 
 All other error codes listed in {{tbl-cb-ops-and-errors}} are
 treated by the metadata server as retriable: the metadata server
