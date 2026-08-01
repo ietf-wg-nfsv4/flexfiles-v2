@@ -11789,6 +11789,186 @@ different client.  If the client becomes unreachable (no
 response within the deadline), the metadata server re-selects
 per {{sec-repair-selection}}.
 
+#  Composed Rollback Guarantee and Error Decision Tree {#sec-composed-rollback}
+
+The FFv2 chunk protocol combines three related
+mechanisms — writer-supplied opaque owner identity
+(sec-chunk_owner4), best-effort predecessor discovery
+(sec-CHUNK_HEADER_READ / sec-NFS4ERR_NO_PREDECESSOR),
+and MDS-escrow control-plane pinning
+(sec-CHUNK_ESCROW_INSTALL / sec-CHUNK_ESCROW_RELEASE /
+sec-CHUNK_ESCROW_ENUMERATE / sec-CHUNK_ESCROW_TAKEOVER,
+sec-chunk_guard_mds) — that together deliver a
+CONDITIONAL rollback guarantee.  This section states the
+guarantee scope precisely and specifies the client-side
+decision tree over the composed error surface.
+
+##  Guarantee Scope {#sec-composed-rollback-scope}
+
+The composed guarantee is against protocol-level
+garbage collection and owner-association release only,
+NOT against storage or integrity failures.  It applies
+only when three conditions all hold at the moment a
+CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}) is issued
+against the named predecessor:
+
+1. **Present at acquisition.**  The predecessor
+   generation must have existed on the data server at
+   the time the qualifying CHUNK_LOCK or MDS-escrow
+   was acquired.  Predecessors that had already been
+   released under the retention scope
+   ({{sec-system-model-retention-scope}}) before any
+   qualifying lock or escrow was acquired are not
+   covered.
+2. **Continuous custody.**  The lock or escrow
+   custody chain must have remained uninterrupted
+   through the rollback decision window.  Custody
+   handoffs are permitted (a client-owned lock
+   adopted from an MDS-escrow lock preserves the
+   escrow_id4 per {{sec-chunk_guard_mds}}, and a
+   subsequent revocation-transfer re-emits the same
+   escrow_id4 to a new MDS-escrow lock, keeping the
+   custody chain continuous), but any interval in
+   which the predecessor was covered by neither a
+   qualifying lock nor an MDS-escrow lock breaks
+   continuity.
+3. **Payload remains AVAILABLE.**  The predecessor's
+   payload MUST be in the AVAILABLE read-time state
+   ({{sec-system-model-read-time-status}}).  A
+   predecessor whose payload has become ERRORED
+   through media loss, unrecoverable corruption,
+   loss of all redundant data servers, or non-
+   conforming data-server behaviour is not covered
+   — an ERRORED predecessor follows the b1
+   fallback path
+   ({{sec-CHUNK_WRITE_REPAIR}}) and MAY terminate
+   at NFS4ERR_PAYLOAD_LOST via CB_CHUNK_REPAIR
+   ({{sec-CB_CHUNK_REPAIR}}).
+
+When all three conditions hold, a CHUNK_ROLLBACK
+that names the predecessor's original owner triple
+is guaranteed to restore the predecessor as the
+current COMMITTED generation with its original
+triple intact
+({{sec-CHUNK_ROLLBACK}} "Rollback of COMMITTED
+Chunks", case (a)).  When any condition fails, the
+call may return NFS4ERR_NO_PREDECESSOR
+({{sec-NFS4ERR_NO_PREDECESSOR}}) or NFS4ERR_INVAL
+and the caller falls back to the b1 mechanisms
+described in
+{{sec-CHUNK_WRITE_REPAIR}} — best-effort
+reconstruction into a NEW generation under a NEW
+owner triple, or terminal NFS4ERR_PAYLOAD_LOST
+when no authoritative source exists.
+
+The guarantee is a protocol-GC guarantee: FFv2
+implementations MUST NOT release the payload or
+owner-to-index association of a predecessor covered
+by an active qualifying lock or MDS-escrow lock,
+per the payload/association biconditional
+({{sec-system-model-payload-association-biconditional}})
+and the retention scope
+({{sec-system-model-retention-scope}}) as extended
+by the escrow-pin mechanism.  It is not a
+guarantee against exogenous failures of the
+storage substrate.
+
+##  Client-Side Error Decision Tree {#sec-composed-rollback-tree}
+
+A client operating over the composed error surface
+distinguishes control-plane failures (which the
+metadata server must resolve) from data-plane
+failures (which the client can address via
+fallback).  Ordering matters: control-plane
+failures must be resolved before data-plane
+recovery is attempted.
+
+- **CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT →
+  NFS4ERR_NO_ADOPTABLE_LOCK
+  ({{sec-NFS4ERR_NO_ADOPTABLE_LOCK}}):** custody /
+  control-plane failure BEFORE any usable lock is
+  in hand.  The four state causes (no escrow /
+  identity mismatch / reconciliation hold /
+  already-adopted) are all conditions the
+  metadata server is best placed to resolve.
+  The client MUST report the outcome via the
+  ccrr_range_status array
+  ({{sec-CB_CHUNK_REPAIR}}) and MUST NOT
+  unilaterally retry the adoption or invoke b1
+  fallback (b1 fallback assumes a usable lock;
+  no lock exists here to fall back under).
+- **CHUNK_LOCK → NFS4ERR_ACCESS:** presenter
+  authorization failure.  Report to the metadata
+  server; do not retry.
+- **After successful CHUNK_LOCK / ADOPT →
+  CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}}):**
+  read the primary owner and chrr_predecessors
+  array.  If the intended predecessor's triple
+  appears in the list, proceed to CHUNK_ROLLBACK.
+  If absent, the b1 fallback path may begin
+  directly (do not issue CHUNK_ROLLBACK against a
+  predecessor known-absent).
+- **CHUNK_ROLLBACK → NFS4ERR_NO_PREDECESSOR
+  ({{sec-NFS4ERR_NO_PREDECESSOR}}):** data-plane
+  result AFTER a usable lock is in hand.  The
+  actor has the lock; there is simply no
+  restorable predecessor.  The client MAY invoke
+  b1 fallback via CHUNK_WRITE_REPAIR under a new
+  owner triple ({{sec-CHUNK_WRITE_REPAIR}});
+  fallback MAY terminate at NFS4ERR_PAYLOAD_LOST
+  ({{sec-NFS4ERR_PAYLOAD_LOST}}) if no
+  authoritative source exists.
+- **CHUNK_ROLLBACK → NFS4ERR_INVAL** for a fresh
+  op naming a released triple: terminal per-entry
+  failure.  Caller holds a stale reference; no
+  operation defined in this document resurrects
+  the deleted generation.  Compare this to the
+  uncertain-replay carve-out
+  ({{sec-CHUNK_ROLLBACK}} "Idempotence and
+  Uncertain-Replay Carve-Out") which permits an
+  EXACT reissue after uncertain prior completion
+  to treat NFS4ERR_INVAL as postcondition-
+  equivalent success, but ONLY when the caller
+  independently verifies the postcondition
+  holds.
+- **Any CHUNK_ESCROW_* → NFS4ERR_STALE_ESCROW
+  ({{sec-NFS4ERR_STALE_ESCROW}}):** control-plane
+  identity mismatch or no covering escrow on the
+  metadata server's own CHUNK_ESCROW_RELEASE.
+  The response never authorizes tuple removal by
+  itself when adoption may have consumed the
+  escrow (see sec-CHUNK_ESCROW_RELEASE).
+- **Any CHUNK_ESCROW_* → NFS4ERR_STALE_MDS_EPOCH
+  ({{sec-NFS4ERR_STALE_MDS_EPOCH}}):** the
+  metadata server has been fenced by a
+  superseding CHUNK_ESCROW_TAKEOVER.  The caller
+  metadata server MUST fresh-take-over via
+  CHUNK_ESCROW_TAKEOVER
+  ({{sec-CHUNK_ESCROW_TAKEOVER}}); TAKEOVER is
+  exempt from this rejection.
+- **CB_CHUNK_REPAIR response → NFS4ERR_PARTIAL
+  ({{sec-NFS4ERR_PARTIAL}}):** at least one
+  named range did not reach completion; the
+  metadata server MUST consume the per-range
+  ccrr_range_status array
+  ({{sec-CB_CHUNK_REPAIR}}) to determine
+  per-range outcome.
+
+The essential distinction is that
+NFS4ERR_NO_ADOPTABLE_LOCK and
+NFS4ERR_NO_PREDECESSOR both prevent the direct
+rollback path, but at different lifecycle stages
+and with different recovery authorities:
+NFS4ERR_NO_ADOPTABLE_LOCK is a custody / control-
+plane failure BEFORE the actor obtains usable
+custody (unrecoverable unilaterally), while
+NFS4ERR_NO_PREDECESSOR is a data-plane result
+AFTER successful adoption where the actor
+already holds the lock but finds no restorable
+predecessor data (the actor MAY invoke b1
+fallback).  A client that receives one MUST NOT
+treat it as the other.
+
 #  Security Considerations
 
 The combination of components in a pNFS system is required to
