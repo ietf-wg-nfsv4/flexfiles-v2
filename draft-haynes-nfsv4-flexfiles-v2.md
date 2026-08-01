@@ -6748,7 +6748,7 @@ against a COMMITTED chunk when the caller names a
 predecessor generation whose owner-to-index association
 is no longer recorded by the data server, and no other
 per-entry error covers the situation.  This is the "no
-restorable predecessor" outcome of the restore-case
+restorable predecessor" outcome of the restore case
 described under "Rollback of COMMITTED Chunks": the
 predecessor's payload+association pair was released some
 time earlier under the retention scope rule
@@ -6787,16 +6787,18 @@ A client that receives NFS4ERR_NO_PREDECESSOR MAY fall
 back to reconstructing authoritative bytes from
 surviving shards and writing them via
 CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) under a
-FRESH owner triple; that fallback is best-effort and
+new owner triple; that fallback is best-effort and
 MAY itself terminate at NFS4ERR_PAYLOAD_LOST if no
 authoritative source exists.  A client that requires
 the restored generation to retain the predecessor's
-original owner triple across an unrestrained retention
-gap MUST use whatever mechanism the ecosystem provides
-for guaranteed predecessor pinning (see, e.g., any
-amendment introducing an MDS-escrow control plane
-that pins the predecessor's payload+association pair
-before it can become GC-eligible).
+original owner triple in cases where the retention
+scope ({{sec-system-model-retention-scope}}) would
+otherwise permit release MUST use whatever mechanism
+the ecosystem provides for guaranteed predecessor
+pinning (see, e.g., any amendment that extends the
+CHUNK_LOCK model to hold the predecessor's payload
+and its owner-to-index association jointly against
+that release rule).
 
 ## Operations and Their Valid Errors
 
@@ -9134,18 +9136,20 @@ them).  Either way, the caller consults whatever
 fallback the deployment provides — a repair
 client MAY reconstruct authoritative bytes from
 surviving shards and issue CHUNK_WRITE_REPAIR
-({{sec-CHUNK_WRITE_REPAIR}}) to write a FRESH
-generation carrying those bytes under a FRESH owner
-triple.  That fresh generation is a NEW generation for
-lifecycle purposes; it is NOT the deleted predecessor
-resurrected.  Any client that requires the restored
+({{sec-CHUNK_WRITE_REPAIR}}) to write a new
+generation carrying those bytes under a new owner
+triple.  That new generation is a distinct generation
+for lifecycle purposes; it is not the deleted
+predecessor resurrected.  Any client that requires the restored
 generation to retain the predecessor's original owner
-triple across an unrestrained retention gap MUST use
-whatever mechanism the deployment provides for
-guaranteed predecessor pinning (see the ecosystem
-documents amending this specification), which pins the
-predecessor's payload+association pair before it can
-become GC-eligible.
+triple in cases where the retention scope
+({{sec-system-model-retention-scope}}) would otherwise
+permit release MUST use whatever mechanism the
+deployment provides for guaranteed predecessor
+pinning (see any amendment that extends the
+CHUNK_LOCK model to hold the predecessor's payload
+and its owner-to-index association jointly against
+that release rule).
 
 A non-repair CHUNK_ROLLBACK against a COMMITTED chunk
 is rejected with NFS4ERR_INVAL regardless of case.
