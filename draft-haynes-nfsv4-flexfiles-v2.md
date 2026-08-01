@@ -5459,6 +5459,77 @@ owning stateid's lease expiry -- so a chunk cannot accumulate
 indefinitely many retained generations even in the presence of
 dropped or partitioned writers.
 
+##  Owner-to-Index Persistence Coupling {#sec-system-model-owner-persistence}
+
+The wire lifecycle operations (CHUNK_COMMIT
+({{sec-CHUNK_COMMIT}}), CHUNK_FINALIZE
+({{sec-CHUNK_FINALIZE}}), CHUNK_ROLLBACK
+({{sec-CHUNK_ROLLBACK}})) name generations by full
+(cg_gen_id, cg_client_id, co_id) owner triples
+({{sec-chunk_owner4}}) and require the data server to
+locate the chunk-index each triple was written at.  For
+that lookup to succeed after a data server restart, the
+data server MUST persist the owner-to-index association
+with a durability floor that matches the payload's:
+without the association the payload can never again be
+addressed by a lifecycle operation.
+
+**Uniqueness invariant** (normative):
+An accepted (cg_gen_id, cg_client_id, co_id) triple is
+UNIQUE across the live generations the data server holds
+for a given file: at any instant there is at most one
+live generation on any chunk of the file that matches
+that full triple.  Two writers with distinct cg_client_id
+values cannot collide.  A single writer that reuses a
+cg_gen_id + co_id pair within the same cg_client_id
+across two distinct chunk indices MUST NOT do so while
+the earlier generation remains live; the data server MAY
+reject a CHUNK_WRITE that attempts to create such a
+collision with NFS4ERR_INVAL in the corresponding
+cwr_block_status slot.  The predecessor-retention rule
+({{sec-system-model-consistency}}) is compatible: a
+retained predecessor and its successor on the same
+chunk index MUST carry distinct triples (typically
+distinct cg_gen_id under a shared cg_client_id) so that
+CHUNK_ROLLBACK can name each unambiguously.
+
+**Durability floor** (normative, per CHUNK_WRITE
+{{sec-CHUNK_WRITE}} "Stability and Activation"):
+
+- FILE_SYNC4: both the chunk payload AND its
+  owner-to-index association MUST survive a data
+  server restart.
+- DATA_SYNC4: both the chunk payload AND its
+  owner-to-index association MUST survive a data
+  server restart.  (The association is retrieval
+  metadata for the payload; it shares the payload's
+  durability floor.  An implementation MAY treat
+  DATA_SYNC4 identically to FILE_SYNC4.)
+- UNSTABLE4: the association MAY be lost on restart,
+  but ONLY if the payload is also lost.  A data
+  server MUST NOT retain payload without its
+  associated owner triple; a payload whose
+  association was lost is unaddressable by every
+  lifecycle operation and MUST be treated as
+  destroyed.  cwr_writeverf changes on any restart
+  that loses UNSTABLE4 state, allowing the client
+  to detect the loss.
+
+A data server that cannot honour the durability floor
+for a given stability level MUST reject the CHUNK_WRITE
+with NFS4ERR_IO rather than accepting the payload without
+its association.
+
+The retention scope rule ({{sec-system-model-retention-scope}})
+governs WHEN a predecessor generation's payload +
+association may be released; this section governs the
+INVARIANT that whenever the payload survives, the
+association survives with it, and vice versa — the two
+share a lifetime.  A conforming data server MUST NOT
+release the association while retaining the payload,
+and MUST NOT retain the association after releasing
+the payload.
+
 ##  Progress and Termination {#sec-system-model-progress}
 
 Under the failure model above, the protocol guarantees the
@@ -9287,7 +9358,14 @@ is returned.
 #### Stability and Activation
 
 The cwa_stable field controls the durability level the
-data server guarantees before returning:
+data server guarantees before returning.  The durability
+floor for each level covers BOTH the chunk payload AND
+its owner-to-index association, so a subsequent
+lifecycle operation naming the full owner triple can
+locate the recorded chunk index; see
+{{sec-system-model-owner-persistence}} for the normative
+coupling rule and the "MUST NOT retain payload without
+association" invariant.
 
 FILE_SYNC4:
 :  The data server MUST commit all written chunks plus
