@@ -7021,7 +7021,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
  | CHUNK_ERROR        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_FINALIZE     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
+ | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_NO_ADOPTABLE_LOCK, NFS4ERR_SERVERFAULT |
  | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_REPAIRED     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_ROLLBACK     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_NO_PREDECESSOR, NFS4ERR_SERVERFAULT |
@@ -8577,15 +8577,24 @@ NFS4ERR_STALE:
 ### ARGUMENTS
 
 ~~~ xdr
-   /// const CHUNK_LOCK_FLAGS_ADOPT  = 0x00000001;
+   /// const CHUNK_LOCK_FLAGS_ADOPT    = 0x00000001;
+   /// const CHUNK_LOCK_FLAGS_TAKEOVER = 0x00000002;
+   ///
+   /// union chunk_lock_adopt4 switch (bool cla_adopt) {
+   ///     case TRUE:
+   ///         escrow_id4      cla_escrow_id;
+   ///     case FALSE:
+   ///         void;
+   /// };
    ///
    /// struct CHUNK_LOCK4args {
    ///     /* CURRENT_FH: file */
-   ///     stateid4        cla_stateid;
-   ///     offset4         cla_offset;
-   ///     count4          cla_count;
-   ///     uint32_t        cla_flags;
-   ///     chunk_owner4    cla_owner;
+   ///     stateid4            cla_stateid;
+   ///     offset4             cla_offset;
+   ///     count4              cla_count;
+   ///     uint32_t            cla_flags;
+   ///     chunk_owner4        cla_owner;
+   ///     chunk_lock_adopt4   cla_adopt;
    /// };
 ~~~
 {: #fig-CHUNK_LOCK4args title="XDR for CHUNK_LOCK4args" }
@@ -8646,11 +8655,16 @@ cla_count:
    cla_offset.
 
 cla_flags:
-:  bitmask of CHUNK_LOCK_FLAGS_* values.  Currently
-   defined: CHUNK_LOCK_FLAGS_ADOPT (lock-ownership
-   transfer; see "Lock Transfer via
-   CHUNK_LOCK_FLAGS_ADOPT" below).  Unknown bits MUST be
-   rejected with NFS4ERR_INVAL.
+:  bitmask of CHUNK_LOCK_FLAGS_* values.  Defined:
+   CHUNK_LOCK_FLAGS_ADOPT (adopt an MDS-escrow lock;
+   see "Lock Transfer via CHUNK_LOCK_FLAGS_ADOPT" below);
+   CHUNK_LOCK_FLAGS_TAKEOVER (transfer ownership of a
+   live client-held lock, distinct from adoption; see
+   "Live-Client Lock Takeover via
+   CHUNK_LOCK_FLAGS_TAKEOVER" below).  The two flags
+   are mutually exclusive; a request with both bits set
+   MUST be rejected with NFS4ERR_INVAL.  Unknown bits
+   MUST be rejected with NFS4ERR_INVAL.
 
 cla_owner:
 :  the chunk_owner4 ({{fig-chunk_owner4}}) that will hold
@@ -8662,6 +8676,22 @@ cla_owner:
    (A client requesting CHUNK_LOCK_FLAGS_ADOPT MUST use
    its own cg_client_id, not the MDS-escrow sentinel,
    even when adopting from an MDS-escrow holder.)
+
+cla_adopt:
+:  a discriminated union carrying the escrow_id4
+   ({{sec-escrow_id4}}) that identifies the specific
+   MDS-escrow lock the caller is adopting.  When
+   cla_flags carries CHUNK_LOCK_FLAGS_ADOPT, cla_adopt
+   MUST be the TRUE arm and cla_escrow_id MUST match
+   the escrow_id4 the metadata server installed on
+   this data server for the requested range (identity
+   mismatch is one of the state-level causes of
+   NFS4ERR_NO_ADOPTABLE_LOCK per
+   {{sec-NFS4ERR_NO_ADOPTABLE_LOCK}}).  When cla_flags
+   does not carry CHUNK_LOCK_FLAGS_ADOPT, cla_adopt
+   MUST be the FALSE arm.  The two conditions
+   (bit-flag value and discriminant value) MUST agree;
+   a mismatch is rejected with NFS4ERR_INVAL.
 
 The CHUNK_LOCK result returns:
 
@@ -8748,6 +8778,34 @@ CHUNK_LOCK_FLAGS_ADOPT if cla_owner's cg_client_id equals
 CHUNK_GUARD_CLIENT_ID_MDS -- that value is reserved for server
 production and MUST NOT be presented by a client.  The operation
 returns NFS4ERR_INVAL in that case.
+
+#### Live-Client Lock Takeover via CHUNK_LOCK_FLAGS_TAKEOVER
+
+The CHUNK_LOCK_FLAGS_TAKEOVER flag in cla_flags requests
+an atomic transfer of lock ownership from a currently
+live client-held lock to cla_owner, distinct from
+CHUNK_LOCK_FLAGS_ADOPT which transfers from an
+MDS-escrow lock.  The two flags are mutually exclusive:
+ADOPT names the metadata server's escrow identity via
+cla_adopt, while TAKEOVER names another client's
+already-held lock and is used only when the metadata
+server has designated cla_owner as the successor to a
+displaced live client (for example, when a repair
+sequence must proceed while the prior writer's session
+remains valid).
+
+Under CHUNK_LOCK_FLAGS_TAKEOVER, cla_adopt MUST be the
+FALSE arm (there is no escrow identity being adopted);
+the metadata server's designation is what authorizes
+the transfer, and the data server verifies the
+designation by the same coupling-model-dependent
+mechanism used for ADOPT above.  A data server that
+receives TAKEOVER from a client not designated as
+successor MAY reject with NFS4ERR_ACCESS.  As with
+ADOPT, TAKEOVER is atomic: no window exists in which
+the chunk is unlocked, and after a successful
+TAKEOVER subsequent operations on the range MUST
+present cla_owner as their chunk_owner4.
 
 ### RESPONSE CODES
 
