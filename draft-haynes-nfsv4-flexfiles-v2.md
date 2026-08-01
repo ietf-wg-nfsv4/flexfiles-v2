@@ -6874,7 +6874,9 @@ cache window has since elapsed).  The two errors are
 not interchangeable: NFS4ERR_INVAL is a caller-side
 signal that the client MUST NOT retry the same
 identity, while NFS4ERR_NO_PREDECESSOR is a data-plane
-signal that the caller MAY invoke b1 fallback.
+signal that the caller MAY fall back to
+best-effort reconstruction via CHUNK_WRITE_REPAIR
+({{sec-CHUNK_WRITE_REPAIR}}).
 
 A client that receives NFS4ERR_NO_PREDECESSOR MAY fall
 back to reconstructing authoritative bytes from
@@ -8777,7 +8779,8 @@ chrr_predecessors:
      CHUNK_ROLLBACK naming this owner triple MUST
      return NFS4ERR_NO_PREDECESSOR
      ({{sec-NFS4ERR_NO_PREDECESSOR}}); the client
-     invokes b1 fallback via CHUNK_WRITE_REPAIR
+     falls back to best-effort reconstruction via
+     CHUNK_WRITE_REPAIR
      ({{sec-CHUNK_WRITE_REPAIR}}) with an
      authoritative source of its own choosing.
      The owner triple is disclosed so a caller can
@@ -8881,12 +8884,13 @@ Predecessor-guided rollback discovery:
    - **ERRORED**: do NOT issue CHUNK_ROLLBACK
      against the disclosed owner triple.  The
      data server MUST return NFS4ERR_NO_PREDECESSOR
-     for that owner; invoke b1 fallback directly.
+     for that owner; use CHUNK_WRITE_REPAIR
+     ({{sec-CHUNK_WRITE_REPAIR}}) directly with a
+     reconstructed authoritative source.
      The disclosed owner triple lets the caller
      coordinate reconstruction from other sources.
    - **ABSENT**: no restorable predecessor exists.
-     Skip CHUNK_ROLLBACK; invoke b1 fallback via
-     CHUNK_WRITE_REPAIR
+     Skip CHUNK_ROLLBACK; use CHUNK_WRITE_REPAIR
      ({{sec-CHUNK_WRITE_REPAIR}}) if reconstruction
      is possible, or defer to a guaranteed-pinning
      mechanism when the caller requires the
@@ -12049,8 +12053,8 @@ against the named predecessor:
    through media loss, unrecoverable corruption,
    loss of all redundant data servers, or non-
    conforming data-server behaviour is not covered
-   — an ERRORED predecessor follows the b1
-   fallback path
+   — an ERRORED predecessor follows the best-effort
+   reconstruction path
    ({{sec-CHUNK_WRITE_REPAIR}}) and MAY terminate
    at NFS4ERR_PAYLOAD_LOST via CB_CHUNK_REPAIR
    ({{sec-CB_CHUNK_REPAIR}}).
@@ -12064,8 +12068,8 @@ triple intact
 Chunks", case (a)).  When any condition fails, the
 call may return NFS4ERR_NO_PREDECESSOR
 ({{sec-NFS4ERR_NO_PREDECESSOR}}) or NFS4ERR_INVAL
-and the caller falls back to the b1 mechanisms
-described in
+and the caller falls back to best-effort
+reconstruction as described in
 {{sec-CHUNK_WRITE_REPAIR}} — best-effort
 reconstruction into a NEW generation under a NEW
 owner triple, or terminal NFS4ERR_PAYLOAD_LOST
@@ -12105,9 +12109,11 @@ recovery is attempted.
   The client MUST report the outcome via the
   ccrr_range_status array
   ({{sec-CB_CHUNK_REPAIR}}) and MUST NOT
-  unilaterally retry the adoption or invoke b1
-  fallback (b1 fallback assumes a usable lock;
-  no lock exists here to fall back under).
+  unilaterally retry the adoption or begin the
+  CHUNK_WRITE_REPAIR fallback path
+  ({{sec-CHUNK_WRITE_REPAIR}}); that fallback
+  assumes a usable lock, and no lock exists here
+  to fall back under.
 - **CHUNK_LOCK → NFS4ERR_ACCESS:** presenter
   authorization failure.  Report to the metadata
   server; do not retry.
@@ -12116,16 +12122,17 @@ recovery is attempted.
   read the primary owner and chrr_predecessors
   array.  If the intended predecessor's triple
   appears in the list, proceed to CHUNK_ROLLBACK.
-  If absent, the b1 fallback path may begin
-  directly (do not issue CHUNK_ROLLBACK against a
+  If absent, the CHUNK_WRITE_REPAIR fallback path
+  may begin directly (do not issue CHUNK_ROLLBACK against a
   predecessor known-absent).
 - **CHUNK_ROLLBACK → NFS4ERR_NO_PREDECESSOR
   ({{sec-NFS4ERR_NO_PREDECESSOR}}):** data-plane
   result AFTER a usable lock is in hand.  The
   actor has the lock; there is simply no
   restorable predecessor.  The client MAY invoke
-  b1 fallback via CHUNK_WRITE_REPAIR under a new
-  owner triple ({{sec-CHUNK_WRITE_REPAIR}});
+  best-effort reconstruction via CHUNK_WRITE_REPAIR
+  under a new owner triple
+  ({{sec-CHUNK_WRITE_REPAIR}});
   fallback MAY terminate at NFS4ERR_PAYLOAD_LOST
   ({{sec-NFS4ERR_PAYLOAD_LOST}}) if no
   authoritative source exists.
@@ -12176,8 +12183,9 @@ custody (unrecoverable unilaterally), while
 NFS4ERR_NO_PREDECESSOR is a data-plane result
 AFTER successful adoption where the actor
 already holds the lock but finds no restorable
-predecessor data (the actor MAY invoke b1
-fallback).  A client that receives one MUST NOT
+predecessor data (the actor MAY invoke
+best-effort reconstruction via
+CHUNK_WRITE_REPAIR).  A client that receives one MUST NOT
 treat it as the other.
 
 ##  Worked Example: Composed Rollback and Fallback {#sec-composed-rollback-trace}
@@ -12481,7 +12489,7 @@ only succeed after credential verification and return
 NFS4ERR_ACCESS for unverified callers rather than the more
 specific error codes.
 
-The A.1b family adds NFS4ERR_NO_PREDECESSOR (10103),
+This document adds NFS4ERR_NO_PREDECESSOR (10103),
 NFS4ERR_NO_ADOPTABLE_LOCK (10104), NFS4ERR_STALE_ESCROW (10105),
 NFS4ERR_STALE_MDS_EPOCH (10106), and NFS4ERR_PARTIAL (10107).
 All five reveal control-plane or discovery state that a
@@ -12498,7 +12506,7 @@ requirement, not merely a diagnostic preference.
 
 ##  Escrow Control Plane and Incarnation Proofs {#sec-security-escrow}
 
-The A.1b-b2 mechanisms introduce four operations
+This document's escrow control plane introduces four operations
 (CHUNK_ESCROW_INSTALL, CHUNK_ESCROW_RELEASE,
 CHUNK_ESCROW_ENUMERATE, CHUNK_ESCROW_TAKEOVER —
 {{sec-CHUNK_ESCROW_INSTALL}} through
@@ -12577,7 +12585,7 @@ MAY accept a token it previously observed.
 
 ###  Discovery information disclosure
 
-CHUNK_ESCROW_ENUMERATE and the b1 CHUNK_HEADER_READ
+CHUNK_ESCROW_ENUMERATE and the CHUNK_HEADER_READ
 predecessor arm ({{sec-CHUNK_HEADER_READ}}) disclose
 control-plane and discovery information.
 CHUNK_ESCROW_ENUMERATE is gated behind the escrow-role
