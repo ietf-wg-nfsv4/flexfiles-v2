@@ -66,7 +66,6 @@ informative:
   RFC4960:
   RFC5905:
   RFC7942:
-  RFC8126:
   FIPS-180-4:
     title: Secure Hash Standard (SHS)
     author:
@@ -6983,8 +6982,9 @@ CHUNK_ESCROW_TAKEOVER ({{sec-CHUNK_ESCROW_TAKEOVER}}).
 The metadata server that receives NFS4ERR_STALE_MDS_EPOCH
 has been fenced from continued escrow operations on
 this data server; it MUST NOT retry the operation
-under the same epoch and MUST fresh-take-over
-before resuming.  CHUNK_ESCROW_TAKEOVER itself is
+under the same epoch and MUST obtain a fresh
+incarnation-lease token and reissue via
+CHUNK_ESCROW_TAKEOVER before resuming.  CHUNK_ESCROW_TAKEOVER itself is
 not subject to this rejection — it is the recovery
 path out of an expired epoch and carries its own
 compare-and-advance semantics per
@@ -7466,7 +7466,7 @@ is not provably complete.
 
 The data server treats escrow_id4 opaquely: it
 compares two escrow_id4 values for equality when
-matching an CHUNK_LOCK adoption against an
+matching a CHUNK_LOCK adoption against an
 installed escrow, or when reconciling an escrow
 tuple against a discovery response, and does not
 interpret the internal structure.
@@ -7557,7 +7557,14 @@ over a deterministic CBOR payload (Section 4.2 of
      field is exactly the RPC-authenticated name
      the data server will observe.
    - 2 = epoch (CBOR uint): the metadata-server
-     epoch value being claimed.
+     epoch value being claimed.  On presentation in
+     CHUNK_ESCROW_TAKEOVER
+     ({{sec-CHUNK_ESCROW_TAKEOVER}}) the data server
+     MUST verify that this field equals
+     ceta_new_epoch in the operation arguments; any
+     mismatch is a signature-and-payload check
+     failure at step 4 of "Presentation and
+     Verification" below and returns NFS4ERR_ACCESS.
    - 3 = scope (CBOR text string): identifier of
      the data server or data-server set the token
      is valid for.  Comparison is byte-for-byte
@@ -7669,7 +7676,7 @@ To close that recovery gap, a data server MUST
 accept a byte-identical CHUNK_ESCROW_TAKEOVER
 reissue as postcondition-equivalent success when
 proof verification (steps 1-3 above) succeeds and
-ALL of the following hold:
+all of the following hold:
 
 - the reissue's ceta_new_epoch equals the data
   server's currently-recorded metadata-server
@@ -8834,7 +8841,7 @@ chrr_predecessors:
   populated response would exceed the session-
   negotiated ca_maxresponsesize (Section 18.36.3 of
   {{RFC8881}}).  In the response-size case the data
-  server returns a SHORT response with chrr_eof =
+  server returns a short response with chrr_eof =
   FALSE containing as many entries N as fit under
   ca_maxresponsesize minus COMPOUND/RPC overhead;
   the client resumes at chra_offset + N.  If even
@@ -9899,8 +9906,8 @@ retry is a new generation, not a resurrection of the
 deleted one.
 
 The uncertain-replay carve-out
-({{sec-system-model-progress}} and the CHUNK_ROLLBACK
-"Idempotence" text, when landed) is a narrow exception:
+(the CHUNK_ROLLBACK "Idempotence and Uncertain-Replay
+Carve-Out" text below) is a narrow exception:
 an EXACT reissue of the same CHUNK_ROLLBACK op whose
 prior completion was uncertain MAY be treated as
 postcondition-equivalent success when the client
@@ -9947,7 +9954,7 @@ The restore is atomic with the delete: no intermediate
 state exposes both generations as current, and no
 intermediate state exposes neither.
 
-**Case (c) — predecessor no longer retained.**  If
+**Case (b) — predecessor no longer retained.**  If
 the predecessor generation named in the cra_chunks
 entry is NOT held by the data server (its
 payload+association pair was released some time earlier
@@ -10772,7 +10779,7 @@ CHUNK_WRITE_REPAIR is also the fallback path used by a
 client that received NFS4ERR_NO_PREDECESSOR
 ({{sec-NFS4ERR_NO_PREDECESSOR}}) from CHUNK_ROLLBACK's
 restore case ({{sec-CHUNK_ROLLBACK}} "Rollback of
-COMMITTED Chunks", case (c)) — the named predecessor was
+COMMITTED Chunks", case (b)) — the named predecessor was
 released under the retention scope
 ({{sec-system-model-retention-scope}}) and CHUNK_ROLLBACK
 cannot restore it.  Under this fallback the client
@@ -11568,7 +11575,8 @@ NFS4ERR_STALE_MDS_EPOCH.
    ///     offset4         ceea_offset;
    ///     count4          ceea_count;
    ///     uint32_t        ceea_maxcount;
-   ///     opaque          ceea_cookie<>;
+   ///     opaque
+   ///         ceea_cookie<CHUNK_ESCROW_ENUMERATE_COOKIE_MAX4>;
    /// };
 ~~~
 {: #fig-CHUNK_ESCROW_ENUMERATE4args title="XDR for CHUNK_ESCROW_ENUMERATE4args" }
@@ -11582,6 +11590,11 @@ NFS4ERR_STALE_MDS_EPOCH.
    ///  * via ceer_cookie for larger snapshots. */
    /// const CHUNK_ESCROW_ENUMERATE_MAX4 = 256;
    ///
+   /// /* Upper bound on the ENUMERATE pagination
+   ///  * cookie length, applied to both the request
+   ///  * ceea_cookie and the response ceer_cookie. */
+   /// const CHUNK_ESCROW_ENUMERATE_COOKIE_MAX4 = 256;
+   ///
    /// struct escrow_enum_entry4 {
    ///     offset4         eee_offset;
    ///     count4          eee_count;
@@ -11590,7 +11603,8 @@ NFS4ERR_STALE_MDS_EPOCH.
    ///
    /// struct CHUNK_ESCROW_ENUMERATE4resok {
    ///     bool                 ceer_eof;
-   ///     opaque               ceer_cookie<>;
+   ///     opaque
+   ///         ceer_cookie<CHUNK_ESCROW_ENUMERATE_COOKIE_MAX4>;
    ///     escrow_enum_entry4
    ///         ceer_entries<CHUNK_ESCROW_ENUMERATE_MAX4>;
    /// };
@@ -12067,12 +12081,14 @@ per {{sec-repair-selection}}.
 
 The FFv2 chunk protocol combines three related
 mechanisms — writer-supplied opaque owner identity
-(sec-chunk_owner4), best-effort predecessor discovery
-(sec-CHUNK_HEADER_READ / sec-NFS4ERR_NO_PREDECESSOR),
-and MDS-escrow control-plane pinning
-(sec-CHUNK_ESCROW_INSTALL / sec-CHUNK_ESCROW_RELEASE /
-sec-CHUNK_ESCROW_ENUMERATE / sec-CHUNK_ESCROW_TAKEOVER,
-sec-chunk_guard_mds) — that together deliver a
+({{sec-chunk_owner4}}), best-effort predecessor
+discovery ({{sec-CHUNK_HEADER_READ}} /
+{{sec-NFS4ERR_NO_PREDECESSOR}}), and MDS-escrow
+control-plane pinning ({{sec-CHUNK_ESCROW_INSTALL}} /
+{{sec-CHUNK_ESCROW_RELEASE}} /
+{{sec-CHUNK_ESCROW_ENUMERATE}} /
+{{sec-CHUNK_ESCROW_TAKEOVER}},
+{{sec-chunk_guard_mds}}) — that together deliver a
 CONDITIONAL rollback guarantee.  This section states the
 guarantee scope precisely and specifies the client-side
 decision tree over the composed error surface.
@@ -12215,13 +12231,13 @@ recovery is attempted.
   metadata server's own CHUNK_ESCROW_RELEASE.
   The response never authorizes tuple removal by
   itself when adoption may have consumed the
-  escrow (see sec-CHUNK_ESCROW_RELEASE).
+  escrow (see {{sec-CHUNK_ESCROW_RELEASE}}).
 - **Any CHUNK_ESCROW_* → NFS4ERR_STALE_MDS_EPOCH
   ({{sec-NFS4ERR_STALE_MDS_EPOCH}}):** the
   metadata server has been fenced by a
-  superseding CHUNK_ESCROW_TAKEOVER.  The caller
-  metadata server MUST fresh-take-over via
-  CHUNK_ESCROW_TAKEOVER
+  superseding CHUNK_ESCROW_TAKEOVER.  The metadata
+  server MUST obtain a fresh incarnation-lease token
+  and reissue via CHUNK_ESCROW_TAKEOVER
   ({{sec-CHUNK_ESCROW_TAKEOVER}}); TAKEOVER is
   exempt from this rejection.
 - **CB_CHUNK_REPAIR response → NFS4ERR_PARTIAL
