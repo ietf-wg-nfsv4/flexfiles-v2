@@ -7626,14 +7626,17 @@ the token's own expires_at, so that a valid token
 cannot be replayed after its natural expiry and a
 recently-observed token cannot be inadvertently
 retired while still admissible.  A data server MAY
-persist the token_id replay cache across restart;
-if it does not, restart clears the cache and a
-freshly-restarting metadata server that presents a
-token already accepted by the pre-restart data
-server sees success (identical wire outcome to the
-cached case).
+persist the token_id replay cache across restart.
+Loss of a cache entry (eviction, non-persisted
+restart) does not permanently defeat lost-response
+recovery: the byte-identical uncertain-completion
+recovery path in
+{{sec-CHUNK_ESCROW_TAKEOVER-uncertain-completion}}
+covers the cache-miss form and returns the same
+postcondition-equivalent NFS4_OK when the operation
+had already completed.
 
-### Uncertain-Completion Recovery for TAKEOVER
+### Uncertain-Completion Recovery for TAKEOVER {#sec-CHUNK_ESCROW_TAKEOVER-uncertain-completion}
 
 CHUNK_ESCROW_TAKEOVER
 ({{sec-CHUNK_ESCROW_TAKEOVER}}) is the recovery
@@ -7644,50 +7647,61 @@ the metadata server MAY lose the response to a
 successful TAKEOVER (network drop, RPC
 retransmission timeout, session loss).  The bare
 strict-ordering rules above would rebuff a
-byte-identical reissue with NFS4ERR_ACCESS on the
-token_id replay-cache check, giving the metadata
-server no way to distinguish "the prior TAKEOVER
-succeeded and the response was lost" from "the
-proof is invalid."
+byte-identical reissue: either the token_id
+replay-cache check at step 4 rejects with
+NFS4ERR_ACCESS (the cache still holds the entry) or
+the epoch compare-and-advance at step 5 rejects
+with NFS4ERR_STALE_MDS_EPOCH (the ordinary path,
+because the reissue's ceta_expected_prior_epoch
+names the pre-advance epoch that the earlier
+successful TAKEOVER has already moved past).  In
+either case the metadata server has no way to
+distinguish "the prior TAKEOVER succeeded and the
+response was lost" from "the proof is invalid."
 
 To close that recovery gap, a data server MUST
 accept a byte-identical CHUNK_ESCROW_TAKEOVER
 reissue as postcondition-equivalent success when
+proof verification (steps 1-3 above) succeeds and
 ALL of the following hold:
 
-- the reissue presents the same proof bytes as a
-  TAKEOVER the data server previously accepted
-  (matching token_id already in the token_id
-  replay cache);
 - the reissue's ceta_new_epoch equals the data
   server's currently-recorded metadata-server
   epoch (the takeover the token authorized has
-  already completed); and
-- the reissue's ceta_expected_prior_epoch equals
-  the epoch that the token's own compare-and-
-  advance advanced from (recoverable from the
-  cached decision).
+  already completed);
+- the reissue's ceta_expected_prior_epoch is
+  strictly less than the reissue's ceta_new_epoch
+  (the token names a genuine advance, not a
+  no-op); and
+- either the token_id is present in the token_id
+  replay cache (cache-hit form, ordinary lost-
+  response case) OR the token_id is absent
+  (cache-miss form, applies after eviction or
+  non-persisted restart).
 
-Under these three predicates the data server
-returns NFS4_OK without side effect (the
-epoch/expires_at values are already at the
-post-advance state; the second observation is
-idempotent).  The predicates are jointly
+Under these predicates the data server returns
+NFS4_OK without side effect: the epoch and
+epoch_expires_at are already at the post-advance
+state, no state changes, and the second observation
+is idempotent.  The predicates are jointly
 sufficient to distinguish a lost-response
 retransmission from a fresh presentation of an
-already-used token by a different party (a
-different party would not present the same
-proof bytes without stealing the signer's key
-material, and the token was issued to a specific
-principal).
+already-used token by a different party — a
+different party would not present the same proof
+bytes without stealing the signer's key material,
+the token was issued to a specific principal
+matched by step 3, and a subsequent successful
+TAKEOVER by any party advances the current epoch
+past ceta_new_epoch and disqualifies the reissue.
 
-When any of the three predicates fails, the data
-server returns NFS4ERR_ACCESS per the ordinary
-strict-ordering rule and the metadata server MUST
-obtain a fresh incarnation-lease token from the
-authority.  A fresh token has a new token_id and
-does not collide with the replay cache; the fresh
-takeover uses the ordinary advance form.
+When any predicate fails the data server returns
+NFS4ERR_ACCESS or NFS4ERR_STALE_MDS_EPOCH per the
+ordinary strict-ordering rule and the metadata
+server MUST obtain a fresh incarnation-lease token
+from the authority.  A fresh token has a new
+token_id and does not collide with the replay
+cache; the fresh takeover uses the ordinary
+advance form.
 
 ### Trust Anchor Provisioning
 
@@ -12569,19 +12583,27 @@ valid tokens for the same profile MAY attempt to grow the
 cache without bound.  A data server SHOULD bound the cache
 size and expire entries no later than their token's
 expires_at; entries older than the longest admissible
-issued_at-to-expires_at window MAY be evicted.  The
-byte-identical uncertain-completion recovery path
-({{sec-proof-profile}} "Uncertain-Completion Recovery for
-TAKEOVER") tolerates cache eviction: a token whose replay
-entry has aged out will present as a valid new proof, and if
-its ceta_new_epoch equals the data server's currently-
-recorded epoch the operation succeeds idempotently.
+issued_at-to-expires_at window MAY be evicted.  Eviction
+does not sacrifice lost-response recovery: the byte-
+identical uncertain-completion recovery path
+({{sec-CHUNK_ESCROW_TAKEOVER-uncertain-completion}})
+recognizes both the cache-hit and the cache-miss form of
+the same reissue, so a token whose replay entry has aged
+out still resolves to NFS4_OK when its ceta_new_epoch
+equals the data server's currently-recorded epoch and its
+ceta_expected_prior_epoch is strictly prior.  A hostile
+presenter cannot exploit the cache-miss form to advance
+the epoch: proof verification still gates on the token's
+signature and principal, and once a subsequent successful
+TAKEOVER advances past ceta_new_epoch the reissue no
+longer satisfies the postcondition-equivalent predicates.
 
 Data servers that persist the token_id cache across restart
 MUST persist and evict entries coherently with expires_at
-values; a data server that does not persist the cache
-returns to the freshly-initialized state after restart and
-MAY accept a token it previously observed.
+values.  A data server that does not persist the cache
+returns to the freshly-initialized state after restart;
+lost-response reissues still resolve through the cache-miss
+form of the uncertain-completion recovery path.
 
 ###  Discovery information disclosure
 
