@@ -6855,16 +6855,26 @@ NFS4ERR_NO_PREDECESSOR is distinct from NFS4ERR_INVAL
 and cannot be resurrected — see "Deletion Atomicity and
 Invalidated Triples") and from NFS4ERR_PAYLOAD_LOST
 (terminal payload loss reported on CB_CHUNK_REPAIR).  A
-data server MAY use either NFS4ERR_INVAL or
-NFS4ERR_NO_PREDECESSOR when the two conditions overlap
-(a triple invalidated by an earlier delete case ALSO
-has no recorded association); NFS4ERR_INVAL SHOULD be
-preferred when the invalidation is directly attributable
-to a specific prior lifecycle operation the caller could
-have observed, and NFS4ERR_NO_PREDECESSOR SHOULD be
-preferred when the association's release cannot be
-attributed to any single observable event (e.g., lease
-expiry retention-scope discard).
+The data server distinguishes NFS4ERR_NO_PREDECESSOR
+from NFS4ERR_INVAL on the basis of what the caller
+could have named.  NFS4ERR_INVAL is returned only for a
+generation identity the data server never recorded (a
+malformed or truncated owner triple, or a triple
+belonging to a different file / a different data
+server); this includes the case where a prior explicit
+CHUNK_ROLLBACK delete released the association within
+the same session slot's replay-cache window.
+NFS4ERR_NO_PREDECESSOR covers every other case in which
+the data server holds no association for the presented
+predecessor triple, including release under the
+retention scope rule (lease expiry, storage-pressure
+release, or the eventual release of a triple
+invalidated by an earlier delete case whose replay-
+cache window has since elapsed).  The two errors are
+not interchangeable: NFS4ERR_INVAL is a caller-side
+signal that the client MUST NOT retry the same
+identity, while NFS4ERR_NO_PREDECESSOR is a data-plane
+signal that the caller MAY invoke b1 fallback.
 
 A client that receives NFS4ERR_NO_PREDECESSOR MAY fall
 back to reconstructing authoritative bytes from
@@ -6876,12 +6886,14 @@ authoritative source exists.  A client that requires
 the restored generation to retain the predecessor's
 original owner triple in cases where the retention
 scope ({{sec-system-model-retention-scope}}) would
-otherwise permit release MUST use whatever mechanism
-the ecosystem provides for guaranteed predecessor
-pinning (see, e.g., any amendment that extends the
-CHUNK_LOCK model to hold the predecessor's payload
-and its owner-to-index association jointly against
-that release rule).
+otherwise permit release MUST use the MDS-escrow
+control plane ({{sec-CHUNK_ESCROW_INSTALL}}
+through {{sec-CHUNK_ESCROW_TAKEOVER}}), which pins
+the predecessor's payload and its owner-to-index
+association jointly against that release rule for as
+long as the escrow-lock or a client-owned lock
+adopted from it remains in continuous custody (see
+{{sec-composed-rollback}}).
 
 ### NFS4ERR_NO_ADOPTABLE_LOCK (Error Code 10104) {#sec-NFS4ERR_NO_ADOPTABLE_LOCK}
 
@@ -7046,7 +7058,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
 
  | Callback Operation| Errors                                       |
  | ---
- | CB_CHUNK_REPAIR | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DEADSESSION, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_ISDIR, NFS4ERR_LOCKED, NFS4ERR_NOTSUPP, NFS4ERR_OLD_STATEID, NFS4ERR_PAYLOAD_LOST, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CB_CHUNK_REPAIR | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DEADSESSION, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_ISDIR, NFS4ERR_LOCKED, NFS4ERR_NOTSUPP, NFS4ERR_OLD_STATEID, NFS4ERR_PARTIAL, NFS4ERR_PAYLOAD_LOST, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
 {: #tbl-cb-ops-and-errors title="Callback Operations and Their Valid Errors"}
 
 ## Errors and the Operations That Use Them
@@ -9923,12 +9935,14 @@ predecessor resurrected.  Any client that requires the restored
 generation to retain the predecessor's original owner
 triple in cases where the retention scope
 ({{sec-system-model-retention-scope}}) would otherwise
-permit release MUST use whatever mechanism the
-deployment provides for guaranteed predecessor
-pinning (see any amendment that extends the
-CHUNK_LOCK model to hold the predecessor's payload
-and its owner-to-index association jointly against
-that release rule).
+permit release MUST use the MDS-escrow control plane
+({{sec-CHUNK_ESCROW_INSTALL}} through
+{{sec-CHUNK_ESCROW_TAKEOVER}}), which pins the
+predecessor's payload and its owner-to-index
+association jointly against that release rule for as
+long as the escrow-lock or a client-owned lock
+adopted from it remains in continuous custody (see
+{{sec-composed-rollback}}).
 
 A non-repair CHUNK_ROLLBACK against a COMMITTED chunk
 is rejected with NFS4ERR_INVAL regardless of case.
@@ -11749,10 +11763,9 @@ for the new callback operation defined in this document.
    ///
    /// /* Upper bound on the number of ranges named in a
    ///  * single CB_CHUNK_REPAIR (bounds both ccra_ranges
-   ///  * and its co-indexed ccrr_range_status).  Draft-
-   ///  * edit constant; recommend a modest value that
-   ///  * lets one callback describe a coherent repair
-   ///  * batch without unbounded growth. */
+   ///  * and its co-indexed ccrr_range_status).  A repair
+   ///  * batch that exceeds this bound is split across
+   ///  * multiple callbacks. */
    /// const CB_CHUNK_REPAIR_MAX_RANGES4 = 64;
    ///
    /// struct CB_CHUNK_REPAIR4args {
@@ -12058,11 +12071,12 @@ reconstruction into a NEW generation under a NEW
 owner triple, or terminal NFS4ERR_PAYLOAD_LOST
 when no authoritative source exists.
 
-The guarantee is a protocol-GC guarantee: FFv2
-implementations MUST NOT release the payload or
-owner-to-index association of a predecessor covered
-by an active qualifying lock or MDS-escrow lock,
-per the payload/association biconditional
+The guarantee is a protocol-level protection against
+premature release: FFv2 implementations MUST NOT
+release the payload or owner-to-index association of
+a predecessor covered by an active qualifying lock or
+MDS-escrow lock, per the payload/association
+biconditional
 ({{sec-system-model-payload-association-biconditional}})
 and the retention scope
 ({{sec-system-model-retention-scope}}) as extended
