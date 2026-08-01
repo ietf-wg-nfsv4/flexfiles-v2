@@ -9107,6 +9107,65 @@ If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
 NFS4ERR_WRONG_TYPE).
 
+#### Idempotence and Uncertain-Replay Carve-Out
+
+CHUNK_ROLLBACK is idempotent on its target: a second
+CHUNK_ROLLBACK naming the same generations after the
+first has succeeded finds those generations already in
+the state the first produced.  Under the ordinary
+per-entry rules the second call returns NFS4ERR_INVAL in
+each crr_chunk_status slot, because the named triples
+were invalidated by the first call ("Deletion Atomicity
+and Invalidated Triples" above) or the retained
+predecessor was restored under its original triple with
+the displaced successor's triple invalidated ("Rollback
+of COMMITTED Chunks" above).
+
+**Uncertain-replay carve-out.**  When the first
+CHUNK_ROLLBACK completed at the data server but its
+response was lost (network error, dropped connection,
+data server restart before the reply was received), the
+client cannot distinguish "the op did not run" from
+"the op ran and its reply was lost."  A client that
+issues an EXACT REISSUE of the same CHUNK_ROLLBACK op
+under these conditions MAY treat the resulting
+per-chunk NFS4ERR_INVAL as POSTCONDITION-EQUIVALENT
+SUCCESS on a slot-by-slot basis, PROVIDED all of the
+following hold for that slot:
+
+- the reissue is byte-identical to the original op
+  (same cra_offset, same cra_count, same cra_chunks
+  array entry) — a fresh op with an accidentally-
+  matching triple does NOT qualify;
+- the prior completion is genuinely uncertain (the
+  client never observed a per-entry response for that
+  slot); AND
+- the client INDEPENDENTLY verifies that the target
+  postcondition holds.  For the delete case, this
+  means observing that the named generation is absent
+  at the target chunk index (via CHUNK_HEADER_READ
+  ({{sec-CHUNK_HEADER_READ}}) or CHUNK_READ
+  ({{sec-CHUNK_READ}}) with the retention-scope rules
+  understood).  For the retained-predecessor restore
+  case, this means observing that the predecessor's
+  original triple is now the current COMMITTED
+  generation.
+
+The carve-out is narrow by construction: a fresh op
+receiving NFS4ERR_INVAL never qualifies, and a reissue
+that cannot verify the postcondition also does not
+qualify — the client MUST treat the NFS4ERR_INVAL as a
+terminal per-entry failure in either case.  This
+prevents the carve-out from being conflated with the
+invalidated-triple rule, which is unconditional and
+prohibits the data server from resurrecting any
+deleted generation ("Deletion Atomicity and
+Invalidated Triples" above).  Similar reasoning applies
+to exact uncertain reissues of CHUNK_COMMIT
+({{sec-CHUNK_COMMIT}}) and CHUNK_FINALIZE
+({{sec-CHUNK_FINALIZE}}), which are also idempotent on
+their targets under the same three predicates.
+
 ### RESPONSE CODES
 
 NFS4_OK:
