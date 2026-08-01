@@ -5522,13 +5522,65 @@ its association.
 
 The retention scope rule ({{sec-system-model-retention-scope}})
 governs WHEN a predecessor generation's payload +
-association may be released; this section governs the
+association may be released; the payload/association
+biconditional in the next subsection governs the
 INVARIANT that whenever the payload survives, the
-association survives with it, and vice versa — the two
-share a lifetime.  A conforming data server MUST NOT
-release the association while retaining the payload,
-and MUST NOT retain the association after releasing
-the payload.
+association survives with it, and vice versa.
+
+##  Payload and Association Biconditional {#sec-system-model-payload-association-biconditional}
+
+For every generation the data server holds — PENDING,
+FINALIZED, or COMMITTED, including any predecessor
+retained under the rollback invariant
+({{sec-system-model-retention-scope}}) — the chunk
+payload and its owner-to-index association
+({{sec-system-model-owner-persistence}}) MUST share a
+lifetime.  A conforming data server MUST NOT release
+one while retaining the other:
+
+- **MUST NOT retain payload without association.**  A
+  chunk payload whose owner-to-index association has
+  been released is unaddressable by every lifecycle
+  operation (CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}),
+  CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}),
+  CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}})) because
+  those operations name generations by full owner
+  triple ({{sec-chunk_owner4}}).  A data server that
+  cannot locate the recorded chunk index for a
+  presented triple returns NFS4ERR_INVAL per each
+  operation's per-entry rules; retaining the payload
+  while making it unaddressable serves no purpose and
+  is prohibited.  The payload MUST be released
+  atomically with the association.
+- **MUST NOT release association while retaining
+  payload.**  A recorded owner-to-index association
+  refers to a specific chunk payload; the data server
+  MUST NOT retain the association after releasing that
+  payload.  A subsequent CHUNK_READ or lifecycle
+  operation whose recorded index still points to a
+  released payload would return data whose provenance
+  the client cannot verify against its own writer
+  history; forbidding this releases the client from
+  having to detect such stale associations.
+
+The biconditional is symmetric: released together,
+retained together.  This coupling is what makes
+CHUNK_ROLLBACK's delete case ({{sec-CHUNK_ROLLBACK}})
+atomic — invalidating a generation drops BOTH the
+association and the payload in one step — and what
+makes CHUNK_ROLLBACK's restore case rely on the
+predecessor's association surviving with its payload
+as a single unit.  Data servers implementing an
+on-disk chunk store SHOULD treat the association and
+payload as the crash-consistent atomic unit at the
+storage layer.
+
+The retention scope rule
+({{sec-system-model-retention-scope}}) governs WHEN the
+pair may be released (bounded by the owning stateid's
+lease and any successor's presence); this
+biconditional governs the INVARIANT that whenever the
+release happens, the two go together.
 
 ##  Progress and Termination {#sec-system-model-progress}
 
