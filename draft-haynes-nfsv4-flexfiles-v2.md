@@ -7675,37 +7675,59 @@ response was lost" from "the proof is invalid."
 To close that recovery gap, a data server MUST
 accept a byte-identical CHUNK_ESCROW_TAKEOVER
 reissue as postcondition-equivalent success when
-proof verification (steps 1-3 above) succeeds and
-all of the following hold:
+step 4's signature and payload checks succeed
+(signature verifies against the deployment-
+provisioned trust anchor; the signed principal,
+scope, and epoch match; the token is within its
+expires_at window; all per {{sec-proof-profile}}
+"Payload map fields"), with the ordinary step-4
+"token_id already in the replay cache" rejection
+overridden as stated below, and both of the
+following hold:
 
 - the reissue's ceta_new_epoch equals the data
   server's currently-recorded metadata-server
   epoch (the takeover the token authorized has
-  already completed);
+  already completed); and
 - the reissue's ceta_expected_prior_epoch is
   strictly less than the reissue's ceta_new_epoch
   (the token names a genuine advance, not a
-  no-op); and
-- either the token_id is present in the token_id
-  replay cache (cache-hit form, ordinary lost-
-  response case) OR the token_id is absent
-  (cache-miss form, applies after eviction or
-  non-persisted restart).
+  no-op).
+
+The recovery rule takes two forms distinguished by
+the state of the token_id replay cache at the data
+server:
+
+- **Cache-hit form** (ordinary lost-response
+  case): the token_id is present in the token_id
+  replay cache.  The data server recognizes the
+  cached byte-identical decision and returns the
+  cached NFS4_OK result; step 5 is not re-executed.
+- **Cache-miss form** (applies after eviction or
+  non-persisted restart): the token_id is not
+  present in the replay cache.  The data server
+  treats the presentation as a fresh byte-
+  identical proof under the two epoch predicates
+  above and does NOT execute step 5 (the epoch is
+  already at the post-advance state).
 
 Under these predicates the data server returns
 NFS4_OK without side effect: the epoch and
 epoch_expires_at are already at the post-advance
 state, no state changes, and the second observation
-is idempotent.  The predicates are jointly
-sufficient to distinguish a lost-response
-retransmission from a fresh presentation of an
-already-used token by a different party — a
-different party would not present the same proof
-bytes without stealing the signer's key material,
-the token was issued to a specific principal
-matched by step 3, and a subsequent successful
-TAKEOVER by any party advances the current epoch
-past ceta_new_epoch and disqualifies the reissue.
+is idempotent.  The rule is safe against a fresh
+presentation of an already-used token by a
+different party — a different party would not
+present the same proof bytes without stealing the
+signer's key material, the token was issued to a
+specific principal matched by step 4's principal
+check, expiry admissibility windows for successor
+principals do not overlap ({{sec-proof-profile}}
+"Time-Related Bounds"), and a subsequent
+successful TAKEOVER by any party advances the
+current epoch past ceta_new_epoch and
+disqualifies the reissue on the first predicate
+above.
 
 When any predicate fails the data server returns
 NFS4ERR_ACCESS or NFS4ERR_STALE_MDS_EPOCH per the
