@@ -7098,7 +7098,11 @@ are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
  | Error                            | Operations                  |
  | ---
  | NFS4ERR_CODING_NOT_SUPPORTED     | CB_CHUNK_REPAIR, LAYOUTGET  |
+ | NFS4ERR_PAYLOAD_NOT_ATOMIC       | CHUNK_READ                  |
+ | NFS4ERR_CHUNK_LOCKED             | CHUNK_WRITE, CHUNK_ESCROW_INSTALL |
+ | NFS4ERR_CHUNK_GUARDED            | CHUNK_WRITE                 |
  | NFS4ERR_PAYLOAD_LOST             | CB_CHUNK_REPAIR             |
+ | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | LAYOUTGET              |
  | NFS4ERR_NO_PREDECESSOR           | CHUNK_ROLLBACK              |
  | NFS4ERR_NO_ADOPTABLE_LOCK        | CHUNK_LOCK                  |
  | NFS4ERR_STALE_ESCROW             | CHUNK_ESCROW_RELEASE        |
@@ -7979,7 +7983,11 @@ CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE,
 CHUNK_ESCROW_TAKEOVER) are sent by the metadata server to
 storage devices on the MDS-to-DS control session (see
 {{sec-tight-coupling-control-session}}); they MUST NOT be sent by
-pNFS clients.
+pNFS clients.  The escrow control-plane operations (92 through
+95) are available on the MDS-to-DS control session under either
+loose- or tight-coupling deployment; the tight-coupling section
+is cited for its description of the session itself, not to
+restrict availability to the tight-coupling profile.
 
 All CHUNK_* operations MUST be issued under an active flexible
 file v2 layout obtained via LAYOUTGET against the metadata
@@ -11622,6 +11630,11 @@ NFS4ERR_STALE_MDS_EPOCH.
 ### ARGUMENTS
 
 ~~~ xdr
+   /// /* Upper bound on the ENUMERATE pagination
+   ///  * cookie length, applied to both the request
+   ///  * ceea_cookie and the response ceer_cookie. */
+   /// const CHUNK_ESCROW_ENUMERATE_COOKIE_MAX4 = 256;
+   ///
    /// struct CHUNK_ESCROW_ENUMERATE4args {
    ///     /* CURRENT_FH: file */
    ///     uint64_t        ceea_mds_epoch;
@@ -11642,11 +11655,6 @@ NFS4ERR_STALE_MDS_EPOCH.
    ///  * Bounds ceer_entries; the caller may still page
    ///  * via ceer_cookie for larger snapshots. */
    /// const CHUNK_ESCROW_ENUMERATE_MAX4 = 256;
-   ///
-   /// /* Upper bound on the ENUMERATE pagination
-   ///  * cookie length, applied to both the request
-   ///  * ceea_cookie and the response ceer_cookie. */
-   /// const CHUNK_ESCROW_ENUMERATE_COOKIE_MAX4 = 256;
    ///
    /// struct escrow_enum_entry4 {
    ///     offset4         eee_offset;
@@ -12063,7 +12071,7 @@ co-indexed per-range status array ccrr_range_status:
       least one range did not reach the completion
       state.  The metadata server MUST consume the
       ccrr_range_status array to determine per-range
-      outcome; the array is authoritative.  A
+      outcome; the array is authoritative.  An
       NFS4ERR_PARTIAL response with an empty array
       is malformed and MUST be rejected.
 
@@ -12112,7 +12120,7 @@ NFS4ERR_PARTIAL:
 :  At least one range in the callback did not reach the
 completion contract.  The metadata server MUST consume the
 co-indexed ccrr_range_status array to determine the per-range
-outcome; NFS4ERR_PARTIAL is NOT a whole-callback retriable
+outcome; NFS4ERR_PARTIAL is not a whole-callback retriable
 error and MUST NOT be treated as one.  The array is
 authoritative: each ccrr_range_status entry maps directly to
 the co-indexed entry in ccra_ranges and is evaluated on its
@@ -13287,11 +13295,19 @@ Initial registrations are listed in
  | PROOF_PROFILE_HA_AUTHORITY_ED25519  | 1     | {{sec-proof-profile}} "Mandatory-to-Implement Profile" |
 {: #tbl-proof-profiles title="Initial Proof-Profile Registrations"}
 
-Additional profiles enumerated in
+Additional profiles named in
 {{sec-proof-profile}} (ECDSA-P256 alg -7,
-RSASSA-PSS-SHA256 alg -37, or HA-manager-native
-tokens) MAY be added later per the Specification
-Required policy above.
+RSASSA-PSS-SHA256 alg -37) MAY be added later per
+the Specification Required policy above.
+
+The value range 0xC0000000 to 0xFFFFFFFF is
+reserved for Private Use per {{RFC8126}} Section
+4.1; deployments MAY assign values from this range
+for experimental, vendor-specific, or private
+profiles without IANA registration, but such
+values MUST NOT be presented on interoperability
+boundaries and this specification makes no
+compatibility guarantees for them.
 
 #  XDR Description of the Flexible File Version 2 Layout Type
 
