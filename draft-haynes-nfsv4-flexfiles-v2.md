@@ -8129,6 +8129,62 @@ interface.
    | CHUNK_ESCROW_TAKEOVER  | 95     | data server (metadata server control)  | {{sec-CHUNK_ESCROW_TAKEOVER}} |
 {: #tbl-protocol-ops title="Protocol OPs"}
 
+## Bounds on Chunk-Operation Arrays {#sec-chunk-op-bounds}
+
+The chunk-lifecycle operations (CHUNK_WRITE, CHUNK_WRITE_REPAIR,
+CHUNK_READ, CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_ROLLBACK,
+CHUNK_LOCK, CHUNK_UNLOCK, CHUNK_ERROR, CHUNK_REPAIRED,
+CHUNK_HEADER_READ) carry variable-length arrays of chunks,
+owners, status codes, checksums, and payloads.  To bound
+allocation and to guarantee that a valid request always has an
+encodable response, this document defines the following
+protocol maxima:
+
+~~~ xdr
+   ///
+   /// const CHUNK_MAX_CHUNKS_PER_OP     = 4096;
+   /// const CHUNK_MAX_PAYLOAD_BYTES     = 4194304;
+   /// const CHUNK_MAX_CHECKSUMS_PER_OP  = 4096;
+   /// const CHUNK_MAX_OWNERS_PER_OP     = 4096;
+   /// const CHUNK_MAX_STATUS_PER_OP     = 4096;
+   ///
+~~~
+{: #fig-chunk-op-bounds title="Chunk-operation array maxima" }
+
+`CHUNK_MAX_CHUNKS_PER_OP` is the maximum number of chunks
+addressed by a single CHUNK_WRITE, CHUNK_WRITE_REPAIR,
+CHUNK_READ, CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_ROLLBACK, or
+CHUNK_LOCK request; it bounds cwa_co_ids, cra_ranges, cca_chunks,
+cfa_chunks, cra_chunks (CHUNK_ROLLBACK), and the equivalent
+arrays in the other operations.  `CHUNK_MAX_PAYLOAD_BYTES`
+bounds the aggregate opaque payload (cwa_chunks, cwra_chunks,
+and the concatenated cr_chunk bytes returned in
+CHUNK_READ4resok).  `CHUNK_MAX_CHECKSUMS_PER_OP`,
+`CHUNK_MAX_OWNERS_PER_OP`, and `CHUNK_MAX_STATUS_PER_OP` bound
+the co-indexed result and argument arrays with matching
+cardinality; each MUST equal the request's chunk count on
+success, and MUST be present with the requested cardinality on
+failures for positional correlation.
+
+A data server MUST reject a request whose array length exceeds
+any of these maxima with NFS4ERR_INVAL before performing any
+mutation.  A data server MUST also verify, before performing
+any mutation, that the response it will construct fits within
+the session's negotiated `ca_maxresponsesize` (Section 18.36 of
+{{RFC8881}}); if the mandatory response arrays (per-chunk
+status, per-chunk owner, per-chunk checksum, and payload where
+applicable) would exceed `ca_maxresponsesize`, the data server
+MUST reject with NFS4ERR_TOOSMALL and MUST NOT partially
+process the request.  The client is expected to split the
+request across multiple compounds when either bound is reached.
+
+Short processing (a data server returning fewer chunks than
+requested at its discretion) is NOT permitted for the
+lifecycle operations because the co-indexed result arrays would
+lose positional correlation.  A data server that cannot process
+all requested chunks MUST reject the entire request; the client
+retries with a smaller batch.
+
 ## Operation 78: CHUNK_COMMIT - Activate Cached Chunk Data {#sec-CHUNK_COMMIT}
 
 ### ARGUMENTS
@@ -10522,10 +10578,24 @@ The full cohort triple recorded on the data server for the
 chunk at zero-based position i within the payload is
 `(cwa_cohort_id, cwa_client_id, cwa_co_ids[i])`.
 
-`cwa_client_id` identifies the writer.  It MUST be the
-32-bit layout-granted client identity established in
-ffv2m_client_id (see {{sec-ffv2-mirror4}}), and it MUST NOT
-be the reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE or
+`cwa_client_id` identifies the writer.  It is
+client-*presented*, MDS-*assigned*: the client presents the
+32-bit layout-granted identity that the metadata server
+established in ffv2m_client_id (see {{sec-ffv2-mirror4}}) at
+layout-grant time; the client MUST NOT substitute any other
+value.  A client that presents a `cwa_client_id` different
+from its layout's ffv2m_client_id is spoofing another
+writer's identity; the data server rejects the request with
+NFS4ERR_BAD_STATEID (under trusted-stateid tight coupling,
+see {{sec-TRUST_STATEID}}, by comparing `cwa_client_id`
+against the client identity recorded in the data server's
+trust table for the presented layout stateid) or with
+NFS4ERR_ACCESS (in loosely coupled deployments where the
+data server cannot cross-check the MDS assignment; the
+loosely coupled data server MAY still perform local
+consistency checks against other layouts it has observed
+for the same file).  `cwa_client_id` MUST NOT be the
+reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE or
 CHUNK_GUARD_CLIENT_ID_MDS (see {{sec-chunk_guard_none}} and
 {{sec-chunk_guard_mds}}); those sentinels are reserved for
 data-server-observed cg_client_id values in chunk_guard4
