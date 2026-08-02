@@ -295,20 +295,24 @@ narrowly-scoped primitives that together provide just
 enough on-wire reconciliation: the chunk_guard4
 compare-and-swap (CAS) and the CB_CHUNK_REPAIR callback.
 
-Every CHUNK_WRITE carries a chunk_guard4 -- a 32-bit
-per-chunk generation counter and a 32-bit owning-client
-short-id -- and the data server performs a per-chunk CAS
-on receipt.  If two writers race for the same chunk,
-exactly one wins on each data server, the loser receives
-NFS4ERR_CHUNK_GUARDED for that chunk, and the chunks the
-loser intended to write are left unchanged.  No data
-server needs to consult its peers; the CAS is local.  The
-cost on the metadata server is bounded by the 8-byte
-chunk_guard4 header per chunk plus a 32-bit per-layout
-client identifier ({{sec-chunk_guard4}},
-{{sec-ffv2-mirror4}}).  Independent collisions on
-different chunks resolve independently; there is no
-file-wide lock and no global ordering across writes.
+Every CHUNK_WRITE carries a cohort header (a 64-bit
+writer-chosen chunk_cohort_id4 plus the writer's 32-bit
+layout-granted client id) once for the batch, and the
+data server performs a per-chunk compare-and-swap against
+its own chunk_guard4 (a 32-bit per-chunk generation
+counter plus the last writer's client id) when the client
+sets cwa_guard on receipt.  If two writers race for the
+same chunk, exactly one wins on each data server, the
+loser receives NFS4ERR_CHUNK_GUARDED for that chunk, and
+the chunks the loser intended to write are left
+unchanged.  No data server needs to consult its peers;
+the CAS is local.  The cost on the metadata server is
+bounded by the 12-byte cohort header per CHUNK_WRITE
+plus a 32-bit per-layout client identifier
+({{sec-chunk_guard4}}, {{sec-ffv2-mirror4}}).
+Independent collisions on different chunks resolve
+independently; there is no file-wide lock and no global
+ordering across writes.
 
 When the per-chunk CAS detects that a stripe ended up
 non-atomic -- some shards under writer A's guard, others
@@ -3405,9 +3409,8 @@ is in {{fig-example-chunk-write-args}}.
   | cwa_stateid: 0                     |
   | cwa_offset: 1                      |
   | cwa_stable: FILE_SYNC4             |
-  | cwa_owner_guard:                   |
-  |     cg_gen_id   : 3                |
-  |     cg_client_id: 6                |
+  | cwa_cohort_id: 0x000000000000002a  |
+  | cwa_client_id: 6                   |
   | cwa_co_ids:                        |
   |         [0]:  1                    |
   |         [1]:  2                    |
@@ -3424,15 +3427,16 @@ is in {{fig-example-chunk-write-args}}.
 {: #fig-example-chunk-write-args title="Example of CHUNK_WRITE_args" }
 
 This describes a 3 block write of data from an offset of 1 block
-in the file.  All three chunks share cwa_owner_guard, so the guard
-is presented once; each chunk's writer-chosen opaque co_id appears
-in the co-indexed cwa_co_ids array (here the client chose 1, 2, 3,
-but any distinct-per-guard uint32_t values would be equally valid
-per {{sec-chunk_owner4}}).  The data server can construct the
-header for the i'th chunk from cwa_chunks using cwa_payload_id,
-cwa_owner_guard plus `cwa_co_ids[i]`, and the i'th checksum from
-cwa_checksums.  The cwa_chunks are sent together as a byte stream
-to increase performance.
+in the file.  All three chunks share cwa_cohort_id and
+cwa_client_id, so the cohort identity is presented once; each
+chunk's writer-chosen opaque co_id appears in the co-indexed
+cwa_co_ids array (here the client chose 1, 2, 3, but any
+distinct-per-cohort uint32_t values would be equally valid per
+{{sec-chunk_owner4}}).  The data server can construct the cohort
+record for the i'th chunk from cwa_chunks using cwa_payload_id,
+cwa_cohort_id + cwa_client_id + `cwa_co_ids[i]`, and the i'th
+checksum from cwa_checksums.  The cwa_chunks are sent together
+as a byte stream to increase performance.
 
 Assuming that there were no issues, {{fig-example-chunk-write-res}}
 illustrates the results.  The payload sequence id is implicit in
@@ -3446,20 +3450,17 @@ the CHUNK_WRITEargs.
   | cwr_committed: FILE_SYNC4     |
   | cwr_writeverf: 0xf1234abc     |
   | cwr_owners[0]:                |
+  |        co_cohort_id: 0x2a     |
+  |        co_client_id: 6        |
   |        co_id: 1               |
-  |        co_guard:              |
-  |            cg_gen_id   : 3    |
-  |            cg_client_id: 6    |
   | cwr_owners[1]:                |
+  |        co_cohort_id: 0x2a     |
+  |        co_client_id: 6        |
   |        co_id: 2               |
-  |        co_guard:              |
-  |            cg_gen_id   : 3    |
-  |            cg_client_id: 6    |
   | cwr_owners[2]:                |
+  |        co_cohort_id: 0x2a     |
+  |        co_client_id: 6        |
   |        co_id: 3               |
-  |        co_guard:              |
-  |            cg_gen_id   : 3    |
-  |            cg_client_id: 6    |
   +-------------------------------+
 ~~~
 {: #fig-example-chunk-write-res title="Example of CHUNK_WRITE_res" }
@@ -3509,9 +3510,8 @@ be 0x21de8.  The resulting CHUNK_WRITE is shown in {{fig-calc-crc-after}}.
   | cwa_stateid: 0                     |
   | cwa_offset: 1                      |
   | cwa_stable: FILE_SYNC4             |
-  | cwa_owner_guard:                   |
-  |     cg_gen_id   : 7                |
-  |     cg_client_id: 6                |
+  | cwa_cohort_id: 0x000000000000002b  |
+  | cwa_client_id: 6                   |
   | cwa_co_ids:                        |
   |         [0]:  1                    |
   | cwa_payload_id: 0                  |
@@ -3571,9 +3571,9 @@ erasure coding type.
   | crr_chunks[0]:                     |
   |        cr_checksum: 0x21de8        |
   |        cr_owner:                   |
-  |            co_guard:               |
-  |                cg_gen_id   : 7     |
-  |                cg_client_id: 6     |
+  |            co_cohort_id: 0x2b      |
+  |            co_client_id: 6         |
+  |            co_id       : 1         |
   |        cr_chunk  :  ......         |
   +------------------------------------+
 ~~~
@@ -3967,15 +3967,19 @@ the multiple-writer repair path on subsequent access.
 In multiple writer mode, the metadata server does not set
 FFV2_FLAGS_ONLY_ONE_WRITER, indicating that concurrent writers may hold
 write layouts for the file.  The client sends CHUNK_WRITE with
-cwa_guard.cwg_check set to TRUE, supplying a chunk_guard4 in cwa_guard.cwg_guard
-that uniquely identifies this write transaction across all data servers.
+cwa_guard.cwg_check set to TRUE, supplying the expected prior
+chunk_guard4 in cwa_guard.cwg_guard so the data server can perform
+per-chunk CAS.  The write transaction is separately identified by the
+cohort pair `(cwa_cohort_id, cwa_client_id)` supplied on the same
+CHUNK_WRITE.
 
 The multiple writer write sequence is:
 
-1. The client selects a unique chunk_guard4 for this transaction.  The
-   cg_client_id identifies the client (derived from the client's
-   clientid4); the cg_gen_id is a per-client generation counter
-   incremented for each new transaction.
+1. The client selects a unique cohort pair `(cwa_cohort_id,
+   cwa_client_id)` for this transaction.  cwa_client_id is the client's
+   layout-granted ffv2m_client_id (see {{sec-ffv2-mirror4}}); the
+   cwa_cohort_id is a per-writer opaque identifier the client picks
+   distinct per transaction.
 
 2. The client issues CHUNK_WRITE (cwa_guard.cwg_check = TRUE) for each
    chunk.  The data server checks that no other client's chunk is in the
@@ -3990,10 +3994,11 @@ The multiple writer write sequence is:
 4. If all CHUNK_WRITEs succeed, the client issues CHUNK_FINALIZE and
    CHUNK_COMMIT as in single writer mode.
 
-The guard ensures that the chunks carrying the shards of an atomic
-erasure-coded stripe all carry the same chunk_guard4.  A reader that
-encounters chunks with different guard values knows the stripe is not
-yet atomic and MUST either retry or report NFS4ERR_PAYLOAD_NOT_ATOMIC.
+The cohort pair ensures that the chunks carrying the shards of an
+atomic erasure-coded stripe all carry the same
+`(co_cohort_id, co_client_id)`.  A reader that encounters chunks with
+different cohort pairs knows the stripe is not yet atomic and MUST
+either retry or report NFS4ERR_PAYLOAD_NOT_ATOMIC.
 
 #### Repairing Multiple Writer Payloads {#sec-repair-multi-writer}
 
@@ -4879,10 +4884,10 @@ the spare as well; otherwise the substitution silently
 downgrades the durability contract.
 
 Substitution MUST NOT be used when the existing PENDING state
-on any shard of the affected payload carries a different
-chunk_guard4 than the current transaction (the range has been
-adopted by a repair client already -- the normal repair flow
-applies and substitution would collide).
+on any shard of the affected payload carries a different cohort
+pair `(co_cohort_id, co_client_id)` than the current transaction
+(the range has been adopted by a repair client already -- the
+normal repair flow applies and substitution would collide).
 
 ## Handling write holes
 
@@ -7166,27 +7171,52 @@ chunks.
    /// const CHUNK_GUARD_CLIENT_ID_NONE = 0x00000000;
    /// const CHUNK_GUARD_CLIENT_ID_MDS  = 0xFFFFFFFF;
    ///
+   /// typedef uint64_t   chunk_cohort_id4;
+   ///
    /// struct chunk_guard4 {
    ///     uint32_t   cg_gen_id;
    ///     uint32_t   cg_client_id;
    /// };
 ~~~
-{: #fig-chunk_guard4 title="XDR for chunk_guard4" }
+{: #fig-chunk_guard4 title="XDR for chunk_guard4 and chunk_cohort_id4" }
 
-On the wire, a single CHUNK_WRITE carries the 8-byte
-chunk_guard4 header followed by the tagged checksum4 and
-then the opaque payload, as shown in
+The chunk_cohort_id4 is a 64-bit writer-chosen opaque identifier
+that names a single write transaction (a "cohort" of chunks written
+together in one CHUNK_WRITE batch, or across several CHUNK_WRITEs
+that a single writer chooses to associate as one logical
+transaction).  Under the shared-cohort model
+({{sec-CHUNK_WRITE}}), every chunk in a batch carries the same
+chunk_cohort_id4 so that lifecycle operations (CHUNK_FINALIZE,
+CHUNK_COMMIT, CHUNK_ROLLBACK) can name the transaction as a
+whole.  The data server treats chunk_cohort_id4 opaquely: it does
+NOT interpret the value beyond equality comparison, and it is NOT
+required to be monotonic, dense, or ordered in any way.  Writers
+MUST choose a new chunk_cohort_id4 per distinct write transaction
+so that transactions can be distinguished on the data server; the
+uniqueness scope required is per-(writer, file), not global.  A
+writer with sufficient state MAY generate chunk_cohort_id4 values
+from a counter, a random 64-bit source, a hashed transaction
+identifier, or any other locally convenient scheme, subject to
+the per-writer uniqueness rule.
+
+On the wire, a single CHUNK_WRITE carries a 12-byte cohort
+header (chunk_cohort_id4 + writer's cg_client_id) once for
+the batch, followed by, per chunk in the batch, the tagged
+checksum4 and the opaque chunk payload, as shown in
 {{fig-chunk-wire-layout}}.  The payload length is carried
 separately in the CHUNK_WRITE4args cwa_chunks<> slot; the
-diagram shows the per-chunk framing only.
+diagram shows the header once and the per-chunk framing
+that repeats.
 
 ~~~
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                          cg_gen_id                            |
+   |                    cwa_cohort_id (hi 32)                      |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                         cg_client_id                          |
+   |                    cwa_cohort_id (lo 32)                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       cwa_client_id                           |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                       cs_algorithm                            |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -7197,34 +7227,52 @@ diagram shows the per-chunk framing only.
    |                    opaque payload ...                         |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-   Bytes 0-3:    cg_gen_id      (per-chunk generation counter)
-   Bytes 4-7:    cg_client_id   (owning-client short id)
-   Bytes 8-11:   cs_algorithm   (checksum_algorithm4)
-   Bytes 12-15:  cs_value_len   (XDR opaque length prefix)
-   Bytes 16-N:   cs_value       (checksum bytes; length per
-                                 cs_algorithm's registered output)
-   Bytes N+1-M:  opaque payload (encoded shard; variable length)
+   Bytes 0-7:    cwa_cohort_id   (chunk_cohort_id4; 64-bit opaque
+                                  writer-chosen cohort identifier;
+                                  once per CHUNK_WRITE)
+   Bytes 8-11:   cwa_client_id   (writer's layout-granted 32-bit
+                                  client id; once per CHUNK_WRITE)
+   Bytes 12-15:  cs_algorithm    (checksum_algorithm4; per chunk)
+   Bytes 16-19:  cs_value_len    (XDR opaque length prefix; per chunk)
+   Bytes 20-N:   cs_value        (checksum bytes; length per
+                                  cs_algorithm's registered output;
+                                  per chunk)
+   Bytes N+1-M:  opaque payload  (encoded shard; variable length;
+                                  per chunk)
 
    The checksum block (cs_algorithm + cs_value_len + cs_value)
    is the XDR encoding of one checksum4 ({{fig-checksum4}}).
    For CHECKSUM_ALG_NONE the cs_value_len is zero and the
-   payload follows immediately after byte 15.
+   payload follows immediately after byte 19.  The per-chunk
+   framing (bytes 12 onward) repeats for each chunk in the
+   batch; the cohort header (bytes 0-11) appears once per
+   CHUNK_WRITE.  The per-chunk co_id values live in
+   CHUNK_WRITE4args cwa_co_ids<> and are not part of this
+   framing.
 ~~~
-{: #fig-chunk-wire-layout title="Per-chunk wire layout"}
+{: #fig-chunk-wire-layout title="CHUNK_WRITE wire framing: cohort header + per-chunk chunks"}
 
-The chunk_guard4 (see {{fig-chunk_guard4}}) is effectively a 64-bit
-value identifying a specific write transaction on a specific chunk.
-It has two fields:
+The chunk_guard4 (see {{fig-chunk_guard4}}) is the per-chunk
+compare-and-swap (CAS) state used by CHUNK_WRITE
+({{sec-CHUNK_WRITE}}) to detect concurrent updates.  It is state
+that the data server MAINTAINS per chunk; the writer transaction
+identity (the "cohort") is carried separately by
+chunk_cohort_id4 and is NOT part of chunk_guard4.  chunk_guard4
+has two fields:
 
 cg_gen_id:
-:  A per-chunk monotonic generation counter.  Each chunk's gen_id
-   starts at 0 when the chunk is first written and is incremented
-   on each successful write by any client.  cg_gen_id is NOT a
-   timestamp -- the protocol does not rely on a global clock,
-   and no interpretation of cg_gen_id as a wall-clock value is
-   supported.  cg_gen_id values are NOT comparable across distinct
-   chunks; a given cg_gen_id is only meaningful within the scope
-   of a single chunk on a single file.
+:  A per-chunk monotonic generation counter, tracked by the data
+   server.  Each chunk's gen_id starts at 0 when the chunk is
+   first written and is incremented on each successful CHUNK_WRITE
+   by any client.  cg_gen_id is NOT a timestamp -- the protocol
+   does not rely on a global clock, and no interpretation of
+   cg_gen_id as a wall-clock value is supported.  cg_gen_id
+   values are NOT comparable across distinct chunks; a given
+   cg_gen_id is only meaningful within the scope of a single
+   chunk on a single file.  cg_gen_id is NOT a transaction
+   identifier and MUST NOT be interpreted as naming or ordering
+   write transactions: transaction identity is chunk_cohort_id4
+   (see above).
 
 cg_client_id:
 :  A 32-bit value established by the metadata server at the time
@@ -7235,67 +7283,96 @@ cg_client_id:
    respect to client identity -- a data server MUST NOT
    interpret its bits as naming or ordering clients in any
    external sense.  The value supports two operations only:
-   equality comparison (to detect whether two chunks were written
-   by the same transaction) and numeric comparison (to implement
-   the tiebreaker rule below).
+   equality comparison (to detect whether the current writer is
+   the client that last wrote a chunk) and numeric comparison
+   (to implement the tiebreaker rule below).  The same
+   cg_client_id value appears in the cohort record
+   ({{sec-chunk_owner4}}) as co_client_id; the two are
+   redundant carriers of the same layout-granted writer identity
+   so that both CAS state and cohort records remain
+   self-contained.
 
 Uniqueness contract:
-:  The pair (cg_gen_id, cg_client_id) uniquely identifies a write
-   transaction on a chunk.  Neither field alone is globally
-   unique; two clients MAY independently write with the same
-   cg_gen_id on the same chunk (in particular, both may write
-   with cg_gen_id equal to some prior value + 1), and the
-   cg_client_id is what makes the resulting transactions
-   distinguishable.
+:  The chunk_guard4 pair (cg_gen_id, cg_client_id) identifies the
+   MOST RECENT successful writer of a chunk plus that chunk's
+   generation counter; it does NOT identify a specific write
+   transaction (that role is filled by chunk_cohort_id4).
+   Neither field alone is globally unique; two clients MAY
+   observe the same cg_gen_id on distinct chunks (each chunk's
+   counter is independent), and the cg_client_id is what makes
+   concurrent writers distinguishable at the CAS layer.
 
-Deterministic tiebreaker for concurrent writers:
+Deterministic contention resolution for concurrent writers:
 :  When two or more clients race on the same chunk in the
-   multi-writer mode, the client whose cg_client_id compares
-   numerically lowest MUST ultimately be the one whose write
-   reaches COMMITTED on the affected data servers.  The rule is
-   enforced in two stages:
+   multi-writer mode, the losing writer -- the one whose CAS
+   fails at any affected data server -- MUST roll back the
+   chunks it already wrote for the affected transaction and
+   retry under a fresh cohort id.  Convergence is achieved
+   by making losing writers back off, not by having the data
+   server pick a winner from the losing writer's state.
 
-    - **At CHUNK_WRITE** (per data server, arrival-order): a
+    - **At CHUNK_WRITE** (per data server, arrival-order): the
       data server accepts the first CHUNK_WRITE whose
-      chunk_guard4 CAS check succeeds against its current
-      chunk_guard4 value.  Later writers whose CAS fails receive
-      NFS4ERR_CHUNK_GUARDED.  Because arrival order can differ
-      between data servers, different subsets of the mirror set
-      may accept different clients' writes in this stage; that
-      is expected transient divergence, not a violation of the
-      tiebreaker rule.
+      chunk_guard4 CAS check succeeds against the chunk's
+      current chunk_guard4 value.  Later writers whose CAS
+      fails receive NFS4ERR_CHUNK_GUARDED for that chunk.
+      Because arrival order can differ between data servers,
+      different subsets of the mirror set MAY initially
+      accept different clients' writes for different chunks;
+      that is transient divergence, resolved by the
+      client-driven rollback below.
 
-    - **At CHUNK_FINALIZE** (numeric comparison, mirror-set
-      convergence): CHUNK_FINALIZE against a chunk whose current
-      PENDING write is owned by cg_client_id C_current MUST
-      compare the caller's cg_client_id C_caller numerically
-      against C_current.  If C_caller < C_current, the data
-      server accepts the FINALIZE against the caller's PENDING
-      write and discards the higher-numbered writer's
-      state.  If C_caller > C_current, the data server rejects
-      the FINALIZE with NFS4ERR_CHUNK_GUARDED and the caller's
-      client MUST re-read the chunk.  If C_caller == C_current
-      (same client re-finalizing its own write), FINALIZE
-      proceeds normally.  This is where the "lowest cg_client_id
-      wins" invariant is enforced globally: after every affected
-      data server has processed each racing client's FINALIZE
-      attempt, the mirror set converges on the numerically
-      lowest cg_client_id's write.
+    - **At NFS4ERR_CHUNK_GUARDED** (client-driven rollback and
+      retry): a client that observes NFS4ERR_CHUNK_GUARDED
+      on any chunk of an in-flight transaction MUST treat the
+      entire transaction as lost.  It MUST issue
+      CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}) against every
+      data server that accepted a CHUNK_WRITE under this
+      transaction's cohort pair, so that the data server can
+      release the PENDING state and revert cg_gen_id to the
+      value it held before the losing writer's CAS
+      succeeded.  The client then re-reads the chunks with
+      CHUNK_READ, applies its intended change to the
+      as-observed data, chooses a fresh cwa_cohort_id, and
+      re-issues CHUNK_WRITE with cwa_guard.cwg_check = TRUE
+      supplying the refreshed prior chunk_guard4.
 
-   A client that observes NFS4ERR_CHUNK_GUARDED on either
-   CHUNK_WRITE or CHUNK_FINALIZE MUST re-read the chunk and MAY
-   retry its write with a refreshed cg_gen_id.  A client that
-   detects no forward progress after a bounded number of retries
-   MUST escalate via LAYOUTERROR and the repair coordination
-   flow in {{sec-repair-selection}}.
+    - **At CHUNK_FINALIZE** (single winner already
+      established): by the time the mirror set converges,
+      only one writer's cohort remains as the PENDING state
+      for each affected chunk (all others have rolled
+      back).  CHUNK_FINALIZE against that PENDING state
+      succeeds; there is no tiebreaker comparison against
+      the caller's cg_client_id at FINALIZE.  A caller that
+      attempts CHUNK_FINALIZE against a chunk whose current
+      PENDING state carries a cohort pair not matching the
+      caller's transaction MUST receive
+      NFS4ERR_CHUNK_GUARDED and MUST proceed with the
+      rollback-and-retry flow above.  A caller whose own
+      PENDING state was overwritten by a different writer
+      SHOULD also receive NFS4ERR_CHUNK_GUARDED (the caller
+      no longer has a PENDING chunk to finalize).
 
-The numeric ordering of cg_client_id values is arbitrary with
-respect to the clients' external identities -- it is a
-deterministic total order over the opaque 32-bit values, not a
-preference ordering over the clients themselves.  A deployment
-that requires a specific client to win a race MUST arrange
-cg_client_id assignment at the metadata server; the protocol does
-not provide a preference mechanism at layout-grant time.
+   A client that has rolled back and retried but continues
+   to observe NFS4ERR_CHUNK_GUARDED without forward
+   progress after a bounded number of retries MUST
+   escalate via LAYOUTERROR and the repair coordination
+   flow in {{sec-repair-selection}}.  Bounded retry is a
+   client-implementation matter; the protocol does not
+   mandate a specific count, only that unbounded retry is
+   forbidden so that a contentious workload cannot livelock
+   without surfacing the contention to the metadata server.
+
+   Client cg_client_id ordering is NOT used to pick a
+   winner: the numeric ordering of cg_client_id values is
+   arbitrary with respect to clients' external identities
+   and MUST NOT be interpreted as a preference ordering
+   over the clients themselves.  The arrival-order
+   arbitration at each data server, combined with mandatory
+   client rollback on CAS failure, is what makes the mirror
+   set converge; the metadata server MAY still arrange
+   cg_client_id assignment to influence diagnosis but MUST
+   NOT rely on numeric ordering for correctness.
 
 ### Metadata-Server Assignment Rules for cg_client_id
 
@@ -7425,39 +7502,54 @@ across an incarnation change (see
 
 ~~~ xdr
    /// struct chunk_owner4 {
-   ///     chunk_guard4   co_guard;
-   ///     uint32_t       co_id;
+   ///     chunk_cohort_id4  co_cohort_id;
+   ///     uint32_t          co_client_id;
+   ///     uint32_t          co_id;
    /// };
 ~~~
 {: #fig-chunk_owner4 title="XDR for chunk_owner4" }
 
-The chunk_owner4 (see {{fig-chunk_owner4}}) is used to determine
-when and by whom a block was written.  Together the co_guard
-and co_id form the full owner triple that identifies who wrote
-the chunk (co_guard) and which of that writer's chunks this is
-(co_id).
+The chunk_owner4 (see {{fig-chunk_owner4}}) is the "cohort
+record" for a chunk: it identifies the write transaction that
+produced the chunk and which of that transaction's chunks the
+record refers to.  It is separate from chunk_guard4
+({{sec-chunk_guard4}}), which is the per-chunk CAS state.  The
+three fields together form the full owner triple.
 
-The co_id is a writer-supplied opaque per-chunk identifier the
-client chooses at CHUNK_WRITE time (see {{sec-CHUNK_WRITE}}).
-It is NOT required to equal the chunk's file index; the client
-MAY choose any uint32_t value, subject only to the uniqueness
-constraint that within a single co_guard all co_id values for
-chunks written in that transaction MUST be distinct so that a
-subsequent lifecycle operation (CHUNK_FINALIZE, CHUNK_COMMIT,
-CHUNK_ROLLBACK) can name individual chunks unambiguously.
-The data server treats co_id opaquely; it does NOT interpret
-the value beyond equality comparison against the co_id values
-it previously accepted from the client for this owner
-transaction.  Writers that would otherwise choose file-index
-values MAY do so, but the wire semantics do not privilege that
-choice.
+co_cohort_id is the chunk_cohort_id4 shared by every chunk
+written together in a single logical transaction (see
+{{sec-CHUNK_WRITE}} and the discussion of chunk_cohort_id4
+above).  Two chunks are members of the same write transaction
+iff their (co_cohort_id, co_client_id) pairs are equal.
+Lifecycle operations (CHUNK_FINALIZE, CHUNK_COMMIT,
+CHUNK_ROLLBACK) name transactions by co_cohort_id + co_client_id.
 
-The co_guard is a chunk_guard4 (see {{sec-chunk_guard4}}) that
-identifies the writing transaction, analogous to the change
-attribute (see Section 5.8.1.4 of {{RFC8881}}): each distinct
-chunk-write transaction from a given client MUST carry a unique
-co_guard, so lifecycle operations can be correlated with the
-transactions that produced them across all data files.
+co_client_id is the writer's layout-granted 32-bit identity, the
+same value that appears as cg_client_id in the chunk_guard4 CAS
+state (see {{sec-chunk_guard4}}).  It supports equality
+comparison (matching cohort records to lifecycle operations) and
+numeric comparison (implementing the multi-writer tiebreaker
+described in {{sec-chunk_guard4}}).
+
+co_id is a writer-supplied opaque per-chunk identifier the client
+chooses at CHUNK_WRITE time (see {{sec-CHUNK_WRITE}}).  It is
+NOT required to equal the chunk's file index; the client MAY
+choose any uint32_t value, subject only to the uniqueness
+constraint that within a single (co_cohort_id, co_client_id) all
+co_id values MUST be distinct so that a subsequent lifecycle
+operation can name individual chunks unambiguously.  The data
+server treats co_id opaquely; it does NOT interpret the value
+beyond equality comparison against the co_id values it previously
+accepted from the client for this cohort.  Writers that would
+otherwise choose file-index values MAY do so, but the wire
+semantics do not privilege that choice.
+
+Each distinct chunk-write transaction from a given client MUST
+carry a unique co_cohort_id, so lifecycle operations can be
+correlated with the transactions that produced them across all
+data files.  The uniqueness scope required is per-(co_client_id,
+file); different clients MAY independently pick colliding
+co_cohort_id values because co_client_id disambiguates them.
 
 ## escrow_id4 {#sec-escrow_id4}
 
@@ -8044,6 +8136,7 @@ interface.
 ~~~ xdr
    /// struct CHUNK_COMMIT4args {
    ///     /* CURRENT_FH: file */
+   ///     stateid4        cca_stateid;
    ///     offset4         cca_offset;
    ///     count4          cca_count;
    ///     chunk_owner4    cca_chunks<>;
@@ -8171,19 +8264,26 @@ ccr_status:
    could not be evaluated at all (for example,
    NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).
 
-Unlike CHUNK_READ ({{sec-CHUNK_READ}}) and CHUNK_WRITE
-({{sec-CHUNK_WRITE}}), CHUNK_COMMIT has no explicit
-stateid field in its arguments.  The data server
-authorizes CHUNK_COMMIT against the stateid context the
-compound has already established, typically the stateid
-carried on an immediately preceding PUTFH or an earlier
-CHUNK_* operation in the same compound.  Under
-trusted-stateid tight coupling ({{sec-TRUST_STATEID}}),
-the data server applies the trust-table check to
-whichever layout stateid the compound has presented; if
-no layout stateid has been presented or the presented
-stateid is not in the trust table, the data server
-rejects CHUNK_COMMIT with NFS4ERR_BAD_STATEID.
+Like CHUNK_READ ({{sec-CHUNK_READ}}) and CHUNK_WRITE
+({{sec-CHUNK_WRITE}}), CHUNK_COMMIT carries an explicit
+layout stateid in cca_stateid.  The data server authorizes
+CHUNK_COMMIT by validating cca_stateid against the file
+identified by the current filehandle: cca_stateid MUST be
+the layout stateid the metadata server issued to the
+caller for the current filehandle, or the special anonymous
+stateid (see below).  Under trusted-stateid tight coupling
+({{sec-TRUST_STATEID}}), the data server rejects
+CHUNK_COMMIT with NFS4ERR_BAD_STATEID unless cca_stateid
+is present in the data server's trust table for the
+current filehandle.  The explicit field ensures that a
+CHUNK_COMMIT in its own standalone compound (typical for
+recovery and pipelined lifecycle operations) carries the
+authorization the data server needs without depending on
+any prior operation's implicit state.  Passing the special
+anonymous stateid is permitted only when the underlying
+security regime authorizes an unattributed writer (that is,
+when tight coupling is not in force and the deployment's
+access-control policy permits it).
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned.  If the current filehandle
@@ -8483,6 +8583,7 @@ NFS4ERR_SERVERFAULT:
 ~~~ xdr
    /// struct CHUNK_FINALIZE4args {
    ///     /* CURRENT_FH: file */
+   ///     stateid4        cfa_stateid;
    ///     offset4         cfa_offset;
    ///     count4          cfa_count;
    ///     chunk_owner4    cfa_chunks<>;
@@ -8631,18 +8732,24 @@ be rolled back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}),
 which returns the chunk to the EMPTY state (or to the
 prior COMMITTED generation, if one exists).
 
-Like CHUNK_COMMIT, CHUNK_FINALIZE has no explicit stateid
-field in its arguments.  The data server authorizes
-CHUNK_FINALIZE against the stateid context the compound
-has already established, typically the stateid carried on
-an immediately preceding PUTFH or an earlier CHUNK_*
-operation in the same compound.  Under trusted-stateid
-tight coupling ({{sec-TRUST_STATEID}}), the data server
-applies the trust-table check to whichever layout stateid
-the compound has presented; if no layout stateid has been
-presented or the presented stateid is not in the trust
-table, the data server rejects CHUNK_FINALIZE with
-NFS4ERR_BAD_STATEID.
+Like CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}), CHUNK_FINALIZE
+carries an explicit layout stateid in cfa_stateid.  The
+data server authorizes CHUNK_FINALIZE by validating
+cfa_stateid against the file identified by the current
+filehandle: cfa_stateid MUST be the layout stateid the
+metadata server issued to the caller for the current
+filehandle, or the special anonymous stateid (see below).
+Under trusted-stateid tight coupling
+({{sec-TRUST_STATEID}}), the data server rejects
+CHUNK_FINALIZE with NFS4ERR_BAD_STATEID unless
+cfa_stateid is present in the data server's trust table
+for the current filehandle.  The explicit field ensures
+that a CHUNK_FINALIZE in its own standalone compound
+(typical for pipelined and recovery cases) carries the
+authorization the data server needs.  Passing the
+special anonymous stateid is permitted only when the
+underlying security regime authorizes an unattributed
+writer.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned.  If the current filehandle
@@ -9453,10 +9560,11 @@ cr_owner:
    supplied per-chunk identifier the client provided at
    CHUNK_WRITE or CHUNK_WRITE_REPAIR time, not a chunk
    index.  A client reading from multiple data servers in
-   an erasure-coded layout MUST compare cr_owner.co_guard
-   across data servers; agreement of the chunk_guard4
-   across the k data shards is the atomicity invariant on
-   which reconstruction depends.  See
+   an erasure-coded layout MUST compare the pair
+   `(cr_owner.co_cohort_id, cr_owner.co_client_id)` across
+   data servers; agreement of the cohort pair across the k
+   data shards is the atomicity invariant on which
+   reconstruction depends.  See
    {{sec-system-model-consistency}}.
 
 cr_payload_id:
@@ -9569,28 +9677,25 @@ synthetic zero-filled payload.
   | crr_chunks[0]:                 |
   |     cr_checksum: 0x3faddace    |
   |     cr_owner:                  |
+  |         co_cohort_id: 0x2a     |
+  |         co_client_id: 6        |
   |         co_id: 2               |
-  |         co_guard:              |
-  |             cg_gen_id   : 3    |
-  |             cg_client_id: 6    |
   |     cr_payload_id: 1           |
   |     cr_chunk: ....             |
   | crr_chunks[1]:                 |
   |     cr_checksum: 0xdeade4e5    |
   |     cr_owner:                  |
+  |         co_cohort_id: 0x0      |
+  |         co_client_id: 0        |
   |         co_id: 0               |
-  |         co_guard:              |
-  |             cg_gen_id   : 0    |
-  |             cg_client_id: 0    |
   |     cr_payload_id: 1           |
   |     cr_chunk: 0000...00000     |
   | crr_chunks[2]:                 |
   |     cr_checksum: 0x7778abcd    |
   |     cr_owner:                  |
+  |         co_cohort_id: 0x2a     |
+  |         co_client_id: 6        |
   |         co_id: 4               |
-  |         co_guard:              |
-  |             cg_gen_id   : 3    |
-  |             cg_client_id: 6    |
   |     cr_payload_id: 1           |
   |     cr_chunk: ....             |
   +--------------------------------+
@@ -9774,6 +9879,7 @@ NFS4ERR_SERVERFAULT:
 ~~~ xdr
    /// struct CHUNK_ROLLBACK4args {
    ///     /* CURRENT_FH: file */
+   ///     stateid4        cra_stateid;
    ///     offset4         cra_offset;
    ///     count4          cra_count;
    ///     chunk_owner4    cra_chunks<>;
@@ -10069,18 +10175,24 @@ is rejected with NFS4ERR_INVAL regardless of case.
 
 #### Stateid and Authorization
 
-Like CHUNK_COMMIT, CHUNK_ROLLBACK has no explicit
-stateid field in its arguments.  The data server
-authorizes CHUNK_ROLLBACK against the stateid context
-the compound has already established, typically the
-stateid carried on an immediately preceding PUTFH or an
-earlier CHUNK_* operation.  Under trusted-stateid tight
-coupling ({{sec-TRUST_STATEID}}), the data server
-applies the trust-table check to whichever layout
-stateid the compound has presented; if no layout
-stateid has been presented or the presented stateid is
-not in the trust table, the data server rejects
-CHUNK_ROLLBACK with NFS4ERR_BAD_STATEID.
+Like CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}), CHUNK_ROLLBACK
+carries an explicit layout stateid in cra_stateid.  The
+data server authorizes CHUNK_ROLLBACK by validating
+cra_stateid against the file identified by the current
+filehandle: cra_stateid MUST be the layout stateid the
+metadata server issued to the caller for the current
+filehandle, or the special anonymous stateid (see below).
+Under trusted-stateid tight coupling
+({{sec-TRUST_STATEID}}), the data server rejects
+CHUNK_ROLLBACK with NFS4ERR_BAD_STATEID unless
+cra_stateid is present in the data server's trust table
+for the current filehandle.  The explicit field ensures
+that a CHUNK_ROLLBACK in its own standalone compound
+(typical for retry after a failed CHUNK_WRITE cohort)
+carries the authorization the data server needs.
+Passing the special anonymous stateid is permitted only
+when the underlying security regime authorizes an
+unattributed writer.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
@@ -10337,7 +10449,8 @@ NFS4ERR_SERVERFAULT:
    ///     stateid4           cwa_stateid;
    ///     offset4            cwa_offset;
    ///     stable_how4        cwa_stable;
-   ///     chunk_guard4       cwa_owner_guard;
+   ///     chunk_cohort_id4   cwa_cohort_id;
+   ///     uint32_t           cwa_client_id;
    ///     uint32_t           cwa_co_ids<>;
    ///     uint32_t           cwa_payload_id;
    ///     uint32_t           cwa_flags;
@@ -10399,36 +10512,42 @@ variable-size Mojette parity shard
 ({{sec-mojette-encoding}}).  The number of chunks in the
 payload is ceil(len(cwa_chunks) / cwa_chunk_size).
 
-The writer supplies the owner identity of the payload in
-compact form: cwa_owner_guard carries the shared
-chunk_guard4 for every chunk in the batch, and cwa_co_ids
-is an array of writer-chosen opaque per-chunk co_id
-values, one per chunk in the payload (see
-{{sec-chunk_owner4}}).  The full owner triple for the
+The writer supplies the cohort identity of the payload in
+compact form: cwa_cohort_id carries the shared
+chunk_cohort_id4 for every chunk in the batch, cwa_client_id
+carries the writer's layout-granted identity, and cwa_co_ids
+is an array of writer-chosen opaque per-chunk co_id values,
+one per chunk in the payload (see {{sec-chunk_owner4}}).
+The full cohort triple recorded on the data server for the
 chunk at zero-based position i within the payload is
-`(cwa_owner_guard.cg_gen_id, cwa_owner_guard.cg_client_id,
-cwa_co_ids[i])`.
+`(cwa_cohort_id, cwa_client_id, cwa_co_ids[i])`.
 
-`cwa_owner_guard.cg_client_id` identifies the writer
-(client-chosen, with the reserved sentinels
-CHUNK_GUARD_CLIENT_ID_NONE and CHUNK_GUARD_CLIENT_ID_MDS
-that MUST NOT appear in `cwa_owner_guard`; see
-{{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}).
-`cwa_owner_guard.cg_gen_id` is the writer's per-transaction
-generation counter, shared by every chunk in the payload
-under the shared-guard model; the writer chooses a new
-`cg_gen_id` per distinct write transaction so that
-lifecycle operations can distinguish transactions across
-all data files (see {{sec-chunk_guard4}}).
+`cwa_client_id` identifies the writer.  It MUST be the
+32-bit layout-granted client identity established in
+ffv2m_client_id (see {{sec-ffv2-mirror4}}), and it MUST NOT
+be the reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE or
+CHUNK_GUARD_CLIENT_ID_MDS (see {{sec-chunk_guard_none}} and
+{{sec-chunk_guard_mds}}); those sentinels are reserved for
+data-server-observed cg_client_id values in chunk_guard4
+CAS state, not for use as a writer's own identity.
+`cwa_cohort_id` is the writer's opaque per-transaction
+identifier, shared by every chunk in the payload; the
+writer chooses a new `cwa_cohort_id` per distinct write
+transaction so that lifecycle operations can distinguish
+transactions across all data files (see the discussion of
+chunk_cohort_id4 in {{sec-chunk_guard4}}).  The
+per-chunk CAS state (chunk_guard4) is carried separately
+via cwa_guard.cwg_guard when compare-and-swap is required
+({{sec-multi-writer}}).
 
 `cwa_co_ids<>` contains exactly one entry per chunk in the
 payload (i.e., `cwa_co_ids_len` MUST equal
 `ceil(len(cwa_chunks) / cwa_chunk_size)`); the data server
 rejects any other length with NFS4ERR_INVAL.  Within a
-single `cwa_owner_guard`, the `cwa_co_ids` values in this
-request MUST be distinct so that lifecycle operations
-(CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_ROLLBACK) can name
-individual chunks unambiguously by full triple.  The data
+single `(cwa_cohort_id, cwa_client_id)`, the `cwa_co_ids`
+values in this request MUST be distinct so that lifecycle
+operations (CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_ROLLBACK)
+can name individual chunks unambiguously by full triple.  The data
 server treats each `cwa_co_ids[i]` as opaque; it does NOT
 interpret the value beyond equality comparison, and it MUST
 NOT require `cwa_co_ids[i]` to equal `cwa_offset + i` or
@@ -10518,19 +10637,19 @@ cwr_owners:
 :  per-chunk chunk_owner4 the data server recorded, one
    entry per chunk in the payload (co-indexed with
    cwa_co_ids and cwr_block_status).  Each entry is the
-   complete owner triple `(cwa_owner_guard.cg_gen_id,
-   cwa_owner_guard.cg_client_id, cwa_co_ids[i])` that the
-   data server recorded (or, for a rejected slot, the
-   requested triple echoed for positional correlation with
-   the failure status in cwr_block_status[i]).  The data
-   server does NOT synthesize per-chunk identity by
-   modifying the writer's guard; the returned triple is
-   the value the client supplied, so a client that lost
-   track of its own transmitted co_ids array can recover
-   the data server's view.  Under the compact carrier the
-   guard is shared across every returned entry — the
-   per-chunk distinction is carried entirely by the
-   co_id.
+   complete cohort triple `(cwa_cohort_id, cwa_client_id,
+   cwa_co_ids[i])` that the data server recorded (or, for
+   a rejected slot, the requested triple echoed for
+   positional correlation with the failure status in
+   cwr_block_status[i]).  The data server does NOT
+   synthesize per-chunk identity by modifying the writer's
+   cohort; the returned triple is the value the client
+   supplied, so a client that lost track of its own
+   transmitted co_ids array can recover the data server's
+   view.  Under the compact carrier the cohort pair
+   (cwa_cohort_id, cwa_client_id) is shared across every
+   returned entry — the per-chunk distinction is carried
+   entirely by the co_id.
 
 Except when special stateids are used, cwa_stateid
 represents a layout stateid returned by a prior LAYOUTGET
@@ -10616,13 +10735,24 @@ and unstable writes in subtle ways:
    storage; the chunk enters the PENDING state regardless
    of the flag.
 
--  Two clients racing on a chunk in multiple-writer mode
-   each see chunk_guard4 contention.  One client wins the
-   per-chunk CAS; if its CHUNK_WRITE had
-   CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY set and stable was
-   FILE_SYNC4 or DATA_SYNC4, the winning chunk becomes
-   COMMITTED.  The losing client sees NFS4ERR_CHUNK_GUARDED
-   in the corresponding cwr_block_status slot.
+-  In the multi-writer mode ({{sec-multi-writer}}) a
+   client MUST NOT set CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY
+   on any CHUNK_WRITE.  The activation shortcut bypasses
+   CHUNK_FINALIZE, so a chunk that reached COMMITTED via
+   the shortcut cannot be reverted by the loser's
+   CHUNK_ROLLBACK flow described in
+   {{sec-chunk_guard4}}; two racing writers whose EMPTY
+   activations landed on disjoint subsets of the mirror set
+   would leave the stripe permanently non-atomic with no
+   protocol path to recovery.  A data server that receives
+   a multi-writer-mode CHUNK_WRITE with
+   CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY set MUST reject the
+   request with NFS4ERR_INVAL in the corresponding
+   cwr_block_status slot; the client MUST re-issue without
+   the flag, allowing the chunk to enter PENDING and
+   proceed through the standard CHUNK_FINALIZE +
+   CHUNK_COMMIT path.  The shortcut remains available in
+   single-writer mode where CAS contention cannot arise.
 
 -  A client that issues an UNSTABLE4 CHUNK_WRITE and
    observes a FALSE entry in cwr_block_activated for a
@@ -10759,7 +10889,8 @@ NFS4ERR_STALE:
    ///     stateid4           cwra_stateid;
    ///     offset4            cwra_offset;
    ///     stable_how4        cwra_stable;
-   ///     chunk_guard4       cwra_owner_guard;
+   ///     chunk_cohort_id4   cwra_cohort_id;
+   ///     uint32_t           cwra_client_id;
    ///     uint32_t           cwra_co_ids<>;
    ///     uint32_t           cwra_payload_id;
    ///     uint32_t           cwra_chunk_size;
@@ -10900,32 +11031,32 @@ cwra_stable:
    CHUNK_WRITE (see {{sec-CHUNK_WRITE}} "Stability and
    Activation").
 
-cwra_owner_guard / cwra_co_ids:
-:  the compact owner-identity carrier the repair client
+cwra_cohort_id / cwra_client_id / cwra_co_ids:
+:  the compact cohort-identity carrier the repair client
    uses for the reconstructed payload, mirroring
-   CHUNK_WRITE's cwa_owner_guard + cwa_co_ids per
-   {{sec-CHUNK_WRITE}}.  cwra_owner_guard carries the
-   shared chunk_guard4 for every reconstructed chunk in
-   the batch; cwra_co_ids is a co-indexed array of
-   writer-chosen opaque co_id values, one per chunk in
-   cwra_chunks (exactly `ceil(len(cwra_chunks) /
+   CHUNK_WRITE's cwa_cohort_id + cwa_client_id + cwa_co_ids
+   per {{sec-CHUNK_WRITE}}.  cwra_cohort_id carries the
+   shared chunk_cohort_id4 for every reconstructed chunk
+   in the batch; cwra_client_id is the repair client's
+   layout-granted identity; cwra_co_ids is a co-indexed
+   array of writer-chosen opaque co_id values, one per
+   chunk in cwra_chunks (exactly `ceil(len(cwra_chunks) /
    cwra_chunk_size)` entries; a length mismatch is
-   rejected with NFS4ERR_INVAL).  The full owner triple
+   rejected with NFS4ERR_INVAL).  The full cohort triple
    for reconstructed chunk position i is
-   `(cwra_owner_guard.cg_gen_id,
-   cwra_owner_guard.cg_client_id, cwra_co_ids[i])`.  The
-   cg_client_id MUST be the repair client's own
+   `(cwra_cohort_id, cwra_client_id, cwra_co_ids[i])`.
+   cwra_client_id MUST be the repair client's own
    ffv2m_client_id (not CHUNK_GUARD_CLIENT_ID_MDS); the
-   cg_gen_id is the repair client's locally chosen
-   per-transaction generation counter.  The reserved
+   cwra_cohort_id is the repair client's locally chosen
+   per-transaction opaque identifier.  The reserved
    sentinels CHUNK_GUARD_CLIENT_ID_NONE and
    CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear in
-   cwra_owner_guard; see {{sec-chunk_guard_none}} and
+   cwra_client_id; see {{sec-chunk_guard_none}} and
    {{sec-chunk_guard_mds}}.  Within a single
-   cwra_owner_guard, the cwra_co_ids values MUST be
-   distinct so that lifecycle operations can name
-   individual reconstructed chunks unambiguously by
-   full triple.
+   (cwra_cohort_id, cwra_client_id), the cwra_co_ids
+   values MUST be distinct so that lifecycle operations
+   can name individual reconstructed chunks unambiguously
+   by full triple.
 
 cwra_payload_id:
 :  the payload-id the repair client associates with the
@@ -10976,15 +11107,14 @@ cwrr_owners:
 :  per-chunk chunk_owner4 the data server recorded, one
    entry per chunk in the payload (co-indexed with
    cwra_co_ids and cwrr_block_status).  Each entry is
-   the complete owner triple
-   `(cwra_owner_guard.cg_gen_id,
-   cwra_owner_guard.cg_client_id, cwra_co_ids[i])`
+   the complete cohort triple
+   `(cwra_cohort_id, cwra_client_id, cwra_co_ids[i])`
    that the data server recorded (or, for a rejected
    slot, the requested triple echoed for positional
    correlation with the failure status in
    cwrr_block_status[i]).  The data server does NOT
    synthesize per-chunk identity by modifying the
-   repair client's guard.
+   repair client's cohort.
 
 The target chunks SHOULD be in the errored state (set by
 a prior CHUNK_ERROR) or EMPTY.  If a target chunk is
