@@ -5365,7 +5365,7 @@ AVAILABLE:
 
 ERRORED:
 :  the owner-to-index association is still recorded but
-   the payload is not readable — the persisted checksum
+   the payload is not readable -- the persisted checksum
    or guard check fails at read time
    ({{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}}), the underlying
    storage is unreachable, or the chunk carries the
@@ -5375,7 +5375,7 @@ ERRORED:
    status appropriate to the failure); the client
    reports the fault via LAYOUTERROR and the metadata
    server arranges repair.  An ERRORED generation is
-   observable — its owner triple can be discovered — but
+   observable -- its owner triple can be discovered -- but
    not consumable.
 
 ABSENT:
@@ -5643,10 +5643,10 @@ association survives with it, and vice versa.
 
 ##  Payload and Association Biconditional {#sec-system-model-payload-association-biconditional}
 
-For every generation the data server holds — PENDING,
+For every generation the data server holds -- PENDING,
 FINALIZED, or COMMITTED, including any predecessor
 retained under the rollback invariant
-({{sec-system-model-retention-scope}}) — the chunk
+({{sec-system-model-retention-scope}}) -- the chunk
 payload and its owner-to-index association
 ({{sec-system-model-owner-persistence}}) MUST share a
 lifetime.  A conforming data server MUST NOT release
@@ -5686,8 +5686,8 @@ one while retaining the other:
 The biconditional is symmetric: released together,
 retained together.  This coupling is what makes
 CHUNK_ROLLBACK's delete case ({{sec-CHUNK_ROLLBACK}})
-atomic — invalidating a generation drops BOTH the
-association and the payload in one step — and what
+atomic -- invalidating a generation drops BOTH the
+association and the payload in one step -- and what
 makes CHUNK_ROLLBACK's restore case rely on the
 predecessor's association surviving with its payload
 as a single unit.  Data servers implementing an
@@ -6886,9 +6886,9 @@ restorable predecessor" outcome of the restore case
 described under "Rollback of COMMITTED Chunks": the
 predecessor's payload+association pair was released some
 time earlier under the retention scope rule
-({{sec-system-model-retention-scope}}) — by lease expiry,
+({{sec-system-model-retention-scope}}) -- by lease expiry,
 by an earlier CHUNK_ROLLBACK delete case, or by any
-other terminal transition — and the data server cannot
+other terminal transition -- and the data server cannot
 restore what it no longer holds.
 
 NFS4ERR_NO_PREDECESSOR is a per-entry status (a caller
@@ -6898,12 +6898,12 @@ some slots and NFS4_OK or other per-entry errors on
 others).  It is a data-plane result, NOT a
 control-plane failure: the caller reached the data
 server successfully, was authorized, and the operation
-evaluated normally — the named predecessor simply
+evaluated normally -- the named predecessor simply
 does not exist to restore.
 
 NFS4ERR_NO_PREDECESSOR is distinct from NFS4ERR_INVAL
 (the triple was invalidated by an explicit delete case
-and cannot be resurrected — see "Deletion Atomicity and
+and cannot be resurrected -- see "Deletion Atomicity and
 Invalidated Triples") and from NFS4ERR_PAYLOAD_LOST
 (terminal payload loss reported on CB_CHUNK_REPAIR).
 The data server distinguishes NFS4ERR_NO_PREDECESSOR
@@ -6994,10 +6994,10 @@ There are four state-level causes:
 - the escrow was already adopted by a different
   repair client whose adoption remains active.
 
-Authorization-level failures — the caller is not
+Authorization-level failures -- the caller is not
 the metadata-server-designated repair client for
 this escrow, or the caller lacks credentials for
-the escrow's scope — surface as NFS4ERR_ACCESS
+the escrow's scope -- surface as NFS4ERR_ACCESS
 rather than NFS4ERR_NO_ADOPTABLE_LOCK, so that no
 data-plane information about the current adopter is
 leaked to an unauthorized caller.
@@ -7009,7 +7009,7 @@ server via CB_CHUNK_REPAIR's per-range status array
 unilaterally acquire a fresh CHUNK_LOCK, retry the
 adoption, or invoke the discovery/fallback path of
 NFS4ERR_NO_PREDECESSOR
-({{sec-NFS4ERR_NO_PREDECESSOR}}) — the four causes
+({{sec-NFS4ERR_NO_PREDECESSOR}}) -- the four causes
 above are all control-plane conditions the metadata
 server is best placed to resolve (by reissuing the
 escrow, waiting for the reconciliation hold to
@@ -7061,7 +7061,7 @@ this data server; it MUST NOT retry the operation
 under the same epoch and MUST obtain a fresh
 incarnation-lease token and reissue via
 CHUNK_ESCROW_TAKEOVER before resuming.  CHUNK_ESCROW_TAKEOVER itself is
-not subject to this rejection — it is the recovery
+not subject to this rejection -- it is the recovery
 path out of an expired epoch and carries its own
 compare-and-advance semantics per
 {{sec-CHUNK_ESCROW_TAKEOVER}}.
@@ -7640,7 +7640,7 @@ lock (see {{sec-CHUNK_LOCK}}).  A conforming
 metadata server MUST choose escrow_id4 values that
 are unique across every escrow it has ever installed
 on any data server that might still recognize a
-prior installation — sufficient uniqueness is
+prior installation -- sufficient uniqueness is
 provided by a 128-bit identifier drawn from a
 metadata-server-incarnation prefix and a
 per-incarnation monotonic counter, or by any
@@ -7760,7 +7760,7 @@ over a deterministic CBOR payload (Section 4.2 of
      field exactly matches any scope identifier
      it has been provisioned to serve, and
      rejects any other value.  The scope
-     namespace is deployment-local — this
+     namespace is deployment-local -- this
      specification neither defines a format nor
      constrains the character set beyond
      requiring UTF-8 CBOR text.
@@ -7801,7 +7801,7 @@ prior check would have denied:
    returns NFS4ERR_NOTSUPP;
 4. proof verification: the profile's signature and
    payload checks are applied (NFS4ERR_ACCESS on
-   any failure — bad signature, mismatched
+   any failure -- bad signature, mismatched
    principal, mismatched epoch, mismatched scope,
    token past expires_at, or token_id already in
    the data server's replay cache);
@@ -7902,7 +7902,7 @@ epoch_expires_at are already at the post-advance
 state, no state changes, and the second observation
 is idempotent.  The rule is safe against a fresh
 presentation of an already-used token by a
-different party — a different party would not
+different party -- a different party would not
 present the same proof bytes without stealing the
 signer's key material, the token was issued to a
 specific principal matched by step 4's principal
@@ -8362,7 +8362,7 @@ generations (which the data server correlates via its
 recorded owner-to-index association), while cca_offset
 and cca_count bound the intended chunk-index scope of the
 operation.  A chunk index MAY have multiple persisted
-generations at the moment CHUNK_COMMIT arrives — an
+generations at the moment CHUNK_COMMIT arrives -- an
 older COMMITTED generation retained for the rollback
 invariant ({{sec-system-model-consistency}}) alongside a
 newer FINALIZED successor.  cca_chunks selects which
@@ -9085,7 +9085,7 @@ chrr_chunks:
    unspecified.
 
 chrr_guards:
-:  per-chunk chunk_guard4 ({{fig-chunk_guard4}}) — the
+:  per-chunk chunk_guard4 ({{fig-chunk_guard4}}) -- the
    (cg_gen_id, cg_client_id) pair the data server holds
    as the chunk's current guard at CHUNK_HEADER_READ
    time.  A caller that intends to update the chunk in
@@ -9146,7 +9146,7 @@ chrr_predecessors:
      shards.
 
    The list is informational and MAY change between
-   successive CHUNK_HEADER_READ calls — the data
+   successive CHUNK_HEADER_READ calls -- the data
    server MAY release a predecessor between calls
    under the retention scope rule.  A caller that
    observes a PRESENT disposition and issues
@@ -10166,7 +10166,7 @@ crr_chunk_status:
    chunk index lies outside [cra_offset, cra_offset +
    cra_count).  NFS4ERR_NO_PREDECESSOR indicates the
    data server holds no association for the presented
-   triple and no concrete invalidation context — the
+   triple and no concrete invalidation context -- the
    release-scope split is defined normatively at
    {{sec-NFS4ERR_NO_PREDECESSOR}}.  Other per-entry
    failures use the appropriate NFS4ERR_* code; the
@@ -10236,13 +10236,13 @@ the release scope observable to the caller:
 - Within the session slot's replay-cache window of the
   CHUNK_ROLLBACK that performed the delete case (or an
   equivalent slotted retransmission of it), the slot
-  reports NFS4ERR_INVAL — the caller could have observed
+  reports NFS4ERR_INVAL -- the caller could have observed
   the specific invalidating operation.
 - After that replay-cache window has elapsed, or for
   release under any other terminal transition (lease
   expiry, storage-pressure release, retention-scope
   release of an already-invalidated triple), the slot
-  reports NFS4ERR_NO_PREDECESSOR — the data server holds
+  reports NFS4ERR_NO_PREDECESSOR -- the data server holds
   no association for the presented triple and cannot
   distinguish it from any other released generation.
 
@@ -10258,7 +10258,7 @@ different co_client_id) creates a distinct triple and
 therefore a distinct generation identity; that new triple
 is unaffected by the earlier deletion.  This is what
 allows a writer that abandoned a generation via
-CHUNK_ROLLBACK to retry with a fresh co_cohort_id — the
+CHUNK_ROLLBACK to retry with a fresh co_cohort_id -- the
 retry is a new generation, not a resurrection of the
 deleted one.
 
@@ -10269,7 +10269,7 @@ an EXACT reissue of the same CHUNK_ROLLBACK op whose
 prior completion was uncertain MAY be treated as
 postcondition-equivalent success when the client
 independently verifies the deletion postcondition
-holds.  This is separate from — and does NOT resurrect —
+holds.  This is separate from -- and does NOT resurrect --
 the invalidated triple; it merely acknowledges that the
 prior op already achieved the deletion the caller
 requested.
@@ -10283,7 +10283,7 @@ client incorrectly advanced.  Two cases separate by
 whether the predecessor generation the caller wants to
 restore is still present on the data server:
 
-**Case (a) — retained predecessor.**  The predecessor
+**Case (a) -- retained predecessor.**  The predecessor
 generation named in the cra_chunks entry is still held
 by the data server (typically the prior COMMITTED
 retained under the rollback invariant
@@ -10296,13 +10296,13 @@ The data server:
 - restores the retained predecessor as the current
   COMMITTED generation UNDER ITS ORIGINAL owner triple
   (the (co_cohort_id, co_client_id, co_id) the predecessor
-  was written with) — its owner-to-index association is
+  was written with) -- its owner-to-index association is
   preserved, so the restored generation MUST remain
   recognizable to subsequent lifecycle operations by
   the same triple; AND
 - atomically invalidates the displaced successor's
   triple via the delete case above ("Deletion
-  Atomicity and Invalidated Triples") — the displaced
+  Atomicity and Invalidated Triples") -- the displaced
   successor's payload+association pair is released as
   one unit; a subsequent lifecycle op naming the
   displaced triple returns NFS4ERR_INVAL within the
@@ -10315,7 +10315,7 @@ The restore is atomic with the delete: no intermediate
 state exposes both generations as current, and no
 intermediate state exposes neither.
 
-**Case (b) — predecessor no longer retained.**  If
+**Case (b) -- predecessor no longer retained.**  If
 the predecessor generation named in the cra_chunks
 entry is NOT held by the data server (its
 payload+association pair was released some time earlier
@@ -10334,7 +10334,7 @@ explicit CHUNK_ROLLBACK delete case within the current
 session slot's replay-cache window (see
 {{sec-NFS4ERR_NO_PREDECESSOR}} for the choice between
 them).  Either way, the caller consults whatever
-fallback the deployment provides — a repair
+fallback the deployment provides -- a repair
 client MAY reconstruct authoritative bytes from
 surviving shards and issue CHUNK_WRITE_REPAIR
 ({{sec-CHUNK_WRITE_REPAIR}}) to write a new
@@ -10415,7 +10415,7 @@ for that slot:
 
 - the reissue is byte-identical to the original op
   (same cra_offset, same cra_count, same cra_chunks
-  array entry) — a fresh op with an accidentally-
+  array entry) -- a fresh op with an accidentally-
   matching triple does NOT qualify;
 - the prior completion is genuinely uncertain (the
   client never observed a per-entry response for that
@@ -10434,7 +10434,7 @@ for that slot:
 The carve-out is narrow by construction: a fresh op
 receiving NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR never
 qualifies, and a reissue that cannot verify the
-postcondition also does not qualify — the client MUST
+postcondition also does not qualify -- the client MUST
 treat the error as a terminal per-entry failure in
 either case.  This prevents the carve-out from being
 conflated with the underlying non-resurrection
@@ -10845,7 +10845,7 @@ cwr_owners:
    transmitted co_ids array can recover the data server's
    view.  Under the compact carrier the cohort pair
    (cwa_cohort_id, cwa_client_id) is shared across every
-   returned entry — the per-chunk distinction is carried
+   returned entry -- the per-chunk distinction is carried
    entirely by the co_id.
 
 Except when special stateids are used, cwa_stateid
@@ -11178,7 +11178,7 @@ CHUNK_WRITE_REPAIR is also the fallback path used by a
 client that received NFS4ERR_NO_PREDECESSOR
 ({{sec-NFS4ERR_NO_PREDECESSOR}}) from CHUNK_ROLLBACK's
 restore case ({{sec-CHUNK_ROLLBACK}} "Rollback of
-COMMITTED Chunks", case (b)) — the named predecessor was
+COMMITTED Chunks", case (b)) -- the named predecessor was
 released under the retention scope
 ({{sec-system-model-retention-scope}}) and CHUNK_ROLLBACK
 cannot restore it.  Under this fallback the client
@@ -11193,7 +11193,7 @@ predecessor is not resurrected by any operation defined
 in this document, including this fallback; a subsequent
 lifecycle operation naming the released predecessor's
 triple returns NFS4ERR_NO_PREDECESSOR under the release-
-scope split at {{sec-NFS4ERR_NO_PREDECESSOR}} — the
+scope split at {{sec-NFS4ERR_NO_PREDECESSOR}} -- the
 predecessor was released under the retention scope, not
 by an explicit CHUNK_ROLLBACK delete case within a live
 replay-cache window.  A client that requires the
@@ -12507,7 +12507,7 @@ per {{sec-repair-selection}}.
 #  Composed Rollback Guarantee and Error Decision Tree {#sec-composed-rollback}
 
 The FFv2 chunk protocol combines three related
-mechanisms — writer-supplied opaque owner identity
+mechanisms -- writer-supplied opaque owner identity
 ({{sec-chunk_owner4}}), best-effort predecessor
 discovery ({{sec-CHUNK_HEADER_READ}} /
 {{sec-NFS4ERR_NO_PREDECESSOR}}), and metadata-server escrow
@@ -12515,7 +12515,7 @@ control-plane pinning ({{sec-CHUNK_ESCROW_INSTALL}} /
 {{sec-CHUNK_ESCROW_RELEASE}} /
 {{sec-CHUNK_ESCROW_ENUMERATE}} /
 {{sec-CHUNK_ESCROW_TAKEOVER}},
-{{sec-chunk_guard_mds}}) — that together deliver a
+{{sec-chunk_guard_mds}}) -- that together deliver a
 CONDITIONAL rollback guarantee.  This section states the
 guarantee scope precisely and specifies the client-side
 decision tree over the composed error surface.
@@ -12556,7 +12556,7 @@ against the named predecessor:
    through media loss, unrecoverable corruption,
    loss of all redundant data servers, or non-
    conforming data-server behaviour is not covered
-   — an ERRORED predecessor follows the best-effort
+   -- an ERRORED predecessor follows the best-effort
    reconstruction path
    ({{sec-CHUNK_WRITE_REPAIR}}) and MAY terminate
    at NFS4ERR_PAYLOAD_LOST via CB_CHUNK_REPAIR
@@ -12573,7 +12573,7 @@ call may return NFS4ERR_NO_PREDECESSOR
 ({{sec-NFS4ERR_NO_PREDECESSOR}}) or NFS4ERR_INVAL
 and the caller falls back to best-effort
 reconstruction as described in
-{{sec-CHUNK_WRITE_REPAIR}} — best-effort
+{{sec-CHUNK_WRITE_REPAIR}} -- best-effort
 reconstruction into a NEW generation under a NEW
 owner triple, or terminal NFS4ERR_PAYLOAD_LOST
 when no authoritative source exists.
@@ -12601,7 +12601,7 @@ fallback).  Ordering matters: control-plane
 failures must be resolved before data-plane
 recovery is attempted.
 
-- **CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT →
+- **CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT ->
   NFS4ERR_NO_ADOPTABLE_LOCK
   ({{sec-NFS4ERR_NO_ADOPTABLE_LOCK}}):** custody /
   control-plane failure BEFORE any usable lock is
@@ -12617,10 +12617,10 @@ recovery is attempted.
   ({{sec-CHUNK_WRITE_REPAIR}}); that fallback
   assumes a usable lock, and no lock exists here
   to fall back under.
-- **CHUNK_LOCK → NFS4ERR_ACCESS:** presenter
+- **CHUNK_LOCK -> NFS4ERR_ACCESS:** presenter
   authorization failure.  Report to the metadata
   server; do not retry.
-- **After successful CHUNK_LOCK / ADOPT →
+- **After successful CHUNK_LOCK / ADOPT ->
   CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}}):**
   read the primary owner and chrr_predecessors
   array.  If the intended predecessor's triple
@@ -12628,7 +12628,7 @@ recovery is attempted.
   If absent, the CHUNK_WRITE_REPAIR fallback path
   may begin directly (do not issue CHUNK_ROLLBACK against a
   predecessor known-absent).
-- **CHUNK_ROLLBACK → NFS4ERR_NO_PREDECESSOR
+- **CHUNK_ROLLBACK -> NFS4ERR_NO_PREDECESSOR
   ({{sec-NFS4ERR_NO_PREDECESSOR}}):** data-plane
   result AFTER a usable lock is in hand.  The
   actor has the lock; there is simply no
@@ -12639,7 +12639,7 @@ recovery is attempted.
   fallback MAY terminate at NFS4ERR_PAYLOAD_LOST
   ({{sec-NFS4ERR_PAYLOAD_LOST}}) if no
   authoritative source exists.
-- **CHUNK_ROLLBACK → NFS4ERR_INVAL or
+- **CHUNK_ROLLBACK -> NFS4ERR_INVAL or
   NFS4ERR_NO_PREDECESSOR** for a fresh op naming a
   released triple: terminal per-entry failure.
   Caller holds a stale reference; no operation
@@ -12658,14 +12658,14 @@ recovery is attempted.
   as postcondition-equivalent success, but ONLY
   when the caller independently verifies the
   postcondition holds.
-- **Any CHUNK_ESCROW_* → NFS4ERR_STALE_ESCROW
+- **Any CHUNK_ESCROW_* -> NFS4ERR_STALE_ESCROW
   ({{sec-NFS4ERR_STALE_ESCROW}}):** control-plane
   identity mismatch or no covering escrow on the
   metadata server's own CHUNK_ESCROW_RELEASE.
   The response never authorizes tuple removal by
   itself when adoption may have consumed the
   escrow (see {{sec-CHUNK_ESCROW_RELEASE}}).
-- **Any CHUNK_ESCROW_* → NFS4ERR_STALE_MDS_EPOCH
+- **Any CHUNK_ESCROW_* -> NFS4ERR_STALE_MDS_EPOCH
   ({{sec-NFS4ERR_STALE_MDS_EPOCH}}):** the
   metadata server has been fenced by a
   superseding CHUNK_ESCROW_TAKEOVER.  The metadata
@@ -12673,7 +12673,7 @@ recovery is attempted.
   and reissue via CHUNK_ESCROW_TAKEOVER
   ({{sec-CHUNK_ESCROW_TAKEOVER}}); TAKEOVER is
   exempt from this rejection.
-- **CB_CHUNK_REPAIR response → NFS4ERR_PARTIAL
+- **CB_CHUNK_REPAIR response -> NFS4ERR_PARTIAL
   ({{sec-NFS4ERR_PARTIAL}}):** at least one
   named range did not reach completion; the
   metadata server MUST consume the per-range
@@ -12817,12 +12817,12 @@ falls back to CHUNK_WRITE_REPAIR
 ({{sec-CHUNK_WRITE_REPAIR}}), reconstructing
 authoritative bytes from surviving data-server
 shards and writing them under a new owner triple
-of its own choosing — for example (43, 7, 102).
+of its own choosing -- for example (43, 7, 102).
 The resulting COMMITTED generation carries the
 new triple, NOT the released (41, 7, 100).  Any
 subsequent lifecycle operation that names the
 released (41, 7, 100) triple returns
-NFS4ERR_NO_PREDECESSOR — the (41, 7, 100)
+NFS4ERR_NO_PREDECESSOR -- the (41, 7, 100)
 association was released under the retention scope,
 not by an explicit CHUNK_ROLLBACK delete case within
 a live replay-cache window, so the release-scope
@@ -13027,7 +13027,7 @@ requirement, not merely a diagnostic preference.
 
 This document's escrow control plane introduces four operations
 (CHUNK_ESCROW_INSTALL, CHUNK_ESCROW_RELEASE,
-CHUNK_ESCROW_ENUMERATE, CHUNK_ESCROW_TAKEOVER —
+CHUNK_ESCROW_ENUMERATE, CHUNK_ESCROW_TAKEOVER --
 {{sec-CHUNK_ESCROW_INSTALL}} through
 {{sec-CHUNK_ESCROW_TAKEOVER}}) and one proof envelope
 ({{sec-proof-profile}}) whose security properties merit
@@ -13650,8 +13650,8 @@ Designated Expert reviews each request for:
 
 -  compatibility with the strict evaluation ordering
    specified in {{sec-proof-profile}} (session replay
-   → presenter authorization → profile support →
-   proof verification → epoch compare-and-advance);
+   -> presenter authorization -> profile support ->
+   proof verification -> epoch compare-and-advance);
    a registration whose verification cannot be
    evaluated after presenter authorization MUST be
    declined;

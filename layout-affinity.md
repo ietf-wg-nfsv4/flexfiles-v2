@@ -120,10 +120,10 @@ calls it with the sentinel, opts out.
 
 **Where each direction lives**:
 
-- **DS → MDS**: on the tight-coupling control session (the session
+- **DS -> MDS**: on the tight-coupling control session (the session
   the DS opens to the MDS at registration, per
   `sec-tight-coupling-control-session` in the v2 draft).
-- **Client → MDS**: on the fore-channel session, any time after
+- **Client -> MDS**: on the fore-channel session, any time after
   EXCHANGE_ID.
 
 The receiving end records the most recent announcement per session.
