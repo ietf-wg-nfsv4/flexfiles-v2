@@ -29,6 +29,7 @@ author:
     email: loghyr@gmail.com
 
 normative:
+  I-D.haynes-nfsv4-flexfiles-v2-delta-writes:
   RFC4121:
   RFC4506:
   RFC5531:
@@ -4524,7 +4525,7 @@ The parity shard is the bitwise XOR of both data shards:
 
 Concrete byte-level test vector with `shard_len = 1`:
 
-| `data[0]` | `data[1]` | parity  | Notes |
+| data\[0\] | data\[1\] | parity  | Notes |
 |---|---|---|---|
 | `0x00`  | `0x00`  | `0x00`  | zero input             |
 | `0x01`  | `0x00`  | `0x01`  | 0x01 XOR 0x00 = 0x01   |
@@ -4554,7 +4555,7 @@ where the multiplication is in GF(2^8) with polynomial `0x11d`.
 
 Concrete byte-level test vector with `shard_len = 1`:
 
-| `data[0]` | `data[1]` | `data[2]` | P     | Q     | Notes                          |
+| data\[0\] | data\[1\] | data\[2\] | P     | Q     | Notes                          |
 |---|---|---|---|---|---|
 | `0x00`  | `0x00`  | `0x00`  | `0x00`| `0x00`| zero input                     |
 | `0x01`  | `0x02`  | `0x03`  | `0x00`| `0x09`| 1 XOR (2*2) XOR (4*3) = 1 XOR 4 XOR 12 = 9 |
@@ -8174,7 +8175,7 @@ data server MUST validate it against its per-file trust table:
 a stateid not present in the trust table MUST be rejected with
 NFS4ERR_BAD_STATEID per {{sec-TRUST_STATEID}}.  The anonymous
 stateid is reserved for PASSTHROUGH mirrors under loose coupling
-({{sec-ffv2ds_file_info}}) and MUST NOT appear on a CHUNK_*
+({{sec-encoding-negotiation}}) and MUST NOT appear on a CHUNK_*
 operation; a data server receiving CHUNK_* with the anonymous
 stateid MUST reject it with NFS4ERR_BAD_STATEID.
 
@@ -10837,7 +10838,7 @@ cwr_owners:
    cwa_co_ids[i])` that the data server recorded (or, for
    a rejected slot, the requested triple echoed for
    positional correlation with the failure status in
-   cwr_block_status[i]).  The data server does NOT
+   `cwr_block_status[i]`).  The data server does NOT
    synthesize per-chunk identity by modifying the writer's
    cohort; the returned triple is the value the client
    supplied, so a client that lost track of its own
@@ -11308,7 +11309,7 @@ cwrr_owners:
    that the data server recorded (or, for a rejected
    slot, the requested triple echoed for positional
    correlation with the failure status in
-   cwrr_block_status[i]).  The data server does NOT
+   `cwrr_block_status[i]`).  The data server does NOT
    synthesize per-chunk identity by modifying the
    repair client's cohort.
 
@@ -12748,7 +12749,7 @@ distinct from these owner-identity numbers.
 4. The repair client issues CHUNK_HEADER_READ over
    chunk index 5.  The response shows chrr_chunks
    as the (42, 7, 101) current generation and
-   chrr_predecessors[0] as the (41, 7, 100)
+   `chrr_predecessors[0]` as the (41, 7, 100)
    retained predecessor
    ({{sec-CHUNK_HEADER_READ}}).
 
