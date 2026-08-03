@@ -575,12 +575,12 @@ NFS4ERR_CHUNK_GUARDED.
 or written.  It is the contents of the object rather than the attributes
 of the object.
 
-data server (DS):
+data server:
 
 :  a pNFS server that provides the file's data when the file system
 object is accessed over a file-based protocol.
 
-escrow (lock escrow, MDS-escrow):
+escrow (lock escrow, metadata-server escrow):
 
 :  a state in which a chunk lock is held by the metadata server on
 behalf of an as-yet-unselected future owner.  When the metadata
@@ -591,7 +591,7 @@ server itself, marked by the reserved cg_client_id value
 CHUNK_GUARD_CLIENT_ID_MDS (see {{sec-chunk_guard_mds}}).  The
 metadata server holds the locks in escrow until a repair client
 adopts them via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT (driven by
-CB_CHUNK_REPAIR).  An "MDS-escrow owner" is the metadata server
+CB_CHUNK_REPAIR).  A "metadata-server escrow owner" is the metadata server
 acting in this placeholder role; "in escrow" describes a lock in
 this state.  Escrow preserves the lock-continuity invariant
 across stateid revocation: at no point during the revocation
@@ -653,7 +653,7 @@ data relevant to the file object, as opposed to the file data itself.
 This could include the time of last modification, access time, EOF
 position, etc.
 
-metadata server (MDS):
+metadata server:
 
 :  the pNFS server that provides metadata information for a file system
 object.  It is also responsible for generating, recalling, and revoking
@@ -673,7 +673,7 @@ verbatim copies of the original data.  Every read requires decoding,
 even when no shards are lost.  The Mojette non-systematic transform is
 an example.
 
-proxy server (PS):
+proxy server:
 
 :  a peer of the metadata server, defined in
 {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, that admits client
@@ -2357,12 +2357,12 @@ redundancy shards (fdp_parity, also known as m).  This structure is
 used in both layout hints and layout responses, and applies
 uniformly to all coding types:
 
-| Protection Mode | fdp_data | fdp_parity | Total DSes | Description |
+| Protection Mode | fdp_data | fdp_parity | Total Data Servers | Description |
 |---
 | Mirroring (3-way) | 1 | 2 | 3 | 3 copies, no encoding |
 | Striping (6-way) | 6 | 0 | 6 | Parallel I/O, no redundancy |
-| RS Vandermonde 4+2 | 4 | 2 | 6 | Tolerates 2 DS failures |
-| Mojette-sys 8+2 | 8 | 2 | 10 | Tolerates 2 DS failures |
+| RS Vandermonde 4+2 | 4 | 2 | 6 | Tolerates 2 data-server failures |
+| Mojette-sys 8+2 | 8 | 2 | 10 | Tolerates 2 data-server failures |
 {: #fig-protection-examples title="Example data protection configurations" }
 
 By expressing all protection modes as (fdp_data, fdp_parity) pairs,
@@ -2601,7 +2601,7 @@ The time is in seconds.
                                        +|  Devices  |
                                         +-----------+
 ~~~
-{: #fig-parallel-filesystem title="The Relationship between MDS and DSes"}
+{: #fig-parallel-filesystem title="The Relationship between Metadata Server and Data Servers"}
 
 As shown in {{fig-parallel-filesystem}} if the ffv2m_coding_type_data
 is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then
@@ -2761,7 +2761,7 @@ Fallback when no overlap exists:
    2.  Fall back to I/O via the metadata server itself, so the
        client's reads and writes are satisfied by the metadata server
        translating to the underlying data server encoding on the client's
-       behalf (see {{sec-Fencing-Clients}} for the MDS-I/O
+       behalf (see {{sec-Fencing-Clients}} for the metadata-server I/O
        fallback).  This is correct but serializes all I/O for
        the encoding-ignorant client through a single actor.
 
@@ -2775,7 +2775,7 @@ Fallback when no overlap exists:
        NFSv3 surface for an NFSv3 client).  The proxy encodes
        and decodes on the fly
        against the real data servers.  This preserves parallel I/O
-       for the encoding-ignorant client that the MDS-I/O
+       for the encoding-ignorant client that the metadata-server I/O
        fallback loses.  The proxy registration, directive, and
        credential-forwarding rules are defined in the
        {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}; this draft defines only
@@ -2986,7 +2986,7 @@ via the encoding-negotiation path
 
 The prior draft's "the flag functions as a hint" language is
 withdrawn; the encoding-negotiation fallback path that requires
-MDS I/O to be possible is served by the metadata server clearing
+metadata-server I/O to be possible is served by the metadata server clearing
 NO_IO_THRU_MDS on the fallback layout, not by clients ignoring
 the flag on a NO_IO_THRU_MDS layout.
 
@@ -3682,7 +3682,7 @@ distinct paths, as shown in {{fig-repair-topology}}.
 ~~~
      +-------------+      (1)         +-----------------+
      |  Reporting  | ---------------> |                 |
-     |  client     |   LAYOUTERROR    |       MDS       |
+     |  client     |   LAYOUTERROR    | Metadata Server |
      |  (detects   |                  |                 |
      |  error)     |                  |                 |
      +-------------+                  +--------+--------+
@@ -3692,7 +3692,7 @@ distinct paths, as shown in {{fig-repair-topology}}.
                                                | (RACE or SCRUB)
                                                v
      +-------------+      (4)         +-----------------+
-     |  Repair     | ---------------> |      DSes       |
+     |  Repair     | ---------------> |  Data Servers   |
      |  client     |    CHUNK_*       |  (mirror set    |
      |  (selected  |                  |  for affected   |
      |  per (2a),  |                  |  ranges)        |
@@ -3980,9 +3980,13 @@ FFV2_FLAGS_ONLY_ONE_WRITER, indicating that concurrent writers may hold
 write layouts for the file.  The client sends CHUNK_WRITE with
 cwa_guard.cwg_check set to TRUE, supplying the expected prior
 chunk_guard4 in cwa_guard.cwg_guard so the data server can perform
-per-chunk CAS.  The write transaction is separately identified by the
-cohort pair `(cwa_cohort_id, cwa_client_id)` supplied on the same
-CHUNK_WRITE.
+per-chunk CAS.  The client obtains the expected prior chunk_guard4
+by observing the chunk's current guard first: either cr_guard from
+CHUNK_READ ({{sec-CHUNK_READ}}) when the payload is also required,
+or the corresponding chrr_guards entry from CHUNK_HEADER_READ
+({{sec-CHUNK_HEADER_READ}}) when only the guard is needed.  The
+write transaction is separately identified by the cohort pair
+`(cwa_cohort_id, cwa_client_id)` supplied on the same CHUNK_WRITE.
 
 The multiple writer write sequence is:
 
@@ -5062,7 +5066,7 @@ pNFS client:
    metadata server via AUTH_SYS, RPCSEC_GSS, or TLS.  MAY be
    selected as a repair client via CB_CHUNK_REPAIR.
 
-Metadata server (MDS):
+Metadata server:
 :  Is the sole coordinator for the file.  Grants, renews, and
    revokes layouts; issues TRUST_STATEID / REVOKE_STATEID /
    BULK_REVOKE_STATEID to each tight-coupled data server; selects
@@ -5070,10 +5074,10 @@ Metadata server (MDS):
    {{sec-repair-selection}}; owns the reserved
    CHUNK_GUARD_CLIENT_ID_MDS escrow identity for in-flight repair.
 
-Data server (DS):
+Data server:
 :  Persists chunks and enforces the per-file trust table, the
    per-chunk guard CAS (chunk_guard4), the per-chunk lock state
-   (including the MDS-escrow owner), and the chunk state machine
+   (including the metadata-server escrow owner), and the chunk state machine
    (EMPTY / PENDING / FINALIZED / COMMITTED).  Has no
    coordinator role.  Has no knowledge of the erasure coding type
    in use for any file: the erasure transform is performed
@@ -5090,13 +5094,13 @@ that session; on a separate client-side session (presenting
 EXCHGID4_FLAG_USE_NON_PNFS), the same metadata server MAY also
 issue CHUNK_* operations as a data-path client.  A data server
 MUST NOT assume that the metadata server is not also one of its
-clients; it distinguishes MDS-only operations from client-side
+clients; it distinguishes metadata-server-only operations from client-side
 operations by the EXCHANGE_ID flags of the session that carries
 the operation, not by the requester's IP address or principal.
 
 A data server MAY likewise act as a client of another data
 server -- for example, when selected as the repair client by an
-MDS-directed CB_CHUNK_REPAIR.  Independent of the actor role,
+metadata-server-directed CB_CHUNK_REPAIR.  Independent of the actor role,
 any entity may operate as encoding-aware (issuing CHUNK_*
 operations directly against data servers) or encoding-unaware
 (operating through the proxy-server-mediated READ / WRITE path
@@ -5153,7 +5157,7 @@ Network partitions:
    during the partition window.  A client partitioned from a
    data server recovers via LAYOUTERROR and may be issued a new
    layout (possibly against a spare, see
-   {{sec-spare-substitution}}).  An metadata server partitioned from a data
+   {{sec-spare-substitution}}).  A metadata server partitioned from a data
    server eventually renews trust entries on reconnection; in
    the interim, the data server returns NFS4ERR_DELAY for
    affected stateids (see {{sec-tight-coupling-mds-crash}}).
@@ -5279,20 +5283,24 @@ its own state machine, shown in {{fig-chunk-lock-machine}}.
              ^           CHUNK_UNLOCK            |
              |          (writer releases)        |
              |                                   | REVOKE_STATEID
-             |                                   |  (MDS invalidates
-             |                                   |   writer stateid;
-             |                                   |   lock transfers
-             |                                   |   to MDS escrow)
+             |                                   |  (metadata server
+             |                                   |   invalidates writer
+             |                                   |   stateid; lock
+             |                                   |   transfers to
+             |                                   |   metadata-server
+             |                                   |   escrow)
              |                                   v
              |        CHUNK_UNLOCK     +-------------------+
-             |       or CHUNK_REPAIRED |   LOCKED by MDS   |
-             |      (repair client     |       escrow      |
-             |       releases after    +-------------------+
-             |       repair completes)           |
+             |       or CHUNK_REPAIRED |     LOCKED by     |
+             |      (repair client     |  metadata-server  |
+             |       releases after    |      escrow       |
+             |       repair completes) +-------------------+
+             |                                   |
              |                                   | CHUNK_LOCK with
              |                                   | CHUNK_LOCK_FLAGS_ADOPT
              |                                   |  (repair client
-             |                                   |   adopts MDS-escrow
+             |                                   |   adopts metadata-
+             |                                   |   server escrow
              |                                   |   ownership per
              |                                   |   CB_CHUNK_REPAIR)
              |                                   v
@@ -5402,7 +5410,7 @@ state**:
     generation becomes COMMITTED per serialized decision.
 
 3.  During repair, the chunk's lock is held continuously -- first
-    by the original writer, then transferred to the MDS-escrow
+    by the original writer, then transferred to the metadata-server escrow
     owner on REVOKE_STATEID, and finally adopted by the repair
     client via CHUNK_LOCK_FLAGS_ADOPT.  No writer that did not
     hold the lock may observe or mutate the chunk.  The
@@ -5747,7 +5755,7 @@ Orphaned PENDING scavenger:
 
    3.  Any CHUNK_LOCK held in escrow on behalf of the expired
        stateid (see {{sec-chunk_guard_mds}}) is released after
-       an MDS-defined grace period.  The grace period exists to
+       a metadata-server-defined grace period.  The grace period exists to
        let a recovering client reclaim its lock via the grace /
        reclaim path defined in {{RFC8881}}; on expiry of the
        grace period without reclaim, the lock becomes available
@@ -5836,7 +5844,7 @@ Byzantine fault tolerance:
    layer above or below this protocol.
 
 Metadata server high availability:
-:  Single-MDS-per-file is the protocol model.  Metadata server
+:  Single-metadata-server-per-file is the protocol model.  Metadata server
    high availability, if deployed, is implemented below the wire
    protocol and transparent to clients.
 
@@ -5902,7 +5910,7 @@ when issued by the metadata server:
    write layout is returned, and any other attribute queries the
    metadata server needs to reconcile its cached view.
 -  SETATTR ({{RFC8881}} Section 18.30): data file truncate for
-   MDS-level SETATTR(size) fan-out, synthetic uid/gid rotation
+   metadata-server-level SETATTR(size) fan-out, synthetic uid/gid rotation
    for fencing, and mode-bit initialisation on runway assignment.
 -  CREATE ({{RFC8881}} Section 18.4): runway pool file creation.
 -  REMOVE ({{RFC8881}} Section 18.25): cleanup on metadata server file
@@ -5922,7 +5930,7 @@ when issued by the metadata server:
    BULK_REVOKE_STATEID on that session.
 -  TRUST_STATEID ({{sec-TRUST_STATEID}}), REVOKE_STATEID
    ({{sec-REVOKE_STATEID}}), BULK_REVOKE_STATEID
-   ({{sec-BULK_REVOKE_STATEID}}): the MDS-to-DS tight-coupling
+   ({{sec-BULK_REVOKE_STATEID}}): the metadata-server-to-data-server tight-coupling
    trust-table control operations.
 
 The metadata server MAY also use other NFSv4.2 operations on data
@@ -6054,7 +6062,7 @@ bitmap): a client MUST NOT truncate a data file directly.  See
 truncate on chunked files.  Similarly, a client MUST NOT
 issue DEALLOCATE against a data file; see the next subsection.
 
-### MDS-Driven Truncate on Chunked Files {#sec-mds-truncate-ec}
+### Metadata-Server-Driven Truncate on Chunked Files {#sec-mds-truncate-ec}
 
 A client that wants to truncate a chunked file MUST
 issue SETATTR(FATTR4_SIZE) to the metadata-server filehandle
@@ -6198,7 +6206,7 @@ MUST return NFS4ERR_NOTSUPP:
    belong on the metadata server.
 -  TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID
    ({{sec-TRUST_STATEID}}, {{sec-REVOKE_STATEID}},
-   {{sec-BULK_REVOKE_STATEID}}).  These are MDS-to-DS
+   {{sec-BULK_REVOKE_STATEID}}).  These are metadata-server-to-data-server
    control-plane operations; a data server rejects them with
    NFS4ERR_PERM when received on a client session (see
    {{sec-tight-coupling-control-session}}).
@@ -6836,7 +6844,7 @@ On receipt, the metadata server MAY:
    does support); or
 
 -  deny the layout request, in which case the client MUST
-   either fall back to MDS-mediated I/O or report an I/O
+   either fall back to metadata-server-mediated I/O or report an I/O
    error to the application.
 
 NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED is distinct from
@@ -6935,7 +6943,7 @@ authoritative source exists.  A client that requires
 the restored generation to retain the predecessor's
 original owner triple in cases where the retention
 scope ({{sec-system-model-retention-scope}}) would
-otherwise permit release MUST use the MDS-escrow
+otherwise permit release MUST use the metadata-server escrow
 control plane ({{sec-CHUNK_ESCROW_INSTALL}}
 through {{sec-CHUNK_ESCROW_TAKEOVER}}), which pins
 the predecessor's payload and its owner-to-index
@@ -6947,14 +6955,14 @@ adopted from it remains in continuous custody (see
 ### NFS4ERR_NO_ADOPTABLE_LOCK (Error Code 10104) {#sec-NFS4ERR_NO_ADOPTABLE_LOCK}
 
 Returned by CHUNK_LOCK ({{sec-CHUNK_LOCK}}) when a
-repair client attempts to adopt an MDS-escrow lock
+repair client attempts to adopt a metadata-server escrow lock
 ({{sec-chunk_guard_mds}}) and no such adoption is
 possible on the data server for the requested range.
 There are four state-level causes:
 
-- no MDS-escrow lock is installed on the data server
+- no metadata-server escrow lock is installed on the data server
   for the requested range;
-- an MDS-escrow lock is installed but its
+- a metadata-server escrow lock is installed but its
   escrow_id4 ({{sec-escrow_id4}}) does not match
   the identity the repair client presents;
 - the range's escrow lock is currently under a
@@ -7008,7 +7016,7 @@ escrow state as a side effect of returning
 NFS4ERR_STALE_ESCROW: the response reports "the
 identity you presented is not what I hold" without
 changing what is held.  In particular, if the range
-carries an MDS-escrow lock whose escrow_id4 differs
+carries a metadata-server escrow lock whose escrow_id4 differs
 from the presented identity, that lock survives the
 call unchanged; and if the range carries a
 client-owned lock that was previously adopted from
@@ -7313,6 +7321,21 @@ Uniqueness contract:
    counter is independent), and the cg_client_id is what makes
    concurrent writers distinguishable at the CAS layer.
 
+Observability:
+:  The data server exposes the chunk's current chunk_guard4 on
+   the read path so that a client preparing a CAS update in
+   multiple writer mode ({{sec-multi-writer}}) can obtain the
+   expected prior value without racing.  Two operations return
+   it: CHUNK_READ carries cr_guard in each read_chunk4
+   ({{sec-CHUNK_READ}}), and CHUNK_HEADER_READ returns a
+   chrr_guards<> array co-indexed with the other per-chunk
+   arrays ({{sec-CHUNK_HEADER_READ}}).  A client places the
+   observed pair into cwa_guard.cwg_guard and sets
+   cwa_guard.cwg_check = TRUE on the subsequent CHUNK_WRITE
+   ({{sec-CHUNK_WRITE}}); the data server compares against its
+   currently-held chunk_guard4 and returns NFS4ERR_CHUNK_GUARDED
+   on mismatch.
+
 Deterministic contention resolution for concurrent writers:
 :  When two or more clients race on the same chunk in the
    multi-writer mode, the losing writer -- the one whose CAS
@@ -7472,7 +7495,7 @@ itself, in escrow during a repair coordination sequence (see
 chunk_guard4 with this cg_client_id when the metadata server
 revokes the prior holder's stateid while that holder still holds
 chunk locks; the locks MUST NOT be dropped and are transferred to
-the MDS-escrow owner instead.
+the metadata-server escrow owner instead.
 
 The metadata server does not originate CHUNK_LOCK or CHUNK_WRITE
 traffic on its own session.  Clients MUST NOT present
@@ -7481,29 +7504,29 @@ client-originated chunk_guard4 or chunk_owner4.  A data server
 that receives such a value from a client MUST reject the
 operation with NFS4ERR_INVAL.
 
-The MDS-escrow owner is released only by a CHUNK_LOCK from the
+The metadata-server escrow owner is released only by a CHUNK_LOCK from the
 client selected via CB_CHUNK_REPAIR, carrying
 CHUNK_LOCK_FLAGS_ADOPT.  See {{sec-CHUNK_LOCK}}.
 
-Each MDS-escrow lock carries an escrow_id4
+Each metadata-server escrow lock carries an escrow_id4
 ({{sec-escrow_id4}}) the metadata server chose at
 CHUNK_ESCROW_INSTALL ({{sec-CHUNK_ESCROW_INSTALL}}) time
 and presents on every subsequent operation that refers
 to that lock (CHUNK_ESCROW_RELEASE, CB_CHUNK_REPAIR,
 CHUNK_LOCK adoption via cla_adopt).  When a repair
-client adopts the MDS-escrow lock (CHUNK_LOCK with
+client adopts the metadata-server escrow lock (CHUNK_LOCK with
 CHUNK_LOCK_FLAGS_ADOPT), the data server MUST retain
 the adopted escrow_id4 as durable custody metadata on
 the resulting client-owned lock, for as long as a
 subsequent revocation-transfer can occur that would
-convert the client-owned lock back to an MDS-escrow
+convert the client-owned lock back to a metadata-server escrow
 lock (for example, when the client's lease later
 expires while the lock is still held).  If such a
 revocation-transfer occurs, the resulting new
-MDS-escrow lock MUST be installed with the SAME
+metadata-server escrow lock MUST be installed with the SAME
 escrow_id4 that was preserved as custody metadata,
 not a fresh identity: this preserves the full durable
-key `(file, escrow_id, DS-set)` across the entire
+key `(file, escrow_id, data-server set)` across the entire
 custody chain so that a metadata server's tuple
 records can re-associate with the reappeared escrow
 across an incarnation change (see
@@ -7570,7 +7593,7 @@ co_cohort_id values because co_client_id disambiguates them.
 {: #fig-escrow_id4 title="XDR for escrow_id4" }
 
 The escrow_id4 is a 128-bit opaque identifier the
-metadata server chooses for each MDS-escrow lock
+metadata server chooses for each metadata-server escrow lock
 ({{sec-chunk_guard_mds}}) it installs on a data
 server.  It is distinct from the chunk_owner4 owner
 triple ({{sec-chunk_owner4}}) that identifies a chunk
@@ -8021,13 +8044,13 @@ different algorithm.
    ///  OP_CHUNK_WRITE         = 87,
    ///  OP_CHUNK_WRITE_REPAIR  = 88,
    ///
-   /// /* MDS-to-DS control-plane operations for tight coupling */
+   /// /* metadata-server-to-data-server control-plane operations for tight coupling */
    ///
    ///  OP_TRUST_STATEID       = 89,
    ///  OP_REVOKE_STATEID      = 90,
    ///  OP_BULK_REVOKE_STATEID = 91,
    ///
-   /// /* MDS-side escrow control-plane operations */
+   /// /* metadata-server-side escrow control-plane operations */
    ///
    ///  OP_CHUNK_ESCROW_INSTALL   = 92,
    ///  OP_CHUNK_ESCROW_RELEASE   = 93,
@@ -8111,10 +8134,10 @@ through 91 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
 and operations 92 through 95 (CHUNK_ESCROW_INSTALL,
 CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE,
 CHUNK_ESCROW_TAKEOVER) are sent by the metadata server to
-storage devices on the MDS-to-DS control session (see
+storage devices on the metadata-server-to-data-server control session (see
 {{sec-tight-coupling-control-session}}); they MUST NOT be sent by
 pNFS clients.  The escrow control-plane operations (92 through
-95) are available on the MDS-to-DS control session under either
+95) are available on the metadata-server-to-data-server control session under either
 loose- or tight-coupling deployment; the tight-coupling section
 is cited for its description of the session itself, not to
 restrict availability to the tight-coupling profile.
@@ -8484,7 +8507,7 @@ CHUNK_LOCK_FLAGS_ADOPT-transferred continuation):
    the corresponding ccr_status slot.  The chunk's state is
    not changed.
 
--  During repair, the MDS-escrow owner
+-  During repair, the metadata-server escrow owner
    (CHUNK_GUARD_CLIENT_ID_MDS, see {{sec-chunk_guard_mds}})
    holds the lock while the repair client adopts it via
    CHUNK_LOCK_FLAGS_ADOPT.  CHUNK_COMMIT during the escrow
@@ -8949,6 +8972,8 @@ NFS4ERR_STALE:
    ///         chrr_locked<CHUNK_HEADER_READ_MAX4>;
    ///     chunk_owner4
    ///         chrr_chunks<CHUNK_HEADER_READ_MAX4>;
+   ///     chunk_guard4
+   ///         chrr_guards<CHUNK_HEADER_READ_MAX4>;
    ///     optional_retained4
    ///         chrr_predecessors<CHUNK_HEADER_READ_MAX4>;
    /// };
@@ -8968,9 +8993,9 @@ NFS4ERR_STALE:
 ### DESCRIPTION
 
 CHUNK_HEADER_READ returns the per-chunk metadata
-(chunk_owner4, lock state, and per-chunk status) for a
-range of chunks in the target data file without returning
-the chunk payloads.  The operation enables clients and
+(chunk_owner4, chunk_guard4, lock state, and per-chunk
+status) for a range of chunks in the target data file
+without returning the chunk payloads.  The operation enables clients and
 repair coordinators to inspect chunk lifecycle and
 ownership cheaply, without the data-transfer cost of
 CHUNK_READ ({{sec-CHUNK_READ}}).  CHUNK_HEADER_READ has
@@ -9001,7 +9026,7 @@ chra_count:
    The bound protects the data server against
    arbitrarily large response construction.
 
-The CHUNK_HEADER_READ result returns four co-indexed
+The CHUNK_HEADER_READ result returns five co-indexed
 arrays, one entry per chunk in the requested range in
 chunk-offset order from chra_offset:
 
@@ -9031,6 +9056,26 @@ chrr_chunks:
    the in-progress (PENDING or FINALIZED) generation.
    For NFS4ERR_NOENT (EMPTY chunk) the chunk_owner4 is
    unspecified.
+
+chrr_guards:
+:  per-chunk chunk_guard4 ({{fig-chunk_guard4}}) — the
+   (cg_gen_id, cg_client_id) pair the data server holds
+   as the chunk's current guard at CHUNK_HEADER_READ
+   time.  A caller that intends to update the chunk in
+   multiple writer mode uses the corresponding chrr_guards
+   entry as the expected prior value for the guard CAS
+   ({{sec-multi-writer}}), avoiding the payload cost of
+   CHUNK_READ.  For a chunk whose chrr_status is
+   NFS4ERR_NOENT (EMPTY) the chunk_guard4 is the
+   all-zeros pair (cg_gen_id = 0 and cg_client_id =
+   CHUNK_GUARD_CLIENT_ID_NONE, see
+   {{sec-chunk_guard_none}}).  chrr_guards is a read-time
+   observation; a concurrent writer MAY advance the
+   guard between the CHUNK_HEADER_READ response and the
+   subsequent CHUNK_WRITE, in which case the CAS returns
+   NFS4ERR_CHUNK_GUARDED and the caller re-observes the
+   guard per the rollback-and-retry flow in
+   {{sec-chunk_guard4}}.
 
 chrr_predecessors:
 :  per-chunk immediate-predecessor disposition, one
@@ -9089,7 +9134,7 @@ chrr_predecessors:
 
 **Cardinality and short responses**:
 
-- All four response arrays are the same length; the
+- All five response arrays are the same length; the
   data server MUST NOT sparsify or truncate one
   array independently of the others.
 - The response array length N MAY be smaller than
@@ -9144,11 +9189,14 @@ Read-side atomicity check:
 :  Before issuing a multi-chunk CHUNK_READ in
    multiple-writer mode, a client MAY issue
    CHUNK_HEADER_READ to verify that the chunks in the
-   target range share a common chunk_guard4 (the
-   cohort-atomicity property in
-   {{sec-system-model-consistency}}).  If the guards
-   diverge, the client knows the read will not be atomic
-   and can wait for a writer to commit, retry, or report
+   target range share a common `(co_cohort_id,
+   co_client_id)` pair in chrr_chunks (the cohort-
+   atomicity property in
+   {{sec-system-model-consistency}}) and MAY additionally
+   inspect chrr_guards as a cheaper generation-level
+   corroboration.  If the cohort pairs diverge, the
+   client knows the read will not be atomic and can
+   wait for a writer to commit, retry, or report
    NFS4ERR_PAYLOAD_NOT_ATOMIC via LAYOUTERROR.  This is
    a hint rather than a guarantee: a concurrent writer
    MAY advance a chunk's state between the
@@ -9354,7 +9402,7 @@ cla_count:
 
 cla_flags:
 :  bitmask of CHUNK_LOCK_FLAGS_* values.  Defined:
-   CHUNK_LOCK_FLAGS_ADOPT (adopt an MDS-escrow lock;
+   CHUNK_LOCK_FLAGS_ADOPT (adopt a metadata-server escrow lock;
    see "Lock Transfer via CHUNK_LOCK_FLAGS_ADOPT" below);
    CHUNK_LOCK_FLAGS_TAKEOVER (transfer ownership of a
    live client-held lock, distinct from adoption; see
@@ -9372,13 +9420,13 @@ cla_owner:
    co_client_id of cla_owner; see
    {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
    (A client requesting CHUNK_LOCK_FLAGS_ADOPT MUST use
-   its own co_client_id, not the MDS-escrow sentinel,
-   even when adopting from an MDS-escrow holder.)
+   its own co_client_id, not the metadata-server escrow sentinel,
+   even when adopting from a metadata-server escrow holder.)
 
 cla_adopt:
 :  a discriminated union carrying the escrow_id4
    ({{sec-escrow_id4}}) that identifies the specific
-   MDS-escrow lock the caller is adopting.  When
+   metadata-server escrow lock the caller is adopting.  When
    cla_flags carries CHUNK_LOCK_FLAGS_ADOPT, cla_adopt
    MUST be the TRUE arm and cla_escrow_id MUST match
    the escrow_id4 the metadata server installed on
@@ -9407,7 +9455,7 @@ The lock is released by CHUNK_UNLOCK
 ({{sec-CHUNK_UNLOCK}}) or implicitly when the holder's
 lease expires; on lease expiry without explicit
 release, the data server transitions the lock to the
-MDS-escrow owner if the metadata server has revoked
+metadata-server escrow owner if the metadata server has revoked
 the holder's stateid via REVOKE_STATEID
 ({{sec-REVOKE_STATEID}}), per the lock-continuity-
 across-revocation invariant in
@@ -9483,7 +9531,7 @@ The CHUNK_LOCK_FLAGS_TAKEOVER flag in cla_flags requests
 an atomic transfer of lock ownership from a currently
 live client-held lock to cla_owner, distinct from
 CHUNK_LOCK_FLAGS_ADOPT which transfers from an
-MDS-escrow lock.  The two flags are mutually exclusive:
+metadata-server escrow lock.  The two flags are mutually exclusive:
 ADOPT names the metadata server's escrow identity via
 cla_adopt, while TAKEOVER names another client's
 already-held lock and is used only when the metadata
@@ -9558,6 +9606,7 @@ NFS4ERR_SERVERFAULT:
    ///     checksum4       cr_checksum;
    ///     uint32_t        cr_effective_len;
    ///     chunk_owner4    cr_owner;
+   ///     chunk_guard4    cr_guard;
    ///     uint32_t        cr_payload_id;
    ///     bool            cr_locked;
    ///     nfsstat4        cr_status;
@@ -9661,6 +9710,26 @@ cr_owner:
    reconstruction depends.  See
    {{sec-system-model-consistency}}.
 
+cr_guard:
+:  the (cg_gen_id, cg_client_id) pair the data server holds
+   as the chunk's current chunk_guard4 ({{sec-chunk_guard4}})
+   at CHUNK_READ time.  A client that intends to update this
+   chunk in multiple writer mode uses cr_guard as the
+   expected prior value for the guard CAS: it supplies
+   cwa_guard.cwg_check = TRUE with cwa_guard.cwg_guard set
+   to the observed cr_guard on the subsequent CHUNK_WRITE
+   ({{sec-CHUNK_WRITE}}, {{sec-multi-writer}}).  A client
+   reading from multiple data servers in an erasure-coded
+   layout MAY also compare cr_guard values across shards as
+   an auxiliary check on payload atomicity; the cr_owner
+   cohort-pair comparison (see the bullet above and
+   {{sec-system-model-consistency}}) is the normative
+   atomicity invariant and cr_guard adds a cheaper
+   generation-level check.  For the
+   NFS4ERR_NOENT synthetic zero-filled chunk the cr_guard is
+   set to the all-zeros pair (cg_client_id =
+   CHUNK_GUARD_CLIENT_ID_NONE, see {{sec-chunk_guard_none}}).
+
 cr_payload_id:
 :  the payload-id the writer associated with the chunk at
    CHUNK_WRITE time, used by repair coordinators to
@@ -9689,7 +9758,9 @@ as a synthetic zero-filled chunk: cr_status is
 NFS4ERR_NOENT, cr_chunk is zero-filled to the layout's
 chunk_size, cr_owner is set to all-zeros (with co_client_id
 = CHUNK_GUARD_CLIENT_ID_NONE, see {{sec-chunk_guard_none}}),
-and cr_checksum is the checksum of the synthetic zero-filled
+cr_guard is set to the all-zeros pair (cg_gen_id = 0 and
+cg_client_id = CHUNK_GUARD_CLIENT_ID_NONE), and
+cr_checksum is the checksum of the synthetic zero-filled
 payload.  This lets a client reconstruct holes without a
 special-casing path.
 
@@ -10255,7 +10326,7 @@ predecessor resurrected.  Any client that requires the restored
 generation to retain the predecessor's original owner
 triple in cases where the retention scope
 ({{sec-system-model-retention-scope}}) would otherwise
-permit release MUST use the MDS-escrow control plane
+permit release MUST use the metadata-server escrow control plane
 ({{sec-CHUNK_ESCROW_INSTALL}} through
 {{sec-CHUNK_ESCROW_TAKEOVER}}), which pins the
 predecessor's payload and its owner-to-index
@@ -10461,7 +10532,7 @@ cua_owner:
    co_client_id of cua_owner; see
    {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
    In particular, a repair client releasing a lock it
-   adopted from the MDS-escrow owner uses its own
+   adopted from the metadata-server escrow owner uses its own
    co_client_id in cua_owner, not
    CHUNK_GUARD_CLIENT_ID_MDS.
 
@@ -10482,7 +10553,7 @@ that the lock guarded.  Locks not explicitly released
 are released implicitly when the holder's lease expires;
 if the metadata server has revoked the holder's stateid
 via REVOKE_STATEID ({{sec-REVOKE_STATEID}}) before the
-lease lapses, the lock transitions to the MDS-escrow
+lease lapses, the lock transitions to the metadata-server escrow
 owner per the lock-continuity invariant in
 {{sec-system-model-consistency}} rather than being
 released outright.
@@ -10617,7 +10688,7 @@ chunk at zero-based position i within the payload is
 `(cwa_cohort_id, cwa_client_id, cwa_co_ids[i])`.
 
 `cwa_client_id` identifies the writer.  It is
-client-*presented*, MDS-*assigned*: the client presents the
+client-*presented*, metadata-server-*assigned*: the client presents the
 32-bit layout-granted identity that the metadata server
 established in ffv2m_client_id (see {{sec-ffv2-mirror4}}) at
 layout-grant time; the client MUST NOT substitute any other
@@ -10629,7 +10700,7 @@ see {{sec-TRUST_STATEID}}, by comparing `cwa_client_id`
 against the client identity recorded in the data server's
 trust table for the presented layout stateid) or with
 NFS4ERR_ACCESS (in loosely coupled deployments where the
-data server cannot cross-check the MDS assignment; the
+data server cannot cross-check the metadata-server assignment; the
 loosely coupled data server MAY still perform local
 consistency checks against other layouts it has observed
 for the same file).  `cwa_client_id` MUST NOT be the
@@ -11068,7 +11139,7 @@ The repair workflow that invokes CHUNK_WRITE_REPAIR is:
 3.  The repair client acquires a CHUNK_LOCK
     ({{sec-CHUNK_LOCK}}) on the target data server to
     prevent concurrent writes during repair.  For repair
-    that adopts an MDS-escrow lock, the CHUNK_LOCK
+    that adopts a metadata-server escrow lock, the CHUNK_LOCK
     carries CHUNK_LOCK_FLAGS_ADOPT
     ({{sec-chunk_guard_mds}}).
 
@@ -11320,12 +11391,13 @@ TRUST_STATEID has no analog in {{RFC8881}}: pNFS layouts in
 RFC 8881 do not register the layout stateid with data
 servers; data servers in the loose-coupling model trust the
 synthetic uid/gid the metadata server inserts on each I/O
-({{sec-Fencing-Clients}}).  TRUST_STATEID is the new MDS-
-to-DS control-plane operation that replaces synthetic-uid
+({{sec-Fencing-Clients}}).  TRUST_STATEID is the new
+metadata-server-to-data-server control-plane operation
+that replaces synthetic-uid
 fencing with per-client stateid-table validation for
 deployments that opt into tight coupling.
 
-TRUST_STATEID is an MDS-to-DS operation; pNFS clients MUST
+TRUST_STATEID is a metadata-server-to-data-server operation; pNFS clients MUST
 NOT send it.  The data server MUST verify that the
 operation arrived on a session whose owning client presented
 EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID and reject any
@@ -11476,12 +11548,12 @@ trust table for a tightly coupled deployment.
 REVOKE_STATEID has no analog in {{RFC8881}}.  RFC 8881
 revokes pNFS layouts via LAYOUTRETURN with a special
 all-files marker or via implicit lease expiry;
-REVOKE_STATEID is the new MDS-to-DS surface that lets the
+REVOKE_STATEID is the new metadata-server-to-data-server surface that lets the
 metadata server force per-client invalidation at the data
 server without waiting for tsa_expire and without
 unsetting other clients' trust entries.
 
-REVOKE_STATEID is an MDS-to-DS operation; pNFS clients
+REVOKE_STATEID is a metadata-server-to-data-server operation; pNFS clients
 MUST NOT send it.  The data server MUST verify that the
 operation arrived on a session whose owning client
 presented EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID and
@@ -11527,7 +11599,7 @@ returns.
 Lock state (see {{sec-CHUNK_LOCK}}) held by the revoked
 stateid is NOT released as part of REVOKE_STATEID; the
 data server MUST transfer each held lock to the
-MDS-escrow owner (see {{sec-chunk_guard_mds}}).
+metadata-server escrow owner (see {{sec-chunk_guard_mds}}).
 Dropping a chunk lock during revocation would permit a
 write hole and is prohibited; the repair coordination
 sequence in {{sec-repair-selection}} assumes that locks
@@ -11626,7 +11698,7 @@ stateid) pair, BULK_REVOKE_STATEID does not target a
 specific filehandle or stateid; it instructs the data
 server to scan its trust table and remove every entry
 whose owning pNFS client matches brsa_clientid (and whose
-issuing metadata server matches the calling MDS).
+issuing metadata server matches the calling metadata server).
 
 BULK_REVOKE_STATEID has no analog in {{RFC8881}}.  RFC 8881
 recall-all is expressed at the layout layer
@@ -11636,7 +11708,7 @@ complement, replacing the N per-file REVOKE_STATEID
 compounds that per-entry revocation would require with a
 single round-trip.
 
-BULK_REVOKE_STATEID is an MDS-to-DS operation; pNFS
+BULK_REVOKE_STATEID is a metadata-server-to-data-server operation; pNFS
 clients MUST NOT send it.  The data server MUST verify
 that the operation arrived on a session whose owning
 client presented EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
@@ -11655,7 +11727,7 @@ brsa_clientid:
    registered it"; the data server MUST interpret this
    value as a sweep of its own entries only, NOT as the
    pNFS client whose clientid happens to be zero and NOT
-   as a global cross-MDS table clear.
+   as a global cross-metadata-server table clear.
 
 The metadata server calls BULK_REVOKE_STATEID in any of
 the following situations:
@@ -11692,7 +11764,7 @@ BULK_REVOKE_STATEID.
 Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent
 (no error is returned if there are no matching entries)
 and preserves chunk locks held under any revoked stateid
-by transferring them to the MDS-escrow owner (see
+by transferring them to the metadata-server escrow owner (see
 {{sec-chunk_guard_mds}}), rather than dropping them.
 Subsequent CHUNK_* operations from the revoked client
 fail with NFS4ERR_BAD_STATEID; locks held under those
@@ -11728,7 +11800,7 @@ NFS4ERR_SERVERFAULT:
 :  the data server failed while processing
    the request.
 
-## Operation 92: CHUNK_ESCROW_INSTALL - Install an MDS-escrow lock {#sec-CHUNK_ESCROW_INSTALL}
+## Operation 92: CHUNK_ESCROW_INSTALL - Install a metadata-server escrow lock {#sec-CHUNK_ESCROW_INSTALL}
 
 ### ARGUMENTS
 
@@ -11759,8 +11831,8 @@ NFS4ERR_SERVERFAULT:
 ### DESCRIPTION
 
 CHUNK_ESCROW_INSTALL is sent by the metadata server
-to a data server on the MDS-to-DS control session to
-install an MDS-escrow lock ({{sec-chunk_guard_mds}})
+to a data server on the metadata-server-to-data-server control session to
+install a metadata-server escrow lock ({{sec-chunk_guard_mds}})
 over the chunk range [ceia_offset,
 ceia_offset+ceia_count) on the file selected by
 CURRENT_FH.  The lock is created with the specified
@@ -11799,7 +11871,7 @@ NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP,
 NFS4ERR_PERM, NFS4ERR_SERVERFAULT,
 NFS4ERR_STALE_MDS_EPOCH.
 
-## Operation 93: CHUNK_ESCROW_RELEASE - Release an MDS-escrow lock {#sec-CHUNK_ESCROW_RELEASE}
+## Operation 93: CHUNK_ESCROW_RELEASE - Release a metadata-server escrow lock {#sec-CHUNK_ESCROW_RELEASE}
 
 ### ARGUMENTS
 
@@ -11830,7 +11902,7 @@ NFS4ERR_STALE_MDS_EPOCH.
 ### DESCRIPTION
 
 CHUNK_ESCROW_RELEASE is sent by the metadata server
-to release an MDS-escrow lock it previously
+to release a metadata-server escrow lock it previously
 installed with CHUNK_ESCROW_INSTALL
 ({{sec-CHUNK_ESCROW_INSTALL}}).  The release is
 compare-and-release: the operation succeeds only
@@ -11875,7 +11947,7 @@ NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM,
 NFS4ERR_SERVERFAULT, NFS4ERR_STALE_ESCROW,
 NFS4ERR_STALE_MDS_EPOCH.
 
-## Operation 94: CHUNK_ESCROW_ENUMERATE - Enumerate MDS-escrow locks on a file {#sec-CHUNK_ESCROW_ENUMERATE}
+## Operation 94: CHUNK_ESCROW_ENUMERATE - Enumerate metadata-server escrow locks on a file {#sec-CHUNK_ESCROW_ENUMERATE}
 
 ### ARGUMENTS
 
@@ -11933,7 +12005,7 @@ NFS4ERR_STALE_MDS_EPOCH.
 ### DESCRIPTION
 
 CHUNK_ESCROW_ENUMERATE is sent by the metadata
-server to discover which MDS-escrow locks the
+server to discover which metadata-server escrow locks the
 data server currently holds on the file selected
 by CURRENT_FH.  Each returned entry names an
 installed escrow's range and identity.
@@ -11979,7 +12051,7 @@ NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
 NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM,
 NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH.
 
-## Operation 95: CHUNK_ESCROW_TAKEOVER - Advance MDS-epoch after incarnation change {#sec-CHUNK_ESCROW_TAKEOVER}
+## Operation 95: CHUNK_ESCROW_TAKEOVER - Advance metadata-server epoch after incarnation change {#sec-CHUNK_ESCROW_TAKEOVER}
 
 ### ARGUMENTS
 
@@ -12255,7 +12327,7 @@ ccra_reason:
    behaviour differs.
 
 ccra_escrow_id:
-:  the escrow_id4 ({{sec-escrow_id4}}) of the MDS-escrow
+:  the escrow_id4 ({{sec-escrow_id4}}) of the metadata-server escrow
    lock the metadata server installed to cover every
    range in this callback.  The client presents this
    same escrow_id4 in the cla_adopt discriminant of the
@@ -12394,7 +12466,7 @@ The FFv2 chunk protocol combines three related
 mechanisms — writer-supplied opaque owner identity
 ({{sec-chunk_owner4}}), best-effort predecessor
 discovery ({{sec-CHUNK_HEADER_READ}} /
-{{sec-NFS4ERR_NO_PREDECESSOR}}), and MDS-escrow
+{{sec-NFS4ERR_NO_PREDECESSOR}}), and metadata-server escrow
 control-plane pinning ({{sec-CHUNK_ESCROW_INSTALL}} /
 {{sec-CHUNK_ESCROW_RELEASE}} /
 {{sec-CHUNK_ESCROW_ENUMERATE}} /
@@ -12415,7 +12487,7 @@ against the named predecessor:
 
 1. **Present at acquisition.**  The predecessor
    generation must have existed on the data server at
-   the time the qualifying CHUNK_LOCK or MDS-escrow
+   the time the qualifying CHUNK_LOCK or metadata-server escrow
    was acquired.  Predecessors that had already been
    released under the retention scope
    ({{sec-system-model-retention-scope}}) before any
@@ -12425,13 +12497,13 @@ against the named predecessor:
    custody chain must have remained uninterrupted
    through the rollback decision window.  Custody
    handoffs are permitted (a client-owned lock
-   adopted from an MDS-escrow lock preserves the
+   adopted from a metadata-server escrow lock preserves the
    escrow_id4 per {{sec-chunk_guard_mds}}, and a
    subsequent revocation-transfer re-emits the same
-   escrow_id4 to a new MDS-escrow lock, keeping the
+   escrow_id4 to a new metadata-server escrow lock, keeping the
    custody chain continuous), but any interval in
    which the predecessor was covered by neither a
-   qualifying lock nor an MDS-escrow lock breaks
+   qualifying lock nor a metadata-server escrow lock breaks
    continuity.
 3. **Payload remains AVAILABLE.**  The predecessor's
    payload MUST be in the AVAILABLE read-time state
@@ -12466,7 +12538,7 @@ The guarantee is a protocol-level protection against
 premature release: FFv2 implementations MUST NOT
 release the payload or owner-to-index association of
 a predecessor covered by an active qualifying lock or
-MDS-escrow lock, per the payload/association
+metadata-server escrow lock, per the payload/association
 biconditional
 ({{sec-system-model-payload-association-biconditional}})
 and the retention scope
@@ -12598,20 +12670,20 @@ contrast.
 Note that the owner triple is (co_cohort_id,
 co_client_id, co_id) throughout, per
 {{sec-chunk_owner4}}; per-chunk CAS state
-(cg_gen_id, cg_client_id) is DS-managed and is
+(cg_gen_id, cg_client_id) is data-server-managed and is
 distinct from these owner-identity numbers.
 
 **Happy path (all three conditions hold).**
 
 1. The metadata server proactively installs an
-   MDS-escrow lock over chunk index 5 by sending
+   metadata-server escrow lock over chunk index 5 by sending
    CHUNK_ESCROW_INSTALL with escrow_id4 E1 while
    the (41, 7, 100) predecessor is still
    AVAILABLE on the data server.  The data server
    accepts and echoes E1 in ceir_escrow_id.  Per
    {{sec-composed-rollback-scope}} conditions 1
    and 3, the predecessor is now under continuous
-   MDS-escrow custody and remains AVAILABLE.
+   metadata-server escrow custody and remains AVAILABLE.
 
 2. The metadata server sends CB_CHUNK_REPAIR to a
    selected repair client with ccra_escrow_id =
@@ -12621,7 +12693,7 @@ distinct from these owner-identity numbers.
    CHUNK_LOCK_FLAGS_ADOPT and cla_adopt = { TRUE,
    cla_escrow_id = E1 }.  The data server
    validates identity and atomically transfers
-   custody: E1 dissolves as an MDS-escrow lock,
+   custody: E1 dissolves as a metadata-server escrow lock,
    the client owns the lock, the predecessor's
    payload and owner association survive intact,
    and E1 is retained as durable custody metadata
@@ -12674,7 +12746,7 @@ The metadata server never observes step-7 confirmation.
 The repair client's lock lease eventually expires
 without an explicit release, and the data server
 transitions the lock through the revocation-transfer
-path (see {{sec-chunk_guard_mds}}): a new MDS-escrow
+path (see {{sec-chunk_guard_mds}}): a new metadata-server escrow
 lock is installed on the same range with the same
 preserved escrow_id4 = E1.  On the next
 CHUNK_ESCROW_ENUMERATE
@@ -12684,7 +12756,7 @@ under it.
 
 **Fallback contrast (condition 1 fails).**  Under
 an alternative setup where the metadata server did
-NOT install an MDS-escrow before the retention
+NOT install a metadata-server escrow before the retention
 scope
 ({{sec-system-model-retention-scope}}) released the
 (41, 7, 100) predecessor, condition 1 fails.  By
@@ -13014,14 +13086,14 @@ that is required, deploy at the layout-authorization layer.
 ###  Resource exhaustion via long-lived escrows
 
 A compromised or faulty metadata server can install an
-arbitrary number of long-lived MDS-escrow locks via
+arbitrary number of long-lived metadata-server escrow locks via
 CHUNK_ESCROW_INSTALL, each of which forces retention of a
 predecessor generation the data server would otherwise
 release under the retention scope rule
 ({{sec-system-model-retention-scope}}).  Sustained abuse
 could exhaust data-server storage.  A data server MAY apply
 implementation-defined admission control on the total number
-of MDS-escrow locks it holds concurrently, rejecting further
+of metadata-server escrow locks it holds concurrently, rejecting further
 CHUNK_ESCROW_INSTALL with NFS4ERR_SERVERFAULT or a
 resource-exhaustion error when the bound is reached; the
 metadata server can then release older escrows or wait for
@@ -13032,7 +13104,7 @@ data-server's storage-management policy.
 
 ###  Consequence of losing durable adopted-lock escrow identity
 
-The client-owned lock that adopted an MDS-escrow retains the
+The client-owned lock that adopted a metadata-server escrow retains the
 adopted escrow_id4 as durable custody metadata per
 {{sec-chunk_guard_mds}}; on data-server restart this
 metadata must survive so a subsequent revocation-transfer
@@ -13040,7 +13112,7 @@ re-emits the same identity.  A data server that fails to
 persist the adopted escrow_id4 (whether by implementation
 defect or storage corruption) forces the metadata server's
 tuple bookkeeping into an unresolvable state: the recovered
-MDS-escrow appears with a fresh identity that no durable
+metadata-server escrow appears with a fresh identity that no durable
 tuple matches, and the composed rollback guarantee
 ({{sec-composed-rollback}}) is broken for repairs that
 crossed the restart.  A deployment SHOULD monitor for
@@ -13221,7 +13293,7 @@ Replay of revoked stateid:
    chunk_guard4 CAS ({{sec-chunk_guard4}}) bounds the
    worst-case damage from such in-flight I/O to the
    chunks already PENDING at revocation time, and the
-   lock-transfer-to-MDS-escrow rule
+   lock-transfer-to-metadata-server escrow rule
    ({{sec-chunk_guard_mds}}) prevents a write hole from
    opening during revocation.
 
@@ -13637,7 +13709,7 @@ Source:
 
 Implementation:
 :  `reffs` is an NFSv4.2 server written in C that acts as both a
-   metadata server (MDS) and a data server (DS) in a flexible file v2 layout
+   metadata server and a data server in a flexible file v2 layout
    deployment.  `ec_demo` is a client-side library with a
    demonstration driver that exercises the flexible file v2 layout data path
    over NFSv4.2 with all three erasure coding types defined in this
@@ -14302,7 +14374,7 @@ stateid mechanism addresses the layout-mutation cost.  Together,
 they confine the residual cluster overhead to:
 
 -  the store-and-forward bandwidth on the proxy server link, paid only by
-    clients that route through a proxy server rather than going DS-direct;
+    clients that route through a proxy server rather than going data-server-direct;
     and
 
 -  one LAYOUTERROR/LAYOUTGET round-trip per client per affected
