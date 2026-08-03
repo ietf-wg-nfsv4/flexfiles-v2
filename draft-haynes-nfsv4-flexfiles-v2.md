@@ -2043,9 +2043,11 @@ What FFV2_ENCODING_MIRRORED adds beyond PASSTHROUGH, by virtue
 of using CHUNK_WRITE and CHUNK_READ:
 
 -  Per-chunk checksum on write and on read.  The CRC is computed
-   by the client over the chunk payload, sent on the wire with
-   the chunk, recomputed by the data server before storing,
-   and recomputed again from disk by the data server on every
+   by the client over the chunk header and chunk payload with
+   the checksum field itself treated as zero
+   ({{sec-checksum4}}), sent on the wire with the chunk,
+   recomputed by the data server before storing, and
+   recomputed again from disk by the data server on every
    CHUNK_READ.  Wire-level bit flips are caught before the
    chunk is stored; on-disk bit rot is caught the next time
    the chunk is read.
@@ -7971,6 +7973,27 @@ cs_value:
    registered length for cs_algorithm MUST be rejected
    with NFS4ERR_INVAL.
 
+Coverage:
+:  Every registered algorithm covers the same input
+   bytes: the chunk's header immediately followed by the
+   chunk payload, in wire-transmission order, with the
+   bytes of the header's own checksum field (`cs_value`)
+   treated as zero for the duration of the computation.
+   After computing, the writer stores the resulting bytes
+   into `cs_value` for transmission and at-rest storage;
+   the reader saves the received `cs_value`, treats those
+   bytes as zero, recomputes over the same input, and
+   compares against the saved value.  Including the header
+   in coverage protects the per-chunk metadata
+   (`payload_id`, guard, owner, length fields) as well as
+   the payload; treating the checksum field as zero makes
+   the computation independent of the field's wire value
+   so the same input produces the same output on both
+   ends.  This coverage rule applies uniformly to every
+   registered `cs_algorithm`; individual registry entries
+   name the function and any function-specific parameters,
+   but do not restate the covered-bytes rule.
+
 The checksum algorithm for a given file is selected by
 the metadata server at LAYOUTGET time and carried in
 the layout (see {{sec-ffv2-mirror4}}).  A client that
@@ -9603,16 +9626,19 @@ starting from cra_offset.  Within each read_chunk4
 
 cr_checksum:
 :  the checksum4 ({{sec-checksum4}}) the data server
-   computed over the chunk payload (cr_chunk) at
-   CHUNK_FINALIZE or CHUNK_COMMIT time and persisted with
-   the chunk metadata.  The cs_algorithm field matches the
-   layout's ffv2m_checksum_algorithm ({{sec-ffv2-mirror4}});
-   the cs_value carries the computed bytes at the length
-   registered for that algorithm.  The client uses
-   cr_checksum to detect transport corruption between the
-   data server and the client; see
-   {{sec-security-checksum-scope}} for the scope and limits
-   of checksum protection per algorithm class.
+   recomputed over the chunk header and cr_chunk (with the
+   checksum field's bytes treated as zero, per the uniform
+   coverage rule in {{sec-checksum4}}) at CHUNK_READ time,
+   from the persisted value it recorded at CHUNK_FINALIZE
+   or CHUNK_COMMIT time.  The cs_algorithm field matches
+   the layout's ffv2m_checksum_algorithm
+   ({{sec-ffv2-mirror4}}); the cs_value carries the
+   computed bytes at the length registered for that
+   algorithm.  The client uses cr_checksum to detect
+   transport corruption between the data server and the
+   client; see {{sec-security-checksum-scope}} for the
+   scope and limits of checksum protection per algorithm
+   class.
 
 cr_effective_len:
 :  the byte length of cr_chunk.  This may be smaller than
@@ -13418,11 +13444,13 @@ parameters, which two independent implementations MUST
 agree on to interoperate: generator polynomial
 `0x04C11DB7` (equivalently, the reflected form
 `0xEDB88320`); initial register value `0xFFFFFFFF`; final
-XOR value `0xFFFFFFFF`; input reflected; output reflected;
-covered bytes are the shard payload in transmission order
-(no length or type prefix).  The 4-byte `cs_value` carries
-the CRC as a big-endian integer.  Deployments SHOULD
-prefer CHECKSUM_ALG_CRC32C for new files since CRC32C is
+XOR value `0xFFFFFFFF`; input reflected; output reflected.
+The 4-byte `cs_value` carries the CRC as a big-endian
+integer.  Covered bytes follow the uniform coverage rule
+in {{sec-checksum4}} (chunk header + chunk payload with
+the checksum field's bytes treated as zero, in
+wire-transmission order).  Deployments SHOULD prefer
+CHECKSUM_ALG_CRC32C for new files since CRC32C is
 hardware-accelerated on every modern CPU.
 
 CHECKSUM_ALG_CRC32C (value 2) is the CRC-32 with the
@@ -13433,18 +13461,22 @@ hardware-acceleration instructions.  Concrete parameters:
 generator polynomial `0x1EDC6F41` (equivalently, the
 reflected form `0x82F63B78`); initial register value
 `0xFFFFFFFF`; final XOR value `0xFFFFFFFF`; input
-reflected; output reflected; covered bytes are the shard
-payload in transmission order.  The 4-byte `cs_value`
-carries the CRC as a big-endian integer.
+reflected; output reflected.  The 4-byte `cs_value`
+carries the CRC as a big-endian integer.  Covered bytes
+follow the uniform coverage rule in {{sec-checksum4}}.
 
 CHECKSUM_ALG_FLETCHER4 (value 3) is the ZFS Fletcher4
 variant as documented in the OpenZFS on-disk format
-specification {{OPENZFS-FLETCHER4}}.  Concrete parameters:
-input is processed as a sequence of little-endian 32-bit
-words (the shard payload MUST be a multiple of 4 bytes;
-implementations that need to checksum non-multiple-of-4
-payloads pad with zero bytes and register the padded
-variant separately); the four 64-bit accumulators `A`,
+specification {{OPENZFS-FLETCHER4}}.  Covered bytes
+follow the uniform coverage rule in {{sec-checksum4}};
+this algorithm additionally requires the covered input
+(header + chunk with the checksum field's bytes treated
+as zero) to be a multiple of 4 bytes, since the input is
+processed as a sequence of little-endian 32-bit words.
+Implementations that need to checksum a chunk whose
+covered input is not a multiple of 4 bytes pad with zero
+bytes and register the padded variant separately.
+Concrete parameters: the four 64-bit accumulators `A`,
 `B`, `C`, `D` are updated per word `wi` as
 `A += wi; B += A; C += B; D += C` with 64-bit unsigned
 wrap-around; the 32-byte `cs_value` is the concatenation
@@ -13459,8 +13491,8 @@ specified in {{FIPS-180-4}}, with output byte lengths 32
 and 64 respectively.  The `cs_value` carries the hash
 output in the byte order defined by {{FIPS-180-4}} Section
 3.1 (most-significant word first, each word serialized
-big-endian).  Covered bytes are the shard payload in
-transmission order.
+big-endian).  Covered bytes follow the uniform coverage
+rule in {{sec-checksum4}}.
 
 CHECKSUM_ALG_BLAKE3 (value 6) is the BLAKE3 hash algorithm
 specified in {{BLAKE3-SPEC}} at its standard 32-byte
@@ -13468,9 +13500,9 @@ output length (BLAKE3 in its default mode, no keyed hash,
 no key-derivation context, no XOF output at other
 lengths).  Extended-output BLAKE3, keyed BLAKE3, and the
 key-derivation mode register as separate algorithms.
-Covered bytes are the shard payload in transmission order;
-`cs_value` is the 32-byte hash output in the byte order
-defined by {{BLAKE3-SPEC}} Section 2.4.
+Covered bytes follow the uniform coverage rule in
+{{sec-checksum4}}; `cs_value` is the 32-byte hash output
+in the byte order defined by {{BLAKE3-SPEC}} Section 2.4.
 
 A checksum4 whose cs_value length does not match the
 registered cs_value bytes for its cs_algorithm MUST be
