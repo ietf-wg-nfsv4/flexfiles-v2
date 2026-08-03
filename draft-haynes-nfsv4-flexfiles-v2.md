@@ -1260,6 +1260,7 @@ during control-session setup:
 ~~~
 SEQUENCE + PUTROOTFH + TRUST_STATEID(
     tsa_layout_stateid = ANONYMOUS_STATEID,
+    tsa_client_id      = 0,
     tsa_iomode         = LAYOUTIOMODE4_READ,
     tsa_expire         = 0,
     tsa_principal      = "")
@@ -1706,8 +1707,9 @@ equals 4, then the server MUST set ffdv_minorversion to 1 or 2, and
 the client MUST access the storage device using NFSv4 with the
 specified minor version.
 
-Two additional constraints narrow the valid set of
-(ffdv_version, ffdv_minorversion) tuples in specific cases:
+Three additional constraints narrow the valid set of
+(ffdv_version, ffdv_minorversion, ffdv_tightly_coupled) tuples
+in specific cases:
 
 -  When a mirror's encoding type uses CHUNK_* operations (that
    is, any FFV2_ENCODING_* value other than
@@ -1723,9 +1725,22 @@ Two additional constraints narrow the valid set of
    family of operations is defined as NFSv4.2; NFSv4.1 storage
    devices cannot participate in trusted-stateid tight coupling.
 
-PASSTHROUGH mirrors with loose coupling are the only configuration
-for which (3, 0) or (4, 1) remain valid; for all other
-configurations the storage device MUST be NFSv4.2.
+-  When a mirror's encoding type uses CHUNK_* operations, the
+   corresponding storage device MUST be advertised with
+   ffdv_tightly_coupled = true.  The chunk lifecycle depends
+   on the metadata-server-registered layout stateid and the
+   per-client identity conveyed to the data server via
+   TRUST_STATEID ({{sec-TRUST_STATEID}}); a loosely coupled
+   storage device has neither the trust-table entry required
+   to validate a presented stateid nor the client-id binding
+   required to authorize the writer (see {{sec-CHUNK_WRITE}}),
+   and therefore cannot serve a non-PASSTHROUGH mirror.
+
+PASSTHROUGH mirrors with loose coupling are the only
+loose-coupling configuration; the (ffdv_version,
+ffdv_minorversion) tuples (3, 0) and (4, 1) remain valid only
+for that configuration.  All other configurations require
+NFSv4.2 and tight coupling.
 
 Note that while the client might determine that it cannot use any of
 the configured combinations of ffdv_version, ffdv_minorversion, and
@@ -2873,11 +2888,14 @@ TRUST_STATEID (see {{sec-tight-coupling-control}}) before returning
 the layout; the storage device validates subsequent CHUNK operations
 against its trust table.
 
-For loose coupling and an NFSv4 storage device, the client MUST use
-the anonymous stateid to perform I/O on the storage device, because
-the metadata server stateid has no meaning to a storage device that
-is not participating in the control protocol.  In this case the
-metadata server MUST set ffv2fi_stateid to the anonymous stateid.
+For loose coupling and an NFSv4 storage device (necessarily a
+PASSTHROUGH mirror per {{sec-ff_device_addr4}}, since non-
+PASSTHROUGH encodings require tight coupling), the client MUST
+use the anonymous stateid to perform I/O on the storage device,
+because the metadata server stateid has no meaning to a storage
+device that is not participating in the control protocol.  In
+this case the metadata server MUST set ffv2fi_stateid to the
+anonymous stateid.
 
 For an NFSv3 storage device (ffdv_version = 3), the tight-coupling
 model does not apply: {{sec-ff_device_addr4}} requires
@@ -6002,16 +6020,18 @@ Byte-range lock tracking:
    {{RFC8881}} Section 12 byte-range locking applies.
 
 I/O authorization on the data server:
-:  The layout stateid carried on CHUNK_* operations.  Under
-   tight coupling ({{sec-tight-coupling-control}}), the
-   metadata server registers each issued layout stateid
-   with the data server via TRUST_STATEID
-   ({{sec-TRUST_STATEID}}) and the data server validates
-   subsequent CHUNK_* stateids against the trust table.
-   Under loose coupling, the data server treats the layout
-   stateid as an opaque per-client token and authorizes by
-   the synthetic uid/gid the layout carries (see
-   {{sec-Fencing-Clients}}).
+:  The layout stateid carried on CHUNK_* operations.
+   CHUNK_* encodings require tight coupling
+   ({{sec-ff_device_addr4}}); the metadata server registers
+   each issued layout stateid with the data server via
+   TRUST_STATEID ({{sec-TRUST_STATEID}}) together with the
+   ffv2m_client_id assigned to the writer, and the data
+   server validates subsequent CHUNK_* stateids against
+   the trust table and the presented cwa_client_id
+   against the trust-table's tsa_client_id.  Loose coupling
+   applies only to PASSTHROUGH mirrors, which use regular
+   READ/WRITE authorized by the synthetic uid/gid the layout
+   carries (see {{sec-Fencing-Clients}}).
 
 Because the layout stateid does authorization but does not
 identify a per-open or per-lock owner, a single client may
@@ -7466,11 +7486,14 @@ contract locally:
    server MUST reject the operation with NFS4ERR_INVAL (see
    {{sec-chunk_guard_mds}}).
 
--  A cg_client_id that does not match any layout the data
-   server has been told about (via TRUST_STATEID) MUST be
-   rejected.  Unknown cg_client_id values are treated as stale
-   layouts; the data server returns the error specified in
-   {{sec-tight-coupling-control}} for unknown stateids.
+-  A cg_client_id that does not match the tsa_client_id
+   recorded for the layout stateid under which the
+   CAS operation is issued MUST be rejected with
+   NFS4ERR_BAD_STATEID.  This (stateid, client_id) binding is
+   registered by the metadata server via TRUST_STATEID
+   ({{sec-TRUST_STATEID}}); an unmatched cg_client_id is
+   treated as a stale-layout condition, see
+   {{sec-tight-coupling-control}}.
 
 ### Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_NONE {#sec-chunk_guard_none}
 
@@ -8144,13 +8167,16 @@ restrict availability to the tight-coupling profile.
 
 All CHUNK_* operations MUST be issued under an active flexible
 file v2 layout obtained via LAYOUTGET against the metadata
-server.  A data server receiving a CHUNK_* operation from a
-client that does not hold a current layout stateid for the
-target file MUST reject the operation with NFS4ERR_BAD_STATEID.
-In trusted-stateid tight coupling, the stateid presented MUST be
-present in the data server's trust table; an unknown stateid
-MUST be rejected with NFS4ERR_BAD_STATEID per
-{{sec-TRUST_STATEID}}.
+server.  Because CHUNK_* encodings require tight coupling (see
+the three constraints in {{sec-ff_device_addr4}}), the presented
+stateid is the tight-coupling-registered layout stateid, and the
+data server MUST validate it against its per-file trust table:
+a stateid not present in the trust table MUST be rejected with
+NFS4ERR_BAD_STATEID per {{sec-TRUST_STATEID}}.  The anonymous
+stateid is reserved for PASSTHROUGH mirrors under loose coupling
+({{sec-ffv2ds_file_info}}) and MUST NOT appear on a CHUNK_*
+operation; a data server receiving CHUNK_* with the anonymous
+stateid MUST reject it with NFS4ERR_BAD_STATEID.
 
 The chunk envelope's safety properties (atomicity via
 chunk_guard4 CAS, integrity via checksum, lock continuity across
@@ -9486,20 +9512,12 @@ selected as the repair client for the range by the metadata server,
 typically via CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).  A data
 server that receives CHUNK_LOCK with the ADOPT flag from a client
 that has not been so designated MAY reject the operation with
-NFS4ERR_ACCESS.  The mechanism by which the data server determines
-designation is coupling-model dependent:
-
-- In a tightly coupled deployment, the metadata server notifies the
-  data server via the control protocol (e.g., TRUST_STATEID with
-  the new client's stateid or a similar facility).
-
-- In a loosely coupled deployment, the data server MAY rely on the
-  metadata server's authentication of the client and accept ADOPT
-  from any authenticated client holding a current layout that
-  includes the range.  The write-hole exposure cost is that a misbehaving
-  client can trigger spurious ownership transfers; the write-hole
-  exposure is bounded by the chunk_guard4 checks that subsequent
-  CHUNK_WRITEs from displaced writers experience.
+NFS4ERR_ACCESS.  Because CHUNK_LOCK is a CHUNK_* operation and
+CHUNK_* encodings require tight coupling
+({{sec-ff_device_addr4}}), the metadata server notifies the data
+server of the ADOPT designation via the control protocol (e.g.,
+TRUST_STATEID with the new client's stateid or a similar
+facility); no loose-coupling ADOPT path exists.
 
 The current lock holder at the moment of ADOPT MAY be:
 
@@ -10692,18 +10710,17 @@ client-*presented*, metadata-server-*assigned*: the client presents the
 32-bit layout-granted identity that the metadata server
 established in ffv2m_client_id (see {{sec-ffv2-mirror4}}) at
 layout-grant time; the client MUST NOT substitute any other
-value.  A client that presents a `cwa_client_id` different
-from its layout's ffv2m_client_id is spoofing another
-writer's identity; the data server rejects the request with
-NFS4ERR_BAD_STATEID (under trusted-stateid tight coupling,
-see {{sec-TRUST_STATEID}}, by comparing `cwa_client_id`
-against the client identity recorded in the data server's
-trust table for the presented layout stateid) or with
-NFS4ERR_ACCESS (in loosely coupled deployments where the
-data server cannot cross-check the metadata-server assignment; the
-loosely coupled data server MAY still perform local
-consistency checks against other layouts it has observed
-for the same file).  `cwa_client_id` MUST NOT be the
+value.  Because CHUNK_* encodings require tight coupling
+({{sec-ff_device_addr4}}), the data server always has an
+authoritative binding for this identity: the metadata server
+registers it via tsa_client_id in TRUST_STATEID
+({{sec-TRUST_STATEID}}) alongside the layout stateid.  The
+data server MUST compare cwa_client_id against the
+tsa_client_id recorded in its trust table for the presented
+layout stateid, and MUST reject a mismatch with
+NFS4ERR_BAD_STATEID: a client that presents a cwa_client_id
+different from its layout's ffv2m_client_id is spoofing
+another writer's identity.  `cwa_client_id` MUST NOT be the
 reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE or
 CHUNK_GUARD_CLIENT_ID_MDS (see {{sec-chunk_guard_none}} and
 {{sec-chunk_guard_mds}}); those sentinels are reserved for
@@ -11358,6 +11375,7 @@ NFS4ERR_STALE:
    /// struct TRUST_STATEID4args {
    ///     /* CURRENT_FH: file */
    ///     stateid4        tsa_layout_stateid;
+   ///     uint32_t        tsa_client_id;
    ///     layoutiomode4   tsa_iomode;
    ///     nfstime4        tsa_expire;
    ///     utf8str_cs      tsa_principal;
@@ -11382,10 +11400,15 @@ NFS4ERR_STALE:
 TRUST_STATEID registers a layout stateid with the data
 server so that subsequent CHUNK_* operations presenting that
 stateid can be validated against the data server's per-file
-trust table.  It is the mechanism by which tight coupling
-(see {{sec-tight-coupling-control}}) is established between
-the metadata server and the data server for a particular
-layout.
+trust table.  The registration also binds the stateid to the
+ffv2m_client_id (tsa_client_id) the metadata server assigned
+to the client at LAYOUTGET time; the data server uses that
+binding to authorize the writer identity carried in
+cwa_client_id on CHUNK_WRITE and in cg_client_id in any
+chunk_guard4 CAS ({{sec-chunk_guard4}}).  TRUST_STATEID is
+the mechanism by which tight coupling (see
+{{sec-tight-coupling-control}}) is established between the
+metadata server and the data server for a particular layout.
 
 TRUST_STATEID has no analog in {{RFC8881}}: pNFS layouts in
 RFC 8881 do not register the layout stateid with data
@@ -11420,6 +11443,26 @@ tsa_layout_stateid:
    against the root filehandle, the data server MUST
    reject the request with NFS4ERR_INVAL -- that
    rejection is the positive response to the probe.
+
+tsa_client_id:
+:  the ffv2m_client_id ({{sec-ffv2-mirror4}}) the
+   metadata server assigned to the client in the
+   layout that produced tsa_layout_stateid.  The data
+   server records tsa_client_id alongside
+   tsa_layout_stateid in the trust-table entry and
+   uses it as the authoritative writer identity for
+   subsequent CHUNK operations: cwa_client_id on
+   CHUNK_WRITE ({{sec-CHUNK_WRITE}}) MUST equal the
+   trust-table's tsa_client_id, and cg_client_id in
+   any chunk_guard4 CAS submitted with the same
+   stateid MUST also match.  A mismatch MUST be
+   rejected with NFS4ERR_BAD_STATEID.  In the
+   capability probe the metadata server SHOULD set
+   tsa_client_id to zero (which is the reserved
+   CHUNK_GUARD_CLIENT_ID_NONE, see
+   {{sec-chunk_guard_none}}); the data server's
+   NFS4ERR_INVAL response to the probe is unaffected
+   by the field's value.
 
 tsa_iomode:
 :  the iomode of the layout (LAYOUTIOMODE4_READ or
