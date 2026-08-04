@@ -13990,7 +13990,7 @@ been validated end-to-end versus specified on paper.
 This appendix is reviewer-aid material and is removed
 from the final RFC.
 
-##  reffs (metadata server and data server) and ec_demo (Client)
+##  reffs (metadata server, data server, and ec_demo client)
 {:numbered="false"}
 
 Organization:
@@ -14005,17 +14005,24 @@ Source:
 Implementation:
 :  `reffs` is an NFSv4.2 server written in C that acts as both a
    metadata server and a data server in a flexible file v2 layout
-   deployment.  `ec_demo` is a client-side library with a
-   demonstration driver that exercises the flexible file v2 layout data path
-   over NFSv4.2 with all three erasure coding types defined in this
-   document.
+   deployment.  A separate binary implements the proxy-server role
+   defined in the companion draft
+   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).  `ec_demo`
+   is a client-side library with a demonstration driver that
+   exercises the flexible file v2 layout data path over NFSv4.2.
 
 Coverage:
 
 - CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, and CHUNK_COMMIT (the
-  happy-path data-plane operations) are implemented end-to-end and
-  have been exercised against the three encoding families (Reed-Solomon
-  Vandermonde, Mojette systematic, Mojette non-systematic).
+  happy-path data-plane operations) are implemented end-to-end
+  and have been exercised against multiple encoding families.
+
+- CHUNK_WRITE_REPAIR and CHUNK_REPAIRED (client-driven single-
+  shard reconstruction with server-side layout-flag clearing)
+  are implemented end-to-end and have been exercised across four
+  file sizes, two encoding families, and one- and two-shard-loss
+  patterns; end-to-end integrity verification passes on
+  substantially all measured cells.
 
 - The chunk_guard4 CAS primitive, including the conflict-detection
   and deterministic-tiebreaker rules in {{sec-chunk_guard4}}, is
@@ -14024,117 +14031,306 @@ Coverage:
 - Per-chunk checksum integrity checking (see
   {{sec-security-checksum-scope}}) is implemented end-to-end.
 
-- Per-inode persistent storage of chunk state (PENDING / FINALIZED
-  / COMMITTED) is implemented using write-temp / fdatasync / rename
-  for crash safety.
+- Per-inode persistent storage of chunk state (PENDING /
+  FINALIZED / COMMITTED) is implemented using write-temp /
+  fdatasync / rename for crash safety.
 
-- The repair data path (CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT,
-  CHUNK_WRITE_REPAIR, CHUNK_REPAIRED, CHUNK_ROLLBACK, and
-  CB_CHUNK_REPAIR) is **specified but not yet implemented** in the
-  prototype.  The corresponding operations currently return
-  NFS4ERR_NOTSUPP.  A fault-injection test harness is in place to
-  drive the repair path once it is implemented.
+- Encoders for FFV2_ENCODING_MIRRORED, FFV2_ENCODING_PASSTHROUGH,
+  FFV2_ENCODING_XOR_PARITY, FFV2_ENCODING_LINUX_MD_RAID,
+  FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+  and FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC are all implemented
+  and cross-verified against the wire-compatibility relationships
+  described in the per-encoding sections of this document.
 
 - The tight-coupling control protocol (TRUST_STATEID,
-  REVOKE_STATEID, BULK_REVOKE_STATEID) is **specified but not yet
-  implemented**.  Data servers advertise loose coupling via
-  `ffdv_tightly_coupled = false`, and synthetic AUTH_SYS
-  credentials with fencing are used for access control.
+  REVOKE_STATEID, BULK_REVOKE_STATEID) is **specified but not
+  yet implemented**.  Data servers currently advertise loose
+  coupling via `ffdv_tightly_coupled = false`, and synthetic
+  AUTH_SYS credentials with fencing are used for access
+  control.
+
+- The proxy-server-mediated repair callback CB_PROXY_REPAIR is
+  **specified but not yet implemented**.  Single-shard repair is
+  currently client-driven via `ec_demo`.
 
 Level of maturity:
-:  Research-quality prototype.  The implementation demonstrates the
-   protocol and has produced the benchmark data summarised below.
-   It is not production-ready; in particular, it does not yet
-   implement the repair path required to tolerate concurrent-writer
-   races or multi-data server failure reconstruction.
+:  Research-quality prototype.  The implementation demonstrates
+   the protocol and has produced the benchmark data summarised
+   below.  It is not production-ready.
 
 Contact:
 :  loghyr@gmail.com.
 
 Last update:
-:  April 2026.
+:  August 2026.
+
+##  Linux kernel flexible file v2 client
+{:numbered="false"}
+
+Organization:
+:  Independent / open source.  Out-of-tree kernel module built
+   against a mainline Linux release candidate.
+
+License:
+:  GPL-2.0.
+
+Source:
+:  Topic branch tracked against a mainline Linux release
+   candidate; contact the author for the current tree pointer.
+
+Implementation:
+:  A native pNFS layout driver at `fs/nfs/flexfilesv2/`
+   implementing the flexible file v2 layout type for the Linux
+   NFS client.  Layout registration, XDR decode of
+   `ffv2_layout4`, device-info discovery, striped and mirrored
+   read and write, and the CHUNK_* wire path are implemented as
+   a peer layout driver alongside the existing flexible file v1
+   driver.
+
+Coverage:
+
+- CHUNK_WRITE, CHUNK_READ, CHUNK_FINALIZE, and CHUNK_COMMIT are
+  implemented end-to-end and wire-verified against the `reffs`
+  metadata server + data server on a 64-bit ARM Linux host at
+  the 7.2-rc series.
+
+- Per-chunk checksum integrity, chunk_guard4 CAS,
+  writeback-chain sequencing (CHUNK_WRITE -> CHUNK_FINALIZE ->
+  CHUNK_COMMIT), and DENSE per-shard offset canonicalization
+  are implemented.
+
+- Encoders for FFV2_ENCODING_MIRRORED, FFV2_ENCODING_XOR_PARITY,
+  FFV2_ENCODING_LINUX_MD_RAID, and FFV2_ENCODING_RS_VANDERMONDE
+  are present.  FFV2_ENCODING_MOJETTE_SYSTEMATIC is scaffolded
+  (returns -EOPNOTSUPP; native kernel implementation deferred).
+
+- NFSv3 and NFSv4.2 data-server dispatch are both implemented.
+
+- NFS4ERR_DELAY retry-with-backoff for concurrent-writer
+  contention on CHUNK_WRITE is **not yet implemented**; multi-
+  writer workloads fall back to the metadata-server-inband
+  write path.
+
+- Client-side single-shard repair write-back is **not yet
+  implemented** in the kernel client.  Reconstruction is
+  available via `ec_demo` against the same metadata server.
+
+Level of maturity:
+:  Developer preview.  Wire-verified on the CHUNK_* happy path
+   against the `reffs` server.
+
+Contact:
+:  loghyr@gmail.com.
+
+Last update:
+:  August 2026.
 
 ##  Interoperability and Benchmarks
 {:numbered="false"}
 
-The reffs + ec_demo implementation has been benchmarked against
-itself (no second flexible file v2 layout implementation is known to the
-authors at the time of writing).  The benchmark suite exercises
-four I/O strategies -- plain mirroring, pure striping, Reed-Solomon
-Vandermonde, Mojette systematic, and Mojette non-systematic -- at
-five file sizes (4 KB, 16 KB, 64 KB, 256 KB, and 1 MB), at two
-parity geometries (4+2 and 8+2), and on two platforms (an Apple M4
-host running macOS with a Rocky Linux 8.10 Docker container, and a
-Fedora 43 native Linux host on aarch64).  Each data point is the
-mean of five measured runs.  Data servers run as Docker containers
-on a single-host bridge network, so absolute latency numbers
-reflect encoding and RPC fan-out cost with near-zero network
-latency; real deployments will see higher absolute values but
-similar overhead ratios.
+Two independent implementations of the client role now exist
+(the `ec_demo` userspace library and the Linux kernel layout
+driver above), and wire-compatibility between them on the
+CHUNK_* data path has been demonstrated against the `reffs`
+metadata server.  In addition, the Mojette encoders in this
+document have been cross-verified against an independent
+Mojette implementation with byte-identical output on the
+FFV2_ENCODING_MOJETTE_SYSTEMATIC and
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC surfaces.
 
-Selected findings:
+The benchmark suite is now organized to distinguish two costs
+that were previously conflated in a single-host Docker
+measurement:
 
-Erasure-coded write overhead is modest at small and mid sizes:
-:  At 4 KB to 64 KB payloads, all three encodings add 14% to 21%
-   write latency relative to plain mirroring.  Above 64 KB the
-   encoding cost begins to dominate; at 1 MB Reed-Solomon and Mojette
-   systematic reach approximately +54%, Mojette non-systematic
-   approximately +62%.
+1. **Algorithm cost** -- the CPU + memory-bandwidth cost of
+   encoding and decoding, measured against pre-allocated RAM
+   buffers with no I/O and no network.  This is the encoder
+   ceiling on a given host.
+2. **Transmit cost** -- the end-to-end cost of a write or read
+   on a real NFSv4.2 mount across three hosts on a LAN,
+   including RPC round-trips, fsync commits, and network
+   serialisation.
 
-The dominant write cost is encoding, not fan-out:
-:  A pure-striping variant (6 data shards, no parity) isolates the two
-   costs.  At 1 MB, plain mirroring writes in 64 ms, striping in
-   71 ms (+11%), Reed-Solomon in 103 ms (+60%).  Of the 39 ms
-   Reed-Solomon penalty, only 7 ms comes from parallel fan-out; the
-   remaining 32 ms is encoding plus two additional parity RPCs.
+The two-axis measurement makes explicit what the previous
+single-host measurement obscured: on a real network, encoder
+algorithm cost is a small fraction of end-to-end transmit
+cost at typical operating points.
 
-Reconstruction of a missing data shard is essentially free for systematic encodings at 4+2:
-:  Reed-Solomon and Mojette systematic
-   add 1% to 6% to read latency in degraded-1 mode (one data shard
-   missing, reconstructed from the remaining five).  A client that
-   discovers a failed data server at read time can reconstruct transparently
-   with no user-visible latency impact.
+### Algorithm cost
 
-At 8+2, systematic-encoding reconstruction diverges:
-:  Mojette
-   systematic reconstruction overhead stays at approximately +4% at
-   1 MB, while Reed-Solomon grows to approximately +54% due to the
-   O(k^3) cost of inverting a k x k matrix in GF(2^8).  Mojette
-   systematic's back-projection algorithm scales with m (parity
-   count) rather than k (data count), so its reconstruction
-   overhead does not exhibit the same growth at wider geometries.
+Algorithm cost has been measured at k=4, m=2, 64 KiB shards
+across the encoders defined in this document.  Reference hosts
+spanned four CPU classes: Apple silicon (aarch64, NEON), Intel
+x86_64 (SSE+AVX2), AMD Zen 2 mobile (SSE+AVX2), and ten uniform
+AMD Zen 3 virtual machines (variance across the fleet under 5%
+on all encoders).
 
-Mojette non-systematic applies a full inverse transform on every read:
-:  Regardless of whether any shard is missing.  At
-   1 MB this produces approximately 4x read overhead at 4+2 and
-   approximately 7x at 8+2.  The read cost is independent of
-   failure count, which is the algorithmic trade-off of the
-   non-systematic form.
+Across these encoders and the four host classes, algorithm-cost
+spread on the same host reaches approximately two orders of
+magnitude at k=4, m=2 (the fastest SIMD-vectorised encoders
+approach the memory-bandwidth ceiling in the tens of GB/s; the
+slowest scalar encoders are compute-bound in the low hundreds
+of MB/s).
 
-Results are platform-independent:
-:  The largest absolute
-   latency delta between macOS M4 and Fedora 43 at 1 MB is 20 ms
-   on writes.  Encoding ordering, overhead percentages, and
-   qualitative scaling behavior are reproducible across operating
-   systems and Docker implementations.
+Two hand-tuning passes on the Reed-Solomon Vandermonde encoder
+in this document, performed without any change to the wire
+format or test vectors, compounded to roughly 17x on aarch64
+NEON and roughly 39x on x86_64 SSSE3 -- a precomputed field-
+multiplication table pass followed by a SIMD byte-shuffle field
+arithmetic pass (`vqtbl1q_u8` / `pshufb`).  A similar
+implementation-only optimization pass on the Mojette encoder
+wrapper yielded roughly 4.85x on x86_64 AVX2, again with
+byte-identical output.
 
-The benchmarks confirm that the protocol's central design claims
-hold in practice: client-side erasure coding is affordable at
-typical payload sizes; systematic encodings reconstruct missing
-shards cheaply; and the scaling properties of the three encoding
-families follow directly from their published algorithmic
-complexities.
+The generalization is that a naive per-encoder microbenchmark
+cell measures implementation quality on that host, not the
+encoding algorithm.  Wide reported spreads across encoders in
+the literature reflect this in large part.
 
-The benchmarks quantify the algorithmic trade-offs each encoding
-family makes: Mojette non-systematic's constant decode cost comes
-at a higher baseline read cost, and Reed-Solomon's matrix-
-inversion reconstruction grows as O(k^3) at wider geometries.
-The choice of default encoding and geometry in a given deployment
-follows from these properties applied to the workload's read /
-write mix, fault-tolerance target, and acceptable encoding cost.
+### Wire compatibility across encoders
 
-A full benchmark report with per-size tables, figures, and the
-platform comparison is available alongside the source code.
+Cross-encoder byte-identity holds among the GF(2^8) encoders
+defined in this document at low parity counts, verified by
+encoding on one implementation and decoding on another
+byte-for-byte:
+
+- At m = 1: FFV2_ENCODING_XOR_PARITY, the P row of
+  FFV2_ENCODING_LINUX_MD_RAID, and the m=1 parity row of
+  FFV2_ENCODING_RS_VANDERMONDE all emit byte-identical output
+  for the same (k, data) input.
+- At m = 2: FFV2_ENCODING_LINUX_MD_RAID and
+  FFV2_ENCODING_RS_VANDERMONDE emit byte-identical output for
+  the same (k, data) input, provided RS_VANDERMONDE uses the
+  hand-crafted P+Q parity rows this document defines (see
+  {{sec-encoding-linux-md-raid}}).
+- At m >= 3: the encoders diverge; RS_VANDERMONDE reverts to
+  normalized-Vandermonde bottom rows and no cross-encoder
+  byte-identity holds.
+
+The practical consequence is that a receiver that supports any
+one of the m <= 2 members consumes bytes emitted by any of the
+others without re-encoding.
+
+### Transmit cost -- three-host real-network sweep
+
+A three-host LAN measurement distributes the roles: one client
+host (kernel NFSv4.2 mount), one proxy-server host, and one
+host running both the metadata server and the data servers.
+Four wire-path variants are distinguished:
+
+| Variant | Client wire        | Encoder location    | Path hops |
+|---------|--------------------|---------------------|-----------|
+| a       | FFv1 -> 1 DS       | none (baseline)     | 1         |
+| b       | FFv1 striped       | none (fan-out only) | 1         |
+| c       | FFv2 -> DSes       | client              | 1         |
+| d       | FFv2 -> PS -> DSes | proxy server        | 2         |
+
+A 180-cell sweep across five encoders x four variants x three
+file sizes x three iterations verified end-to-end data
+integrity in every cell.
+
+Median write throughput at 1 MiB was:
+
+- Variant a (FFv1, single data server): approximately
+  3.2 to 5.1 MB/s across encoders.
+- Variant b (FFv1, striped): approximately
+  9.3 to 13.0 MB/s across encoders.
+- Variant c (FFv2, client-direct): approximately
+  10.0 to 13.5 MB/s across encoders.
+- Variant d (FFv2, via proxy server): approximately
+  1.1 to 2.2 MB/s across encoders.
+
+The key finding: an approximately three-order-of-magnitude
+algorithm-cost spread across encoders **collapses to
+approximately 1.15x wire spread** at the client-direct FFv2
+variant (variant c) at 1 MiB.  End-to-end throughput on this
+topology is dominated by RPC round-trips, fsync commits, and
+network serialisation; encoder algorithm cost is a rounding-
+error contributor at these operating points.
+
+The approximately seven-fold variant d penalty (1.1-2.2 MB/s
+vs 10.0-13.5 MB/s) is the extra client-to-proxy-server hop,
+not the encoder.
+
+Decomposing a 1 MiB write on this topology into cost
+components:
+
+| Cost item                                        | ms/MiB     |
+|--------------------------------------------------|-----------:|
+| Fastest SIMD encode (algorithm only)             | 0.05       |
+| Reed-Solomon Vandermonde SSSE3 encode            | 1.7        |
+| Reed-Solomon Vandermonde scalar encode (pre-opt) | 66         |
+| Variant a: FFv1 to 1 DS (no EC, baseline)        | 215        |
+| Variant b: FFv1 striped (no EC, fan-out)         | 95         |
+| Variant c: FFv2 direct to DSes (client EC)       | 92         |
+| Variant d: FFv2 via PS (PS EC)                   | 610-910    |
+
+The variant c wire floor of approximately 92 ms/MiB is where
+end-to-end throughput lives; encoder algorithm cost accounts
+for well under 2 ms of that budget for every SIMD-tuned
+implementation measured.
+
+### Cost of fault tolerance -- single-shard repair
+
+Client-driven single-shard reconstruction, using the wire-
+level `OP_CHUNK_WRITE_REPAIR` + `OP_CHUNK_REPAIRED` operations
+this document defines, was benchmarked on a colocated topology
+across the following axes:
+
+- File sizes: 4 KB, 64 KB, 1 MB, 16 MB
+- Encoding families: Reed-Solomon Vandermonde and Mojette
+  systematic (both at k=4, m=2)
+- Loss patterns: one shard missing, two shards missing
+- Five iterations per cell (80 cells total)
+
+Substantially all cells passed end-to-end integrity
+verification.  Median repair time at 1 MB, RS 4+2, one shard
+lost was approximately 80 ms; at 16 MB, approximately 990 ms.
+Mojette systematic at the same operating points was
+approximately 72 ms and 900 ms respectively.  Repair cost
+decomposes as `degraded-read cost + write-back cost per lost
+shard` (not (k+m) writes -- CHUNK_WRITE_REPAIR is targeted).
+
+At file sizes >= 64 KB, repair cost is within one order of
+magnitude of a healthy write of the same size -- not the
+catastrophic overhead the phrase "erasure coding repair" might
+imply.  Healthy no-loss reads on any systematic encoding pay
+zero decode cost (the shard is copied through unchanged).
+
+### Encoder-family trade-offs
+
+The wire-spread convergence does not mean encoder choice is
+irrelevant.  It means encoder choice is decided by properties
+other than raw algorithm speed at typical operating points:
+
+- **Fault tolerance and geometry**: FFV2_ENCODING_RS_VANDERMONDE
+  and the Mojette family support arbitrary (k, m);
+  FFV2_ENCODING_XOR_PARITY is m = 1 only;
+  FFV2_ENCODING_LINUX_MD_RAID is m = 2 only.
+- **Interoperability**: the m <= 2 byte-identical set described
+  above lets a deployment mix implementations of different
+  encoders at the same k and m without cross-encoding.
+- **Reconstruction cost**: systematic encodings
+  (FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
+  FFV2_ENCODING_XOR_PARITY, FFV2_ENCODING_LINUX_MD_RAID) short-
+  circuit no-loss reads at wire speed;
+  FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC transforms every shard on
+  every read.
+- **Wide-geometry scaling**: at k >= 8, m >= 4, the Mojette
+  back-projection reconstruction cost scales with m (parity
+  count) rather than k (data count), so its reconstruction
+  overhead does not exhibit the O(k^3) growth Reed-Solomon
+  matrix inversion incurs at wider geometries.
+- **Implementation availability**:
+  FFV2_ENCODING_XOR_PARITY has no external dependency;
+  FFV2_ENCODING_LINUX_MD_RAID's reference construction is
+  present in every Linux kernel at `lib/raid6/`
+  ({{LINUX-RAID6}}).  The remaining encoders in this document
+  have reference implementations in the sources cited above.
+
+A full benchmark report with per-cell tables, per-host medians,
+and per-variant transmit decompositions is available alongside
+the source code.
 
 ## Architectural Implication: Cost of Fault Tolerance {#sec-architectural-implication}
 {:numbered="false"}
