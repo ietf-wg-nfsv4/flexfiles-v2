@@ -1995,156 +1995,42 @@ commit on PROXY_DONE".  This document specifies the per-mirror
 encoding naming primitive; the proxy-server document specifies
 the transactional machinery that uses it.
 
-### FFV2_ENCODING_PASSTHROUGH {#sec-encoding-passthrough}
+### FFV2_ENCODING_PASSTHROUGH
 
-FFV2_ENCODING_PASSTHROUGH is the on-ramp from flexible file v1 layout ({{RFC8435}})
-into the flexible file v2 layout type.  A PASSTHROUGH mirror points at the
-file's bytes as they exist on the data server, without the
-chunk envelope, checksum header, or chunk_guard4 fields that the
-encoded types use.  Client I/O against a PASSTHROUGH mirror
-uses NFSv3 WRITE / READ ({{RFC1813}}) or NFSv4 READ / WRITE
-({{RFC8881}}) directly -- not CHUNK_WRITE / CHUNK_READ.
+The on-ramp from flexible file v1 layout ({{RFC8435}}) into
+this layout type.  A PASSTHROUGH mirror uses NFSv3 WRITE /
+READ ({{RFC1813}}) or NFSv4 READ / WRITE ({{RFC8881}})
+directly against the underlying file -- no chunk envelope, no
+per-chunk CRC.  The full description is in
+{{sec-encoding-passthrough}}.
 
-PASSTHROUGH provides:
+### FFV2_ENCODING_MIRRORED
 
--  Replication of data across N data servers, exactly as flexible file v1 layout
-   does.  Clients write to every replica; clients read from any
-   one.  N-way redundancy tolerates up to N-1 replica losses.
--  Zero encoding compute at the client and zero chunk-metadata
-   overhead at the server.  The on-disk format is the file
-   itself.
--  Compatibility with files that already exist outside flexible file v2 layout.
-   A PASSTHROUGH mirror can be created over an existing
-   file without rewriting it.
-
-PASSTHROUGH does NOT provide:
-
--  Per-chunk integrity.  There is no checksum on the data path.
-   Silent corruption is undetectable without out-of-band
-   tooling (e.g., comparing checksums across replicas).
--  Chunk-grained repair.  The repair unit is the whole file:
-   resilvering picks a trusted replica and replicates it end
-   to end to the affected replica(s).
--  The concurrent-writer disambiguation that chunk_guard4
-   provides for encoded types.
-
-PASSTHROUGH is RECOMMENDED for the assimilation, migration, and
-heterogeneous-mirror use cases described in
-{{sec-heterogeneous-mirrors}}.  New deployments that do not
-need a flexible file v1 layout on-ramp SHOULD use FFV2_ENCODING_MIRRORED for
-the integrity guarantees described in
+Chunked-with-integrity replication: the chunk produced for each
+replica is the application data verbatim -- no transform, no
+parity shards -- but it travels through CHUNK_WRITE /
+CHUNK_READ and so carries the per-chunk checksum and
+concurrent-writer disambiguation.  N-way redundancy at N x
+storage cost.  The full description is in
 {{sec-encoding-mirrored}}.
 
-### FFV2_ENCODING_MIRRORED {#sec-encoding-mirrored}
+### FFV2_ENCODING_XOR_PARITY
 
-FFV2_ENCODING_MIRRORED is the chunked-with-integrity peer of
-PASSTHROUGH.  The chunk produced for each replica is the
-application data verbatim -- no transform, no parity shards --
-but it travels on the wire and is stored on the data server
-through CHUNK_WRITE / CHUNK_READ and so carries every integrity
-property the encoded coding types carry.
+Single-parity systematic RAID-5-shape: k data shards plus one
+XOR-parity shard.  Parameters: k in the range 1 to 254, m
+fixed at 1.  No finite-field arithmetic; the encoding is a
+plain XOR reduction.  The full description, including the
+wire-compatibility relationship with the GF(2^8) family at
+m=1, is in {{sec-encoding-xor-parity}}.
 
-What FFV2_ENCODING_MIRRORED keeps from the mirror model:
+### FFV2_ENCODING_LINUX_MD_RAID
 
--  Zero encoding compute at the client.  Each replica's chunk is
-   the input bytes; there is no transform to apply on write and
-   nothing to decode on read.
--  Storage cost of N x payload, where N is the replica count.
-   Mirroring trades storage for redundancy without the
-   reconstruction machinery that erasure coding requires.
--  Reading any one intact replica is sufficient.  If a replica
-   fails to verify (see below), the client tries another.
-
-What FFV2_ENCODING_MIRRORED adds beyond PASSTHROUGH, by virtue
-of using CHUNK_WRITE and CHUNK_READ:
-
--  Per-chunk checksum on write and on read.  The CRC is computed
-   by the client over the chunk header and chunk payload with
-   the checksum field itself treated as zero
-   ({{sec-checksum4}}), sent on the wire with the chunk,
-   recomputed by the data server before storing, and
-   recomputed again from disk by the data server on every
-   CHUNK_READ.  Wire-level bit flips are caught before the
-   chunk is stored; on-disk bit rot is caught the next time
-   the chunk is read.
--  Per-chunk repair granularity.  When one replica's CRC fails
-   to verify and another replica's verifies, the repair unit
-   is the chunk, not the file: CHUNK_READ the good replica,
-   CHUNK_WRITE to the bad replica, done.  No whole-file
-   resilvering is required.
--  Per-chunk concurrent-writer disambiguation.  Mirrored
-   writes carry the same chunk_guard4 ({{sec-chunk_guard4}})
-   the erasure coding types do.  Two clients racing to write
-   the same offset of the same file fan out to every replica
-   with a guard pair (generation, owning-client short-id) per
-   chunk; the CHUNK_FINALIZE step resolves which writer's
-   chunk wins and the other writer observes a deterministic
-   loss instead of an unresolved split-mirror.
-
-What FFV2_ENCODING_MIRRORED is for: files where the deployment
-wants integrity and replication without the storage savings or
-the reconstruction story of erasure coding.  Small files that
-do not exceed a single stripe, files whose access pattern is
-read-mostly and where the N x storage cost is acceptable, and
-files where the operator prefers the simplicity of "any one
-replica is the file" over "k of (k+m) shards reconstruct the
-file."  The coding choice is per-file; a deployment can mix
-mirrored and erasure-coded files in the same namespace and
-pick whichever fits each file's profile.
-
-What FFV2_ENCODING_MIRRORED is not: a substitute for erasure
-coding when storage efficiency or multi-replica fault tolerance
-matters.  An N-way mirror tolerates up to N-1 replica losses
-but costs N x the payload; a (k, m) erasure coding tolerates m
-losses at (k+m)/k x the payload.  Both have per-chunk
-integrity under this document; the choice is the
-cost-vs-tolerance one.
-
-### FFV2_ENCODING_XOR_PARITY {#sec-encoding-xor-parity}
-
-FFV2_ENCODING_XOR_PARITY is single-parity systematic RAID-5-
-shape: k data shards plus one parity shard computed as the
-bytewise XOR of every data shard.  Parameters: k in the range 1 to 254,
-m fixed at 1.  No finite-field arithmetic is required -- the
-"encoding" is a plain XOR reduction across k shards, so the
-implementation footprint is trivial and the compute cost
-scales at memory bandwidth.
-
-Recovery: for a missing data shard, XOR the surviving k-1
-data shards with the parity shard.  For a missing parity
-shard, XOR all k data shards.  The mathematics is identical
-to the first parity row (P) of a Reed-Solomon Vandermonde or
-Cauchy encoding at m=1, so a receiver capable of any of the
-GF(2^8) codes at m=1 is also wire-compatible with
-XOR_PARITY.  This is the simplest MTI-candidate encoding.
-
-### FFV2_ENCODING_LINUX_MD_RAID {#sec-encoding-linux-md-raid}
-
-FFV2_ENCODING_LINUX_MD_RAID is the Linux kernel md/raid6 P+Q
-double-parity encoding, over GF(2^8) with primitive
-polynomial 0x1d.  Parameters: k in the range 2 to 253, m fixed at 2.
-
-The P parity row is the bytewise XOR of every data shard --
-identical to FFV2_ENCODING_XOR_PARITY's parity when
-FFV2_ENCODING_LINUX_MD_RAID is considered at m=1.  The Q
-parity row is sum(2^i * data_i) evaluated in GF(2^8), with
-the exponentiation done over the RAID-6 generator (see the
-Linux kernel `lib/raid6` sources {{LINUX-RAID6}} for the
-reference implementation).
-
-Wire-compatibility with FFV2_ENCODING_RS_VANDERMONDE at m<=2
-is guaranteed by construction: both encoders emit
-byte-identical P and Q for the same (k, data) input at m<=2.
-RS_VANDERMONDE joined the m<=2 wire-compat set as a
-wire-format revision (hand-crafted P/Q parity rows at m<=2
-instead of the normalized-Vandermonde bottom rows; see
-{{sec-rs-encoding}} below).  This lets a client implementing
-either consume the other without re-encoding.
-
-The k=1 case (a single data shard with P and Q) is
-degenerate and MUST NOT be used with FFV2_ENCODING_LINUX_MD_RAID;
-callers who need triple-mirror semantics MUST use
-FFV2_ENCODING_MIRRORED with N=3 instead.
+Linux kernel md/raid6 P+Q double-parity encoding, over GF(2^8)
+with primitive polynomial 0x1d.  Parameters: k in the range
+2 to 253, m fixed at 2.  Wire-compatible with
+FFV2_ENCODING_RS_VANDERMONDE at m<=2 by construction.  The
+full description, including the P/Q construction and the
+wire-compat relationship, is in {{sec-encoding-linux-md-raid}}.
 
 ### Encoding Type Interoperability {#encoding-type-interoperability}
 
@@ -4330,6 +4216,371 @@ proxy-server role is scoped to avoid in steady state).  None
 of these alternatives address the steady-state case while
 preserving the transition-window flexibility this document
 specifies.
+
+## FFV2_ENCODING_PASSTHROUGH {#sec-encoding-passthrough}
+
+FFV2_ENCODING_PASSTHROUGH is the on-ramp from flexible file v1 layout ({{RFC8435}})
+into the flexible file v2 layout type.  A PASSTHROUGH mirror points at the
+file's bytes as they exist on the data server, without the
+chunk envelope, checksum header, or chunk_guard4 fields that the
+encoded types use.  Client I/O against a PASSTHROUGH mirror
+uses NFSv3 WRITE / READ ({{RFC1813}}) or NFSv4 READ / WRITE
+({{RFC8881}}) directly -- not CHUNK_WRITE / CHUNK_READ.
+
+PASSTHROUGH provides:
+
+-  Replication of data across N data servers, exactly as flexible file v1 layout
+   does.  Clients write to every replica; clients read from any
+   one.  N-way redundancy tolerates up to N-1 replica losses.
+-  Zero encoding compute at the client and zero chunk-metadata
+   overhead at the server.  The on-disk format is the file
+   itself.
+-  Compatibility with files that already exist outside flexible file v2 layout.
+   A PASSTHROUGH mirror can be created over an existing
+   file without rewriting it.
+
+PASSTHROUGH does NOT provide:
+
+-  Per-chunk integrity.  There is no checksum on the data path.
+   Silent corruption is undetectable without out-of-band
+   tooling (e.g., comparing checksums across replicas).
+-  Chunk-grained repair.  The repair unit is the whole file:
+   resilvering picks a trusted replica and replicates it end
+   to end to the affected replica(s).
+-  The concurrent-writer disambiguation that chunk_guard4
+   provides for encoded types.
+
+PASSTHROUGH is RECOMMENDED for the assimilation, migration, and
+heterogeneous-mirror use cases described in
+{{sec-heterogeneous-mirrors}}.  New deployments that do not
+need a flexible file v1 layout on-ramp SHOULD use FFV2_ENCODING_MIRRORED for
+the integrity guarantees described in
+{{sec-encoding-mirrored}}.
+
+## FFV2_ENCODING_MIRRORED {#sec-encoding-mirrored}
+
+FFV2_ENCODING_MIRRORED is the chunked-with-integrity peer of
+PASSTHROUGH.  The chunk produced for each replica is the
+application data verbatim -- no transform, no parity shards --
+but it travels on the wire and is stored on the data server
+through CHUNK_WRITE / CHUNK_READ and so carries every integrity
+property the encoded coding types carry.
+
+What FFV2_ENCODING_MIRRORED keeps from the mirror model:
+
+-  Zero encoding compute at the client.  Each replica's chunk is
+   the input bytes; there is no transform to apply on write and
+   nothing to decode on read.
+-  Storage cost of N x payload, where N is the replica count.
+   Mirroring trades storage for redundancy without the
+   reconstruction machinery that erasure coding requires.
+-  Reading any one intact replica is sufficient.  If a replica
+   fails to verify (see below), the client tries another.
+
+What FFV2_ENCODING_MIRRORED adds beyond PASSTHROUGH, by virtue
+of using CHUNK_WRITE and CHUNK_READ:
+
+-  Per-chunk checksum on write and on read.  The CRC is computed
+   by the client over the chunk header and chunk payload with
+   the checksum field itself treated as zero
+   ({{sec-checksum4}}), sent on the wire with the chunk,
+   recomputed by the data server before storing, and
+   recomputed again from disk by the data server on every
+   CHUNK_READ.  Wire-level bit flips are caught before the
+   chunk is stored; on-disk bit rot is caught the next time
+   the chunk is read.
+-  Per-chunk repair granularity.  When one replica's CRC fails
+   to verify and another replica's verifies, the repair unit
+   is the chunk, not the file: CHUNK_READ the good replica,
+   CHUNK_WRITE to the bad replica, done.  No whole-file
+   resilvering is required.
+-  Per-chunk concurrent-writer disambiguation.  Mirrored
+   writes carry the same chunk_guard4 ({{sec-chunk_guard4}})
+   the erasure coding types do.  Two clients racing to write
+   the same offset of the same file fan out to every replica
+   with a guard pair (generation, owning-client short-id) per
+   chunk; the CHUNK_FINALIZE step resolves which writer's
+   chunk wins and the other writer observes a deterministic
+   loss instead of an unresolved split-mirror.
+
+What FFV2_ENCODING_MIRRORED is for: files where the deployment
+wants integrity and replication without the storage savings or
+the reconstruction story of erasure coding.  Small files that
+do not exceed a single stripe, files whose access pattern is
+read-mostly and where the N x storage cost is acceptable, and
+files where the operator prefers the simplicity of "any one
+replica is the file" over "k of (k+m) shards reconstruct the
+file."  The coding choice is per-file; a deployment can mix
+mirrored and erasure-coded files in the same namespace and
+pick whichever fits each file's profile.
+
+What FFV2_ENCODING_MIRRORED is not: a substitute for erasure
+coding when storage efficiency or multi-replica fault tolerance
+matters.  An N-way mirror tolerates up to N-1 replica losses
+but costs N x the payload; a (k, m) erasure coding tolerates m
+losses at (k+m)/k x the payload.  Both have per-chunk
+integrity under this document; the choice is the
+cost-vs-tolerance one.
+
+## FFV2_ENCODING_XOR_PARITY {#sec-encoding-xor-parity}
+
+### Overview
+
+FFV2_ENCODING_XOR_PARITY is a single-parity, systematic,
+RAID-5-shape encoding: k data shards accompanied by one parity
+shard computed as the bytewise XOR of every data shard.
+Parameters: k in the range 1 to 254, m fixed at 1.
+
+Unlike Reed-Solomon and Linux md/raid6, XOR_PARITY requires no
+finite-field arithmetic.  The "encoding" is a plain XOR
+reduction across k shards, so the implementation footprint is
+trivial and the compute cost scales at memory bandwidth.  This
+makes XOR_PARITY the simplest MTI-candidate encoding: any
+conformant implementation can support it without a GF(2^8)
+library.
+
+### Encoding
+
+Given k data shards, each of shard_len bytes, encoding produces
+a single parity shard of shard_len bytes:
+
+~~~
+For each byte position j in [0, shard_len):
+  parity[j] = data[0][j] XOR data[1][j] XOR ... XOR data[k-1][j]
+~~~
+
+All shards (data and parity) are the same size.  No table
+lookups, no multiplications; a straight bitwise XOR reduction.
+
+### Recovery
+
+XOR_PARITY tolerates the loss of exactly one shard (any one
+data shard or the parity shard).
+
+- Missing data shard `data[i]`: reconstruct by XOR-ing all
+  surviving shards (k-1 data shards plus the parity shard):
+  `data[i][j] = parity[j] XOR data[0][j] XOR ... (skip i) ... XOR data[k-1][j]`.
+- Missing parity shard: recompute from the k intact data
+  shards using the encoding step above.
+
+Reconstruction cost is a single XOR reduction over shard_len
+bytes; memory bandwidth dominates.  No matrix inversion is
+required.
+
+Loss of two or more shards is unrecoverable under XOR_PARITY.
+Deployments requiring tolerance of two or more concurrent
+losses SHOULD use FFV2_ENCODING_LINUX_MD_RAID (m=2) or
+FFV2_ENCODING_RS_VANDERMONDE (configurable m).
+
+### Interoperability
+
+XOR_PARITY produces a parity shard byte-identical to the P
+(first) parity row of Reed-Solomon Vandermonde encoding at m=1
+and to the P row of Linux md/raid6 at any m >= 1.  This
+follows from using the same primitive coefficients:
+
+- RS Vandermonde at m=1 uses parity row `[1, 1, ..., 1]` in
+  GF(2^8), which reduces to bitwise XOR (see
+  {{sec-rs-encoding}}).
+- LINUX_MD_RAID's P row is defined as the bitwise XOR of every
+  data shard, identical to XOR_PARITY's parity by
+  construction.
+
+A receiver capable of FFV2_ENCODING_RS_VANDERMONDE at m=1 or
+FFV2_ENCODING_LINUX_MD_RAID at m >= 1 therefore consumes an
+XOR_PARITY-encoded chunk without re-encoding, provided the k
+matches.  Conversely, an XOR_PARITY receiver consumes the P
+row of any GF(2^8) family encoding at m >= 1 unchanged.
+
+### XOR_PARITY Interoperability Test Vectors
+
+Concrete byte-level test vector with `k = 3`, `m = 1`,
+`shard_len = 1`:
+
+| `data[0]` | `data[1]` | `data[2]` | parity | Notes |
+|---|---|---|---|---|
+| `0x00`  | `0x00`  | `0x00`  | `0x00` | zero input                    |
+| `0x01`  | `0x00`  | `0x00`  | `0x01` | single non-zero data shard    |
+| `0x01`  | `0x02`  | `0x04`  | `0x07` | 0x01 XOR 0x02 XOR 0x04 = 0x07 |
+| `0x37`  | `0x91`  | `0xac`  | `0x0a` | matches P from {{tbl-rs-test-vector-k3m2}} |
+| `0xff`  | `0xff`  | `0x00`  | `0x00` | 0xff XOR 0xff XOR 0x00 = 0x00 |
+{: #tbl-xor-parity-test-vector title="XOR_PARITY test vector: k=3, m=1"}
+
+The fourth row is byte-identical to the P entry of the same
+input in {{tbl-rs-test-vector-k3m2}} -- the wire-compat
+property in action.
+
+### XOR_PARITY Shard Sizes
+
+All XOR_PARITY shards (data and parity) are exactly shard_len
+bytes.  chunk_size equals shard_len for every mirror in the
+layout.  Total storage overhead is `1/k` of payload.
+
+| Configuration | File Size | Shard Size | Total Storage | Overhead |
+|---|---|---|---|---|
+| 3+1 | 3 KB | 1 KB   | 4 KB    | 33% |
+| 3+1 | 1 MB | ~342 KB | ~1.33 MB | 33% |
+| 7+1 | 7 KB | 1 KB   | 8 KB    | 14% |
+| 7+1 | 1 MB | ~147 KB | ~1.14 MB | 14% |
+{: #tbl-xor-parity-shards title="XOR_PARITY shard sizes for common configurations"}
+
+## FFV2_ENCODING_LINUX_MD_RAID {#sec-encoding-linux-md-raid}
+
+### Overview
+
+FFV2_ENCODING_LINUX_MD_RAID is the Linux kernel md/raid6 P+Q
+double-parity encoding, evaluated in GF(2^8) with primitive
+polynomial `x^8 + x^4 + x^3 + x^2 + 1` (encoded as `0x1d` when
+the implicit degree-8 term is dropped, `0x11d` when it is
+kept).  Parameters: k in the range 2 to 253, m fixed at 2.
+
+The encoding produces two parity shards.  P is the bitwise XOR
+of every data shard (identical to FFV2_ENCODING_XOR_PARITY's
+parity, see {{sec-encoding-xor-parity}}).  Q is a weighted sum
+`sum(g^i * data_i)` in GF(2^8) with `g = 2`.  The construction
+is bit-for-bit compatible with Linux kernel `lib/raid6`
+{{LINUX-RAID6}} and with FFV2_ENCODING_RS_VANDERMONDE at m<=2
+(see {{sec-rs-encoding}}).
+
+The k=1 case (a single data shard with P and Q) is degenerate
+and MUST NOT be used with FFV2_ENCODING_LINUX_MD_RAID.  Callers
+who need triple-mirror semantics MUST use
+FFV2_ENCODING_MIRRORED with N=3 instead.
+
+### LINUX_MD_RAID Galois Field Arithmetic
+
+All LINUX_MD_RAID operations are performed over GF(2^8), the
+Galois field with 256 elements.  Each element is represented
+as a byte.
+
+Irreducible Polynomial:
+:  The field is constructed using `x^8 + x^4 + x^3 + x^2 + 1`,
+encoded as `0x1d` when the implicit x^8 term is dropped (Linux
+md convention), or `0x11d` when it is kept (RS Vandermonde
+convention in {{sec-rs-encoding}}).  Both encodings refer to
+the same field; only the notation differs.
+
+Primitive Element:
+:  `g = 2`.  Powers of `g` cycle through GF(2^8) \ {0} with
+period 255.
+
+Addition:
+:  Bitwise XOR.
+
+Multiplication:
+:  Via log/antilog tables in the reference implementation, or
+SIMD vector multiply in modern kernels.  See the Linux kernel
+`lib/raid6/{int.uc, sse2.c, altivec.uc, ...}` sources
+{{LINUX-RAID6}} for the canonical implementation.
+
+### LINUX_MD_RAID Encoding
+
+Given k data shards, each of shard_len bytes, encoding
+produces two parity shards P and Q, each shard_len bytes:
+
+~~~
+For each byte position j in [0, shard_len):
+  P[j] = data[0][j] XOR data[1][j] XOR ... XOR data[k-1][j]
+  Q[j] =         1 * data[0][j]
+           XOR   g * data[1][j]
+           XOR g^2 * data[2][j]
+           XOR ...
+           XOR g^(k-1) * data[k-1][j]
+~~~
+
+where multiplication is in GF(2^8) and `g = 2`.  All shards
+(data, P, and Q) are the same size.
+
+The P row is identical to FFV2_ENCODING_XOR_PARITY's parity by
+construction; the two encodings share the P computation.  The
+Q row is the m=2 P+Q construction from {{sec-rs-encoding}},
+and produces byte-identical output to
+FFV2_ENCODING_RS_VANDERMONDE at m=2.
+
+### LINUX_MD_RAID Recovery
+
+LINUX_MD_RAID tolerates up to two concurrent shard losses (any
+two of the k+2 shards).
+
+Single-shard failure:
+:  If only P or only Q is missing, recompute from the k intact
+data shards using the encoding step above.
+:  If exactly one data shard `data[i]` is missing but both P
+and Q are intact, prefer the P-only recovery (cheaper): XOR
+all surviving shards (k-1 data plus P) to recover `data[i]`.
+
+Dual-shard failure:
+:  If two data shards are missing, use both P and Q to solve a
+2x2 linear system in GF(2^8) per byte position.  See the Linux
+kernel `lib/raid6/recov.c` for the canonical solver.
+:  If one data shard and one parity shard are missing, first
+recover the data shard using the intact parity row (as in the
+single-shard case), then recompute the missing parity from the
+reconstructed data.
+
+Loss of three or more shards is unrecoverable under
+LINUX_MD_RAID.  Deployments requiring m >= 3 fault tolerance
+MUST use FFV2_ENCODING_RS_VANDERMONDE.
+
+### LINUX_MD_RAID Interoperability
+
+FFV2_ENCODING_LINUX_MD_RAID is wire-compatible with
+FFV2_ENCODING_RS_VANDERMONDE at m <= 2 by construction: both
+encoders emit byte-identical P and Q for the same (k, data)
+input at m <= 2.
+
+- At m = 1, LINUX_MD_RAID's P row equals RS_VANDERMONDE's m=1
+  parity and equals XOR_PARITY's parity (see
+  {{sec-encoding-xor-parity}}).
+- At m = 2, LINUX_MD_RAID's P+Q equals RS_VANDERMONDE's m=2
+  P+Q rows byte-for-byte.
+
+RS_VANDERMONDE joined the m <= 2 wire-compat set as a
+wire-format revision in this document: its m <= 2 parity rows
+are the hand-crafted P/Q construction rather than the
+normalized-Vandermonde bottom rows RS uses at m >= 3.  See
+{{sec-rs-encoding}} for the RS construction and its
+interoperability parameters.
+
+A client implementing either LINUX_MD_RAID or RS_VANDERMONDE
+at m <= 2 can consume the other without re-encoding, provided
+the (k, m) geometry matches.
+
+### LINUX_MD_RAID Interoperability Test Vectors
+
+Concrete byte-level test vector with `k = 3`, `m = 2`,
+`shard_len = 1`:
+
+| `data[0]` | `data[1]` | `data[2]` | P     | Q     | Notes |
+|---|---|---|---|---|---|
+| `0x00`  | `0x00`  | `0x00`  | `0x00` | `0x00` | zero input                     |
+| `0x01`  | `0x02`  | `0x03`  | `0x00` | `0x09` | 1 XOR (2*2) XOR (4*3) = 1 XOR 4 XOR 12 = 9 |
+| `0x80`  | `0x00`  | `0x00`  | `0x80` | `0x80` | Q = 1 * 0x80 = 0x80            |
+| `0x00`  | `0x80`  | `0x00`  | `0x80` | `0x1d` | Q = 2 * 0x80 = 0x100 -> reduce by 0x11d -> 0x1d |
+| `0x00`  | `0x00`  | `0x80`  | `0x80` | `0x3a` | Q = 4 * 0x80 = 2 * 0x1d = 0x3a |
+| `0x37`  | `0x91`  | `0xac`  | `0x0a` | `0x82` | general non-degenerate case    |
+{: #tbl-linux-md-test-vector title="LINUX_MD_RAID test vector: k=3, m=2"}
+
+Every row above is byte-identical to the k=3, m=2 test vector
+for FFV2_ENCODING_RS_VANDERMONDE ({{tbl-rs-test-vector-k3m2}})
+at the same input.  This is the wire-compat property in
+action: an implementation whose LINUX_MD_RAID output matches
+these bytes is producing the same wire encoding as
+RS_VANDERMONDE at m=2.
+
+### LINUX_MD_RAID Shard Sizes
+
+All LINUX_MD_RAID shards (data, P, Q) are exactly shard_len
+bytes.  chunk_size equals shard_len for every mirror in the
+layout.  Total storage overhead is `2/k` of payload.
+
+| Configuration | File Size | Shard Size | Total Storage | Overhead |
+|---|---|---|---|---|
+| 4+2 | 4 KB | 1 KB   | 6 KB    | 50% |
+| 4+2 | 1 MB | 256 KB | 1.5 MB  | 50% |
+| 8+2 | 4 KB | 512 B  | 5 KB    | 25% |
+| 8+2 | 1 MB | 128 KB | 1.25 MB | 25% |
+{: #tbl-linux-md-shards title="LINUX_MD_RAID shard sizes for common configurations"}
 
 ## Reed-Solomon Vandermonde Encoding (FFV2_ENCODING_RS_VANDERMONDE) {#sec-rs-encoding}
 
