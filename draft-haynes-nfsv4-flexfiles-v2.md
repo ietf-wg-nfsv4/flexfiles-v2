@@ -678,7 +678,7 @@ proxy server:
 I/O on the metadata server's behalf -- either as a translator for
 clients that cannot speak the file's native encoding, or as a
 proxy-mediated data path during whole-file move and repair
-operations.  A proxy server may additionally act as a data server.
+operations.  A proxy server may additional roles.
 
 recalling a layout:
 
