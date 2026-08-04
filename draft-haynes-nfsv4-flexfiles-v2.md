@@ -136,6 +136,12 @@ informative:
       - org: Linux kernel contributors
     target: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/raid6
     date: false
+  DCACHE:
+    title: "dCache -- a distributed storage system"
+    author:
+      - org: dCache collaboration (DESY, Fermilab, NDGF)
+    target: https://dcache.org/
+    date: false
 
 --- abstract
 
@@ -1254,9 +1260,10 @@ be sent by pNFS clients.
 
 Other tight-coupling control protocols may exist or be defined
 elsewhere.  Existing pNFS server implementations with established
-back-end control protocols -- for example, dCache, which has its
-own control protocol between its metadata service and its data
-servers -- satisfy the tightly-coupled locking model
+back-end control protocols -- for example, dCache {{?DCACHE}},
+which has its own control protocol between its metadata
+service and its data servers -- satisfy the tightly-coupled
+locking model
 ({{sec-state-locking}}) through their own mechanisms and are
 conformant under this specification provided they meet the
 functional capabilities described there.  Such implementations
