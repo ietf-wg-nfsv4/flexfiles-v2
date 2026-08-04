@@ -1180,6 +1180,42 @@ as follows:
    server requires the ability to propagate the request to the
    corresponding storage devices.
 
+Scope of this document.  The wire-level control-protocol
+operations this document defines -- TRUST_STATEID,
+REVOKE_STATEID, and BULK_REVOKE_STATEID
+({{sec-tight-coupling-control}}) -- carry only the association
+between a **layout** stateid, the ffv2m_client_id the metadata
+server assigned to the client, and (for TRUST_STATEID) the
+iomode, expiry, and principal.  They do NOT carry openowner,
+lockowner, byte-range, lock-type, the identity of an
+associated open stateid, or delegation-type.
+
+The bullets above (OPEN state, advisory byte-range lock state,
+mandatory byte-range lock state, and delegation state)
+enumerate the associations the storage device would need in
+order to enforce POSIX-conformant OPEN, byte-range locking,
+and delegation semantics against per-client identity rather
+than against the loose-coupling synthetic uid/gid.  These are
+inherited from the general tight-coupling locking model in
+Section 2.3 of {{RFC8435}}.  Trusted-stateid tight coupling as
+defined by this document satisfies these associations **only
+for the layout stateid**; a deployment that requires mandatory
+byte-range locking, delegation recall, or the finer-grained
+open/lock stateid associations MUST use a back-end control
+protocol between the metadata server and the storage device
+that carries this state.  Such a back-end control protocol is
+out of scope for this document.
+
+A deployment that does not need those finer-grained
+associations -- for example, an FFv2 deployment whose per-file
+access-control decisions live entirely on the metadata server
+and whose storage devices see only chunk-level CAS on layout
+stateids -- is conformant with the trusted-stateid tight-
+coupling model using only the TRUST_STATEID family.  That
+scope covers the layout stateid and, transitively via
+ffv2m_client_id, the writer identity carried on CHUNK
+operations.
+
 Because the client will possess and use stateids valid on the storage
 device, there will be a client lease on the storage device, and the
 possibility of lease expiration does exist.  The best approach for the
