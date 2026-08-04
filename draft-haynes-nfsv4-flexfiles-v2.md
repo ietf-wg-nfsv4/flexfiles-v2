@@ -508,6 +508,35 @@ not be confused with the application-layer "block" defined above.
 Where ambiguity matters, this document writes "chunk-state block"
 or relies on context (operation names, state names) to disambiguate.
 
+client-side erasure coding:
+
+:  Erasure coding in which the encode and decode transforms are
+   performed on the pNFS client, and encoded shards are written
+   directly to the data servers (rather than being computed at
+   a server-side coordinator).  This is the deployment shape
+   Flexible File Version 2 Layout Type is designed for; the
+   chunk substrate and CHUNK operations that make it safe are
+   specified in {{sec-system-model}} and {{sec-new-ops}}.
+   Contrast: server-side erasure coding, where a coordinator
+   holds the entire stripe and produces parity, is out of scope
+   for this document.
+
+client-side mirroring:
+
+:  a feature in which the client, not the server, is responsible for
+updating all of the mirrored copies of a layout segment.
+
+compare-and-swap (CAS):
+
+:  an atomic primitive from concurrent programming in which an
+update is conditional on a prior observed value: the operation
+succeeds only if the current value matches an expected prior value,
+and otherwise fails so the caller can retry.  In this document, the
+chunk_guard4 mechanism (see {{sec-chunk_guard4}}) implements CAS at
+the chunk level; the "expected prior value" is the chunk_guard4 the
+writer observed at read time, and the "fail" outcome is
+NFS4ERR_CHUNK_GUARDED.
+
 control communication requirements:
 
 :  the specification for information on layouts, stateids, file metadata,
@@ -522,10 +551,11 @@ use to meet the control communication requirement for that layout type.
 This need not be a protocol as normally understood.  In some cases,
 the same protocol may be used as a control protocol and storage protocol.
 
-client-side mirroring:
+(file) data:
 
-:  a feature in which the client, not the server, is responsible for
-updating all of the mirrored copies of a layout segment.
+:  that part of the file system object that contains the data to be read
+or written.  It is the contents of the object rather than the attributes
+of the object.
 
 data block:
 
@@ -535,10 +565,10 @@ data file:
 
 :  The data portion of the file, stored on the data server.
 
-replication of data:
+data server:
 
-:  Data replication is making and storing multiple copies of data in
-different locations.
+:  a pNFS server that provides the file's data when the file system
+object is accessed over a file-based protocol.
 
 erasure coding:
 
@@ -547,41 +577,6 @@ shards (k data shards and m parity shards) so that the original
 content can be reconstructed from any sufficient subset of the
 shards.  Shards are transmitted as the payload of CHUNK operations
 and stored on different data servers.
-
-client-side erasure coding:
-
-:  Erasure coding in which the encode and decode transforms are
-   performed on the pNFS client, and encoded shards are written
-   directly to the data servers (rather than being computed at
-   a server-side coordinator).  This is the deployment shape
-   Flexible File Version 2 Layout Type is designed for; the
-   chunk substrate and CHUNK operations that make it safe are
-   specified in {{sec-system-model}} and {{sec-new-ops}}.
-   Contrast: server-side erasure coding, where a coordinator
-   holds the entire stripe and produces parity, is out of scope
-   for this document.
-
-compare-and-swap (CAS):
-
-:  an atomic primitive from concurrent programming in which an
-update is conditional on a prior observed value: the operation
-succeeds only if the current value matches an expected prior value,
-and otherwise fails so the caller can retry.  In this document, the
-chunk_guard4 mechanism (see {{sec-chunk_guard4}}) implements CAS at
-the chunk level; the "expected prior value" is the chunk_guard4 the
-writer observed at read time, and the "fail" outcome is
-NFS4ERR_CHUNK_GUARDED.
-
-(file) data:
-
-:  that part of the file system object that contains the data to be read
-or written.  It is the contents of the object rather than the attributes
-of the object.
-
-data server:
-
-:  a pNFS server that provides the file's data when the file system
-object is accessed over a file-based protocol.
 
 escrow (lock escrow, metadata-server escrow):
 
@@ -692,18 +687,23 @@ server to the client.  Graceful here means that the client would have
 the opportunity to flush any WRITEs, etc., before returning the layout
 to the metadata server.
 
-revoking a layout:
+replication of data:
 
-:  an invalidation of a specific layout by the metadata server.
-Once revocation occurs, the metadata server will not accept as valid any
-reference to the revoked layout, and a storage device will not accept
-any client access based on the layout.
+:  Data replication is making and storing multiple copies of data in
+different locations.
 
 resilvering:
 
 :  the act of rebuilding a mirrored copy of a layout segment from a
 known good copy of the layout segment.  Note that this can also be done
 to create a new mirrored copy of the layout segment.
+
+revoking a layout:
+
+:  an invalidation of a specific layout by the metadata server.
+Once revocation occurs, the metadata server will not accept as valid any
+reference to the revoked layout, and a storage device will not accept
+any client access based on the layout.
 
 rsize:
 
