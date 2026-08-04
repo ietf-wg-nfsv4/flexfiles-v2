@@ -1184,7 +1184,7 @@ Scope of this document.  The wire-level control-protocol
 operations this document defines -- TRUST_STATEID,
 REVOKE_STATEID, and BULK_REVOKE_STATEID
 ({{sec-tight-coupling-control}}) -- carry only the association
-between a **layout** stateid, the ffv2m_client_id the metadata
+between a layout stateid, the ffv2m_client_id the metadata
 server assigned to the client, and (for TRUST_STATEID) the
 iomode, expiry, and principal.  They do NOT carry openowner,
 lockowner, byte-range, lock-type, the identity of an
@@ -1198,8 +1198,8 @@ and delegation semantics against per-client identity rather
 than against the loose-coupling synthetic uid/gid.  These are
 inherited from the general tight-coupling locking model in
 Section 2.3 of {{RFC8435}}.  Trusted-stateid tight coupling as
-defined by this document satisfies these associations **only
-for the layout stateid**; a deployment that requires mandatory
+defined by this document satisfies these associations only
+for the layout stateid; a deployment that requires mandatory
 byte-range locking, delegation recall, or the finer-grained
 open/lock stateid associations MUST use a back-end control
 protocol between the metadata server and the storage device
@@ -1244,7 +1244,7 @@ control protocol that:
     timeout, lease expiry, or layout return after error.
 
 This specification defines one such control protocol, designated
-*trusted-stateid tight coupling*, as three new NFSv4.2 operations:
+trusted-stateid tight coupling, as three new NFSv4.2 operations:
 TRUST_STATEID ({{sec-TRUST_STATEID}}), REVOKE_STATEID
 ({{sec-REVOKE_STATEID}}), and BULK_REVOKE_STATEID
 ({{sec-BULK_REVOKE_STATEID}}).  These operations are sent by the
@@ -1478,7 +1478,7 @@ FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry,
 per {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} -- the storage device observes
 CHUNK operations arriving from the proxy server's address rather than from
 the client directly.  The tsa_principal the metadata server
-populates in TRUST_STATEID is the principal the *storage device*
+populates in TRUST_STATEID is the principal the storage device
 will observe on those CHUNK operations, and {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}'s credential-forwarding rules (in particular rule 1,
 "Credential pass-through") require the proxy server to forward the
 client's credentials verbatim on every CHUNK operation it issues
@@ -2705,7 +2705,7 @@ Fallback when no overlap exists:
        fallback).  This is correct but serializes all I/O for
        the encoding-ignorant client through a single actor.
 
-   3.  Route the client through a **translating proxy** that
+   3.  Route the client through a translating proxy that
        understands both the file's native encoding and an encoding
        the client does support.  The metadata server issues a layout with
        the proxy's data-server entry carrying
@@ -3279,7 +3279,7 @@ The protocol provides two levels of payload integrity, consumed at
 different points in the read path:
 
 Atomicity:
-:  A payload is **atomic** when all of the chunks that belong
+:  A payload is atomic when all of the chunks that belong
    to it carry the same chunk_guard4 value (see
    {{sec-chunk_guard4}}).  Atomicity alone does NOT imply the
    bytes are free of corruption; it means only that every chunk in
@@ -3289,7 +3289,7 @@ Atomicity:
    across chunks.
 
 Integrity:
-:  A payload has **integrity** when it is atomic AND every
+:  A payload has integrity when it is atomic AND every
    contained chunk passes its checksum check.  Integrity is the
    precondition for returning the payload's data block to the
    application.
@@ -3301,8 +3301,8 @@ byte-level corruption (network errors, media errors, software bugs
 in the erasure transform).  Neither subsumes the other.
 
 The two-level integrity model also reflects a deeper property of
-distributed writes: **last-writer-wins does not apply to a payload
-spread across independent data servers.**  The ordering of writes
+distributed writes: last-writer-wins does not apply to a payload
+spread across independent data servers.  The ordering of writes
 arriving at one data server may differ from the ordering arriving
 at another; the "last" write on one data server may well be the
 "first" on another.  The chunk_guard4 CAS primitive (see
@@ -4054,7 +4054,7 @@ flow defined in {{sec-repair-selection}} to reconstruct the file in
 place.  In this case the metadata server MUST either:
 
 1.  Construct a new layout backed by replacement data servers and
-    drive the reconstruction via the **Proxy Server** mechanism (a
+    drive the reconstruction via the proxy server mechanism (a
     designated data server acts as the source of truth for client
     I/O during the transition, pushing reconstructed content to the
     replacement data servers in the background).  The Proxy Server mechanism also covers the non-repair cases where a file's layout
@@ -5705,8 +5705,8 @@ Atomicity and Invalidated Triples" under
 
 ##  Consistency Guarantees {#sec-system-model-consistency}
 
-The protocol provides **per-chunk linearizability on COMMITTED
-state**:
+The protocol provides per-chunk linearizability on COMMITTED
+state:
 
 1.  Once CHUNK_COMMIT returns success to a writer for a given
     chunk, every subsequent CHUNK_READ whose stateid postdates
@@ -10999,7 +10999,7 @@ chunk at zero-based position i within the payload is
 `(cwa_cohort_id, cwa_client_id, cwa_co_ids[i])`.
 
 `cwa_client_id` identifies the writer.  It is
-client-*presented*, metadata-server-*assigned*: the client presents the
+client-presented, metadata-server-assigned: the client presents the
 32-bit layout-granted identity that the metadata server
 established in ffv2m_client_id (see {{sec-ffv2-mirror4}}) at
 layout-grant time; the client MUST NOT substitute any other
@@ -14084,14 +14084,14 @@ Coverage:
   described in the per-encoding sections of this document.
 
 - The tight-coupling control protocol (TRUST_STATEID,
-  REVOKE_STATEID, BULK_REVOKE_STATEID) is **specified but not
-  yet implemented**.  Data servers currently advertise loose
+  REVOKE_STATEID, BULK_REVOKE_STATEID) is specified but not
+  yet implemented.  Data servers currently advertise loose
   coupling via `ffdv_tightly_coupled = false`, and synthetic
   AUTH_SYS credentials with fencing are used for access
   control.
 
 - The proxy-server-mediated repair callback CB_PROXY_REPAIR is
-  **specified but not yet implemented**.  Single-shard repair is
+  specified but not yet implemented.  Single-shard repair is
   currently client-driven via `ec_demo`.
 
 Level of maturity:
@@ -14148,12 +14148,12 @@ Coverage:
 - NFSv3 and NFSv4.2 data-server dispatch are both implemented.
 
 - NFS4ERR_DELAY retry-with-backoff for concurrent-writer
-  contention on CHUNK_WRITE is **not yet implemented**; multi-
+  contention on CHUNK_WRITE is not yet implemented; multi-
   writer workloads fall back to the metadata-server-inband
   write path.
 
-- Client-side single-shard repair write-back is **not yet
-  implemented** in the kernel client.  Reconstruction is
+- Client-side single-shard repair write-back is not yet
+  implemented in the kernel client.  Reconstruction is
   available via `ec_demo` against the same metadata server.
 
 Level of maturity:
@@ -14380,7 +14380,7 @@ The headline question every storage audience asks of an
 erasure-coding protocol is: "what does it cost when something goes
 wrong?"  At the systematic-encoding operating points measured
 (Mojette systematic at 4+2 and 8+2), the benchmark answer is
-**essentially zero**.  Mojette systematic at 4+2 reconstructs a
+essentially zero.  Mojette systematic at 4+2 reconstructs a
 missing data shard with read-latency overhead within run-to-run
 noise of healthy operation.  Mojette systematic at 8+2 holds at
 approximately +4%.
