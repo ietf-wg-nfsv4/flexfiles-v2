@@ -344,7 +344,7 @@ on purpose: the hot path pays for an 8-byte header and a
 local CAS; the cold path pays for a selected actor and a
 small number of round-trips.
 
-The CHUNK_* operation set in this draft is the minimum
+The CHUNK operation set in this draft is the minimum
 sufficient to drive the chunk state machine
 ({{sec-system-model-chunk-state}}) plus the repair flow
 above.  CHUNK_WRITE places PENDING content; CHUNK_FINALIZE
@@ -485,7 +485,7 @@ checksum (per-chunk integrity), a provenance identifier
 (PENDING / FINALIZED / COMMITTED via the chunk state machine,
 see {{sec-system-model-chunk-state}}), and per-chunk locking that
 survives stateid revocation through lock escrow.  A chunk is the
-addressable unit named in the CHUNK_* operations defined in this
+addressable unit named in the CHUNK operations defined in this
 document and durably persisted by a data server.  A chunk's
 payload may be a block (mirrored layout) or a shard
 (erasure-coded layout); the wire protocol does not distinguish.
@@ -500,7 +500,7 @@ the wire protocol transmits shards as chunk payloads; the data server
 persists chunks.  On read the path reverses.
 
 A protocol-internal note: the chunk state machine
-({{sec-system-model-chunk-state}}) and several CHUNK_* operations
+({{sec-system-model-chunk-state}}) and several CHUNK operations
 refer to the per-chunk-offset state records as "blocks" (PENDING /
 FINALIZED / COMMITTED / errored).  This is a finer-grained use of
 the word, internal to the data server's chunk metadata, and should
@@ -555,7 +555,7 @@ client-side erasure coding:
    directly to the data servers (rather than being computed at
    a server-side coordinator).  This is the deployment shape
    Flexible File Version 2 Layout Type is designed for; the
-   chunk substrate and CHUNK_* operations that make it safe are
+   chunk substrate and CHUNK operations that make it safe are
    specified in {{sec-system-model}} and {{sec-new-ops}}.
    Contrast: server-side erasure coding, where a coordinator
    holds the entire stripe and produces parity, is out of scope
@@ -1714,11 +1714,11 @@ Three additional constraints narrow the valid set of
 (ffdv_version, ffdv_minorversion, ffdv_tightly_coupled) tuples
 in specific cases:
 
--  When a mirror's encoding type uses CHUNK_* operations (that
+-  When a mirror's encoding type uses CHUNK operations (that
    is, any FFV2_ENCODING_* value other than
    FFV2_ENCODING_PASSTHROUGH), the corresponding storage device
    MUST be advertised with ffdv_version = 4 and
-   ffdv_minorversion = 2.  CHUNK_* operations are NFSv4.2 ops
+   ffdv_minorversion = 2.  CHUNK operations are NFSv4.2 ops
    defined in this document; NFSv3 and NFSv4.1 storage devices
    cannot serve a non-PASSTHROUGH mirror.
 
@@ -1728,7 +1728,7 @@ in specific cases:
    family of operations is defined as NFSv4.2; NFSv4.1 storage
    devices cannot participate in trusted-stateid tight coupling.
 
--  When a mirror's encoding type uses CHUNK_* operations, the
+-  When a mirror's encoding type uses CHUNK operations, the
    corresponding storage device MUST be advertised with
    ffdv_tightly_coupled = true.  The chunk lifecycle depends
    on the metadata-server-registered layout stateid and the
@@ -3600,7 +3600,7 @@ distinct paths, as shown in {{fig-repair-topology}}.
                                                v
      +-------------+      (4)         +-----------------+
      |  Repair     | ---------------> |  Data Servers   |
-     |  actor      |    CHUNK_*       |  (mirror set    |
+     |  actor      |   CHUNK ops      |  (mirror set    |
      |  (selected  |                  |  for affected   |
      |  per (2a),  |                  |  ranges)        |
      |  adopts     |                  |                 |
@@ -5280,7 +5280,7 @@ detail and MUST NOT be depended upon.
 The chunk is a protocol-level primitive distinct from a block.
 Throughout this document, "block" refers to a byte range in the
 file's address space (the application's view); "chunk" refers to
-the addressable unit carried by the CHUNK_* operations, which
+the addressable unit carried by the CHUNK operations, which
 has an envelope that blocks do not.
 
 A chunk carries five properties that a block does not:
@@ -5326,7 +5326,7 @@ what the protocol can guarantee.
 A protocol that exchanges file data as byte ranges with no
 envelope -- whether described as "block I/O" or as "generic
 data movement" -- is not interoperable with this specification's
-CHUNK_* operations.  The CHUNK_* operations are not a byte-range
+CHUNK operations.  The CHUNK operations are not a byte-range
 I/O surface with optional integrity bolted on; they are a
 chunk-protocol surface in which the envelope is the primitive.
 
@@ -5367,7 +5367,7 @@ at EXCHANGE_ID; see {{sec-tight-coupling-control-session}})
 issues TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID on
 that session; on a separate client-side session (presenting
 EXCHGID4_FLAG_USE_NON_PNFS), the same metadata server MAY also
-issue CHUNK_* operations as a data-path client.  A data server
+issue CHUNK operations as a data-path client.  A data server
 MUST NOT assume that the metadata server is not also one of its
 clients; it distinguishes metadata-server-only operations from client-side
 operations by the EXCHANGE_ID flags of the session that carries
@@ -5376,7 +5376,7 @@ the operation, not by the requester's IP address or principal.
 A data server MAY likewise act as a client of another data
 server -- for example, when selected as the repair actor by an
 metadata-server-directed CB_CHUNK_REPAIR.  Independent of the actor role,
-any entity may operate as encoding-aware (issuing CHUNK_*
+any entity may operate as encoding-aware (issuing CHUNK
 operations directly against data servers) or encoding-unaware
 (operating through the proxy-server-mediated READ / WRITE path
 described in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).
@@ -6241,7 +6241,7 @@ supported on data files as on any NFSv4.2 file.
 
 ### Stateid Model on the Data Server {#sec-ds-stateid-model}
 
-The stateid presented on a CHUNK_* operation is a **layout
+The stateid presented on a CHUNK operation is a **layout
 stateid** returned by a prior LAYOUTGET against the metadata
 server (see Section 18.43 of {{RFC8881}}), NOT an open
 stateid, byte-range lock stateid, or delegation stateid.  A
@@ -6277,13 +6277,13 @@ Byte-range lock tracking:
    {{RFC8881}} Section 12 byte-range locking applies.
 
 I/O authorization on the data server:
-:  The layout stateid carried on CHUNK_* operations.
-   CHUNK_* encodings require tight coupling
+:  The layout stateid carried on CHUNK operations.
+   encodings that use CHUNK operations require tight coupling
    ({{sec-ff_device_addr4}}); the metadata server registers
    each issued layout stateid with the data server via
    TRUST_STATEID ({{sec-TRUST_STATEID}}) together with the
    ffv2m_client_id assigned to the writer, and the data
-   server validates subsequent CHUNK_* stateids against
+   server validates subsequent CHUNK operation stateids against
    the trust table and the presented cwa_client_id
    against the trust-table's tsa_client_id.  Loose coupling
    applies only to PASSTHROUGH mirrors, which use regular
@@ -6292,7 +6292,7 @@ I/O authorization on the data server:
 
 Because the layout stateid does authorization but does not
 identify a per-open or per-lock owner, a single client may
-present the same layout stateid on many CHUNK_* operations
+present the same layout stateid on many CHUNK operations
 across many parallel writers within the client, without any
 of the open-owner ordering constraints {{RFC8881}}
 Section 8.2.2 imposes on regular NFSv4 stateids.  Chunk-
@@ -6413,7 +6413,7 @@ For a mirror whose ffv2m_coding_type_data is any of the chunked
 coding types defined in this document -- i.e., every
 FFV2_ENCODING_* value except FFV2_ENCODING_PASSTHROUGH (see
 {{sec-encoding-passthrough}}) -- client operations use the
-CHUNK_* operations rather than READ / WRITE / COMMIT.  This
+CHUNK operations rather than READ / WRITE / COMMIT.  This
 includes FFV2_ENCODING_MIRRORED despite its name: the "mirrored"
 refers to the encoding's verbatim payload replication, not to
 the wire dispatch (see {{tbl-ops-allowed}} legend).
@@ -7111,7 +7111,7 @@ layout's ffv2m_checksum_algorithm
 ({{sec-ffv2-mirror4}}) names a checksum_algorithm4
 ({{sec-checksum4}}) that the client does not implement.
 The client returns the layout with this error code rather
-than attempting CHUNK_* operations it cannot validate.
+than attempting CHUNK operations it cannot validate.
 
 On receipt, the metadata server MAY:
 
@@ -7303,7 +7303,7 @@ lock is not affected by a release of the presented
 
 ### NFS4ERR_STALE_MDS_EPOCH (Error Code 10106) {#sec-NFS4ERR_STALE_MDS_EPOCH}
 
-Returned by any of the CHUNK_ESCROW_* operations
+Returned by any of the CHUNK_ESCROW operations
 ({{sec-CHUNK_ESCROW_INSTALL}},
 {{sec-CHUNK_ESCROW_RELEASE}},
 {{sec-CHUNK_ESCROW_ENUMERATE}}) when the requesting
@@ -8408,7 +8408,7 @@ XDR applies these amendments at the union's extension point.
 ~~~
 {: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
 
-Operations 78 through 88 (the CHUNK_* operations) are sent by
+Operations 78 through 88 (the CHUNK operations) are sent by
 clients to storage devices on the data path.  Operations 89
 through 91 (TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID)
 and operations 92 through 95 (CHUNK_ESCROW_INSTALL,
@@ -8422,27 +8422,27 @@ loose- or tight-coupling deployment; the tight-coupling section
 is cited for its description of the session itself, not to
 restrict availability to the tight-coupling profile.
 
-All CHUNK_* operations MUST be issued under an active flexible
+All CHUNK operations MUST be issued under an active flexible
 file v2 layout obtained via LAYOUTGET against the metadata
-server.  Because CHUNK_* encodings require tight coupling (see
+server.  Because encodings that use CHUNK operations require tight coupling (see
 the three constraints in {{sec-ff_device_addr4}}), the presented
 stateid is the tight-coupling-registered layout stateid, and the
 data server MUST validate it against its per-file trust table:
 a stateid not present in the trust table MUST be rejected with
 NFS4ERR_BAD_STATEID per {{sec-TRUST_STATEID}}.  The anonymous
 stateid is reserved for PASSTHROUGH mirrors under loose coupling
-({{sec-encoding-negotiation}}) and MUST NOT appear on a CHUNK_*
-operation; a data server receiving CHUNK_* with the anonymous
-stateid MUST reject it with NFS4ERR_BAD_STATEID.
+({{sec-encoding-negotiation}}) and MUST NOT appear on a CHUNK
+operation; a data server receiving a CHUNK operation with the
+anonymous stateid MUST reject it with NFS4ERR_BAD_STATEID.
 
 The chunk envelope's safety properties (atomicity via
 chunk_guard4 CAS, integrity via checksum, lock continuity across
 revocation) depend on metadata-server coordination of layout
 grants, guard generation, and lock escrow.  A client that issues
-CHUNK_* operations outside an active layout is operating outside
+CHUNK operations outside an active layout is operating outside
 this specification; the data server's behaviour in that case is
 undefined.  See {{sec-system-model-chunk-not-block}} for the
-distinction between the CHUNK_* surface and a generic block I/O
+distinction between the CHUNK operation surface and a generic block I/O
 interface.
 
    | Operation              | Number | Target Server     | Description |
@@ -9769,8 +9769,8 @@ selected as the repair actor for the range by the metadata server,
 typically via CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).  A data
 server that receives CHUNK_LOCK with the ADOPT flag from a client
 that has not been so designated MAY reject the operation with
-NFS4ERR_ACCESS.  Because CHUNK_LOCK is a CHUNK_* operation and
-CHUNK_* encodings require tight coupling
+NFS4ERR_ACCESS.  Because CHUNK_LOCK is a CHUNK operation and
+encodings that use CHUNK operations require tight coupling
 ({{sec-ff_device_addr4}}), the metadata server notifies the data
 server of the ADOPT designation via the control protocol (e.g.,
 TRUST_STATEID with the new client's stateid or a similar
@@ -10967,7 +10967,7 @@ client-*presented*, metadata-server-*assigned*: the client presents the
 32-bit layout-granted identity that the metadata server
 established in ffv2m_client_id (see {{sec-ffv2-mirror4}}) at
 layout-grant time; the client MUST NOT substitute any other
-value.  Because CHUNK_* encodings require tight coupling
+value.  Because encodings that use CHUNK operations require tight coupling
 ({{sec-ff_device_addr4}}), the data server always has an
 authoritative binding for this identity: the metadata server
 registers it via tsa_client_id in TRUST_STATEID
@@ -11655,7 +11655,7 @@ NFS4ERR_STALE:
 ### DESCRIPTION
 
 TRUST_STATEID registers a layout stateid with the data
-server so that subsequent CHUNK_* operations presenting that
+server so that subsequent CHUNK operations presenting that
 stateid can be validated against the data server's per-file
 trust table.  The registration also binds the stateid to the
 ffv2m_client_id (tsa_client_id) the metadata server assigned
@@ -11724,7 +11724,7 @@ tsa_client_id:
 tsa_iomode:
 :  the iomode of the layout (LAYOUTIOMODE4_READ or
    LAYOUTIOMODE4_RW).  The data server MAY enforce this
-   against the CHUNK_* operation presented later: a
+   against the CHUNK operation presented later: a
    READ-iomode trust entry does not authorize
    CHUNK_WRITE.
 
@@ -11838,7 +11838,7 @@ NFS4ERR_SERVERFAULT:
 ### DESCRIPTION
 
 REVOKE_STATEID invalidates a single trust entry on the
-data server.  Subsequent CHUNK_* operations that present
+data server.  Subsequent CHUNK operations that present
 the revoked stateid MUST fail with NFS4ERR_BAD_STATEID.
 REVOKE_STATEID is the per-file revoke counterpart to
 TRUST_STATEID ({{sec-TRUST_STATEID}}) -- registration and
@@ -11890,9 +11890,9 @@ following situations:
    at this time or MAY rely on tsa_expire; either is
    correct.
 
-In-flight CHUNK_* operations that arrived before
+In-flight CHUNK operations that arrived before
 REVOKE_STATEID completes MAY be allowed to finish.  The
-data server MUST NOT process new CHUNK_* operations
+data server MUST NOT process new CHUNK operations
 presenting rsa_layout_stateid after REVOKE_STATEID
 returns.
 
@@ -12066,7 +12066,7 @@ Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent
 and preserves chunk locks held under any revoked stateid
 by transferring them to the metadata-server escrow owner (see
 {{sec-chunk_guard_mds}}), rather than dropping them.
-Subsequent CHUNK_* operations from the revoked client
+Subsequent CHUNK operations from the revoked client
 fail with NFS4ERR_BAD_STATEID; locks held under those
 revoked stateids remain until adopted by a repair
 client via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT
@@ -12434,7 +12434,7 @@ mismatch).  This ordering ensures unauthenticated
 callers learn nothing about supported profiles
 or current epoch state.
 
-Unlike the other CHUNK_ESCROW_* operations,
+Unlike the other CHUNK_ESCROW operations,
 CHUNK_ESCROW_TAKEOVER is EXEMPT from the
 ongoing epoch_expires_at check applied to
 INSTALL, RELEASE, and ENUMERATE: TAKEOVER is
@@ -12568,7 +12568,7 @@ ccra_layout_stateid:
    file if one is held.  A client that does not hold a
    layout on ccra_fh MUST ignore ccra_layout_stateid (it
    will be the anonymous stateid in that case) and MUST
-   acquire one via LAYOUTGET before issuing any CHUNK_*
+   acquire one via LAYOUTGET before issuing any CHUNK
    operation on the ranges.
 
 ccra_deadline:
@@ -12594,7 +12594,7 @@ ccra_deadline:
    after the deadline elapses -- but a client that has
    missed the deadline MUST re-verify its layout and the
    chunk lock state before continuing any repair-related
-   CHUNK_* operation.
+   CHUNK operation.
 
 ccra_reason:
 :  distinguishes the two flows that cause the metadata
@@ -12914,14 +12914,14 @@ recovery is attempted.
   as postcondition-equivalent success, but ONLY
   when the caller independently verifies the
   postcondition holds.
-- **Any CHUNK_ESCROW_* -> NFS4ERR_STALE_ESCROW
+- **Any CHUNK_ESCROW operation -> NFS4ERR_STALE_ESCROW
   ({{sec-NFS4ERR_STALE_ESCROW}}):** control-plane
   identity mismatch or no covering escrow on the
   metadata server's own CHUNK_ESCROW_RELEASE.
   The response never authorizes tuple removal by
   itself when adoption may have consumed the
   escrow (see {{sec-CHUNK_ESCROW_RELEASE}}).
-- **Any CHUNK_ESCROW_* -> NFS4ERR_STALE_MDS_EPOCH
+- **Any CHUNK_ESCROW operation -> NFS4ERR_STALE_MDS_EPOCH
   ({{sec-NFS4ERR_STALE_MDS_EPOCH}}):** the
   metadata server has been fenced by a
   superseding CHUNK_ESCROW_TAKEOVER.  The metadata
@@ -13512,7 +13512,7 @@ three ways:
    tsa_principal is the empty string.
 
 -  The client presents its own RPCSEC_GSS context on each
-   CHUNK_* operation against the data server.  Under
+   CHUNK operation against the data server.  Under
    tight coupling with GSS, the data server MUST verify
    that the principal carried in the inbound RPC's
    RPCSEC_GSS context matches the tsa_principal recorded
@@ -13585,10 +13585,10 @@ Stateid leak from client to attacker:
 
 Replay of revoked stateid:
 :  After REVOKE_STATEID or BULK_REVOKE_STATEID the data
-   server removes the trust entry and subsequent CHUNK_*
+   server removes the trust entry and subsequent CHUNK
    operations presenting the revoked stateid fail with
    NFS4ERR_BAD_STATEID ({{sec-REVOKE_STATEID}}).  An
-   in-flight CHUNK_* operation that arrived before the
+   in-flight CHUNK operation that arrived before the
    revoke completed MAY be allowed to finish; the
    chunk_guard4 CAS ({{sec-chunk_guard4}}) bounds the
    worst-case damage from such in-flight I/O to the
@@ -14088,7 +14088,7 @@ Implementation:
    implementing the flexible file v2 layout type for the Linux
    NFS client.  Layout registration, XDR decode of
    `ffv2_layout4`, device-info discovery, striped and mirrored
-   read and write, and the CHUNK_* wire path are implemented as
+   read and write, and the CHUNK operation wire path are implemented as
    a peer layout driver alongside the existing flexible file v1
    driver.
 
@@ -14121,7 +14121,7 @@ Coverage:
   available via `ec_demo` against the same metadata server.
 
 Level of maturity:
-:  Developer preview.  Wire-verified on the CHUNK_* happy path
+:  Developer preview.  Wire-verified on the CHUNK operation happy path
    against the `reffs` server.
 
 Contact:
@@ -14136,7 +14136,7 @@ Last update:
 Two independent implementations of the client role now exist
 (the `ec_demo` userspace library and the Linux kernel layout
 driver above), and wire-compatibility between them on the
-CHUNK_* data path has been demonstrated against the `reffs`
+CHUNK operation data path has been demonstrated against the `reffs`
 metadata server.  In addition, the Mojette encoders in this
 document have been cross-verified against an independent
 Mojette implementation with byte-identical output on the
