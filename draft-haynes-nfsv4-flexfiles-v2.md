@@ -1364,30 +1364,64 @@ that may be any file on the storage device, and the metadata
 server is the sole authority that can legitimately speak this
 protocol.
 
-Because the EXCHGID4_FLAG_USE_PNFS_MDS check relies on the owning
-client's self-declaration at EXCHANGE_ID time, the storage device
-cannot by itself distinguish a legitimate metadata server from any
-other host that sets the flag.  Deployments are therefore
-responsible for constraining who can establish a control session
-in the first place.  Two mechanisms are RECOMMENDED:
+Because the EXCHGID4_FLAG_USE_PNFS_MDS check relies on the
+owning client's self-declaration at EXCHANGE_ID time, the
+storage device cannot by itself distinguish a legitimate
+metadata server from any other host that sets the flag.  The
+wire protocol provides no primitive that binds a request to a
+particular pNFS role; the flag is a hint whose operational
+meaning is only as strong as the deployment's authentication
+or isolation choice.
 
-1.  The control session SHOULD use RPCSEC_GSS with a machine
-    principal that the storage device has been configured to
-    accept as a metadata server.  The storage device validates
-    the principal before accepting EXCHANGE_ID with
-    EXCHGID4_FLAG_USE_PNFS_MDS.
+The deployment requirement is that only entities the
+deployment considers legitimate metadata servers can (a)
+establish a control session with EXCHGID4_FLAG_USE_PNFS_MDS
+against the storage device and (b) invoke TRUST_STATEID,
+REVOKE_STATEID, or BULK_REVOKE_STATEID on it.  Deployments
+have historically satisfied this requirement using one or more
+of the following mechanisms; the wire protocol does not
+prescribe which is chosen:
 
-2.  Alternatively, the control session SHOULD run over a
-    network path isolated from pNFS clients (for example, a
-    dedicated management VLAN or mutual TLS ({{RFC9289}}) with
-    an allowlisted client certificate), such that only
-    configured metadata servers can reach the storage device on
-    that path.
+- RPCSEC_GSS with a machine principal that the storage device
+  has been configured to accept as a metadata server.  The
+  storage device validates the principal against a local
+  policy list before accepting the flag.
 
-Deploying neither mechanism reduces the authorization strength
-of TRUST_STATEID and the revocation operations to "any host
-that can reach the storage device can invoke them"; a strict
-deployment MUST apply at least one of the above.
+- TLS ({{RFC9289}}) with a client certificate that the storage
+  device has been configured to accept as a metadata server.
+  The storage device validates the certificate against a local
+  policy list before accepting the flag.
+
+- Network-path isolation: the control-session path runs on a
+  network segment (dedicated management VLAN, private link,
+  or similar) that pNFS clients cannot reach, so only
+  configured metadata servers can open a session at all.
+
+- Operating-system-level filesystem access control on the
+  storage device: the underlying export that backs the pNFS
+  data files is configured so that only the metadata server's
+  OS identity (typically root, or a dedicated privileged uid)
+  can access it.  A pNFS client that reaches the storage
+  device but presents any other uid receives permission
+  errors before it can invoke any operation, control-plane
+  or otherwise.
+
+A single host MAY legitimately act in multiple pNFS roles
+against the same storage device -- for example, an entity
+that is a metadata server for one export and a plain pNFS
+client for another.  The wire protocol does not distinguish
+these roles at the operation level; the deployment is
+responsible for arranging that the storage device can tell
+them apart, typically by using distinct credentials or
+distinct sessions for the two roles (each session presents
+EXCHGID4_FLAG_USE_PNFS_MDS according to the role the entity
+is acting in on that session).
+
+The security consequences of these choices -- what an
+unauthenticated attacker can invoke if none of the mechanisms
+above is deployed, and what an authenticated caller can still
+achieve by misrepresenting role -- are discussed in
+{{sec-security-trust-stateid}}.
 
 ###  Flow at LAYOUTGET {#sec-tight-coupling-layoutget}
 
