@@ -1444,8 +1444,14 @@ If every storage device in the mirror set rejects the TRUST_STATEID
 fan-out, the metadata server MUST NOT return the layout; instead it
 returns NFS4ERR_LAYOUTTRYLATER.  If some storage devices accept and
 others reject, the metadata server MAY return a layout covering
-only the accepting storage devices, subject to the mirror-set rules
-for minimum acceptable coverage.  A storage device that returns
+only the accepting storage devices, provided the accepting subset
+still meets the minimum servable coverage for the file's
+encoding: at least one replica for FFV2_ENCODING_PASSTHROUGH or
+FFV2_ENCODING_MIRRORED, or at least k of the k+m storage
+devices for an erasure-coded encoding at (k, m) parameters.
+If it does not, the metadata server MUST NOT return a partial
+layout and instead returns NFS4ERR_LAYOUTTRYLATER as in the
+all-reject case.  A storage device that returns
 NFS4ERR_DELAY is retried until either success or the metadata
 server's LAYOUTGET-response budget is exhausted.  If a storage
 device returns NFS4ERR_NOTSUPP at this time (having accepted the
