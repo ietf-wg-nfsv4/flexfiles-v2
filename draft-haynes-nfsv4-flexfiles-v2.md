@@ -2333,10 +2333,26 @@ unset, the client MAY issue READ against either iomode.
 FFV2_FLAGS_WRITE_ONE_MIRROR:
 
 :  When set, the client MAY update only one mirror of each
-layout segment (see {{sec-CSM}}) and rely on the metadata
-server or a peer data server to propagate the update to the
-remaining mirrors.  When unset, the client MUST update all
-mirrors.
+layout segment (see {{sec-CSM}}) and rely on the metadata server
+(or a proxy server acting on its behalf) or a peer data server
+to propagate the update to the remaining mirrors.  When unset,
+the client MUST update all mirrors.
+
+   The metadata server MUST NOT set FFV2_FLAGS_WRITE_ONE_MIRROR
+   on a layout whose ffv2l_mirrors carry more than one distinct
+   ffv2m_coding_type_data value unless a propagation actor is
+   available that speaks every encoding present in the layout.
+   Cross-encoding propagation requires the actor to decode
+   through the source mirror's encoding transform and re-encode
+   for each target mirror's transform, which the metadata server
+   itself cannot do for chunked encodings (it does not hold the
+   encoded shards); a proxy server
+   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) is the
+   entity that performs cross-encoding translation.  On a
+   mixed-encoding layout without a proxy server for the affected
+   file, the metadata server MUST leave
+   FFV2_FLAGS_WRITE_ONE_MIRROR unset and require the client to
+   update all mirrors directly.
 
 FFV2_FLAGS_ONLY_ONE_WRITER:
 
@@ -3441,7 +3457,7 @@ chunked encodings (where the storage device holds encoded
 shards, so retrying the I/O through the metadata server is
 meaningful only if a proxy server is available to translate).
 
-## Retry policy for mirrored and PASSTHROUGH encodings
+## Retry policy for mirrored and PASSTHROUGH encodings {#sec-io-error-retry-mirrored}
 
 For a mirror using FFV2_ENCODING_MIRRORED or
 FFV2_ENCODING_PASSTHROUGH, the storage device holds the file's
@@ -3459,7 +3475,7 @@ retrieve a new layout and retry the I/O operation using the storage
 device first and only retry the I/O operation via the metadata
 server if the error persists.
 
-## Retry policy for chunked (erasure-coded) encodings
+## Retry policy for chunked (erasure-coded) encodings {#sec-io-error-retry-chunked}
 
 For a mirror using any chunked encoding (any FFV2_ENCODING_*
 value other than FFV2_ENCODING_PASSTHROUGH), the storage device
@@ -3544,14 +3560,19 @@ mirroring.  With this approach, the client is responsible for making
 sure modifications are made on all copies of the layout segments
 it is informed of via the layout.  If a layout segment is being
 resilvered to a storage device, that mirrored copy will not be in
-the layout.  Thus, the metadata server MUST update that copy until
-the client is presented it in a layout.  If the FF_FLAGS_WRITE_ONE_MIRROR
-is set in ffv2l_flags, the client need only update one of the mirrors
-(see {{sec-write-mirrors}}).  If the client is writing to the layout
-segments via the metadata server, then the metadata server MUST
-update all copies of the mirror.  As seen in {{sec-mds-resilvering}},
-during the resilvering, the layout is recalled, and the client has
-to make modifications via the metadata server.
+the layout.  Thus, the metadata server (or a proxy server acting
+on its behalf, if one is available for the file) MUST update that
+copy until the client is presented it in a layout.  If the
+FFV2_FLAGS_WRITE_ONE_MIRROR is set in ffv2l_flags, the client
+need only update one of the mirrors (see {{sec-write-mirrors}}).
+If the client is writing to the layout segments via the metadata
+server, then the metadata server (or a proxy server acting on its
+behalf) MUST update all copies of the mirror; see the encoding
+constraint on FFV2_FLAGS_WRITE_ONE_MIRROR in {{sec-ffv2_flags4}}
+for the case where doing so requires the propagation actor to
+translate across encodings.  As seen in {{sec-mds-resilvering}},
+during the resilvering, the layout is recalled, and the client
+has to make modifications through the metadata-server side.
 
 ###  Selecting a Mirror {#sec-select-mirror}
 
@@ -3580,7 +3601,7 @@ segments are presented below.
 
 ####  Single Storage Device Updates Mirrors
 
-If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffv2l_flags is set, the
+If the FFV2_FLAGS_WRITE_ONE_MIRROR flag in ffv2l_flags is set, the
 client MAY update just one of the copies of the layout segment.
 For this case, the storage device MUST ensure that all copies of
 the mirror are updated when any one of the mirrors is updated.  If
@@ -3594,7 +3615,7 @@ when making this choice.
 
 ####  Client Updates All Mirrors
 
-If the FF_FLAGS_WRITE_ONE_MIRROR flag in ffv2l_flags is not set, the
+If the FFV2_FLAGS_WRITE_ONE_MIRROR flag in ffv2l_flags is not set, the
 client is responsible for updating all mirrored copies of the layout
 segments that it is given in the layout.  A single failed update
 is sufficient to fail the entire operation.  If all but one copy
@@ -3642,7 +3663,7 @@ file.
 ####  Handling Write COMMITs {#sec-write-commits}
 
 When stable writes are done to the metadata server or to a single
-replica (if allowed by the use of FF_FLAGS_WRITE_ONE_MIRROR), it
+replica (if allowed by the use of FFV2_FLAGS_WRITE_ONE_MIRROR), it
 is the responsibility of the receiving node to propagate the written
 data stably, before replying to the client.
 
@@ -3677,8 +3698,22 @@ making to the layout segments, the metadata server MUST recall the
 writable layout segment(s) that it is resilvering.  If the client
 issues a LAYOUTGET for a writable layout segment that is in the
 process of being resilvered, then the metadata server can deny that
-request with an NFS4ERR_LAYOUTUNAVAILABLE.  The client would then
-have to perform the I/O through the metadata server.
+request with an NFS4ERR_LAYOUTUNAVAILABLE.
+
+The client's fallback while the layout is withheld follows the
+per-encoding rules in
+{{sec-io-error-retry-mirrored}} and {{sec-io-error-retry-chunked}}:
+for a mirror whose I/O reduces to FFV2_ENCODING_MIRRORED or
+FFV2_ENCODING_PASSTHROUGH the client MAY perform the I/O through
+the metadata server as an ordinary NFSv4.1+ READ or WRITE; for a
+mirror using any chunked encoding the metadata server itself
+cannot service that I/O (it does not hold the encoded shards),
+so the client's only fallback path is through a proxy server
+({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) if one is
+available for the file.  If no proxy server is available, the
+client MUST wait for the metadata server to complete resilvering
+and re-issue LAYOUTGET rather than attempt to route the I/O
+through the metadata server.
 
 ## Erasure Coding
 
