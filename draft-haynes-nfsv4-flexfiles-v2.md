@@ -7853,31 +7853,42 @@ NFS4ERR_INVAL:
 
 : returned in exactly the cases where the data server can
   concretely recognize the presented triple as invalid:
-  (a) **structurally invalid**: the triple is
-      malformed or truncated, or names a different
-      file or a different data server; or
-  (b) **within-window release**: a prior explicit
-      CHUNK_ROLLBACK delete case released the
-      association and the current request falls
-      within the same session slot's replay-cache
-      window of that CHUNK_ROLLBACK, so the data
-      server still holds the concrete invalidation
-      context that identifies this triple as
-      released-by-delete-case.
+
+  Structurally invalid:
+
+  : the triple is malformed or truncated, or names a
+    different file or a different data server.
+
+  Within-window release:
+
+  : a prior explicit CHUNK_ROLLBACK delete case released the
+    association and the current request falls within the
+    same session slot's replay-cache window of that
+    CHUNK_ROLLBACK, so the data server still holds the
+    concrete invalidation context that identifies this
+    triple as released-by-delete-case.
 
 NFS4ERR_NO_PREDECESSOR:
 
 : covers every other case in which the data server holds no
   association for the presented triple, including:
-  (a) release under the retention scope rule (lease
-      expiry, storage-pressure release);
-  (b) the eventual release of a triple invalidated
-      by an earlier delete case whose replay-cache
-      window has since elapsed; and
-  (c) a well-formed triple for this file and this
-      data server for which the data server holds no
-      surviving record and no concrete invalidation
-      context.
+
+  Retention-scope release:
+
+  : release under the retention scope rule (lease expiry,
+    storage-pressure release).
+
+  Post-window release:
+
+  : the eventual release of a triple invalidated by an
+    earlier delete case whose replay-cache window has since
+    elapsed.
+
+  No surviving record:
+
+  : a well-formed triple for this file and this data server
+    for which the data server holds no surviving record and
+    no concrete invalidation context.
 
 An implementation following the no-tombstone model
 cannot distinguish "the data server never recorded
@@ -7885,7 +7896,7 @@ this triple" from "the data server recorded and later
 released this triple" outside a live invalidation
 context, and this specification does not require it
 to: both cases resolve to NFS4ERR_NO_PREDECESSOR under
-(c) above.  The two errors are
+the "no surviving record" case above.  The two errors are
 not interchangeable: NFS4ERR_INVAL is a caller-side
 signal that the client MUST NOT retry the same
 identity, while NFS4ERR_NO_PREDECESSOR is a data-plane
