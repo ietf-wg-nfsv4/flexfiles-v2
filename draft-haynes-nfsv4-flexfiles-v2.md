@@ -9535,9 +9535,17 @@ CHUNK_FINALIZE before CHUNK_COMMIT is accepted:
    data server MUST reject with NFS4ERR_PAYLOAD_NOT_ATOMIC
    for that chunk.
 
+The two rejection cases above share the error code because
+the client's local bookkeeping distinguishes them without
+requiring the data server to differentiate.  A client with
+intact local state that recognizes it holds a PENDING
+generation for the chunk calls CHUNK_FINALIZE; a client with
+no local record calls CHUNK_HEADER_READ to inspect the
+chunk's actual state (owner triple, disposition) and
+reconcile from there.
+
 -  If the target chunk is already COMMITTED at the generation
-   identified by the cca_chunks entry's owner triple
-   owner triple, the
+   identified by the cca_chunks entry's owner triple, the
    CHUNK_COMMIT is idempotent and MUST succeed.  Idempotence
    preserves the NFSv4 COMMIT contract for duplicate-request
    retransmission.
