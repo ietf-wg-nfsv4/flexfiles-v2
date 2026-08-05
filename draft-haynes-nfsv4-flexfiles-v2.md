@@ -5206,7 +5206,9 @@ follows.
 
 The single parity row is `[1, 1, ..., 1]`:
 
-    E\[k\]\[j\] = 1    for j = 0, 1, ..., k-1
+~~~
+E[k][j] = 1    for j = 0, 1, ..., k-1
+~~~
 
 Encoded parity is the bitwise XOR of every data shard.  This
 matches the P row of Linux md's RAID6 construction and the sole
@@ -5218,8 +5220,10 @@ without re-encoding.
 
 The two parity rows are:
 
-    E\[k\]\[j\]     = 1              for j = 0, 1, ..., k-1   (P row)
-    E\[k+1\]\[j\]   = g^j            for j = 0, 1, ..., k-1   (Q row)
+~~~
+E[k][j]     = 1              for j = 0, 1, ..., k-1   (P row)
+E[k+1][j]   = g^j            for j = 0, 1, ..., k-1   (Q row)
+~~~
 
 where g = 2 is the primitive element of GF(2^8) with polynomial
 0x11d.  These are exactly the coefficients Linux md RAID6 uses
@@ -5241,13 +5245,15 @@ Vandermonde encoding matrix, constructed as follows.
 2. Construct a (k+m) x k Vandermonde matrix V where the row for
    shard i is the geometric progression of alpha_i:
 
-       V\[i\]\[j\] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
+   ~~~
+   V[i][j] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
+   ~~~
 
    Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  The
    exponent zero is defined as `x^0 = 1` for all `x` in GF(2^8),
    including x = 0 (this is the standard combinatorial
    convention; here `alpha_i` is never zero by step 1's
-   construction, but the convention makes the V\[0\]\[0\] cell
+   construction, but the convention makes the `V[0][0]` cell
    unambiguous).  Any k distinct rows form a k x k Vandermonde
    matrix on k distinct non-zero evaluation points, which is
    invertible over GF(2^8); this is the property that gives the
@@ -5318,8 +5324,8 @@ data unrecoverable by a different implementation.
 - Evaluation points: shard i (i = 0, 1, ..., k+m-1) uses
   alpha_i = i + 1 in GF(2^8) (values 1 through k+m, all
   non-zero and distinct)
-- Vandermonde entries: V\[i\]\[j\] = alpha_i^j = (i+1)^j in GF(2^8)
-  for i = 0..k+m-1, j = 0..k-1
+- Vandermonde entries: `V[i][j] = alpha_i^j = (i+1)^j` in GF(2^8)
+  for `i = 0..k+m-1`, `j = 0..k-1`
 - Matrix normalization: E = V * T^(-1) where T is the top k x k
   sub-matrix (rows for shards 0..k-1)
 - Parameter bound: k + m MUST NOT exceed 255
@@ -5348,11 +5354,11 @@ E = [ [0x01, 0x00],    // identity block for data shard 0
 ~~~
 
 The parity shard is the bitwise XOR of both data shards:
-`parity\[j\] = data\[0\]\[j\] XOR data\[1\]\[j\]`.
+`parity[j] = data[0][j] XOR data[1][j]`.
 
 Concrete byte-level test vector with `shard_len = 1`:
 
-| data\[0\] | data\[1\] | parity  | Notes |
+| `data[0]` | `data[1]` | parity  | Notes |
 |---|---|---|---|
 | `0x00`  | `0x00`  | `0x00`  | zero input             |
 | `0x01`  | `0x00`  | `0x01`  | 0x01 XOR 0x00 = 0x01   |
@@ -5375,14 +5381,16 @@ E = [ [0x01, 0x00, 0x00],   // identity block for data shard 0
 
 The two parity shards are computed byte-wise as:
 
-    P\[j\] = data\[0\]\[j\] XOR data\[1\]\[j\] XOR data\[2\]\[j\]
-    Q\[j\] = 1 * data\[0\]\[j\] XOR 2 * data\[1\]\[j\] XOR 4 * data\[2\]\[j\]
+~~~
+P[j] = data[0][j] XOR data[1][j] XOR data[2][j]
+Q[j] = 1 * data[0][j] XOR 2 * data[1][j] XOR 4 * data[2][j]
+~~~
 
 where the multiplication is in GF(2^8) with polynomial `0x11d`.
 
 Concrete byte-level test vector with `shard_len = 1`:
 
-| data\[0\] | data\[1\] | data\[2\] | P     | Q     | Notes                          |
+| `data[0]` | `data[1]` | `data[2]` | P     | Q     | Notes                          |
 |---|---|---|---|---|---|
 | `0x00`  | `0x00`  | `0x00`  | `0x00`| `0x00`| zero input                     |
 | `0x01`  | `0x02`  | `0x03`  | `0x00`| `0x09`| 1 XOR (2*2) XOR (4*3) = 1 XOR 4 XOR 12 = 9 |
