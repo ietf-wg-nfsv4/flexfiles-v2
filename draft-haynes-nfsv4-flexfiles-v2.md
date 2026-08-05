@@ -232,22 +232,25 @@ from {{RFC7863}}.
 This document defines `LAYOUT4_FLEX_FILES_V2`, a new and independent
 layout type that coexists with the Flexible File Version 1 Layout Type
 (`LAYOUT4_FLEX_FILES`, {{RFC8435}}).  The two layout types are
-wire-format-incompatible: an FFv1 receiver cannot parse FFv2
-layout bytes, and an FFv2 receiver cannot parse FFv1 layout
-bytes.  Semantically, however, FFv2 is a superset of FFv1:
-any FFv1 layout has a natural FFv2 representation using a
-single FFV2_ENCODING_PASSTHROUGH mirror (see
-{{sec-encoding-passthrough}}), with the FFv1 data servers
-mapped into ffv2_stripes4 and the FFv1 layout-level
-ffl_stripe_unit mapped into per-mirror ffv2m_striping_unit_size
-and ffv2m_striping.  The reverse does not hold: FFv2 layouts
-that use any CHUNK-based encoding (any FFV2_ENCODING_* value
-other than FFV2_ENCODING_PASSTHROUGH) have no FFv1
-representation, because FFv1 has neither the chunk envelope
-(chunk_guard4, per-chunk checksum) nor the per-mirror
-encoding choice that those encodings require.  A server MAY
-support both layout types simultaneously; a client selects
-the desired layout type in its LAYOUTGET request.
+wire-format-incompatible: a flexible file v1 layout receiver
+cannot parse flexible file v2 layout bytes, and a flexible file
+v2 layout receiver cannot parse flexible file v1 layout bytes.
+Semantically, however, the flexible file v2 layout is a superset
+of the flexible file v1 layout: any flexible file v1 layout has
+a natural flexible file v2 layout representation using a single
+FFV2_ENCODING_PASSTHROUGH mirror (see
+{{sec-encoding-passthrough}}), with the flexible file v1 layout's
+data servers mapped into ffv2_stripes4 and the flexible file v1
+layout's layout-level ffl_stripe_unit mapped into per-mirror
+ffv2m_striping_unit_size and ffv2m_striping.  The reverse does
+not hold: flexible file v2 layouts that use any CHUNK-based
+encoding (any FFV2_ENCODING_* value other than
+FFV2_ENCODING_PASSTHROUGH) have no flexible file v1 layout
+representation, because the flexible file v1 layout has neither
+the chunk envelope (chunk_guard4, per-chunk checksum) nor the
+per-mirror encoding choice that those encodings require.  A
+server MAY support both layout types simultaneously; a client
+selects the desired layout type in its LAYOUTGET request.
 
 # Requirements Language
 
@@ -828,14 +831,16 @@ name.  Do NOT write "flexible file v2 layout version 2" -- the
 "v2" already carries the version, and appending "version 2"
 is a rendering hazard.
 
-Informal short form (cross-references, tables, and prose where
-the full name would be repetitive): "FFv2", with "FFv1"
-reserved for the predecessor defined by {{RFC8435}}.  These
-short forms are convenient for tables ("FFv1-compatible
-mirror") and for sentences that need to contrast the two
-layout types ("FFv2 is a wire-format-incompatible extension
-of FFv1").  The short form is not appropriate for headings,
-IANA registrations, or the abstract.
+Short form (narrow tables and reviewer-aid appendix material
+where cell width or repetition would otherwise dominate):
+"FFv2", with "FFv1" reserved for the predecessor defined by
+{{RFC8435}}.  The short forms are NOT appropriate in body
+prose, headings, IANA registrations, or the abstract; body
+prose that would otherwise repeat the layout name uses the
+running-text form above.  Their scoped use is in tables where
+"flexible file v2 layout" would break the column layout (e.g.,
+the four-variant wire-path comparison table in the
+Implementation Status appendix).
 
 XDR identifier: `LAYOUT4_FLEX_FILES_V2`.  This is the name
 assigned to the layout type by the layout-type registry
@@ -1302,8 +1307,9 @@ that carries this state.  Such a back-end control protocol is
 out of scope for this document.
 
 A deployment that does not need those finer-grained
-associations -- for example, an FFv2 deployment whose per-file
-access-control decisions live entirely on the metadata server
+associations -- for example, a flexible file v2 layout
+deployment whose per-file access-control decisions live entirely
+on the metadata server
 and whose storage devices see only chunk-level CAS on layout
 stateids -- is conformant with the trusted stateid tight coupling
 model using only the TRUST_STATEID family.  That
@@ -1848,15 +1854,15 @@ da_addr_body in the device_addr4 structure by a successful GETDEVICEINFO
 operation for LAYOUT_FLEX_FILES_V2.
 
 ffv2_device_addr4 and ffv2_device_versions4 are the flexible
-file v2 counterparts to ff_device_addr4 and ff_device_versions4
-in {{RFC8435}}.  The two structures are similar in shape but
-carry an FFv2-specific enrichment: the boolean
-ffdv_tightly_coupled from RFC 8435 has been widened to the
-uint32_t bitfield ffv2dv_coupling, which lets a storage device
-advertise more than one coupling capability at the same time
-({{sec-tight-coupling-control}}).  Because the field type has
-changed, the FFv2 structs are named distinctly to avoid
-confusion with the RFC 8435 originals.
+file v2 layout counterparts to ff_device_addr4 and
+ff_device_versions4 in {{RFC8435}}.  The two structures are
+similar in shape but carry a flexible-file-v2-specific enrichment:
+the boolean ffdv_tightly_coupled from RFC 8435 has been widened
+to the uint32_t bitfield ffv2dv_coupling, which lets a storage
+device advertise more than one coupling capability at the same
+time ({{sec-tight-coupling-control}}).  Because the field type
+has changed, the flexible file v2 layout structs are named
+distinctly to avoid confusion with the RFC 8435 originals.
 
 ~~~ xdr
    /*
@@ -2233,7 +2239,7 @@ those sections is:
 
 | Value | Encoding type                        | Description                                              | Section                        |
 |------:|--------------------------------------|----------------------------------------------------------|--------------------------------|
-| 1     | FFV2_ENCODING_PASSTHROUGH            | On-ramp from FFv1; direct NFSv3/v4 I/O, no chunk envelope | {{sec-encoding-passthrough}}   |
+| 1     | FFV2_ENCODING_PASSTHROUGH            | On-ramp from the flexible file v1 layout; direct NFSv3/v4 I/O, no chunk envelope | {{sec-encoding-passthrough}}   |
 | 2     | FFV2_ENCODING_MOJETTE_SYSTEMATIC     | Discrete Radon projections, systematic (data shards passed through) | {{sec-mojette-encoding}}       |
 | 3     | FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC | Discrete Radon projections, non-systematic (all shards transformed) | {{sec-mojette-encoding}}       |
 | 4     | FFV2_ENCODING_RS_VANDERMONDE         | Reed-Solomon Vandermonde over GF(2^8); arbitrary (k, m)  | {{sec-rs-encoding}}            |
@@ -2695,17 +2701,17 @@ ffv2s_data_servers.
 ffv2_stripes4 has no direct counterpart in {{RFC8435}}.  In
 the flexible file v1 layout, a mirror's data servers are
 listed directly on the mirror (via ffm_data_servers<> on
-ff_mirror4).  FFv2 introduces this intermediate stripes level
-so a single mirror MAY carry multiple stripe groups, and
-pushes the striping-mode metadata (ffv2m_striping,
-ffv2m_striping_unit_size) down onto the mirror (see
-{{sec-ffv2-mirror4}}) rather than onto the layout as
+ff_mirror4).  The flexible file v2 layout introduces this
+intermediate stripes level so a single mirror MAY carry
+multiple stripe groups, and pushes the striping-mode metadata
+(ffv2m_striping, ffv2m_striping_unit_size) down onto the mirror
+(see {{sec-ffv2-mirror4}}) rather than onto the layout as
 {{RFC8435}} does with the layout-level ffl_stripe_unit.  The
 ffv2_striping4 enum (FFV2_STRIPING_NONE / _SPARSE / _DENSE)
 inherits its meaning from Section 13.3 of {{RFC8881}} and
-Section 5.1 of {{RFC8435}}; the FFv2 evolution is that the
-striping mode is a per-mirror decision rather than a
-per-layout one.
+Section 5.1 of {{RFC8435}}; the flexible file v2 layout
+evolution is that the striping mode is a per-mirror decision
+rather than a per-layout one.
 
 ## ffv2_mirror4 {#sec-ffv2-mirror4}
 
@@ -2721,18 +2727,19 @@ per-layout one.
 ~~~
 {: #fig-ffv2_mirror4 title="The ffv2_mirror4" }
 
-The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) is the FFv2
-counterpart to ff_mirror4 in {{RFC8435}}.  FFv2 is a
-semantic superset of FFv1: any ff_mirror4 can be re-expressed
-as an ffv2_mirror4 by setting
+The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) is the flexible
+file v2 layout counterpart to ff_mirror4 in {{RFC8435}}.  The
+flexible file v2 layout is a semantic superset of the flexible
+file v1 layout: any ff_mirror4 can be re-expressed as an
+ffv2_mirror4 by setting
 ffv2m_coding_type_data = FFV2_ENCODING_PASSTHROUGH,
-ffv2m_striping and ffv2m_striping_unit_size to the FFv1
-layout-level values, ffv2m_checksum_algorithm to
-CHECKSUM_ALG_NONE, and wrapping the FFv1 ffm_data_servers<>
-in a single-element ffv2m_stripes<>.  The reverse does not
-hold: ffv2_mirror4 instances whose ffv2m_coding_type_data is
-anything other than FFV2_ENCODING_PASSTHROUGH have no
-ff_mirror4 representation.
+ffv2m_striping and ffv2m_striping_unit_size to the flexible
+file v1 layout's layout-level values, ffv2m_checksum_algorithm
+to CHECKSUM_ALG_NONE, and wrapping the flexible file v1
+layout's ffm_data_servers<> in a single-element
+ffv2m_stripes<>.  The reverse does not hold: ffv2_mirror4
+instances whose ffv2m_coding_type_data is anything other than
+FFV2_ENCODING_PASSTHROUGH have no ff_mirror4 representation.
 
 Relative to ff_mirror4, ffv2_mirror4 adds the following
 per-mirror fields:
@@ -2742,20 +2749,24 @@ per-mirror fields:
   layout to carry mirrors under different encodings
   (e.g., a PASSTHROUGH mirror alongside a Reed-Solomon
   mirror over the same file; see {{fig-example_mixing}}) --
-  the transition-window and per-mirror-optimization
-  patterns that motivated FFv2.
+  the transition-window and per-mirror-optimization patterns
+  that motivated the flexible file v2 layout.
 - ffv2m_striping and ffv2m_striping_unit_size: pull the
   striping-mode decision from the layout level down to the
-  mirror level.  FFv1's ffl_stripe_unit is layout-wide; in
-  FFv2 different mirrors of the same file MAY use different
+  mirror level.  The flexible file v1 layout's
+  ffl_stripe_unit is layout-wide; in the flexible file v2
+  layout different mirrors of the same file MAY use different
   striping configurations.
 - ffv2m_client_id: writer identity for chunk_guard4 CAS (see
-  {{sec-chunk_guard4}}).  No FFv1 counterpart; introduced
-  for the CHUNK operation set that FFv2 adds.
+  {{sec-chunk_guard4}}).  No flexible file v1 layout
+  counterpart; introduced for the CHUNK operation set that
+  the flexible file v2 layout adds.
 - ffv2m_checksum_algorithm: per-mirror integrity-checksum
-  algorithm.  No FFv1 counterpart; introduced for the
-  per-chunk checksum integrity FFv2 adds.
-- ffv2m_stripes<>: replaces FFv1's flat ffm_data_servers<>
+  algorithm.  No flexible file v1 layout counterpart;
+  introduced for the per-chunk checksum integrity the
+  flexible file v2 layout adds.
+- ffv2m_stripes<>: replaces the flexible file v1 layout's
+  flat ffm_data_servers<>
   with an array of ffv2_stripes4 (see {{fig-ffv2_stripes4}}),
   allowing a single mirror to carry multiple stripe groups.
 
@@ -4643,7 +4654,8 @@ file might appear as in {{fig-example_mixing}}.  Both
 representations are active and addressable through the layout
 simultaneously.  This is the transition-window pattern: a file
 may transiently span encodings while it is being assimilated
-from a non-FFv2 source or migrated between encodings.  Steady
+from a non-flexible-file-v2 source or migrated between
+encodings.  Steady
 state is homogeneous; the multi-encoding window is what the
 protocol must accommodate.
 
@@ -5162,7 +5174,7 @@ layout.  Total storage overhead is `2/k` of payload.
 
 ### Overview
 
-Reed-Solomon (RS) codes are Maximum Distance Separable (MDS) codes:
+Reed-Solomon (RS) codes are Maximum Distance Separable codes:
 for a (k+m, k) code, any k of the k+m encoded shards suffice to
 recover the original data.  The code tolerates the simultaneous loss
 of up to m shards.  {{Plank97}} is a tutorial treatment of RS
@@ -5583,9 +5595,9 @@ and the unknown-grid Q is r) OR the analogous p-sum condition
 over the residual.  Because the mandatory direction algorithm
 above generates `m` projections with distinct nonzero p values,
 the p-sum condition also holds for any loss pattern with
-`r + s <= m`; the systematic form therefore achieves MDS-like
-recovery up to `m` combined data-row and parity-projection
-losses.
+`r + s <= m`; the systematic form therefore achieves
+Maximum-Distance-Separable-like recovery up to `m` combined
+data-row and parity-projection losses.
 
 ### Inverse Transform (Decoding)
 
@@ -5698,7 +5710,7 @@ short read reporting the shard's true byte length.
 
 | Property | Reed-Solomon | Mojette Systematic | Mojette Non-Systematic |
 |---
-| MDS guarantee | Yes | Yes (Katz) | Yes (Katz) |
+| Maximum Distance Separable guarantee | Yes | Yes (Katz) | Yes (Katz) |
 | Shard sizes | Uniform | Variable | Variable |
 | Reconstruction cost | O(k^3) shard ops<br>(matrix inversion) | O(m*k*P*Q) grid ops (peeling) | O(m*k*P*Q) grid ops (peeling) |
 | Healthy read cost | Zero | Zero | Full decode |
@@ -7514,7 +7526,8 @@ Loosely coupled, untrusted stateid:
    affected data files per {{sec-Fencing-Clients}}.  The
    revoked client presents stale RPC credentials and receives
    NFS4ERR_ACCESS from the data server.  This is the
-   FFv1-style fencing mechanism; it operates per data file and
+   flexible-file-v1-layout-style fencing mechanism; it operates
+   per data file and
    does not distinguish between clients that hold layouts on
    the same file.
 
@@ -7530,8 +7543,8 @@ Tightly coupled, trusted stateid:
    client carrying the revoked stateid receives
    NFS4ERR_BAD_STATEID.  This is the preferred mechanism for
    chunked layouts because it is per-client and avoids the
-   FFv1 limitation of fencing all clients on a data file when
-   only one needs to be revoked.
+   flexible file v1 layout's limitation of fencing all clients
+   on a data file when only one needs to be revoked.
 
 Mixed:
 :  A metadata server MAY combine the two mechanisms when a
@@ -8467,8 +8480,8 @@ takeover names.
 
 ~~~ xdr
    /// /* Registered proof profile identifier.  Values
-   ///  * are allocated from the FFv2 proof-profile
-   ///  * registry (see IANA Considerations,
+   ///  * are allocated from the flexible file v2 layout
+   ///  * proof-profile registry (see IANA Considerations,
    ///  * "Proof-Profile Registry"). */
    /// typedef uint32_t   proof_profile_id4;
    ///
@@ -13295,8 +13308,8 @@ per {{sec-repair-selection}}.
 
 #  Composed Rollback Guarantee and Error Decision Tree {#sec-composed-rollback}
 
-The FFv2 chunk protocol combines three related
-mechanisms -- writer-supplied opaque owner identity
+The flexible file v2 layout chunk protocol combines three
+related mechanisms -- writer-supplied opaque owner identity
 ({{sec-chunk_owner4}}), best-effort predecessor
 discovery ({{sec-CHUNK_HEADER_READ}} /
 {{sec-NFS4ERR_NO_PREDECESSOR}}), and metadata-server escrow
@@ -13368,8 +13381,8 @@ owner triple, or terminal NFS4ERR_PAYLOAD_LOST
 when no authoritative source exists.
 
 The guarantee is a protocol-level protection against
-premature release: FFv2 implementations MUST NOT
-release the payload or owner-to-index association of
+premature release: flexible file v2 layout implementations
+MUST NOT release the payload or owner-to-index association of
 a predecessor covered by an active qualifying lock or
 metadata-server escrow lock, per the payload/association
 biconditional
