@@ -12340,10 +12340,11 @@ tsa_iomode:
    CHUNK_WRITE.
 
 tsa_expire:
-:  the absolute wall-clock time at which the trust
-   entry becomes invalid if not renewed (see
-   {{sec-tight-coupling-lease}}).  The data server MUST
-   reject a TRUST_STATEID whose tsa_expire has
+:  the absolute time at which the trust entry becomes
+   invalid if not renewed; see
+   {{sec-tight-coupling-lease}} for the clock-synchronization
+   assumption and lease-computation rule.  The data server
+   MUST reject a TRUST_STATEID whose tsa_expire has
    tv_nseconds >= 10^9 with NFS4ERR_INVAL.
 
 tsa_principal:
@@ -13188,7 +13189,7 @@ ccra_layout_stateid:
    operation on the ranges.
 
 ccra_deadline:
-:  a wall-clock nfstime4 (seconds and nanoseconds since
+:  an absolute nfstime4 (seconds and nanoseconds since
    the epoch, as defined in Section 3.3.1 of {{RFC8881}})
    by which the client is expected to have driven every
    range to completion (CHUNK_REPAIRED on the
