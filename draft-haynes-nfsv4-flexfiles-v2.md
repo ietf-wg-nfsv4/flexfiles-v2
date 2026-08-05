@@ -3509,14 +3509,27 @@ metadata server has driven repair to completion.
 ##  Client-Side Mirroring {#sec-CSM}
 
 The flexible file v2 layout has a simple model in place for the
-mirroring of the file data constrained by a layout segment.  There
-is no assumption that each copy of the mirror is stored identically
-on the storage devices.  For example, one device might employ
-compression or deduplication on the data.  However, the over-the-wire
-transfer of the file contents MUST appear identical.  Note, this
-is a constraint of the selected XDR representation in which each
-mirrored copy of the layout segment has the same striping pattern
-(see {{fig-parallel-filesystem}}).
+mirroring of the file data constrained by a layout segment.  Each
+mirror in ffv2l_mirrors is an independent representation of the
+file's contents for that segment: the XDR (see {{fig-ffv2_mirror4}})
+lets each mirror carry its own encoding
+(ffv2m_coding_type_data), its own striping pattern
+(ffv2m_striping and ffv2m_stripes), and its own set of data
+servers.  A single layout MAY combine dissimilar mirrors -- for
+example, one FFV2_ENCODING_MIRRORED mirror and one
+FFV2_ENCODING_RS_VANDERMONDE mirror of the same file contents,
+as sketched in {{fig-parallel-filesystem}} -- and there is no
+cross-mirror constraint that striping patterns or encoding
+choices match.
+
+There is likewise no assumption that each copy of the mirror is
+stored identically on the storage devices.  For example, one device
+might employ compression or deduplication on the data.  What each
+mirror MUST provide is the same reconstructed file contents on
+read (after any decoding through the mirror's encoding
+transform); the on-disk representation and the wire representation
+per mirror are consequences of that mirror's independently
+selected encoding.
 
 The metadata server is responsible for determining the number of
 mirrored copies and the location of each mirror.  While the client
