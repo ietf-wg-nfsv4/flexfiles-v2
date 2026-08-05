@@ -7240,6 +7240,41 @@ that has identified the file as a chunked data file (see
    NFS4ERR_PERM when received on a client session (see
    {{sec-tight-coupling-control-session}}).
 
+-  NFSv4 READ, WRITE, and COMMIT ({{RFC8881}} Sections 18.22,
+   18.32, 18.3).  Chunked data files use CHUNK_READ,
+   CHUNK_WRITE, and CHUNK_COMMIT respectively; NFSv4
+   byte-range READ / WRITE / COMMIT bypasses the chunk
+   envelope (chunk_guard4 CAS, per-chunk checksum, lifecycle
+   state) that this document's consistency guarantees depend
+   on.  A data server that has identified the file as a
+   chunked data file MUST reject NFSv4 READ / WRITE / COMMIT
+   with NFS4ERR_NOTSUPP.  PASSTHROUGH data files
+   ({{sec-encoding-passthrough}}) are non-chunked and continue
+   to use NFSv4 READ / WRITE / COMMIT normally; their
+   fattr4_chunked_data_file is FALSE
+   ({{sec-fattr4_chunked_data_file}}).
+
+### CHUNK Operations on Non-Chunked Data Files
+
+The reciprocal rule: clients MUST NOT send CHUNK operations
+(CHUNK_READ, CHUNK_WRITE, CHUNK_FINALIZE, CHUNK_COMMIT,
+CHUNK_ROLLBACK, CHUNK_HEADER_READ, CHUNK_LOCK, CHUNK_UNLOCK,
+CHUNK_ERROR, CHUNK_REPAIRED, CHUNK_WRITE_REPAIR) to a data
+server on a file that is not a chunked data file.  Non-chunked
+data files (PASSTHROUGH mirrors, and any file the metadata
+server has not marked as chunked) do not carry a chunk envelope
+and cannot honor CHUNK operation semantics.  A data server that
+has identified the file as non-chunked (fattr4_chunked_data_file
+= FALSE) MUST reject CHUNK operations against that file with
+NFS4ERR_NOTSUPP.  A data server that cannot identify the file
+under any of the paths in {{sec-data-file-identification}}
+relies on the client-side "MUST NOT" as the primary defense; a
+client with an active layout will not present a chunked-layout
+stateid against a non-chunked file, so standard stateid
+validation ({{RFC8881}} Section 8.2) catches the misdirected
+CHUNK operation with NFS4ERR_BAD_STATEID before the chunk-layer
+rules apply.
+
 ##  Callback Path: Data Server to Client
 
 A data server does not call back directly to pNFS clients.
