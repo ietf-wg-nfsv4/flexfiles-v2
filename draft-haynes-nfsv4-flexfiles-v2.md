@@ -2816,14 +2816,11 @@ The time is in seconds.
 {: #fig-parallel-filesystem title="The Relationship between Metadata Server and Data Servers"}
 
 As shown in {{fig-parallel-filesystem}} if the ffv2m_coding_type_data
-is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then
-each of the stripes MUST only have 1 storage device.  I.e.,
-the length of ffv2s_data_servers MUST be 1.  The erasure-coding
-encoding types (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
-FFV2_ENCODING_RS_VANDERMONDE) distribute shards across multiple
-storage devices and so carry multiple entries in
-ffv2s_data_servers.
+is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then each
+of the stripes MUST only have 1 storage device.  I.e., the length
+of ffv2s_data_servers MUST be 1.  The erasure-coding encoding types
+distribute shards across multiple storage devices and so carry
+multiple entries in ffv2s_data_servers.
 
 The abstraction here is that for FFV2_ENCODING_PASSTHROUGH and
 FFV2_ENCODING_MIRRORED, each stripe describes exactly one data
@@ -2952,14 +2949,41 @@ Client-side advertisement:
    produces silent data unavailability when the resulting layout
    is issued.
 
-Metadata-server selection:
-:  The metadata server SHOULD select an encoding from the client's
+Metadata-server selection at file creation:
+:  When the LAYOUTGET is against a newly-created file (the file
+   has no committed data yet), the metadata server has real
+   discretion.  It SHOULD select an encoding from the client's
    ffv2lh_supported_types list when the server's policy permits.
    The server MAY override the hint when its policy dictates a
    specific encoding (for example, per-export objectives); in that
    case the server issues a layout with the policy-dictated
    encoding and the client MUST either honour it or fail its I/O
    with NFS4ERR_CODING_NOT_SUPPORTED.
+
+Metadata-server selection for an existing file:
+:  When the LAYOUTGET is against a file that already has
+   committed data on the data servers, the file's encoding is
+   fixed by the bytes already written; the metadata server does
+   not choose an encoding at layout-issue time.  Re-encoding an
+   existing file is a separate operation (see the
+   heterogeneous mirror set primitive in
+   {{sec-heterogeneous-mirrors}} and the migration paths in the
+   proxy-server draft
+   {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), not a
+   consequence of a LAYOUTGET hint.  In this case
+   ffv2lh_supported_types is not a selection input; it is an
+   admissibility check.  The metadata server issues a layout
+   with the file's actual encoding and evaluates whether the
+   client can consume it:
+
+   - If the file's encoding is in the client's
+     ffv2lh_supported_types list, the metadata server issues
+     the layout normally.
+   - If it is not, the metadata server takes one of the
+     fallback actions enumerated in "Fallback when no overlap
+     exists" below (return NFS4ERR_CODING_NOT_SUPPORTED,
+     fall back to metadata-server-inband I/O, or route
+     through a translating proxy server).
 
 Fallback when no overlap exists:
 :  If the server's policy cannot be satisfied by any encoding the
