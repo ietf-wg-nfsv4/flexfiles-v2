@@ -9575,12 +9575,10 @@ when tight coupling is not in force and the deployment's
 access-control policy permits it).
 
 If the current filehandle is not an ordinary file, an
-error MUST be returned.  If the current filehandle
-represents an object of type NF4DIR, NFS4ERR_ISDIR is
-returned.  If the current filehandle designates a
-symbolic link, NFS4ERR_SYMLINK is returned.  In all
-other cases of non-regular-file filehandles,
-NFS4ERR_WRONG_TYPE is returned.
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 #### Interaction with CHUNK_FINALIZE
 
@@ -9844,7 +9842,9 @@ errored flag.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 ### RESPONSE CODES
 
@@ -10047,12 +10047,10 @@ underlying security regime authorizes an unattributed
 writer.
 
 If the current filehandle is not an ordinary file, an
-error MUST be returned.  If the current filehandle
-represents an object of type NF4DIR, NFS4ERR_ISDIR is
-returned.  If the current filehandle designates a
-symbolic link, NFS4ERR_SYMLINK is returned.  In all
-other cases of non-regular-file filehandles,
-NFS4ERR_WRONG_TYPE is returned.
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 ### RESPONSE CODES
 
@@ -10433,7 +10431,9 @@ CHUNK_HEADER_READ does not change any chunk state.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 #### Per-Chunk Status Encoding
 
@@ -10643,7 +10643,9 @@ invariant in
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 #### Lock Transfer via CHUNK_LOCK_FLAGS_ADOPT
 
@@ -10978,12 +10980,10 @@ model ({{sec-CHUNK_LOCK}}) rather than the byte range
 locking model of {{RFC8881}} Section 12.
 
 If the current filehandle is not an ordinary file, an
-error MUST be returned.  If the current filehandle
-represents an object of type NF4DIR, NFS4ERR_ISDIR is
-returned.  If the current filehandle designates a symbolic
-link, NFS4ERR_SYMLINK is returned.  In all other cases of
-non-regular-file filehandles, NFS4ERR_WRONG_TYPE is
-returned.
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 {{fig-example-CHUNK_READ4args}} shows a client requesting
 4 chunks starting at chunk index 2.  Data Server 2
@@ -11178,7 +11178,9 @@ before retrying.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 ### RESPONSE CODES
 
@@ -11533,7 +11535,9 @@ unattributed writer.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 #### Idempotence and Uncertain-Replay Carve-Out
 
@@ -11730,7 +11734,9 @@ released outright.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 ### RESPONSE CODES
 
@@ -12019,12 +12025,10 @@ behaviours mirror the corresponding WRITE semantics in
 model of {{RFC8881}} Section 12.
 
 If the current filehandle is not an ordinary file, an
-error MUST be returned.  If the current filehandle
-represents an object of type NF4DIR, NFS4ERR_ISDIR is
-returned.  If the current filehandle designates a
-symbolic link, NFS4ERR_SYMLINK is returned.  In all other
-cases of non-regular-file filehandles, NFS4ERR_WRONG_TYPE
-is returned.
+error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 #### Stability and Activation
 
@@ -12462,7 +12466,9 @@ attempting another repair-write on the same range.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 ### RESPONSE CODES
 
@@ -12655,7 +12661,9 @@ If the current filehandle is not an ordinary file
 filehandle is the root and the operation is expected to
 be rejected with NFS4ERR_INVAL), an error MUST be
 returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 ### RESPONSE CODES
 
@@ -12817,7 +12825,9 @@ is no result body beyond the nfsstat4 discriminant.
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).
+NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
+the file is a regular file but not a chunked data file,
+per {{sec-ops-client}}).
 
 ### RESPONSE CODES
 
