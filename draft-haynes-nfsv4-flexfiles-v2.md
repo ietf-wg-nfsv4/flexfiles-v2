@@ -5446,10 +5446,10 @@ FFV2_ENCODING_MOJETTE_SYSTEMATIC and
 FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC in this revision.  All
 implementations MUST use W = 8; a future revision (or a distinct
 registered encoding type) may lift the fixed width, at which
-point it becomes a wire-visible parameter.  Fixing W now
-removes the interop hazard the review flagged (the same shard
-input, XOR'd at W = 4 vs W = 8, produces different bin values
-that appear "close but wrong" to a mismatched decoder).
+point it becomes a wire-visible parameter.  Fixing W in this
+revision prevents an interoperability hazard: the same shard
+input XOR'd at W = 4 versus W = 8 produces different bin values
+that appear "close but wrong" to a mismatched decoder.
 
 ### Grid Structure
 
