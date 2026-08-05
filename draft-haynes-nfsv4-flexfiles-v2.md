@@ -14552,6 +14552,7 @@ algorithm cost is a small fraction of end-to-end transmit
 cost at typical operating points.
 
 ### Algorithm cost
+{:numbered="false"}
 
 Algorithm cost has been measured at k=4, m=2, 64 KiB shards
 across the encoders defined in this document.  Reference hosts
@@ -14583,6 +14584,7 @@ encoding algorithm.  Wide reported spreads across encoders in
 the literature reflect this in large part.
 
 ### Wire compatibility across encoders
+{:numbered="false"}
 
 Cross-encoder byte-identity holds among the GF(2^8) encoders
 defined in this document at low parity counts, verified by
@@ -14607,6 +14609,7 @@ one of the m <= 2 members consumes bytes emitted by any of the
 others without re-encoding.
 
 ### Transmit cost -- three-host real-network sweep
+{:numbered="false"}
 
 A three-host LAN measurement distributes the roles: one client
 host (kernel NFSv4.2 mount), one proxy server host, and one
@@ -14666,6 +14669,7 @@ for well under 2 ms of that budget for every SIMD-tuned
 implementation measured.
 
 ### Cost of fault tolerance -- single-shard repair
+{:numbered="false"}
 
 Client-driven single-shard reconstruction, using the wire-level
 `OP_CHUNK_WRITE_REPAIR` + `OP_CHUNK_REPAIRED` operations
@@ -14693,6 +14697,7 @@ imply.  Healthy no-loss reads on any systematic encoding pay
 zero decode cost (the shard is copied through unchanged).
 
 ### Encoder-family trade-offs
+{:numbered="false"}
 
 The wire-spread convergence does not mean encoder choice is
 irrelevant.  It means encoder choice is decided by properties
