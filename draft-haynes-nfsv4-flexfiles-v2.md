@@ -11432,81 +11432,83 @@ client incorrectly advanced.  Two cases separate by
 whether the predecessor generation the caller wants to
 restore is still present on the data server:
 
-Case (a) -- retained predecessor:
+##### Case (a) -- Retained Predecessor
 
-: The predecessor
-generation named in the cra_chunks entry is still held
-by the data server (typically the prior COMMITTED
+The predecessor generation named in the cra_chunks entry is
+still held by the data server (typically the prior COMMITTED
 retained under the rollback invariant
-({{sec-system-model-retention-scope}}) alongside the
-displaced successor, and MUST have survived with its
-payload+association pair intact per the biconditional
-({{sec-system-model-payload-association-biconditional}})).
-The data server:
+({{sec-system-model-retention-scope}}) alongside the displaced
+successor, and MUST have survived with its payload+association
+pair intact per the biconditional
+({{sec-system-model-payload-association-biconditional}})).  The
+data server:
 
-- restores the retained predecessor as the current
-  COMMITTED generation UNDER ITS ORIGINAL owner triple
-  (the owner triple the predecessor
-  was written with) -- its owner-to-index association is
-  preserved, so the restored generation MUST remain
-  recognizable to subsequent lifecycle operations by
+- restores the retained predecessor as the current COMMITTED
+  generation UNDER ITS ORIGINAL owner triple (the owner triple
+  the predecessor was written with) -- its owner-to-index
+  association is preserved, so the restored generation MUST
+  remain recognizable to subsequent lifecycle operations by
   the same triple; AND
-- atomically invalidates the displaced successor's
-  triple via the delete case above ("Deletion
-  Atomicity and Invalidated Triples") -- the displaced
-  successor's payload+association pair is released as
-  one unit; a subsequent lifecycle op naming the
-  displaced triple returns NFS4ERR_INVAL within the
-  session slot's replay-cache window of this
-  CHUNK_ROLLBACK, and NFS4ERR_NO_PREDECESSOR after
-  that window has elapsed, per the release-scope
-  split at {{sec-NFS4ERR_NO_PREDECESSOR}}.
+- atomically invalidates the displaced successor's triple via
+  the delete case above ("Deletion Atomicity and Invalidated
+  Triples") -- the displaced successor's payload+association
+  pair is released as one unit; a subsequent lifecycle op
+  naming the displaced triple returns NFS4ERR_INVAL within the
+  session slot's replay-cache window of this CHUNK_ROLLBACK,
+  and NFS4ERR_NO_PREDECESSOR after that window has elapsed,
+  per the release-scope split at
+  {{sec-NFS4ERR_NO_PREDECESSOR}}.
 
-The restore is atomic with the delete: no intermediate
-state exposes both generations as current, and no
-intermediate state exposes neither.
+The restore is atomic with the delete: no intermediate state
+exposes both generations as current, and no intermediate state
+exposes neither.
 
-Case (b) -- predecessor no longer retained:
+##### Case (b) -- Predecessor No Longer Retained
 
-: If the predecessor generation named in the cra_chunks
-  entry is NOT held by the data server (its
-payload+association pair was released some time earlier
-under the retention scope rule, whether by lease
-expiry, by an even earlier CHUNK_ROLLBACK delete case,
-or by any other terminal transition), the CHUNK_ROLLBACK
-CANNOT restore it: the deleted association is not
-recreated by any operation defined in this document.
-The corresponding crr_chunk_status slot reports
-NFS4ERR_NO_PREDECESSOR in the ordinary case (release
-under the retention scope rule, or eventual release of
-an already-invalidated triple after the delete case's
-replay-cache window has elapsed) and NFS4ERR_INVAL only
-when the caller has named a triple released by an
-explicit CHUNK_ROLLBACK delete case within the current
-session slot's replay-cache window (see
-{{sec-NFS4ERR_NO_PREDECESSOR}} for the choice between
-them).  Either way, the caller consults whatever
-fallback the deployment provides -- a repair
-client MAY reconstruct authoritative bytes from
-surviving shards and issue CHUNK_WRITE_REPAIR to write a new
-generation carrying those bytes under a new owner
-triple.  That new generation is a distinct generation
-for lifecycle purposes; it is not the deleted
-predecessor resurrected.  Any client that requires the restored
-generation to retain the predecessor's original owner
-triple in cases where the retention scope
-({{sec-system-model-retention-scope}}) would otherwise
-permit release MUST use the metadata-server escrow control plane
-({{sec-CHUNK_ESCROW_INSTALL}} through
-{{sec-CHUNK_ESCROW_TAKEOVER}}), which pins the
-predecessor's payload and its owner-to-index
-association jointly against that release rule for as
-long as the escrow-lock or a client-owned lock
-adopted from it remains in continuous custody (see
-{{sec-composed-rollback}}).
+If the predecessor generation named in the cra_chunks entry is
+NOT held by the data server -- its payload+association pair
+was released some time earlier under the retention scope rule
+(lease expiry, an earlier CHUNK_ROLLBACK delete case, or any
+other terminal transition) -- the CHUNK_ROLLBACK CANNOT
+restore it.  The deleted association is not recreated by any
+operation defined in this document.
 
-A non-repair CHUNK_ROLLBACK against a COMMITTED chunk
-is rejected with NFS4ERR_INVAL regardless of case.
+The corresponding crr_chunk_status slot reports:
+
+NFS4ERR_INVAL:
+
+: when the caller has named a triple released by an explicit
+  CHUNK_ROLLBACK delete case within the current session slot's
+  replay-cache window.
+
+NFS4ERR_NO_PREDECESSOR:
+
+: in the ordinary case -- release under the retention scope
+  rule, or eventual release of an already-invalidated triple
+  after the delete case's replay-cache window has elapsed.
+  See {{sec-NFS4ERR_NO_PREDECESSOR}} for the choice between
+  the two codes.
+
+The caller then consults whatever fallback the deployment
+provides.  A repair client MAY reconstruct authoritative bytes
+from surviving shards and issue CHUNK_WRITE_REPAIR to write a
+new generation carrying those bytes under a new owner triple.
+That new generation is a distinct generation for lifecycle
+purposes; it is not the deleted predecessor resurrected.
+
+A client that requires the restored generation to retain the
+predecessor's original owner triple, in cases where the
+retention scope ({{sec-system-model-retention-scope}}) would
+otherwise permit release, MUST use the metadata-server escrow
+control plane ({{sec-CHUNK_ESCROW_INSTALL}} through
+{{sec-CHUNK_ESCROW_TAKEOVER}}).  Escrow pins the predecessor's
+payload and its owner-to-index association jointly against
+that release rule for as long as the escrow-lock or a
+client-owned lock adopted from it remains in continuous
+custody (see {{sec-composed-rollback}}).
+
+A non-repair CHUNK_ROLLBACK against a COMMITTED chunk is
+rejected with NFS4ERR_INVAL regardless of case.
 
 #### Stateid and Authorization
 
