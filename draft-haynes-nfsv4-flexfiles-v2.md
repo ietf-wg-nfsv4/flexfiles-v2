@@ -3748,7 +3748,7 @@ Guard:
    observe the accepted guard on the read path.
 
 Owner:
-:  an XDR chunk_owner4 (co_cohort_id, co_client_id, co_id)
+:  an XDR chunk_owner4 owner triple
    triple identifying the writer's cohort (see
    {{sec-chunk_owner4}}).  The owner is the identity that
    lifecycle operations (CHUNK_FINALIZE, CHUNK_COMMIT,
@@ -6532,7 +6532,7 @@ The wire lifecycle operations (CHUNK_COMMIT
 ({{sec-CHUNK_COMMIT}}), CHUNK_FINALIZE
 ({{sec-CHUNK_FINALIZE}}), CHUNK_ROLLBACK
 ({{sec-CHUNK_ROLLBACK}})) name generations by full
-(co_cohort_id, co_client_id, co_id) owner triples
+owner triple
 ({{sec-chunk_owner4}}) and require the data server to
 locate the chunk-index each triple was written at.  For
 that lookup to succeed after a data server restart, the
@@ -6543,7 +6543,7 @@ addressed by a lifecycle operation.
 
 Uniqueness invariant (normative):
 
-: An accepted (co_cohort_id, co_client_id, co_id) triple is
+: An accepted owner triple is
 UNIQUE across the live generations the data server holds
 for a given file: at any instant there is at most one
 live generation on any chunk of the file that matches
@@ -9457,11 +9457,10 @@ cca_count:
 
 cca_chunks:
 :  an array of chunk_owner4 entries
-   ({{fig-chunk_owner4}}) naming the specific
-   (co_cohort_id, co_client_id, co_id) generations to
+   ({{fig-chunk_owner4}}) naming the specific generations to
    commit.  For each entry the data server looks up the
    chunk index it associated with the complete
-   (co_cohort_id, co_client_id, co_id) triple when the
+   owner triple when the
    client wrote it via CHUNK_WRITE or
    CHUNK_WRITE_REPAIR.  That recorded chunk index MUST
    lie in [cca_offset, cca_offset + cca_count); if the
@@ -9487,7 +9486,7 @@ generations at the moment CHUNK_COMMIT arrives -- an
 older COMMITTED generation retained for the rollback
 invariant ({{sec-system-model-consistency}}) alongside a
 newer FINALIZED successor.  cca_chunks selects which
-(co_cohort_id, co_client_id, co_id) triple to advance to
+owner triple to advance to
 COMMITTED at each affected index; cca_offset and
 cca_count let the data server reject malformed requests
 that name generations whose recorded chunk index lies
@@ -9573,7 +9572,7 @@ CHUNK_FINALIZE before CHUNK_COMMIT is accepted:
 
 -  If the target chunk is already COMMITTED at the generation
    identified by the cca_chunks entry's owner triple
-   (co_cohort_id, co_client_id, co_id), the
+   owner triple, the
    CHUNK_COMMIT is idempotent and MUST succeed.  Idempotence
    preserves the NFSv4 COMMIT contract for duplicate-request
    retransmission.
@@ -9786,7 +9785,7 @@ cea_error:
 cea_owner:
 :  the chunk_owner4 ({{fig-chunk_owner4}}) the client read
    when it observed the error, so the data server can
-   record which (co_cohort_id, co_client_id, co_id) generation was
+   record which owner triple generation was
    reported as corrupted.  The reserved sentinels
    CHUNK_GUARD_CLIENT_ID_NONE and
    CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear in
@@ -9880,7 +9879,7 @@ A FINALIZED chunk is visible on the owning stateid for reads
 ({{sec-system-model-consistency}}) and is eligible for
 CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}); the FINALIZED transition
 is the writer's signal that it will issue no further
-CHUNK_WRITEs for the named (co_cohort_id, co_client_id, co_id)
+CHUNK_WRITEs for the named owner triple
 generation of each chunk.
 
 CHUNK_FINALIZE has no direct analog in {{RFC8881}}: the COMMIT
@@ -9913,11 +9912,10 @@ cfa_count:
 
 cfa_chunks:
 :  an array of chunk_owner4 entries
-   ({{fig-chunk_owner4}}) naming the specific
-   (co_cohort_id, co_client_id, co_id) generations to
+   ({{fig-chunk_owner4}}) naming the specific generations to
    finalize.  For each entry the data server looks up
    the chunk index it associated with the complete
-   (co_cohort_id, co_client_id, co_id) triple when the
+   owner triple when the
    client wrote it via CHUNK_WRITE or
    CHUNK_WRITE_REPAIR.  That recorded chunk index MUST
    lie in [cfa_offset, cfa_offset + cfa_count); if the
@@ -10842,7 +10840,7 @@ cr_effective_len:
    parity shard.
 
 cr_owner:
-:  the full (co_cohort_id, co_client_id, co_id) owner triple
+:  the full owner triple
    of the COMMITTED generation being returned (see
    {{sec-chunk_owner4}}); co_id is the opaque writer-supplied
    per-chunk identifier the client provided at
@@ -11252,11 +11250,10 @@ cra_count:
 
 cra_chunks:
 :  an array of chunk_owner4 entries
-   ({{fig-chunk_owner4}}) naming the specific
-   (co_cohort_id, co_client_id, co_id) generations to roll
+   ({{fig-chunk_owner4}}) naming the specific generations to roll
    back.  For each entry the data server looks up the
    chunk index it associated with the complete
-   (co_cohort_id, co_client_id, co_id) triple when the
+   owner triple when the
    client wrote it via CHUNK_WRITE or
    CHUNK_WRITE_REPAIR.  That recorded chunk index MUST
    lie in [cra_offset, cra_offset + cra_count); if the
@@ -11264,10 +11261,8 @@ cra_chunks:
    on this data server for this file, or the recorded
    chunk index lies outside the requested range, the
    entry is rejected with NFS4ERR_INVAL in the
-   corresponding crr_chunk_status slot.  The co_id
-   itself is opaque per {{sec-chunk_owner4}} and is NOT
-   compared numerically with cra_offset or cra_count.
-   The reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
+   corresponding crr_chunk_status slot.  The reserved
+   sentinels CHUNK_GUARD_CLIENT_ID_NONE and
    CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
    co_client_id of any cra_chunks entry; see
    {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
@@ -11347,7 +11342,7 @@ successor is discarded) removes BOTH the payload AND the
 recorded owner-to-index association for that generation, in
 one atomic step, per the payload/association biconditional
 ({{sec-system-model-payload-association-biconditional}}).
-The generation's (co_cohort_id, co_client_id, co_id) triple
+The generation's owner triple
 is then INVALIDATED at that chunk index: it names no
 generation the data server holds, and no future CHUNK_WRITE
 recreates an association under the same triple.
@@ -11425,7 +11420,7 @@ The data server:
 
 - restores the retained predecessor as the current
   COMMITTED generation UNDER ITS ORIGINAL owner triple
-  (the (co_cohort_id, co_client_id, co_id) the predecessor
+  (the owner triple the predecessor
   was written with) -- its owner-to-index association is
   preserved, so the restored generation MUST remain
   recognizable to subsequent lifecycle operations by
@@ -12318,7 +12313,7 @@ reconstructs authoritative bytes from surviving shards
 writes them via CHUNK_WRITE_REPAIR under a new owner
 triple of its own choosing.  The result is a distinct
 generation for lifecycle purposes: it carries the
-repair actor's own (co_cohort_id, co_client_id, co_id)
+repair actor's own owner triple
 triple, NOT the released predecessor's triple.  The released
 predecessor is not resurrected by any operation defined
 in this document, including this fallback; a subsequent
