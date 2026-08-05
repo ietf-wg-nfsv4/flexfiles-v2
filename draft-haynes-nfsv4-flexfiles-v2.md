@@ -1687,9 +1687,9 @@ interpreted consistently within the storage device's local
 clock.  Deployments unable to guarantee sub-lease-period clock
 synchronization MUST either (a) shorten the effective TRUST_STATEID
 lease so it exceeds the worst-case skew by at least 2x, or (b)
-use the metadata-server-inband fallback path (no tight coupling
-control session, no TRUST_STATEID) so lease enforcement stays
-on the metadata server's clock alone.  A storage device that
+route I/O through the metadata server as the fallback path (no
+tight coupling control session, no TRUST_STATEID) so lease
+enforcement stays on the metadata server's clock alone.  A storage device that
 detects sustained clock divergence from the metadata server
 (e.g., via periodic wall-clock exchange as part of its
 tight coupling control-session heartbeats) SHOULD log the
@@ -1860,15 +1860,16 @@ confusion with the RFC 8435 originals.
     *
     * A zero value (no flags set) indicates the loose coupling
     * synthetic-uid model of RFC 8435: the client presents an
-    * anonymous stateid and an MDS-issued synthetic uid, and
-    * the storage device validates access via that synthetic
-    * uid (see {{sec-Fencing-Clients}}).  The constant
+    * anonymous stateid and a synthetic uid issued by the
+    * metadata server, and the storage device validates access
+    * via that synthetic uid (see {{sec-Fencing-Clients}}).  The constant
     * FFV2_COUPLING_SYNTHETIC_UIDS is provided as a
     * documentation aid.
     *
     * FFV2_COUPLING_TIGHTLY_COUPLED indicates that the storage
     * device participates in tight coupling with the metadata
-    * server via an MDS-to-DS back-end control protocol; the
+    * server via a back-end control protocol between the
+    * metadata server and the data servers; the
     * specific mechanism is deployment-configured and outside
     * the scope of this document.
     *
@@ -1984,11 +1985,12 @@ capabilities the storage device supports.  The two
 tight coupling flags are orthogonal:
 
 - FFV2_COUPLING_TIGHTLY_COUPLED asserts that the deployment
-  has an MDS-to-DS back-end control protocol (the RFC 8435
-  general tight coupling concept); this document does not
-  specify what that protocol is or how it operates.  A dCache
-  {{DCACHE}} deployment, for example, would set this flag
-  based on its own MDS/pool control plane.
+  has a back-end control protocol between the metadata server
+  and the data servers (the RFC 8435 general tight coupling
+  concept); this document does not specify what that protocol
+  is or how it operates.  A dCache {{DCACHE}} deployment, for
+  example, would set this flag based on its own metadata-server
+  / pool control plane.
 
 - FFV2_COUPLING_TRUSTED_STATEID asserts that the storage
   device implements the TRUST_STATEID, REVOKE_STATEID, and
@@ -3051,8 +3053,8 @@ Metadata-server selection for an existing file:
    - If it is not, the metadata server takes one of the
      fallback actions enumerated in "Fallback when no overlap
      exists" below (return NFS4ERR_CODING_NOT_SUPPORTED,
-     fall back to metadata-server-inband I/O, or route
-     through a translating proxy server).
+     route I/O through the metadata server, or route through
+     a translating proxy server).
 
 Fallback when no overlap exists:
 :  If the server's policy cannot be satisfied by any encoding the
@@ -3295,8 +3297,8 @@ via the encoding-negotiation path
 ({{sec-encoding-negotiation}}) with the flag cleared.
 
 The NO_IO_THRU_MDS flag is not advisory; it is an
-instruction the client MUST honour.  When metadata-server-
-inband I/O is required (for example, via the encoding-
+instruction the client MUST honour.  When I/O through the
+metadata server is required (for example, via the encoding-
 negotiation fallback path in {{sec-encoding-negotiation}}),
 the metadata server MUST clear NO_IO_THRU_MDS on the
 fallback layout it issues.  A client MUST NOT interpret
@@ -3430,8 +3432,25 @@ prevent other clients from hitting the same error condition.  In
 these cases, the server MUST complete recovery before handing out
 any new layouts to the affected byte ranges.
 
-Although the client implementation has the option to propagate a
-corresponding error to the application that initiated the I/O
+The client's retry disposition depends on which encoding the
+affected mirror uses.  The two subsections below split the
+encoding types into two families: mirrored / PASSTHROUGH (where
+the storage device holds the file's bytes directly, so retrying
+the I/O through the metadata server is possible), and the
+chunked encodings (where the storage device holds encoded
+shards, so retrying the I/O through the metadata server is
+meaningful only if a proxy server is available to translate).
+
+## Retry policy for mirrored and PASSTHROUGH encodings
+
+For a mirror using FFV2_ENCODING_MIRRORED or
+FFV2_ENCODING_PASSTHROUGH, the storage device holds the file's
+bytes directly (no chunk envelope, no encoding transform), and
+an ordinary NFS READ or WRITE on the metadata server accesses
+the same bytes.
+
+Although the client implementation has the option to propagate
+a corresponding error to the application that initiated the I/O
 operation and drop any unwritten data, the client should attempt
 to retry the original I/O operation by either requesting a new
 layout or sending the I/O via regular NFSv4.1+ READ or WRITE
@@ -3439,6 +3458,51 @@ operations to the metadata server.  The client SHOULD attempt to
 retrieve a new layout and retry the I/O operation using the storage
 device first and only retry the I/O operation via the metadata
 server if the error persists.
+
+## Retry policy for chunked (erasure-coded) encodings
+
+For a mirror using any chunked encoding (any FFV2_ENCODING_*
+value other than FFV2_ENCODING_PASSTHROUGH), the storage device
+holds encoded shards inside chunk envelopes rather than the
+file's bytes, and retrying the I/O through the metadata server
+as a regular NFS READ or WRITE against the file is not an
+equivalent fallback: the metadata server does not hold the
+encoded shards, and the file's bytes are recoverable only by
+decoding through the mirror's erasure transform.  The client's
+retry disposition is correspondingly different.
+
+For a CHUNK_READ error, the client SHOULD attempt local
+reconstruction from surviving shards before returning the layout,
+provided the encoding is a k+m code and the client holds
+(directly or by fetching from unaffected data servers in the
+same stripe) at least k surviving shards.  A successful local
+reconstruction satisfies the read; the client MUST still record
+the ioerr and report it at LAYOUTRETURN so the metadata server
+can drive repair via CB_CHUNK_REPAIR
+({{sec-CB_CHUNK_REPAIR}}) and the repair-actor flow
+({{sec-repair-selection}}).
+
+For a CHUNK_WRITE error, or when a CHUNK_READ error cannot be
+satisfied by local reconstruction (fewer than k surviving
+shards, or a non-recoverable chunk_guard4 CAS failure), the
+client SHOULD return the layout with the ioerr recorded after
+its own storage-device-directed retries (multipath, transient
+error) have been exhausted.  The client MUST NOT retry the
+same I/O through the metadata server as a regular NFSv4.1+
+READ or WRITE against the file: the metadata server does not
+hold the encoded shards, so an I/O through the metadata server
+would either be rejected or would bypass the encoding transform
+and corrupt the file.
+
+Retrying the I/O through the metadata server is meaningful for
+a chunked encoding only when a proxy server
+({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) is available
+to translate on the metadata server's behalf: the proxy server
+admits the client's I/O, performs the encoding transform, and
+issues the corresponding CHUNK operations to the data servers.
+When no proxy server is available for the affected file, the
+client's remaining option is to re-request a layout after the
+metadata server has driven repair to completion.
 
 #  Client-Side Protection Modes
 
@@ -14503,8 +14567,8 @@ Coverage:
 
 - NFS4ERR_DELAY retry-with-backoff for concurrent writer
   contention on CHUNK_WRITE is not yet implemented; multi-writer
-  workloads fall back to the metadata-server-inband
-  write path.
+  workloads fall back to routing writes through the metadata
+  server.
 
 - Client-side single-shard repair write-back is not yet
   implemented in the kernel client.  Reconstruction is
