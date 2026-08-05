@@ -12564,15 +12564,19 @@ that replaces synthetic-uid
 fencing with per-client stateid-table validation for
 deployments that opt into tight coupling.
 
-TRUST_STATEID is a metadata-server-to-data-server operation; pNFS clients MUST
-NOT send it.  The data server MUST verify that the
-operation arrived on a session whose owning client presented
-EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID and reject any
-TRUST_STATEID received on a regular client session with
-NFS4ERR_PERM.  TRUST_STATEID operates on the current
-filehandle; a PUTFH naming the data server's file MUST
-precede it in the same compound (except in the capability
-probe case, where the current filehandle is the root).
+TRUST_STATEID is a metadata-server-to-data-server operation;
+pNFS clients MUST NOT send it.  The data server rejects any
+TRUST_STATEID received on a session whose owning client did
+not present EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID with
+NFS4ERR_PERM.  The flag is self-declared, so this wire-level
+check is a hint, not authentication; the deployment-level
+requirement -- that only entities considered legitimate
+metadata servers can establish such a session -- is stated in
+{{sec-tight-coupling-control-session}}.  TRUST_STATEID
+operates on the current filehandle; a PUTFH naming the data
+server's file MUST precede it in the same compound (except in
+the capability probe case, where the current filehandle is
+the root).
 
 The metadata server provides:
 
@@ -12744,14 +12748,16 @@ data
 server without waiting for tsa_expire and without
 unsetting other clients' trust entries.
 
-REVOKE_STATEID is a metadata-server-to-data-server operation; pNFS clients
-MUST NOT send it.  The data server MUST verify that the
-operation arrived on a session whose owning client
-presented EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID and
-reject any REVOKE_STATEID received on a regular client
-session with NFS4ERR_PERM.  REVOKE_STATEID operates on
-the current filehandle; a PUTFH naming the data server's
-file MUST precede it in the same compound.
+REVOKE_STATEID is a metadata-server-to-data-server operation;
+pNFS clients MUST NOT send it.  The data server rejects any
+REVOKE_STATEID received on a session whose owning client did
+not present EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID with
+NFS4ERR_PERM.  The flag is self-declared, so this wire-level
+check is a hint, not authentication; the deployment-level
+requirement is stated in
+{{sec-tight-coupling-control-session}}.  REVOKE_STATEID
+operates on the current filehandle; a PUTFH naming the data
+server's file MUST precede it in the same compound.
 
 The metadata server provides:
 
@@ -12904,12 +12910,14 @@ complement, replacing the N per-file REVOKE_STATEID
 compounds that per-entry revocation would require with a
 single round-trip.
 
-BULK_REVOKE_STATEID is a metadata-server-to-data-server operation; pNFS
-clients MUST NOT send it.  The data server MUST verify
-that the operation arrived on a session whose owning
-client presented EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
-and reject any BULK_REVOKE_STATEID received on a regular
-client session with NFS4ERR_PERM.  BULK_REVOKE_STATEID
+BULK_REVOKE_STATEID is a metadata-server-to-data-server
+operation; pNFS clients MUST NOT send it.  The data server
+rejects any BULK_REVOKE_STATEID received on a session whose
+owning client did not present EXCHGID4_FLAG_USE_PNFS_MDS at
+EXCHANGE_ID with NFS4ERR_PERM.  The flag is self-declared, so
+this wire-level check is a hint, not authentication; the
+deployment-level requirement is stated in
+{{sec-tight-coupling-control-session}}.  BULK_REVOKE_STATEID
 does not operate on the current filehandle; no PUTFH is
 required in the compound.
 
