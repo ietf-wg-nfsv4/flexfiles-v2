@@ -2596,6 +2596,21 @@ types each stripe's data lives on a single data server, with
 replica multiplicity expressed in ffv2l_mirrors rather than in
 ffv2s_data_servers.
 
+ffv2_stripes4 has no direct counterpart in {{RFC8435}}.  In
+the flexible file v1 layout, a mirror's data servers are
+listed directly on the mirror (via ffm_data_servers<> on
+ff_mirror4).  FFv2 introduces this intermediate stripes level
+so a single mirror MAY carry multiple stripe groups, and
+pushes the striping-mode metadata (ffv2m_striping,
+ffv2m_striping_unit_size) down onto the mirror (see
+{{sec-ffv2-mirror4}}) rather than onto the layout as
+{{RFC8435}} does with the layout-level ffl_stripe_unit.  The
+ffv2_striping4 enum (FFV2_STRIPING_NONE / _SPARSE / _DENSE)
+inherits its meaning from Section 13.3 of {{RFC8881}} and
+Section 5.1 of {{RFC8435}}; the FFv2 evolution is that the
+striping mode is a per-mirror decision rather than a
+per-layout one.
+
 ## ffv2_mirror4 {#sec-ffv2-mirror4}
 
 ~~~ xdr
@@ -2610,8 +2625,36 @@ ffv2s_data_servers.
 ~~~
 {: #fig-ffv2_mirror4 title="The ffv2_mirror4" }
 
-The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) describes the Flexible
-File Layout Version 2 specific fields.
+The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) evolves the
+ff_mirror4 structure from {{RFC8435}}.  In FFv1, ff_mirror4
+carries only ffm_data_servers<> -- the set of data servers
+holding replicas of the mirror's content -- with the
+encoding shape (single-layout-wide), the striping unit
+(single-layout-wide via ffl_stripe_unit), and the writer /
+integrity fields not present at the mirror level.  FFv2 adds
+the following per-mirror fields:
+
+- ffv2m_coding_type_data: per-mirror encoding type choice
+  (see {{fig-ffv2_encoding_type4}}).  This enables a single
+  layout to carry mirrors under different encodings
+  (e.g., a PASSTHROUGH mirror alongside a Reed-Solomon
+  mirror over the same file; see {{fig-example_mixing}}) --
+  the transition-window and per-mirror-optimization
+  patterns that motivated FFv2.
+- ffv2m_striping and ffv2m_striping_unit_size: pull the
+  striping-mode decision from the layout level down to the
+  mirror level.  FFv1's ffl_stripe_unit is layout-wide; in
+  FFv2 different mirrors of the same file MAY use different
+  striping configurations.
+- ffv2m_client_id: writer identity for chunk_guard4 CAS (see
+  {{sec-chunk_guard4}}).  No FFv1 counterpart; introduced
+  for the CHUNK operation set that FFv2 adds.
+- ffv2m_checksum_algorithm: per-mirror integrity-checksum
+  algorithm.  No FFv1 counterpart; introduced for the
+  per-chunk checksum integrity FFv2 adds.
+- ffv2m_stripes<>: replaces FFv1's flat ffm_data_servers<>
+  with an array of ffv2_stripes4 (see {{fig-ffv2_stripes4}}),
+  allowing a single mirror to carry multiple stripe groups.
 
 The ffv2m_checksum_algorithm field names the checksum
 algorithm the client MUST use when computing
