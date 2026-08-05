@@ -12439,9 +12439,7 @@ cwrr_block_status:
    is NFS4_OK as long as the data server could evaluate
    each chunk; per-chunk failures are reported in
    cwrr_block_status rather than by failing the whole
-   operation.  (Renamed from cwrr_status to align with
-   CHUNK_WRITE's cwr_block_status naming; a top-level
-   status remains distinct from the per-chunk array.)
+   operation.
 
 cwrr_owners:
 :  per-chunk chunk_owner4 the data server recorded, one
