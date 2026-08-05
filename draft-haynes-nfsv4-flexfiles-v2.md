@@ -9370,8 +9370,23 @@ Short processing (a data server returning fewer chunks than
 requested at its discretion) is NOT permitted for the
 lifecycle operations because the co-indexed result arrays would
 lose positional correlation.  A data server that cannot process
-all requested chunks MUST reject the entire request; the client
-retries with a smaller batch.
+all requested chunks MUST reject the entire request rather than
+partially serve it.  The rejection uses one of the errors
+already defined for the two capacity-limit paths above --
+NFS4ERR_INVAL when the request array length exceeds a
+CHUNK_MAX_* bound, NFS4ERR_TOOSMALL when the response would
+exceed the session-negotiated ca_maxresponsesize
+({{RFC8881}} Section 18.36), or NFS4ERR_DELAY when the data
+server is out of transient resources to process the requested
+batch -- and the entire request is a no-op with respect to
+mutation.
+
+On receiving any of these rejections, a client that wishes to
+retry SHOULD halve the batch size and retry, subject to the
+static maxima in {{fig-chunk-op-bounds}} and the session's
+ca_maxresponsesize.  A client that has already reduced the
+batch to a single chunk and continues to see the rejection
+MUST escalate via LAYOUTERROR rather than retry unbounded.
 
 ## Operation 78: CHUNK_COMMIT - Activate Cached Chunk Data {#sec-CHUNK_COMMIT}
 
