@@ -4071,20 +4071,53 @@ requires a keyed MAC or signature; see
 
 ### Write Modes
 
-There are two basic writing modes for erasure coding and they depend
-on the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER in the
-ffv2l_flags in the ffv2_layout4 (see {{fig-ffv2_layout4}}) to inform
-the client whether it is the only writer to the file or not.  If
-it is the only writer, then CHUNK_WRITE with the cwa_guard not set
-can be used to write chunks.  In this scenario, there is no write
-contention, but write holes can occur as the client overwrites old
-data.  Thus the client does not need guarded writes, but it does
-need the ability to rollback writes.  If it is not the only writer,
-then CHUNK_WRITE with the cwa_guard set MUST be used to write chunks.
-In this scenario, the write holes can also be caused by multiple
-clients writing to the same chunk.  Thus the client needs guarded
-writes to prevent over writes and it does need the ability to
-rollback writes.
+There are three writing modes for erasure coding, aligned with
+the three workload classes in {{sec-use-cases}}.  The mode is
+selected by the metadata server using FFV2_FLAGS_ONLY_ONE_WRITER
+in the ffv2l_flags in the ffv2_layout4 (see {{fig-ffv2_layout4}})
+to inform the client whether it is the only writer to the file
+or not, and by the client's own understanding of its workload
+class when the flag is unset.
+
+Single writer:
+:  When FFV2_FLAGS_ONLY_ONE_WRITER is set, the client is the
+only writer to the file.  CHUNK_WRITE with cwa_guard not set
+can be used to write chunks.  There is no write contention,
+but write holes can occur as the client overwrites old data.
+The client does not need guarded writes, but it does need the
+ability to rollback writes.  This mode corresponds to Use
+Case 1 (single writer, multiple readers) in {{sec-use-cases}}.
+
+Concurrent writers with occasional contention:
+:  When FFV2_FLAGS_ONLY_ONE_WRITER is not set, the client is
+one of several possible concurrent writers.  CHUNK_WRITE
+with cwa_guard set MUST be used to write chunks.  Write holes
+can be caused by multiple clients writing to the same chunk,
+so the client needs guarded writes to prevent overwrites and
+also needs the ability to rollback writes.  Racing writers
+that lose the chunk_guard4 CAS receive NFS4ERR_CHUNK_GUARDED
+and retry with a refreshed guard.  This mode corresponds to
+Use Case 2 (multiple writers without sustained contention) in
+{{sec-use-cases}}.
+
+Concurrent writers on disjoint regions:
+:  A specialization of the concurrent-writers mode above,
+targeting Use Case 3 (multiple writers, disjoint regions --
+the HPC checkpoint pattern) in {{sec-use-cases}}.  The wire
+primitives are the same as the concurrent-writers mode
+(cwa_guard set, chunk_guard4 CAS), but the deployment relies
+on block alignment to keep per-chunk contention rare despite a
+high overall writer count.  Contention that does occur is
+resolved via the deterministic tiebreaker rule defined in
+{{sec-chunk_guard4}}, so racing writers get a stable winner
+across the mirror set without additional round trips.
+Deployments that use an XOR-based erasure encoding and
+expect frequent small edits from this workload class MAY
+additionally use the delta-write protocol defined in
+{{I-D.haynes-nfsv4-flexfiles-v2-delta-writes}}, which lets
+the client forward per-projection XOR deltas directly to
+each data server, avoiding client-side read-modify-write of
+the full stripe on the small-edit path.
 
 In both modes, clients MUST NOT overwrite payloads which already
 contain non-atomicity.  This directly follows from {{sec-reading-chunks}}
