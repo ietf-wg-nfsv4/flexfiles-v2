@@ -10974,7 +10974,7 @@ to be serviced subject to the chunk-lock state recorded in
 cr_locked.  For a CHUNK_READ with a cra_stateid value of
 all bits equal to one, the data server MAY allow CHUNK_READ
 to bypass lock-state reporting at the data server.  These
-special-stateid behaviours mirror the corresponding READ
+special-stateid behaviors mirror the corresponding READ
 semantics in {{RFC8881}} adapted to the chunk-locking
 model ({{sec-CHUNK_LOCK}}) rather than the byte range
 locking model of {{RFC8881}} Section 12.
@@ -12019,7 +12019,7 @@ on the target chunks.  For a CHUNK_WRITE with a
 cwa_stateid value of all bits equal to one, the data
 server MAY allow CHUNK_WRITE to bypass lock-state
 checking at the data server.  These special-stateid
-behaviours mirror the corresponding WRITE semantics in
+behaviors mirror the corresponding WRITE semantics in
 {{RFC8881}} adapted to the chunk-locking model
 ({{sec-CHUNK_LOCK}}) rather than the byte range locking
 model of {{RFC8881}} Section 12.
@@ -15598,7 +15598,7 @@ Two coupled requirements:
 1.  Encoding correctness and encoding evolution must not be a per-client
     burden.  An ecosystem in which every client must ship and update
     every supported encoding does not interoperate at scale: an
-    organisation cannot upgrade its storage system's encoding without
+    organization cannot upgrade its storage system's encoding without
     coordinating an upgrade across every client.
 
 2.  The expensive recovery paths (partial writes, durable shard
