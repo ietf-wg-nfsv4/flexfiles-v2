@@ -12374,7 +12374,7 @@ the mechanism by which tight coupling (see
 metadata server and the data server for a particular layout.
 
 TRUST_STATEID has no analog in {{RFC8881}}: pNFS layouts in
-RFC 8881 do not register the layout stateid with data
+{{RFC8881}} do not register the layout stateid with data
 servers; data servers in the loose coupling model trust the
 synthetic uid/gid the metadata server inserts on each I/O
 ({{sec-Fencing-Clients}}).  TRUST_STATEID is the new
@@ -12552,7 +12552,7 @@ TRUST_STATEID ({{sec-TRUST_STATEID}}) -- registration and
 revocation form the matched pair that drives the per-file
 trust table for a tightly coupled deployment.
 
-REVOKE_STATEID has no analog in {{RFC8881}}.  RFC 8881
+REVOKE_STATEID has no analog in {{RFC8881}}.  {{RFC8881}}
 revokes pNFS layouts via LAYOUTRETURN with a special
 all-files marker or via implicit lease expiry;
 REVOKE_STATEID is the new metadata-server-to-data-server operation
@@ -12711,7 +12711,7 @@ server to scan its trust table and remove every entry
 whose owning pNFS client matches brsa_clientid (and whose
 issuing metadata server matches the calling metadata server).
 
-BULK_REVOKE_STATEID has no analog in {{RFC8881}}.  RFC 8881
+BULK_REVOKE_STATEID has no analog in {{RFC8881}}.  {{RFC8881}}
 recall-all is expressed at the layout layer
 (CB_LAYOUTRECALL with LAYOUTRECALL4_ALL); the per-client
 trust-table sweep introduced here is the data-server-side
@@ -13261,7 +13261,7 @@ are normative for how the client MUST respond on receipt
 of this callback) and uses CB_CHUNK_REPAIR to deliver the
 work item.
 
-CB_CHUNK_REPAIR has no analog in {{RFC8881}}.  RFC 8881
+CB_CHUNK_REPAIR has no analog in {{RFC8881}}.  {{RFC8881}}
 back-channel callbacks operate at the layout layer
 (CB_LAYOUTRECALL) or the file-state layer (CB_RECALL,
 CB_NOTIFY); CB_CHUNK_REPAIR is the new chunk-layer
