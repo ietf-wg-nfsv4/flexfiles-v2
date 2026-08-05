@@ -1119,7 +1119,7 @@ Capability probe:
    coupling returns NFS4ERR_NOTSUPP and the metadata server
    falls back to loose coupling.  The metadata server records
    result per storage device by setting the
-   FFV2_COUPLING_TRUSTED_STATEID bit in ffdv_coupling on
+   FFV2_COUPLING_TRUSTED_STATEID bit in ffv2dv_coupling on
    success (leaving the bit clear on NFS4ERR_NOTSUPP).
 
 Control-session gating:
@@ -1323,8 +1323,8 @@ metadata server interprets the probe response as follows:
 NFS4ERR_NOTSUPP:
 :  trusted-stateid tight coupling is not supported on this
    storage device.  The metadata server leaves the
-   FFV2_COUPLING_TRUSTED_STATEID bit clear in ffdv_coupling
-   for this storage device.  If ffdv_coupling has no other
+   FFV2_COUPLING_TRUSTED_STATEID bit clear in ffv2dv_coupling
+   for this storage device.  If ffv2dv_coupling has no other
    tight-coupling bits set for this storage device, the
    metadata server falls back to the synthetic-uid model
    (anonymous stateid plus fencing).
@@ -1332,7 +1332,7 @@ NFS4ERR_NOTSUPP:
 NFS4ERR_INVAL:
 :  trusted-stateid tight coupling is supported.  The anonymous
    stateid was correctly rejected.  The metadata server sets the
-   FFV2_COUPLING_TRUSTED_STATEID bit in ffdv_coupling for this
+   FFV2_COUPLING_TRUSTED_STATEID bit in ffv2dv_coupling for this
    storage device.
 
 NFS4_OK:
@@ -1345,7 +1345,7 @@ NFS4_OK:
 The capability is recorded per storage device, not per file.
 Partial support across a mirror set is permitted: each
 ffv2_device_versions4 entry returned by GETDEVICEINFO carries
-its own ffdv_coupling value, set independently.
+its own ffv2dv_coupling value, set independently.
 
 ###  Control Session {#sec-tight-coupling-control-session}
 
@@ -1435,7 +1435,7 @@ For each new or refreshed layout segment, the metadata server:
 1.  chooses the layout stateid (as it would without tight coupling);
 
 2.  identifies the trusted-stateid-capable storage devices in
-    the mirror set (those for which ffdv_coupling has the
+    the mirror set (those for which ffv2dv_coupling has the
     FFV2_COUPLING_TRUSTED_STATEID flag set);
 
 3.  fans out TRUST_STATEID to each such storage device,
@@ -1462,7 +1462,7 @@ NFS4ERR_DELAY is retried until either success or the metadata
 server's LAYOUTGET-response budget is exhausted.  If a storage
 device returns NFS4ERR_NOTSUPP at this time (having accepted
 the probe earlier), the metadata server MUST clear the
-FFV2_COUPLING_TRUSTED_STATEID flag in ffdv_coupling for this
+FFV2_COUPLING_TRUSTED_STATEID flag in ffv2dv_coupling for this
 storage device.  If no tight-coupling flags remain set for
 this device, the metadata server falls back to the
 synthetic-uid model and re-issues the layout accordingly.
@@ -1766,7 +1766,7 @@ file v2 counterparts to ff_device_addr4 and ff_device_versions4
 in {{RFC8435}}.  The two structures are similar in shape but
 carry an FFv2-specific enrichment: the boolean
 ffdv_tightly_coupled from RFC 8435 has been widened to the
-uint32_t bitfield ffdv_coupling, which lets a storage device
+uint32_t bitfield ffv2dv_coupling, which lets a storage device
 advertise more than one coupling capability at the same time
 ({{sec-tight-coupling-control}}).  Because the field type has
 changed, the FFv2 structs are named distinctly to avoid
@@ -1774,7 +1774,7 @@ confusion with the RFC 8435 originals.
 
 ~~~ xdr
    /*
-    * ffdv_coupling flags -- bitwise-OR of the values below.
+    * ffv2dv_coupling flags -- bitwise-OR of the values below.
     *
     * A zero value (no flags set) indicates the loose-coupling
     * synthetic-uid model of RFC 8435: the client presents an
@@ -1805,61 +1805,61 @@ confusion with the RFC 8435 originals.
    const FFV2_COUPLING_TRUSTED_STATEID = 0x00000002;
 
    struct ffv2_device_versions4 {
-           uint32_t        ffdv_version;
-           uint32_t        ffdv_minorversion;
-           uint32_t        ffdv_rsize;
-           uint32_t        ffdv_wsize;
-           uint32_t        ffdv_coupling;
+           uint32_t        ffv2dv_version;
+           uint32_t        ffv2dv_minorversion;
+           uint32_t        ffv2dv_rsize;
+           uint32_t        ffv2dv_wsize;
+           uint32_t        ffv2dv_coupling;
    };
 ~~~
 {: #fig-ff_device_versions4 title="ffv2_device_versions4"}
 
 ~~~ xdr
    struct ffv2_device_addr4 {
-           multipath_list4       ffda_netaddrs;
-           ffv2_device_versions4 ffda_versions<>;
+           multipath_list4       ffv2da_netaddrs;
+           ffv2_device_versions4 ffv2da_versions<>;
    };
 ~~~
 {: #fig-ff_device_addr4 title="ffv2_device_addr4"}
 
-The ffda_netaddrs field is used to locate the storage device.  It
+The ffv2da_netaddrs field is used to locate the storage device.  It
 MUST be set by the server to a list holding one or more of the device
 network addresses.
 
-The ffda_versions array allows the metadata server to present choices
+The ffv2da_versions array allows the metadata server to present choices
 as to NFS version, minor version, and coupling capabilities to the
-client.  The ffdv_version and ffdv_minorversion represent the NFS
+client.  The ffv2dv_version and ffv2dv_minorversion represent the NFS
 protocol to be used to access the storage device.  This layout
-specification defines the semantics for ffdv_versions 3 and 4.  If
-ffdv_version equals 3, then the server MUST set ffdv_minorversion to
-0 and ffdv_coupling to FFV2_COUPLING_SYNTHETIC_UIDS.  The client MUST
+specification defines the semantics for ffv2dv_versions 3 and 4.  If
+ffv2dv_version equals 3, then the server MUST set ffv2dv_minorversion to
+0 and ffv2dv_coupling to FFV2_COUPLING_SYNTHETIC_UIDS.  The client MUST
 then access the storage device using the NFSv3 protocol {{RFC1813}}.
-If ffdv_version equals 4, then the server MUST set ffdv_minorversion
+If ffv2dv_version equals 4, then the server MUST set ffv2dv_minorversion
 to 1 or 2, and the client MUST access the storage device using NFSv4
 with the specified minor version.
 
 Three additional constraints narrow the valid set of
-(ffdv_version, ffdv_minorversion, ffdv_coupling) tuples
+(ffv2dv_version, ffv2dv_minorversion, ffv2dv_coupling) tuples
 in specific cases:
 
 -  When a mirror's encoding type uses CHUNK operations (that
    is, any FFV2_ENCODING_* value other than
    FFV2_ENCODING_PASSTHROUGH), the corresponding storage device
-   MUST be advertised with ffdv_version = 4 and
-   ffdv_minorversion = 2.  CHUNK operations are NFSv4.2 ops
+   MUST be advertised with ffv2dv_version = 4 and
+   ffv2dv_minorversion = 2.  CHUNK operations are NFSv4.2 ops
    defined in this document; NFSv3 and NFSv4.1 storage devices
    cannot serve a non-PASSTHROUGH mirror.
 
--  When ffdv_coupling has the FFV2_COUPLING_TRUSTED_STATEID
+-  When ffv2dv_coupling has the FFV2_COUPLING_TRUSTED_STATEID
    flag set, the storage device MUST be advertised with
-   ffdv_version = 4 and ffdv_minorversion = 2.  The
+   ffv2dv_version = 4 and ffv2dv_minorversion = 2.  The
    TRUST_STATEID family of operations is defined as NFSv4.2;
    NFSv4.1 storage devices cannot participate in
    trusted-stateid tight coupling.
 
 -  When a mirror's encoding type uses CHUNK operations, the
    corresponding storage device MUST be advertised with
-   ffdv_coupling having at least one tight-coupling flag set
+   ffv2dv_coupling having at least one tight-coupling flag set
    (FFV2_COUPLING_TIGHTLY_COUPLED or
    FFV2_COUPLING_TRUSTED_STATEID, or both).  The chunk
    lifecycle depends on the metadata-server-registered layout
@@ -1871,27 +1871,27 @@ in specific cases:
    serve a non-PASSTHROUGH mirror.
 
 PASSTHROUGH mirrors with FFV2_COUPLING_SYNTHETIC_UIDS are the
-only loose-coupling configuration; the (ffdv_version,
-ffdv_minorversion) tuples (3, 0) and (4, 1) remain valid only
+only loose-coupling configuration; the (ffv2dv_version,
+ffv2dv_minorversion) tuples (3, 0) and (4, 1) remain valid only
 for that configuration.  All other configurations require
 NFSv4.2 and at least one tight-coupling flag.
 
 Note that while the client might determine that it cannot use any of
-the configured combinations of ffdv_version, ffdv_minorversion, and
-ffdv_coupling, when it gets the device list from the metadata
+the configured combinations of ffv2dv_version, ffv2dv_minorversion, and
+ffv2dv_coupling, when it gets the device list from the metadata
 server, there is no way to indicate to the metadata server as to
 which device it is version incompatible.  However, if the client
 waits until it retrieves the layout from the metadata server, it can
 at that time clearly identify the storage device in question (see
 {{sec-version-errors}}).
 
-The ffdv_rsize and ffdv_wsize are used to communicate the maximum
+The ffv2dv_rsize and ffv2dv_wsize are used to communicate the maximum
 rsize and wsize supported by the storage device.  As the storage
 device can have a different rsize or wsize than the metadata server,
-the ffdv_rsize and ffdv_wsize allow the metadata server to
+the ffv2dv_rsize and ffv2dv_wsize allow the metadata server to
 communicate that information on behalf of the storage device.
 
-ffdv_coupling informs the client which tight-coupling
+ffv2dv_coupling informs the client which tight-coupling
 capabilities the storage device supports.  The two
 tight-coupling flags are orthogonal:
 
@@ -1914,12 +1914,12 @@ tight-coupling flags are orthogonal:
 A storage device MAY advertise either, both, or neither
 flag.  When both are set, the deployment supports two
 tight-coupling paths concurrently and MAY use either for a
-given operation.  When neither is set (ffdv_coupling equals
+given operation.  When neither is set (ffv2dv_coupling equals
 FFV2_COUPLING_SYNTHETIC_UIDS), the storage device is loosely
 coupled and the RFC 8435 synthetic-uid model applies (see
 {{sec-Fencing-Clients}}).
 
-If ffdv_coupling has no tight-coupling flag set, then the
+If ffv2dv_coupling has no tight-coupling flag set, then the
 client MUST commit writes to the storage devices for the file
 before sending a
 LAYOUTCOMMIT to the metadata server.  That is, the writes MUST be
@@ -1937,7 +1937,7 @@ client to switch to another storage device address that may be that
 of another storage device that is exporting the same data stripe
 unit, without having to contact the metadata server for a new layout.
 
-To support storage device multipathing, ffda_netaddrs contains an
+To support storage device multipathing, ffv2da_netaddrs contains an
 array of one or more storage device network addresses.  This array
 (data type multipath_list4) represents a list of storage devices
 (each identified by a network address), with the possibility that
@@ -1947,14 +1947,14 @@ The client is free to use any of the network addresses as a
 destination to send storage device requests.  If some network
 addresses are less desirable paths to the data than others, then the
 metadata server SHOULD NOT include those network addresses in
-ffda_netaddrs.  If less desirable network addresses exist to provide
+ffv2da_netaddrs.  If less desirable network addresses exist to provide
 failover, the RECOMMENDED method to offer the addresses is to provide
 them in a replacement device-ID-to-device-address mapping or a
 replacement device ID.  When a client finds no response from the
-storage device using all addresses available in ffda_netaddrs, it
+storage device using all addresses available in ffv2da_netaddrs, it
 SHOULD send a GETDEVICEINFO to attempt to replace the existing
 device-ID-to-device-address mappings.  If the metadata server detects
-that all network paths represented by ffda_netaddrs are unavailable,
+that all network paths represented by ffv2da_netaddrs are unavailable,
 the metadata server SHOULD send a CB_NOTIFY_DEVICEID (if the client
 has indicated it wants device ID notifications for changed device
 IDs) to change the device-ID-to-device-address mappings to the
@@ -1963,7 +1963,7 @@ metadata server SHOULD recall all layouts with the device ID and thus
 force the client to get new layouts and device ID mappings via
 LAYOUTGET and GETDEVICEINFO.
 
-Generally, if two network addresses appear in ffda_netaddrs, they
+Generally, if two network addresses appear in ffv2da_netaddrs, they
 will designate the same storage device.  When the storage device is
 accessed over NFSv4.1 or a higher minor version, the two storage
 device addresses will support the implementation of client ID or
@@ -2904,9 +2904,9 @@ the data file.
 ffv2ds_file_info is an array of ffv2_file_info4 structures, each
 pairing a filehandle (ffv2fi_fh_vers) with a stateid (ffv2fi_stateid).
 There MUST be exactly as many elements in ffv2ds_file_info as there
-are in ffda_versions.  Each element of the array corresponds to a
-particular combination of ffdv_version, ffdv_minorversion, and
-ffdv_coupling provided for the device.  The array allows for
+are in ffv2da_versions.  Each element of the array corresponds to a
+particular combination of ffv2dv_version, ffv2dv_minorversion, and
+ffv2dv_coupling provided for the device.  The array allows for
 server implementations that have different filehandles and stateids
 for different combinations of version, minor version, and coupling
 strength.  See {{sec-version-errors}} for how to handle versioning
@@ -2928,10 +2928,10 @@ device that is not participating in the control protocol.  In
 this case the metadata server MUST set ffv2fi_stateid to the
 anonymous stateid.
 
-For an NFSv3 storage device (ffdv_version = 3), the tight-coupling
+For an NFSv3 storage device (ffv2dv_version = 3), the tight-coupling
 model does not apply: {{sec-ff_device_addr4}} requires
-ffdv_coupling to equal FFV2_COUPLING_SYNTHETIC_UIDS whenever
-ffdv_version equals 3, because NFSv3 has no wire encoding for
+ffv2dv_coupling to equal FFV2_COUPLING_SYNTHETIC_UIDS whenever
+ffv2dv_version equals 3, because NFSv3 has no wire encoding for
 stateids.  The corresponding
 ffv2fi_stateid element in the ffv2ds_file_info array MUST therefore
 be the anonymous stateid and is unused; an NFSv3 data server uses
@@ -2976,7 +2976,7 @@ provide the synthetic user and group to be used in the RPC credentials
 that the client presents to the storage device to access the data
 files.  For tightly coupled storage devices, the user and group on
 the storage device will be the same as on the metadata server; that
-is, if ffdv_coupling has any tight-coupling flag set (see
+is, if ffv2dv_coupling has any tight-coupling flag set (see
 {{sec-ff_device_addr4}}), then the client MUST ignore both
 ffv2ds_user and ffv2ds_group.
 
@@ -3066,15 +3066,15 @@ copies of the file for the current layout segment available.
 
 ##  Handling Version Errors {#sec-version-errors}
 
-When the metadata server provides the ffda_versions array in the
+When the metadata server provides the ffv2da_versions array in the
 ffv2_device_addr4 (see {{sec-ff_device_addr4}}), the client is
 able to determine whether or not it can access a storage device
-with any of the supplied combinations of ffdv_version,
-ffdv_minorversion, and ffdv_coupling.  However, due to the limitations of
+with any of the supplied combinations of ffv2dv_version,
+ffv2dv_minorversion, and ffv2dv_coupling.  However, due to the limitations of
 reporting errors in GETDEVICEINFO (see Section 18.40 in {{RFC8881}}),
 the client is not able to specify which specific device it cannot
-communicate with over one of the provided ffdv_version and
-ffdv_minorversion combinations.  Using ffv2_ioerr4 ({{sec-ffv2_ioerr4}})
+communicate with over one of the provided ffv2dv_version and
+ffv2dv_minorversion combinations.  Using ffv2_ioerr4 ({{sec-ffv2_ioerr4}})
 inside either the LAYOUTRETURN (see Section 18.44 of {{RFC8881}})
 or the LAYOUTERROR (see Section 15.6 of {{RFC7862}} and {{sec-LAYOUTERROR}}
 of this document), the client can isolate the problematic storage
@@ -3084,8 +3084,8 @@ The error code to return for LAYOUTRETURN and/or LAYOUTERROR is
 NFS4ERR_MINOR_VERS_MISMATCH.  It does not matter whether the mismatch
 is a major version (e.g., client can use NFSv3 but not NFSv4) or
 minor version (e.g., client can use NFSv4.1 but not NFSv4.2), the
-error indicates that for all the supplied combinations for ffdv_version
-and ffdv_minorversion, the client cannot communicate with the storage
+error indicates that for all the supplied combinations for ffv2dv_version
+and ffv2dv_minorversion, the client cannot communicate with the storage
 device.  The client can retry the GETDEVICEINFO to see if the
 metadata server can provide a different combination, or it can fall
 back to doing the I/O through the metadata server.
@@ -14194,7 +14194,7 @@ Coverage:
 - The tight-coupling control protocol (TRUST_STATEID,
   REVOKE_STATEID, BULK_REVOKE_STATEID) is specified but not
   yet implemented.  Data servers currently advertise
-  `ffdv_coupling = FFV2_COUPLING_SYNTHETIC_UIDS`, and
+  `ffv2dv_coupling = FFV2_COUPLING_SYNTHETIC_UIDS`, and
   synthetic
   AUTH_SYS credentials with fencing are used for access
   control.
