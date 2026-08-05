@@ -6789,8 +6789,9 @@ when issued by the metadata server:
 
 -  SEQUENCE, PUTFH, PUTROOTFH, GETFH ({{RFC8881}} Sections 18.46,
    18.19, 18.21, 18.8): session and filehandle plumbing.
--  LOOKUP ({{RFC8881}} Section 18.15): runway pool directory
-   traversal.
+-  LOOKUP ({{RFC8881}} Section 18.15): directory traversal
+   the metadata server issues when locating data files it has
+   allocated for its use.
 -  GETATTR ({{RFC8881}} Section 18.7): the metadata server issues
    GETATTR against the data file after a write layout is returned,
    to pull the post-write size, mtime, and other attributes back
@@ -6799,8 +6800,10 @@ when issued by the metadata server:
    operation.
 -  SETATTR ({{RFC8881}} Section 18.30): data file truncate for
    metadata-server-level SETATTR(size) fan-out, synthetic uid/gid rotation
-   for fencing, and mode-bit initialisation on runway assignment.
--  CREATE ({{RFC8881}} Section 18.4): runway pool file creation.
+   for fencing, and mode-bit initialization when the metadata
+   server binds a data file to a new metadata-level file.
+-  CREATE ({{RFC8881}} Section 18.4): the metadata server's own
+   allocation of data files on the data server.
 -  REMOVE ({{RFC8881}} Section 18.25): cleanup on metadata server file
    unlink.
 -  OPEN, CLOSE ({{RFC8881}} Sections 18.16, 18.2): used by the
@@ -7081,7 +7084,10 @@ MUST return NFS4ERR_NOTSUPP:
    18.5, 18.6 and {{RFC7862}} Section 15.3).  Delegations are
    issued by the metadata server.
 -  Any operation whose purpose is to manipulate the file's
-   namespace: RENAME, LINK, SYMLINK, CREATE (at the file-creation use, not metadata server runway creation), REMOVE.  Namespace
+   namespace: RENAME, LINK, SYMLINK, CREATE (at the client's
+   file-creation use, not the metadata server's own
+   allocation of data files on the data server described
+   above), REMOVE.  Namespace
    operations belong on the metadata server.
 -  Any ACL-scoped SETATTR or GETATTR bit (FATTR4_ACL,
    FATTR4_DACL, FATTR4_SACL).  Access control on data files is
