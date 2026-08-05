@@ -10298,9 +10298,9 @@ Cardinality and short responses:
   client resumes at chra_offset + N.  If even the minimum
   useful response (a single entry) will not fit, the data
   server returns NFS4ERR_REP_TOO_BIG per {{RFC8881}}; the
-  client MUST NOT retry with a smaller chra_count (there is no
-  positive integer below 1) and instead uses a session or
-  COMPOUND with more available response budget.
+  client MUST NOT retry with a smaller chra_count and
+  instead uses a session or COMPOUND with more available
+  response budget.
 
 The operation has several uses:
 
