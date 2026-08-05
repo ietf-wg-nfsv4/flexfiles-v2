@@ -14026,7 +14026,7 @@ co_client_id, co_id) throughout, per
 (cg_gen_id, cg_client_id) is data-server-managed and is
 distinct from these owner-identity numbers.
 
-Happy path (all three conditions hold):
+### Happy Path (all three conditions hold) {#sec-composed-rollback-happy}
 
 1. The metadata server proactively installs an
    metadata-server escrow lock over chunk index 5 by sending
@@ -14091,61 +14091,54 @@ Happy path (all three conditions hold):
    durable escrow-tuple record for (file, E1,
    {this data server}).
 
-Lost-callback branch:
+### Lost-Callback Branch {#sec-composed-rollback-lost}
 
-: Steps 1-6 proceed as
-above but the CB_CHUNK_REPAIR response is lost in
-transit (data server restart or network failure
-before the metadata server receives the reply).
-The metadata server never observes step-7 confirmation.
-The repair actor's lock lease eventually expires
-without an explicit release, and the data server
-transitions the lock through the revocation-transfer
-path (see {{sec-chunk_guard_mds}}): a new metadata-server escrow
+Steps 1-6 proceed as above but the CB_CHUNK_REPAIR
+response is lost in transit (data server restart or
+network failure before the metadata server receives the
+reply).  The metadata server never observes step-7
+confirmation.  The repair actor's lock lease eventually
+expires without an explicit release, and the data server
+transitions the lock through the revocation-transfer path
+(see {{sec-chunk_guard_mds}}): a new metadata-server escrow
 lock is installed on the same range with the same
 preserved escrow_id4 = E1.  On the next
-CHUNK_ESCROW_ENUMERATE the metadata server
-observes the reappeared E1 and reissues repair
-under it.
+CHUNK_ESCROW_ENUMERATE the metadata server observes the
+reappeared E1 and reissues repair under it.
 
-Fallback contrast (condition 1 fails):
+### Fallback Contrast (condition 1 fails) {#sec-composed-rollback-fallback}
 
-: Under
-an alternative setup where the metadata server did
+Under an alternative setup where the metadata server did
 NOT install a metadata-server escrow before the retention
-scope
-({{sec-system-model-retention-scope}}) released the
-(41, 7, 100) predecessor, condition 1 fails.  By
-the time repair is initiated the predecessor is
-ABSENT on the data server, and the escrow the
-metadata server installs pins only what still
-exists (there is no predecessor to pin).  The
-repair actor's CHUNK_LOCK / CHUNK_HEADER_READ
-sequence discovers no retained predecessor for
-index 5.  A subsequent CHUNK_ROLLBACK against the
-(41, 7, 100) triple returns NFS4ERR_NO_PREDECESSOR
-({{sec-NFS4ERR_NO_PREDECESSOR}}).  The client
-falls back to CHUNK_WRITE_REPAIR, reconstructing
-authoritative bytes from surviving data-server
-shards and writing them under a new owner triple
-of its own choosing -- for example (43, 7, 102).
-The resulting COMMITTED generation carries the
-new triple, NOT the released (41, 7, 100).  Any
-subsequent lifecycle operation that names the
-released (41, 7, 100) triple returns
-NFS4ERR_NO_PREDECESSOR -- the (41, 7, 100)
-association was released under the retention scope,
-not by an explicit CHUNK_ROLLBACK delete case within
-a live replay-cache window, so the release-scope
-split at {{sec-NFS4ERR_NO_PREDECESSOR}} routes to the
-NO_PREDECESSOR arm consistent with the previous
-CHUNK_ROLLBACK outcome in this trace: the fallback
-creates a new generation, it does not resurrect the
-released predecessor.  When no authoritative
-source exists for reconstruction, the fallback
-itself terminates at NFS4ERR_PAYLOAD_LOST
-({{sec-NFS4ERR_PAYLOAD_LOST}}) via
-CB_CHUNK_REPAIR.
+scope ({{sec-system-model-retention-scope}}) released the
+(41, 7, 100) predecessor, condition 1 fails.  By the time
+repair is initiated the predecessor is ABSENT on the data
+server, and the escrow the metadata server installs pins
+only what still exists (there is no predecessor to pin).
+The repair actor's CHUNK_LOCK / CHUNK_HEADER_READ sequence
+discovers no retained predecessor for index 5.  A
+subsequent CHUNK_ROLLBACK against the (41, 7, 100) triple
+returns NFS4ERR_NO_PREDECESSOR
+({{sec-NFS4ERR_NO_PREDECESSOR}}).  The client falls back
+to CHUNK_WRITE_REPAIR, reconstructing authoritative bytes
+from surviving data-server shards and writing them under
+a new owner triple of its own choosing -- for example
+(43, 7, 102).  The resulting COMMITTED generation carries
+the new triple, NOT the released (41, 7, 100).
+
+Any subsequent lifecycle operation that names the
+released (41, 7, 100) triple returns NFS4ERR_NO_PREDECESSOR
+-- the (41, 7, 100) association was released under the
+retention scope, not by an explicit CHUNK_ROLLBACK delete
+case within a live replay-cache window, so the
+release-scope split at {{sec-NFS4ERR_NO_PREDECESSOR}}
+routes to the NO_PREDECESSOR arm consistent with the
+previous CHUNK_ROLLBACK outcome in this trace: the
+fallback creates a new generation, it does not resurrect
+the released predecessor.  When no authoritative source
+exists for reconstruction, the fallback itself terminates
+at NFS4ERR_PAYLOAD_LOST ({{sec-NFS4ERR_PAYLOAD_LOST}})
+via CB_CHUNK_REPAIR.
 
 #  Security Considerations
 
