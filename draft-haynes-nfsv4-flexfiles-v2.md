@@ -788,6 +788,75 @@ wsize:
 
 :  the data transfer buffer size used for WRITEs.
 
+## Naming the layout type (reviewer note)
+{:removeInRFC="true"}
+
+The layout type defined by this document is referred to by several
+forms in the surrounding prose.  This note fixes the vocabulary so
+the reader (and the sweep in the source) can keep them straight.
+It follows the register RFC 8435 established for its own layout
+type: a formal title-case name for headings and IANA registrations,
+a lowercase running-text form, and separate XDR / struct-prefix
+identifiers.  The parallel is exact -- everywhere RFC 8435 says
+"flexible file layout" this document says "flexible file v2
+layout", and everywhere RFC 8435 says "Flexible File Layout Type"
+this document says "Flexible File Version 2 Layout Type".
+
+Formal name (headings, IANA registrations, the abstract):
+"Flexible File Version 2 Layout Type".  This is the form to
+use when naming the layout type as such -- for example, the
+Section 5 heading, the IANA registry title, and the sentence
+that introduces the layout type in the abstract.  A short
+formal variant "Flexible File Version 2 Layout" drops "Type"
+when "Type" would be redundant with the surrounding noun
+(as in the IANA-registered creation-hint name).
+
+Running-text form (body prose): "flexible file v2 layout".
+This is the form for sentences that mention the layout in
+passing rather than naming it as an object of definition --
+"the flexible file v2 layout supports multipathing to multiple
+storage devices", "the flexible file v2 layout does not use
+lou_body".  It parallels RFC 8435's lowercase "flexible file
+layout" and is preferred over the title-case form for
+sentences where the emphasis is on the mechanism, not the
+name.  Do NOT write "flexible file v2 layout version 2" -- the
+"v2" already carries the version, and appending "version 2"
+is a rendering hazard.
+
+Informal short form (cross-references, tables, and prose where
+the full name would be repetitive): "FFv2", with "FFv1"
+reserved for the predecessor defined by {{RFC8435}}.  These
+short forms are convenient for tables ("FFv1-compatible
+mirror") and for sentences that need to contrast the two
+layout types ("FFv2 is a wire-format-incompatible extension
+of FFv1").  The short form is not appropriate for headings,
+IANA registrations, or the abstract.
+
+XDR identifier: `LAYOUT4_FLEX_FILES_V2`.  This is the name
+assigned to the layout type by the layout-type registry
+({{RFC8434}}) and is the constant a receiver compares against
+when dispatching on layout type.  It parallels
+`LAYOUT4_FLEX_FILES` for the predecessor layout type
+({{RFC8435}}).  Use the XDR identifier whenever the sentence
+is about the value that appears on the wire; use the
+"Flexible File Version 2 Layout Type" formal name whenever
+the sentence is about the layout type as a specification.
+
+Struct-name prefix: `ffv2_` (as in `ffv2_layout4`,
+`ffv2_mirror4`, `ffv2_stripes4`).  This parallels RFC 8435's
+`ff_` prefix (as in `ff_layout4`, `ff_device_addr4`).  The
+per-struct field prefix follows the RFC 8435 pattern of
+struct-initials plus underscore: `ffv2l_` for
+`ffv2_layout4`, `ffv2m_` for `ffv2_mirror4`, `ffv2ds_` for
+`ffv2_data_server4`, and so on.
+
+Document title and file abbreviation: the front-matter title is
+"Parallel NFS (pNFS) Flexible File Layout Version 2" and the
+`abbrev` used in the running header is "Flex File Layout v2".
+These are document-metadata conventions and do not participate
+in the body-prose vocabulary; the running text follows the
+forms above, not the front-matter forms.
+
 #  Coupling of Storage Devices
 
 A server implementation may choose either a loosely coupled model or a
@@ -1275,7 +1344,7 @@ be sent by pNFS clients.
 
 Other tight coupling control protocols may exist or be defined
 elsewhere.  Existing pNFS server implementations with established
-back-end control protocols -- for example, dCache {{?DCACHE}},
+back-end control protocols -- for example, dCache {{DCACHE}},
 which has its own control protocol between its metadata
 service and its data servers -- satisfy the tightly coupled
 locking model
@@ -1918,7 +1987,7 @@ tight coupling flags are orthogonal:
   has an MDS-to-DS back-end control protocol (the RFC 8435
   general tight coupling concept); this document does not
   specify what that protocol is or how it operates.  A dCache
-  {{?DCACHE}} deployment, for example, would set this flag
+  {{DCACHE}} deployment, for example, would set this flag
   based on its own MDS/pool control plane.
 
 - FFV2_COUPLING_TRUSTED_STATEID asserts that the storage
@@ -3284,9 +3353,9 @@ back to doing the I/O through the metadata server.
 
 #  Striping {#sec-striping}
 
-The flexible file v2 layout version 2 inherits the dense and
-sparse striping dispositions defined by the file layout type in
-Section 13.4 of {{RFC8881}}.  The disposition for a given
+The flexible file v2 layout inherits the dense and sparse striping
+dispositions defined by the file layout type in Section 13.4 of
+{{RFC8881}}.  The disposition for a given
 mirror is selected by the ffv2m_striping field (see
 {{sec-ffv2-mirror4}}) and applies to every data server in that
 mirror's ffv2s_data_servers list.  Three values are permitted:
@@ -4540,9 +4609,9 @@ deployment's storage pools have different encoding capabilities
 and the file is too large to fit in any single pool.
 
 Consider an operator with three 100-TB storage pools.  Pool A
-is a Flexible File v1 export speaking only NFSv3 (capable of
-FFV2_ENCODING_PASSTHROUGH only); Pool B is a Flexible File v2
-deployment whose data servers have implemented only
+is an FFv1 export speaking only NFSv3 (capable of
+FFV2_ENCODING_PASSTHROUGH only); Pool B is an FFv2 deployment
+whose data servers have implemented only
 FFV2_ENCODING_RS_VANDERMONDE; Pool C similarly has data
 servers that have implemented only FFV2_ENCODING_MOJETTE_SYSTEMATIC.
 A 250-TB file cannot fit in any single pool.  Striping the
@@ -4584,8 +4653,8 @@ specifies.
 
 ## FFV2_ENCODING_PASSTHROUGH {#sec-encoding-passthrough}
 
-FFV2_ENCODING_PASSTHROUGH is the on-ramp from flexible file v1 layout ({{RFC8435}})
-into the flexible file v2 layout type.  A PASSTHROUGH mirror points at the
+FFV2_ENCODING_PASSTHROUGH is the on-ramp from the flexible file v1 layout ({{RFC8435}})
+into the flexible file v2 layout.  A PASSTHROUGH mirror points at the
 file's bytes as they exist on the data server, without the
 chunk envelope, checksum header, or chunk_guard4 fields that the
 encoded types use.  Client I/O against a PASSTHROUGH mirror
@@ -14406,7 +14475,7 @@ Source:
 
 Implementation:
 :  A native pNFS layout driver at `fs/nfs/flexfilesv2/`
-   implementing the flexible file v2 layout type for the Linux
+   implementing the flexible file v2 layout for the Linux
    NFS client.  Layout registration, XDR decode of
    `ffv2_layout4`, device-info discovery, striped and mirrored
    read and write, and the CHUNK operation wire path are implemented as
