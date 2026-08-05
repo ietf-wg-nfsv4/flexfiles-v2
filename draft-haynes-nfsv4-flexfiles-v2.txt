@@ -513,20 +513,23 @@ Table of Contents
    This document defines LAYOUT4_FLEX_FILES_V2, a new and independent
    layout type that coexists with the Flexible File Version 1 Layout
    Type (LAYOUT4_FLEX_FILES, [RFC8435]).  The two layout types are wire-
-   format-incompatible: an FFv1 receiver cannot parse FFv2 layout bytes,
-   and an FFv2 receiver cannot parse FFv1 layout bytes.  Semantically,
-   however, FFv2 is a superset of FFv1: any FFv1 layout has a natural
-   FFv2 representation using a single FFV2_ENCODING_PASSTHROUGH mirror
-   (see Section 11.4), with the FFv1 data servers mapped into
-   ffv2_stripes4 and the FFv1 layout-level ffl_stripe_unit mapped into
-   per-mirror ffv2m_striping_unit_size and ffv2m_striping.  The reverse
-   does not hold: FFv2 layouts that use any CHUNK-based encoding (any
-   FFV2_ENCODING_* value other than FFV2_ENCODING_PASSTHROUGH) have no
-   FFv1 representation, because FFv1 has neither the chunk envelope
-   (chunk_guard4, per-chunk checksum) nor the per-mirror encoding choice
-   that those encodings require.  A server MAY support both layout types
-   simultaneously; a client selects the desired layout type in its
-   LAYOUTGET request.
+   format-incompatible: a flexible file v1 layout receiver cannot parse
+   flexible file v2 layout bytes, and a flexible file v2 layout receiver
+   cannot parse flexible file v1 layout bytes.  Semantically, however,
+   the flexible file v2 layout is a superset of the flexible file v1
+   layout: any flexible file v1 layout has a natural flexible file v2
+   layout representation using a single FFV2_ENCODING_PASSTHROUGH mirror
+   (see Section 11.4), with the flexible file v1 layout's data servers
+   mapped into ffv2_stripes4 and the flexible file v1 layout's layout-
+   level ffl_stripe_unit mapped into per-mirror ffv2m_striping_unit_size
+   and ffv2m_striping.  The reverse does not hold: flexible file v2
+   layouts that use any CHUNK-based encoding (any FFV2_ENCODING_* value
+   other than FFV2_ENCODING_PASSTHROUGH) have no flexible file v1 layout
+   representation, because the flexible file v1 layout has neither the
+   chunk envelope (chunk_guard4, per-chunk checksum) nor the per-mirror
+   encoding choice that those encodings require.  A server MAY support
+   both layout types simultaneously; a client selects the desired layout
+   type in its LAYOUTGET request.
 
 2.  Requirements Language
 
@@ -1011,13 +1014,15 @@ Table of Contents
    already carries the version, and appending "version 2" is a rendering
    hazard.
 
-   Informal short form (cross-references, tables, and prose where the
-   full name would be repetitive): "FFv2", with "FFv1" reserved for the
-   predecessor defined by [RFC8435].  These short forms are convenient
-   for tables ("FFv1-compatible mirror") and for sentences that need to
-   contrast the two layout types ("FFv2 is a wire-format-incompatible
-   extension of FFv1").  The short form is not appropriate for headings,
-   IANA registrations, or the abstract.
+   Short form (narrow tables and reviewer-aid appendix material where
+   cell width or repetition would otherwise dominate): "FFv2", with
+   "FFv1" reserved for the predecessor defined by [RFC8435].  The short
+   forms are NOT appropriate in body prose, headings, IANA
+   registrations, or the abstract; body prose that would otherwise
+   repeat the layout name uses the running-text form above.  Their
+   scoped use is in tables where "flexible file v2 layout" would break
+   the column layout (e.g., the four-variant wire-path comparison table
+   in the Implementation Status appendix).
 
    XDR identifier: LAYOUT4_FLEX_FILES_V2.  This is the name assigned to
    the layout type by the layout-type registry ([RFC8434]) and is the
@@ -1467,12 +1472,12 @@ Table of Contents
    a back-end control protocol is out of scope for this document.
 
    A deployment that does not need those finer-grained associations --
-   for example, an FFv2 deployment whose per-file access-control
-   decisions live entirely on the metadata server and whose storage
-   devices see only chunk-level CAS on layout stateids -- is conformant
-   with the trusted stateid tight coupling model using only the
-   TRUST_STATEID family.  That scope covers the layout stateid and,
-   transitively via ffv2m_client_id, the writer identity carried on
+   for example, a flexible file v2 layout deployment whose per-file
+   access-control decisions live entirely on the metadata server and
+   whose storage devices see only chunk-level CAS on layout stateids --
+   is conformant with the trusted stateid tight coupling model using
+   only the TRUST_STATEID family.  That scope covers the layout stateid
+   and, transitively via ffv2m_client_id, the writer identity carried on
    CHUNK operations.
 
    Because the client will possess and use stateids valid on the storage
@@ -1991,14 +1996,14 @@ Table of Contents
    for LAYOUT_FLEX_FILES_V2.
 
    ffv2_device_addr4 and ffv2_device_versions4 are the flexible file v2
-   counterparts to ff_device_addr4 and ff_device_versions4 in [RFC8435].
-   The two structures are similar in shape but carry an FFv2-specific
-   enrichment: the boolean ffdv_tightly_coupled from RFC 8435 has been
-   widened to the uint32_t bitfield ffv2dv_coupling, which lets a
-   storage device advertise more than one coupling capability at the
-   same time (Section 6.4).  Because the field type has changed, the
-   FFv2 structs are named distinctly to avoid confusion with the RFC
-   8435 originals.
+   layout counterparts to ff_device_addr4 and ff_device_versions4 in
+   [RFC8435].  The two structures are similar in shape but carry a
+   flexible-file-v2-specific enrichment: the boolean
+   ffdv_tightly_coupled from RFC 8435 has been widened to the uint32_t
+   bitfield ffv2dv_coupling, which lets a storage device advertise more
+   than one coupling capability at the same time (Section 6.4).  Because
+   the field type has changed, the flexible file v2 layout structs are
+   named distinctly to avoid confusion with the RFC 8435 originals.
 
       /*
        * ffv2dv_coupling flags -- bitwise-OR of the values below.
@@ -2353,9 +2358,10 @@ Table of Contents
    |Value|Encoding type                       |Description     |Section|
    +=====+====================================+================+=======+
    |    1|FFV2_ENCODING_PASSTHROUGH           |On-ramp from    |Section|
-   |     |                                    |FFv1; direct    |11.4   |
-   |     |                                    |NFSv3/v4 I/O,   |       |
-   |     |                                    |no chunk        |       |
+   |     |                                    |the flexible    |11.4   |
+   |     |                                    |file v1 layout; |       |
+   |     |                                    |direct NFSv3/v4 |       |
+   |     |                                    |I/O, no chunk   |       |
    |     |                                    |envelope        |       |
    +-----+------------------------------------+----------------+-------+
    |    2|FFV2_ENCODING_MOJETTE_SYSTEMATIC    |Discrete Radon  |Section|
@@ -2822,16 +2828,16 @@ Table of Contents
 
    ffv2_stripes4 has no direct counterpart in [RFC8435].  In the
    flexible file v1 layout, a mirror's data servers are listed directly
-   on the mirror (via ffm_data_servers<> on ff_mirror4).  FFv2
-   introduces this intermediate stripes level so a single mirror MAY
-   carry multiple stripe groups, and pushes the striping-mode metadata
-   (ffv2m_striping, ffv2m_striping_unit_size) down onto the mirror (see
-   Section 8.9) rather than onto the layout as [RFC8435] does with the
-   layout-level ffl_stripe_unit.  The ffv2_striping4 enum
+   on the mirror (via ffm_data_servers<> on ff_mirror4).  The flexible
+   file v2 layout introduces this intermediate stripes level so a single
+   mirror MAY carry multiple stripe groups, and pushes the striping-mode
+   metadata (ffv2m_striping, ffv2m_striping_unit_size) down onto the
+   mirror (see Section 8.9) rather than onto the layout as [RFC8435]
+   does with the layout-level ffl_stripe_unit.  The ffv2_striping4 enum
    (FFV2_STRIPING_NONE / _SPARSE / _DENSE) inherits its meaning from
-   Section 13.3 of [RFC8881] and Section 5.1 of [RFC8435]; the FFv2
-   evolution is that the striping mode is a per-mirror decision rather
-   than a per-layout one.
+   Section 13.3 of [RFC8881] and Section 5.1 of [RFC8435]; the flexible
+   file v2 layout evolution is that the striping mode is a per-mirror
+   decision rather than a per-layout one.
 
 8.9.  ffv2_mirror4
 
@@ -2846,16 +2852,17 @@ Table of Contents
 
                         Figure 17: The ffv2_mirror4
 
-   The ffv2_mirror4 (in Figure 17) is the FFv2 counterpart to ff_mirror4
-   in [RFC8435].  FFv2 is a semantic superset of FFv1: any ff_mirror4
+   The ffv2_mirror4 (in Figure 17) is the flexible file v2 layout
+   counterpart to ff_mirror4 in [RFC8435].  The flexible file v2 layout
+   is a semantic superset of the flexible file v1 layout: any ff_mirror4
    can be re-expressed as an ffv2_mirror4 by setting
    ffv2m_coding_type_data = FFV2_ENCODING_PASSTHROUGH, ffv2m_striping
-   and ffv2m_striping_unit_size to the FFv1 layout-level values,
-   ffv2m_checksum_algorithm to CHECKSUM_ALG_NONE, and wrapping the FFv1
-   ffm_data_servers<> in a single-element ffv2m_stripes<>.  The reverse
-   does not hold: ffv2_mirror4 instances whose ffv2m_coding_type_data is
-   anything other than FFV2_ENCODING_PASSTHROUGH have no ff_mirror4
-   representation.
+   and ffv2m_striping_unit_size to the flexible file v1 layout's layout-
+   level values, ffv2m_checksum_algorithm to CHECKSUM_ALG_NONE, and
+   wrapping the flexible file v1 layout's ffm_data_servers<> in a
+   single-element ffv2m_stripes<>.  The reverse does not hold:
+   ffv2_mirror4 instances whose ffv2m_coding_type_data is anything other
+   than FFV2_ENCODING_PASSTHROUGH have no ff_mirror4 representation.
 
    Relative to ff_mirror4, ffv2_mirror4 adds the following per-mirror
    fields:
@@ -2865,24 +2872,25 @@ Table of Contents
       different encodings (e.g., a PASSTHROUGH mirror alongside a Reed-
       Solomon mirror over the same file; see Figure 31) -- the
       transition-window and per-mirror-optimization patterns that
-      motivated FFv2.
+      motivated the flexible file v2 layout.
 
    *  ffv2m_striping and ffv2m_striping_unit_size: pull the striping-
-      mode decision from the layout level down to the mirror level.
-      FFv1's ffl_stripe_unit is layout-wide; in FFv2 different mirrors
-      of the same file MAY use different striping configurations.
+      mode decision from the layout level down to the mirror level.  The
+      flexible file v1 layout's ffl_stripe_unit is layout-wide; in the
+      flexible file v2 layout different mirrors of the same file MAY use
+      different striping configurations.
 
    *  ffv2m_client_id: writer identity for chunk_guard4 CAS (see
-      Section 24.1).  No FFv1 counterpart; introduced for the CHUNK
-      operation set that FFv2 adds.
+      Section 24.1).  No flexible file v1 layout counterpart; introduced
+      for the CHUNK operation set that the flexible file v2 layout adds.
 
    *  ffv2m_checksum_algorithm: per-mirror integrity-checksum algorithm.
-      No FFv1 counterpart; introduced for the per-chunk checksum
-      integrity FFv2 adds.
+      No flexible file v1 layout counterpart; introduced for the per-
+      chunk checksum integrity the flexible file v2 layout adds.
 
-   *  ffv2m_stripes<>: replaces FFv1's flat ffm_data_servers<> with an
-      array of ffv2_stripes4 (see Figure 16), allowing a single mirror
-      to carry multiple stripe groups.
+   *  ffv2m_stripes<>: replaces the flexible file v1 layout's flat
+      ffm_data_servers<> with an array of ffv2_stripes4 (see Figure 16),
+      allowing a single mirror to carry multiple stripe groups.
 
    The ffv2m_checksum_algorithm field names the checksum algorithm the
    client MUST use when computing cwa_checksums on CHUNK_WRITE and
@@ -4646,23 +4654,23 @@ Table of Contents
    each of which has a ffv2_encoding_type4.  Mixing encoding types in a
    single file's mirror set addresses several use cases:
 
-   *  Assimilation of a non-erasure-coded file into an erasure-coded
-      representation, or export of an erasure-coded file to a non-
-      erasure-coded representation.
+   Assimilation and export:  assimilation of a non-erasure-coded file
+      into an erasure-coded representation, or export of an erasure-
+      coded file to a non-erasure-coded representation.
 
-   *  Online migration between encodings, for example from a Reed-
-      Solomon Vandermonde encoding to a Mojette systematic encoding when
-      a read-access-pattern change makes the new encoding a better fit.
-      Both representations remain addressable through the layout
-      throughout the transition.
+   Online migration between encodings:  for example, from a Reed-Solomon
+      Vandermonde encoding to a Mojette systematic encoding when a read-
+      access-pattern change makes the new encoding a better fit.  Both
+      representations remain addressable through the layout throughout
+      the transition.
 
-   *  Cross-encoding recovery: when one encoding loses data to a
+   Cross-encoding recovery:  when one encoding loses data to a
       correlated failure mode (an encoding implementation bug, a memory-
       corruption pattern that affects parity shards identically), a
       second mirror in a different encoding provides an independent
       recovery surface.
 
-   *  Client-capability routing: a proxy server sees the full mirror set
+   Client-capability routing:  a proxy server sees the full mirror set
       and chooses between encodings on behalf of clients that do not
       implement every encoding the file is represented in.
 
@@ -4673,9 +4681,9 @@ Table of Contents
    such a file might appear as in Figure 31.  Both representations are
    active and addressable through the layout simultaneously.  This is
    the transition-window pattern: a file may transiently span encodings
-   while it is being assimilated from a non-FFv2 source or migrated
-   between encodings.  Steady state is homogeneous; the multi-encoding
-   window is what the protocol must accommodate.
+   while it is being assimilated from a non-flexible-file-v2 source or
+   migrated between encodings.  Steady state is homogeneous; the multi-
+   encoding window is what the protocol must accommodate.
 
    The active mirrors serve different access patterns concurrently:
 
@@ -5206,12 +5214,12 @@ Table of Contents
 
 11.8.1.  Overview
 
-   Reed-Solomon (RS) codes are Maximum Distance Separable (MDS) codes:
-   for a (k+m, k) code, any k of the k+m encoded shards suffice to
-   recover the original data.  The code tolerates the simultaneous loss
-   of up to m shards.  [Plank97] is a tutorial treatment of RS coding in
-   RAID-like systems and is the recommended background reading for
-   implementers unfamiliar with the construction used here.
+   Reed-Solomon (RS) codes are Maximum Distance Separable codes: for a
+   (k+m, k) code, any k of the k+m encoded shards suffice to recover the
+   original data.  The code tolerates the simultaneous loss of up to m
+   shards.  [Plank97] is a tutorial treatment of RS coding in RAID-like
+   systems and is the recommended background reading for implementers
+   unfamiliar with the construction used here.
 
 11.8.2.  Galois Field Arithmetic
 
@@ -5351,20 +5359,20 @@ Table of Contents
    Any deviation produces a different encoding matrix and renders data
    unrecoverable by a different implementation.
 
-   *  Irreducible polynomial: x^8 + x^4 + x^3 + x^2 + 1 (0x11d)
+   Irreducible polynomial:  x^8 + x^4 + x^3 + x^2 + 1 (0x11d).
 
-   *  Primitive element: g = 2
+   Primitive element:  g = 2.
 
-   *  Evaluation points: shard i (i = 0, 1, ..., k+m-1) uses alpha_i = i
-      + 1 in GF(2^8) (values 1 through k+m, all non-zero and distinct)
+   Evaluation points:  shard i (i = 0, 1, ..., k+m-1) uses alpha_i = i +
+      1 in GF(2^8) (values 1 through k+m, all non-zero and distinct).
 
-   *  Vandermonde entries: V[i][j] = alpha_i^j = (i+1)^j in GF(2^8) for
-      i = 0..k+m-1, j = 0..k-1
+   Vandermonde entries:  V[i][j] = alpha_i^j = (i+1)^j in GF(2^8) for i
+      = 0..k+m-1, j = 0..k-1.
 
-   *  Matrix normalization: E = V * T^(-1) where T is the top k x k sub-
-      matrix (rows for shards 0..k-1)
+   Matrix normalization:  E = V * T^(-1) where T is the top k x k sub-
+      matrix (rows for shards 0..k-1).
 
-   *  Parameter bound: k + m MUST NOT exceed 255
+   Parameter bound:  k + m MUST NOT exceed 255.
 
    These parameters fully determine the encoding matrix for any (k, m)
    configuration in the permitted range.
@@ -5505,10 +5513,10 @@ Table of Contents
    FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC in this revision.  All
    implementations MUST use W = 8; a future revision (or a distinct
    registered encoding type) may lift the fixed width, at which point it
-   becomes a wire-visible parameter.  Fixing W now removes the interop
-   hazard the review flagged (the same shard input, XOR'd at W = 4 vs W
-   = 8, produces different bin values that appear "close but wrong" to a
-   mismatched decoder).
+   becomes a wire-visible parameter.  Fixing W in this revision prevents
+   an interoperability hazard: the same shard input XOR'd at W = 4
+   versus W = 8 produces different bin values that appear "close but
+   wrong" to a mismatched decoder.
 
 11.9.2.  Grid Structure
 
@@ -5529,16 +5537,16 @@ Table of Contents
 
    For n = k + m total shards (Mojette non-systematic) or m parity
    shards (Mojette systematic), the direction set is determined by the
-   following mandatory algorithm on the shard count N (N = n for non-
-   systematic, N = m for systematic):
+   following mandatory rule on the shard count N (N = n for non-
+   systematic, N = m for systematic).
 
-If N is even (N = 2t):
-    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t} }
-    // Symmetric around zero; |directions| = 2t = N.
-If N is odd (N = 2t + 1):
-    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t, t+1} }
-    // Asymmetric by including one additional positive magnitude
-    // to make |directions| = 2t + 1 = N.
+   For N even (N = 2t):  directions = { (p, 1) : p in {-t, -t+1, ...,
+      -1, 1, 2, ..., t} } -- symmetric around zero, giving |directions|
+      = 2t = N.
+
+   For N odd (N = 2t + 1):  directions = { (p, 1) : p in {-t, -t+1, ...,
+      -1, 1, 2, ..., t, t+1} } -- asymmetric by including one additional
+      positive magnitude so that |directions| = 2t + 1 = N.
 
    Direction slots are then sorted by p_i ascending (most-negative p
    first, most-positive p last) to give the canonical direction order.
@@ -5627,8 +5635,9 @@ If N is odd (N = 2t + 1):
    analogous p-sum condition over the residual.  Because the mandatory
    direction algorithm above generates m projections with distinct
    nonzero p values, the p-sum condition also holds for any loss pattern
-   with r + s <= m; the systematic form therefore achieves MDS-like
-   recovery up to m combined data-row and parity-projection losses.
+   with r + s <= m; the systematic form therefore achieves Maximum-
+   Distance-Separable-like recovery up to m combined data-row and
+   parity-projection losses.
 
 11.9.6.  Inverse Transform (Decoding)
 
@@ -5683,28 +5692,29 @@ If N is odd (N = 2t + 1):
 
 11.9.9.  Mojette Shard Sizes and Layout
 
-   *Slot-to-direction mapping.* The canonical shard layout for Mojette
-   is:
+   Slot-to-direction mapping:  The canonical shard layout for Mojette
+      is:
 
-   *  Systematic (FFV2_ENCODING_MOJETTE_SYSTEMATIC): shard slots 0..k-1
-      carry the k data rows (row r in slot r); shard slots k..k+m-1
-      carry the m parity projections in the canonical direction order
-      defined in the Directions subsection above (direction slot i
-      occupies shard slot k + i).
+      Systematic (FFV2_ENCODING_MOJETTE_SYSTEMATIC):  shard slots 0..k-1
+         carry the k data rows (row r in slot r); shard slots k..k+m-1
+         carry the m parity projections in the canonical direction order
+         defined in the Directions subsection above (direction slot i
+         occupies shard slot k + i).
 
-   *  Non-systematic (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC): shard slots
-      0..k+m-1 carry the n = k + m parity projections in the canonical
-      direction order (direction slot i occupies shard slot i).
+      Non-systematic (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC):  shard
+         slots 0..k+m-1 carry the n = k + m parity projections in the
+         canonical direction order (direction slot i occupies shard slot
+         i).
 
-   *Bin ordering within a projection.* Within a projection shard the
-   bins are serialized in ascending bin-index order (bin 0 first, bin
-   B-1 last), with no gap or header.  Each bin value is W = 8 bytes
-   wide; the W-byte element is serialized in big-endian byte order (the
-   same order the data-row shards present their W-byte grid elements
-   in).
+   Bin ordering within a projection:  Within a projection shard the bins
+      are serialized in ascending bin-index order (bin 0 first, bin B-1
+      last), with no gap or header.  Each bin value is W = 8 bytes wide;
+      the W-byte element is serialized in big-endian byte order (the
+      same order the data-row shards present their W-byte grid elements
+      in).
 
-   *Projection sizes.* Unlike RS, Mojette parity shard sizes vary by
-   direction:
+   Projection sizes:  Unlike Reed-Solomon, Mojette parity shard sizes
+      vary by direction:
 
     +==================+=========================+===================+
     | Direction (p, q) | Bins (B) for P=512, Q=4 | Size (bytes, W=8) |
@@ -5724,22 +5734,22 @@ If N is odd (N = 2t + 1):
 
        Table 10: Mojette projection sizes for 4+2, 4KB shards, W=8
 
-   *Chunk sizing for variable-length projections.* When a projection
-   shard is written via CHUNK_WRITE / CHUNK_FINALIZE / CHUNK_COMMIT, the
-   shard is divided into chunks by the following mapping.  Let
-   shard_bytes = B * W be the projection shard's total byte size (where
-   B is the number of bins per the B formula above (Table 10 uses it)
-   applied to the shard's direction (p, q) and the grid dimensions (P,
-   Q)):
+   Chunk sizing for variable-length projections:  When a projection
+      shard is written via CHUNK_WRITE / CHUNK_FINALIZE / CHUNK_COMMIT,
+      the shard is divided into chunks by the following mapping.  Let
+      shard_bytes = B * W be the projection shard's total byte size
+      (where B is the number of bins per the B formula above (Table 10
+      uses it) applied to the shard's direction (p, q) and the grid
+      dimensions (P, Q)):
 
-   *  num_chunks = ceil(shard_bytes / chunk_size)
+      *  num_chunks = ceil(shard_bytes / chunk_size)
 
-   *  Chunk j (for j = 0..num_chunks-1) covers the shard byte range [j *
-      chunk_size, min((j+1) * chunk_size, shard_bytes)).
+      *  Chunk j (for j = 0..num_chunks-1) covers the shard byte range
+         [j * chunk_size, min((j+1) * chunk_size, shard_bytes)).
 
-   *  The final chunk (chunk num_chunks - 1) MAY be shorter than
-      chunk_size if shard_bytes is not a multiple of chunk_size; all
-      other chunks are exactly chunk_size bytes.
+      *  The final chunk (chunk num_chunks - 1) MAY be shorter than
+         chunk_size if shard_bytes is not a multiple of chunk_size; all
+         other chunks are exactly chunk_size bytes.
 
    The chunk_size value is a per-mirror parameter and does not vary
    across the parity projections of a single file, even though the shard
@@ -5751,23 +5761,27 @@ If N is odd (N = 2t + 1):
 
 11.10.  Comparison of Encoding Types
 
-   +================+====================+============+================+
-   | Property       | Reed-Solomon       | Mojette    | Mojette Non-   |
-   |                |                    | Systematic | Systematic     |
-   +================+====================+============+================+
-   | MDS guarantee  | Yes                | Yes (Katz) | Yes (Katz)     |
-   +----------------+--------------------+------------+----------------+
-   | Shard sizes    | Uniform            | Variable   | Variable       |
-   +----------------+--------------------+------------+----------------+
-   | Reconstruction | O(k^3) shard ops   | O(m_k_P*Q) | O(m_k_P*Q)     |
-   | cost           | (matrix            | grid ops   | grid ops       |
-   |                | inversion)         | (peeling)  | (peeling)      |
-   +----------------+--------------------+------------+----------------+
-   | Healthy read   | Zero               | Zero       | Full decode    |
-   | cost           |                    |            |                |
-   +----------------+--------------------+------------+----------------+
-   | GF operations  | Yes (GF(2^8))      | No         | No             |
-   +----------------+--------------------+------------+----------------+
+   +==================+==================+============+================+
+   | Property         | Reed-Solomon     | Mojette    | Mojette Non-   |
+   |                  |                  | Systematic | Systematic     |
+   +==================+==================+============+================+
+   | Maximum Distance | Yes              | Yes (Katz) | Yes (Katz)     |
+   | Separable        |                  |            |                |
+   | guarantee        |                  |            |                |
+   +------------------+------------------+------------+----------------+
+   | Shard sizes      | Uniform          | Variable   | Variable       |
+   +------------------+------------------+------------+----------------+
+   | Reconstruction   | O(k^3) shard     | O(m_k_P*Q) | O(m_k_P*Q)     |
+   | cost             | ops              | grid ops   | grid ops       |
+   |                  | (matrix          | (peeling)  | (peeling)      |
+   |                  | inversion)       |            |                |
+   +------------------+------------------+------------+----------------+
+   | Healthy read     | Zero             | Zero       | Full decode    |
+   | cost             |                  |            |                |
+   +------------------+------------------+------------+----------------+
+   | GF operations    | Yes              | No         | No             |
+   |                  | (GF(2^8))        |            |                |
+   +------------------+------------------+------------+----------------+
 
                Table 11: Comparison of erasure encoding types
 
@@ -6259,7 +6273,7 @@ If N is odd (N = 2t + 1):
    checksums, application-level generation fields, or external
    transaction managers.
 
-   *The chunk is the unit of atomicity.* Two properties follow:
+   The chunk is the unit of atomicity:  Two properties follow.
 
    1.  Chunk-aligned writes do not interfere.  Two concurrent writers
        whose writes cover disjoint chunks -- even writes that cover
@@ -6383,39 +6397,42 @@ If N is odd (N = 2t + 1):
    without the association the payload can never again be addressed by a
    lifecycle operation.
 
-   *Uniqueness invariant* (normative): An accepted (co_cohort_id,
-   co_client_id, co_id) triple is UNIQUE across the live generations the
-   data server holds for a given file: at any instant there is at most
-   one live generation on any chunk of the file that matches that full
-   triple.  Two writers with distinct co_client_id values cannot
-   collide.  A single writer that reuses a co_cohort_id + co_id pair
-   within the same co_client_id across two distinct chunk indices MUST
-   NOT do so while the earlier generation remains live; the data server
-   MAY reject a CHUNK_WRITE that attempts to create such a collision
-   with NFS4ERR_INVAL in the corresponding cwr_block_status slot.  The
-   predecessor-retention rule (Section 12.7) is compatible: a retained
-   predecessor and its successor on the same chunk index MUST carry
-   distinct triples (typically distinct co_cohort_id under a shared
-   co_client_id) so that CHUNK_ROLLBACK can name each unambiguously.
+   Uniqueness invariant (normative):  An accepted (co_cohort_id,
+      co_client_id, co_id) triple is UNIQUE across the live generations
+      the data server holds for a given file: at any instant there is at
+      most one live generation on any chunk of the file that matches
+      that full triple.  Two writers with distinct co_client_id values
+      cannot collide.  A single writer that reuses a co_cohort_id +
+      co_id pair within the same co_client_id across two distinct chunk
+      indices MUST NOT do so while the earlier generation remains live;
+      the data server MAY reject a CHUNK_WRITE that attempts to create
+      such a collision with NFS4ERR_INVAL in the corresponding
+      cwr_block_status slot.  The predecessor-retention rule
+      (Section 12.7) is compatible: a retained predecessor and its
+      successor on the same chunk index MUST carry distinct triples
+      (typically distinct co_cohort_id under a shared co_client_id) so
+      that CHUNK_ROLLBACK can name each unambiguously.
 
-   *Durability floor* (normative, per CHUNK_WRITE Section 25.11
-   "Stability and Activation"):
+   Durability floor (normative, per CHUNK_WRITE Section 25.11
+   "Stability and Activation"):  The durability requirement varies by
+      the CHUNK_WRITE stability level:
 
-   *  FILE_SYNC4: both the chunk payload AND its owner-to-index
-      association MUST survive a data server restart.
+      FILE_SYNC4:  both the chunk payload AND its owner-to-index
+         association MUST survive a data server restart.
 
-   *  DATA_SYNC4: both the chunk payload AND its owner-to-index
-      association MUST survive a data server restart.  (The association
-      is retrieval metadata for the payload; it shares the payload's
-      durability floor.  An implementation MAY treat DATA_SYNC4
-      identically to FILE_SYNC4.)
+      DATA_SYNC4:  both the chunk payload AND its owner-to-index
+         association MUST survive a data server restart.  (The
+         association is retrieval metadata for the payload; it shares
+         the payload's durability floor.  An implementation MAY treat
+         DATA_SYNC4 identically to FILE_SYNC4.)
 
-   *  UNSTABLE4: the association MAY be lost on restart, but ONLY if the
-      payload is also lost.  A data server MUST NOT retain payload
-      without its associated owner triple; a payload whose association
-      was lost is unaddressable by every lifecycle operation and MUST be
-      treated as destroyed.  cwr_writeverf changes on any restart that
-      loses UNSTABLE4 state, allowing the client to detect the loss.
+      UNSTABLE4:  the association MAY be lost on restart, but ONLY if
+         the payload is also lost.  A data server MUST NOT retain
+         payload without its associated owner triple; a payload whose
+         association was lost is unaddressable by every lifecycle
+         operation and MUST be treated as destroyed.  cwr_writeverf
+         changes on any restart that loses UNSTABLE4 state, allowing the
+         client to detect the loss.
 
    A data server that cannot honour the durability floor for a given
    stability level MUST reject the CHUNK_WRITE with NFS4ERR_IO rather
@@ -7511,9 +7528,10 @@ If N is odd (N = 2t + 1):
    Loosely coupled, untrusted stateid:  The metadata server rotates the
       synthetic uid/gid on the affected data files per Section 6.2.  The
       revoked client presents stale RPC credentials and receives
-      NFS4ERR_ACCESS from the data server.  This is the FFv1-style
-      fencing mechanism; it operates per data file and does not
-      distinguish between clients that hold layouts on the same file.
+      NFS4ERR_ACCESS from the data server.  This is the flexible-file-
+      v1-layout-style fencing mechanism; it operates per data file and
+      does not distinguish between clients that hold layouts on the same
+      file.
 
    Tightly coupled, trusted stateid:  When the metadata server has
       registered a client's layout stateid with the data servers via
@@ -7524,9 +7542,9 @@ If N is odd (N = 2t + 1):
       belonging to a single clientid4 across a data server.  Subsequent
       I/O from the revoked client carrying the revoked stateid receives
       NFS4ERR_BAD_STATEID.  This is the preferred mechanism for chunked
-      layouts because it is per-client and avoids the FFv1 limitation of
-      fencing all clients on a data file when only one needs to be
-      revoked.
+      layouts because it is per-client and avoids the flexible file v1
+      layout's limitation of fencing all clients on a data file when
+      only one needs to be revoked.
 
    Mixed:  A metadata server MAY combine the two mechanisms when a
       file's layout includes both PASSTHROUGH mirrors (where stateid
@@ -8487,8 +8505,8 @@ If N is odd (N = 2t + 1):
    metadata-server epoch to the value the takeover names.
 
       /// /* Registered proof profile identifier.  Values
-      ///  * are allocated from the FFv2 proof-profile
-      ///  * registry (see IANA Considerations,
+      ///  * are allocated from the flexible file v2 layout
+      ///  * proof-profile registry (see IANA Considerations,
       ///  * "Proof-Profile Registry"). */
       /// typedef uint32_t   proof_profile_id4;
       ///
@@ -9789,12 +9807,11 @@ If N is odd (N = 2t + 1):
       CHUNK_ROLLBACK MAY return NFS4ERR_NO_PREDECESSOR even though a
       previous CHUNK_HEADER_READ observed PRESENT.
 
-   *Cardinality and short responses*:
+   Cardinality and short responses:  All five response arrays are the
+      same length; the data server MUST NOT sparsify or truncate one
+      array independently of the others.
 
-   *  All five response arrays are the same length; the data server MUST
-      NOT sparsify or truncate one array independently of the others.
-
-   *  The response array length N MAY be smaller than chra_count when
+      The response array length N MAY be smaller than chra_count when
       the requested range extends past the data server's last chunk
       (chrr_eof = TRUE, N = the number of chunks the data server holds
       within the requested range) or when the fully-populated response
@@ -10640,17 +10657,17 @@ If N is odd (N = 2t + 1):
 
    The data server effects the rollback as follows:
 
-   *  Chunks in PENDING with a matching chunk_owner4: the data server
+   Chunks in PENDING with a matching chunk_owner4:  the data server
       deletes the PENDING payload and restores the chunk to its prior
       state (EMPTY, or the prior COMMITTED generation if the rollback
       invariant in Section 12.7 required retention).
 
-   *  Chunks in FINALIZED with a matching chunk_owner4: the data server
+   Chunks in FINALIZED with a matching chunk_owner4:  the data server
       deletes the FINALIZED payload and the persisted finalization
       metadata, restoring the chunk to its prior state.
 
-   *  Chunks not in PENDING or FINALIZED at the named generation, or
-      whose chunk_owner4 does not match: the corresponding
+   Chunks not in PENDING or FINALIZED at the named generation, or
+   whose chunk_owner4 does not match:  the corresponding
       crr_chunk_status slot reports NFS4ERR_INVAL or
       NFS4ERR_NO_PREDECESSOR per the release-scope split at
       Section 21.1.7, and the chunk is left unchanged.
@@ -10717,12 +10734,12 @@ If N is odd (N = 2t + 1):
    separate by whether the predecessor generation the caller wants to
    restore is still present on the data server:
 
-   *Case (a) -- retained predecessor.* The predecessor generation named
-   in the cra_chunks entry is still held by the data server (typically
-   the prior COMMITTED retained under the rollback invariant
-   (Section 12.8) alongside the displaced successor, and MUST have
-   survived with its payload+association pair intact per the
-   biconditional (Section 12.10)).  The data server:
+   Case (a) -- retained predecessor:  The predecessor generation named
+      in the cra_chunks entry is still held by the data server
+      (typically the prior COMMITTED retained under the rollback
+      invariant (Section 12.8) alongside the displaced successor, and
+      MUST have survived with its payload+association pair intact per
+      the biconditional (Section 12.10)).  The data server:
 
    *  restores the retained predecessor as the current COMMITTED
       generation UNDER ITS ORIGINAL owner triple (the (co_cohort_id,
@@ -10744,34 +10761,35 @@ If N is odd (N = 2t + 1):
    both generations as current, and no intermediate state exposes
    neither.
 
-   *Case (b) -- predecessor no longer retained.* If the predecessor
-   generation named in the cra_chunks entry is NOT held by the data
-   server (its payload+association pair was released some time earlier
-   under the retention scope rule, whether by lease expiry, by an even
-   earlier CHUNK_ROLLBACK delete case, or by any other terminal
-   transition), the CHUNK_ROLLBACK CANNOT restore it: the deleted
-   association is not recreated by any operation defined in this
-   document.  The corresponding crr_chunk_status slot reports
-   NFS4ERR_NO_PREDECESSOR in the ordinary case (release under the
-   retention scope rule, or eventual release of an already-invalidated
-   triple after the delete case's replay-cache window has elapsed) and
-   NFS4ERR_INVAL only when the caller has named a triple released by an
-   explicit CHUNK_ROLLBACK delete case within the current session slot's
-   replay-cache window (see Section 21.1.7 for the choice between them).
-   Either way, the caller consults whatever fallback the deployment
-   provides -- a repair client MAY reconstruct authoritative bytes from
-   surviving shards and issue CHUNK_WRITE_REPAIR (Section 25.12) to
-   write a new generation carrying those bytes under a new owner triple.
-   That new generation is a distinct generation for lifecycle purposes;
-   it is not the deleted predecessor resurrected.  Any client that
-   requires the restored generation to retain the predecessor's original
-   owner triple in cases where the retention scope (Section 12.8) would
-   otherwise permit release MUST use the metadata-server escrow control
-   plane (Section 25.16 through Section 25.19), which pins the
-   predecessor's payload and its owner-to-index association jointly
-   against that release rule for as long as the escrow-lock or a client-
-   owned lock adopted from it remains in continuous custody (see
-   Section 27).
+   Case (b) -- predecessor no longer retained:  If the predecessor
+      generation named in the cra_chunks entry is NOT held by the data
+      server (its payload+association pair was released some time
+      earlier under the retention scope rule, whether by lease expiry,
+      by an even earlier CHUNK_ROLLBACK delete case, or by any other
+      terminal transition), the CHUNK_ROLLBACK CANNOT restore it: the
+      deleted association is not recreated by any operation defined in
+      this document.  The corresponding crr_chunk_status slot reports
+      NFS4ERR_NO_PREDECESSOR in the ordinary case (release under the
+      retention scope rule, or eventual release of an already-
+      invalidated triple after the delete case's replay-cache window has
+      elapsed) and NFS4ERR_INVAL only when the caller has named a triple
+      released by an explicit CHUNK_ROLLBACK delete case within the
+      current session slot's replay-cache window (see Section 21.1.7 for
+      the choice between them).  Either way, the caller consults
+      whatever fallback the deployment provides -- a repair client MAY
+      reconstruct authoritative bytes from surviving shards and issue
+      CHUNK_WRITE_REPAIR (Section 25.12) to write a new generation
+      carrying those bytes under a new owner triple.  That new
+      generation is a distinct generation for lifecycle purposes; it is
+      not the deleted predecessor resurrected.  Any client that requires
+      the restored generation to retain the predecessor's original owner
+      triple in cases where the retention scope (Section 12.8) would
+      otherwise permit release MUST use the metadata-server escrow
+      control plane (Section 25.16 through Section 25.19), which pins
+      the predecessor's payload and its owner-to-index association
+      jointly against that release rule for as long as the escrow-lock
+      or a client-owned lock adopted from it remains in continuous
+      custody (see Section 27).
 
    A non-repair CHUNK_ROLLBACK against a COMMITTED chunk is rejected
    with NFS4ERR_INVAL regardless of case.
@@ -10810,16 +10828,16 @@ If N is odd (N = 2t + 1):
    that window has elapsed the second call returns
    NFS4ERR_NO_PREDECESSOR per the release-scope split at Section 21.1.7.
 
-   *Uncertain-replay carve-out.* When the first CHUNK_ROLLBACK completed
-   at the data server but its response was lost (network error, dropped
-   connection, data server restart before the reply was received), the
-   client cannot distinguish "the op did not run" from "the op ran and
-   its reply was lost."  A client that issues an EXACT REISSUE of the
-   same CHUNK_ROLLBACK op under these conditions MAY treat the resulting
-   per-chunk NFS4ERR_INVAL (within the replay-cache window) or
-   NFS4ERR_NO_PREDECESSOR (after the window has elapsed) as
-   POSTCONDITION-EQUIVALENT SUCCESS on a slot-by-slot basis, PROVIDED
-   all of the following hold for that slot:
+   Uncertain-replay carve-out:  When the first CHUNK_ROLLBACK completed
+      at the data server but its response was lost (network error,
+      dropped connection, data server restart before the reply was
+      received), the client cannot distinguish "the op did not run" from
+      "the op ran and its reply was lost."  A client that issues an
+      EXACT REISSUE of the same CHUNK_ROLLBACK op under these conditions
+      MAY treat the resulting per-chunk NFS4ERR_INVAL (within the
+      replay-cache window) or NFS4ERR_NO_PREDECESSOR (after the window
+      has elapsed) as POSTCONDITION-EQUIVALENT SUCCESS on a slot-by-slot
+      basis, PROVIDED all of the following hold for that slot:
 
    *  the reissue is byte-identical to the original op (same cra_offset,
       same cra_count, same cra_chunks array entry) -- a fresh op with an
@@ -11816,19 +11834,19 @@ If N is odd (N = 2t + 1):
    The metadata server calls REVOKE_STATEID in any of the following
    situations:
 
-   *  CB_LAYOUTRECALL timeout: the client did not return the layout
-      within the recall timeout.  REVOKE_STATEID terminates the client's
+   CB_LAYOUTRECALL timeout:  the client did not return the layout within
+      the recall timeout.  REVOKE_STATEID terminates the client's
       ability to issue further I/O to the data server without waiting
       for tsa_expire.
 
-   *  LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM: the data server
+   LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM:  the data server
       rejected the client's I/O; the trust entry is stale and must be
       removed.  This mirrors the fencing case in the loose-coupled model
       (Section 6.2).
 
-   *  Explicit LAYOUTRETURN: the client returned the layout cleanly.
-      The metadata server MAY issue REVOKE_STATEID at this time or MAY
-      rely on tsa_expire; either is correct.
+   Explicit LAYOUTRETURN:  the client returned the layout cleanly.  The
+      metadata server MAY issue REVOKE_STATEID at this time or MAY rely
+      on tsa_expire; either is correct.
 
    In-flight CHUNK operations that arrived before REVOKE_STATEID
    completes MAY be allowed to finish.  The data server MUST NOT process
@@ -11948,17 +11966,17 @@ If N is odd (N = 2t + 1):
    The metadata server calls BULK_REVOKE_STATEID in any of the following
    situations:
 
-   *  Client lease expiry: when a client's lease on the metadata server
+   Client lease expiry:  when a client's lease on the metadata server
       expires, the metadata server revokes all of that client's layouts.
       A single BULK_REVOKE_STATEID with brsa_clientid set to the expired
       client's clientid sweeps every per-file trust entry the metadata
       server had registered for that client.
 
-   *  CB_LAYOUTRECALL with LAYOUTRECALL4_ALL: the metadata server is
+   CB_LAYOUTRECALL with LAYOUTRECALL4_ALL:  the metadata server is
       recalling all layouts for a client.  BULK_REVOKE_STATEID is the
       data-server-side complement.
 
-   *  Metadata server restart cleanup: after the metadata server
+   Metadata server restart cleanup:  after the metadata server
       reconnects to a data server, it MAY issue BULK_REVOKE_STATEID with
       brsa_clientid set to all-zeros to clear the prior trust table
       before re-issuing TRUST_STATEID as clients reclaim.  See
@@ -12572,14 +12590,14 @@ If N is odd (N = 2t + 1):
 
 27.  Composed Rollback Guarantee and Error Decision Tree
 
-   The FFv2 chunk protocol combines three related mechanisms -- writer-
-   supplied opaque owner identity (Section 24.2), best-effort
-   predecessor discovery (Section 25.5 / Section 21.1.7), and metadata-
-   server escrow control-plane pinning (Section 25.16 / Section 25.17 /
-   Section 25.18 / Section 25.19, Section 24.1.4) -- that together
-   deliver a CONDITIONAL rollback guarantee.  This section states the
-   guarantee scope precisely and specifies the client-side decision tree
-   over the composed error surface.
+   The flexible file v2 layout chunk protocol combines three related
+   mechanisms -- writer-supplied opaque owner identity (Section 24.2),
+   best-effort predecessor discovery (Section 25.5 / Section 21.1.7),
+   and metadata-server escrow control-plane pinning (Section 25.16 /
+   Section 25.17 / Section 25.18 / Section 25.19, Section 24.1.4) --
+   that together deliver a CONDITIONAL rollback guarantee.  This section
+   states the guarantee scope precisely and specifies the client-side
+   decision tree over the composed error surface.
 
 27.1.  Guarantee Scope
 
@@ -12627,12 +12645,12 @@ If N is odd (N = 2t + 1):
    authoritative source exists.
 
    The guarantee is a protocol-level protection against premature
-   release: FFv2 implementations MUST NOT release the payload or owner-
-   to-index association of a predecessor covered by an active qualifying
-   lock or metadata-server escrow lock, per the payload/association
-   biconditional (Section 12.10) and the retention scope (Section 12.8)
-   as extended by the escrow-pin mechanism.  It is not a guarantee
-   against exogenous failures of the storage substrate.
+   release: flexible file v2 layout implementations MUST NOT release the
+   payload or owner-to-index association of a predecessor covered by an
+   active qualifying lock or metadata-server escrow lock, per the
+   payload/association biconditional (Section 12.10) and the retention
+   scope (Section 12.8) as extended by the escrow-pin mechanism.  It is
+   not a guarantee against exogenous failures of the storage substrate.
 
 27.2.  Client-Side Error Decision Tree
 
@@ -12731,7 +12749,7 @@ If N is odd (N = 2t + 1):
    cg_client_id) is data-server-managed and is distinct from these
    owner-identity numbers.
 
-   *Happy path (all three conditions hold).*
+   Happy path (all three conditions hold):
 
    1.  The metadata server proactively installs an metadata-server
        escrow lock over chunk index 5 by sending CHUNK_ESCROW_INSTALL
@@ -12778,41 +12796,44 @@ If N is odd (N = 2t + 1):
        callback response confirms completion," and clears its durable
        escrow-tuple record for (file, E1, {this data server}).
 
-   *Lost-callback branch.* Steps 1-6 proceed as above but the
-   CB_CHUNK_REPAIR response is lost in transit (data server restart or
-   network failure before the metadata server receives the reply).  The
-   metadata server never observes step-7 confirmation.  The repair
-   actor's lock lease eventually expires without an explicit release,
-   and the data server transitions the lock through the revocation-
-   transfer path (see Section 24.1.4): a new metadata-server escrow lock
-   is installed on the same range with the same preserved escrow_id4 =
-   E1.  On the next CHUNK_ESCROW_ENUMERATE (Section 25.18) the metadata
-   server observes the reappeared E1 and reissues repair under it.
+   Lost-callback branch:  Steps 1-6 proceed as above but the
+      CB_CHUNK_REPAIR response is lost in transit (data server restart
+      or network failure before the metadata server receives the reply).
+      The metadata server never observes step-7 confirmation.  The
+      repair actor's lock lease eventually expires without an explicit
+      release, and the data server transitions the lock through the
+      revocation-transfer path (see Section 24.1.4): a new metadata-
+      server escrow lock is installed on the same range with the same
+      preserved escrow_id4 = E1.  On the next CHUNK_ESCROW_ENUMERATE
+      (Section 25.18) the metadata server observes the reappeared E1 and
+      reissues repair under it.
 
-   *Fallback contrast (condition 1 fails).* Under an alternative setup
-   where the metadata server did NOT install a metadata-server escrow
-   before the retention scope (Section 12.8) released the (41, 7, 100)
-   predecessor, condition 1 fails.  By the time repair is initiated the
-   predecessor is ABSENT on the data server, and the escrow the metadata
-   server installs pins only what still exists (there is no predecessor
-   to pin).  The repair actor's CHUNK_LOCK / CHUNK_HEADER_READ sequence
-   discovers no retained predecessor for index 5.  A subsequent
-   CHUNK_ROLLBACK against the (41, 7, 100) triple returns
-   NFS4ERR_NO_PREDECESSOR (Section 21.1.7).  The client falls back to
-   CHUNK_WRITE_REPAIR (Section 25.12), reconstructing authoritative
-   bytes from surviving data-server shards and writing them under a new
-   owner triple of its own choosing -- for example (43, 7, 102).  The
-   resulting COMMITTED generation carries the new triple, NOT the
-   released (41, 7, 100).  Any subsequent lifecycle operation that names
-   the released (41, 7, 100) triple returns NFS4ERR_NO_PREDECESSOR --
-   the (41, 7, 100) association was released under the retention scope,
-   not by an explicit CHUNK_ROLLBACK delete case within a live replay-
-   cache window, so the release-scope split at Section 21.1.7 routes to
-   the NO_PREDECESSOR arm consistent with the previous CHUNK_ROLLBACK
-   outcome in this trace: the fallback creates a new generation, it does
-   not resurrect the released predecessor.  When no authoritative source
-   exists for reconstruction, the fallback itself terminates at
-   NFS4ERR_PAYLOAD_LOST (Section 21.1.5) via CB_CHUNK_REPAIR.
+   Fallback contrast (condition 1 fails):  Under an alternative setup
+      where the metadata server did NOT install a metadata-server escrow
+      before the retention scope (Section 12.8) released the (41, 7,
+      100) predecessor, condition 1 fails.  By the time repair is
+      initiated the predecessor is ABSENT on the data server, and the
+      escrow the metadata server installs pins only what still exists
+      (there is no predecessor to pin).  The repair actor's CHUNK_LOCK /
+      CHUNK_HEADER_READ sequence discovers no retained predecessor for
+      index 5.  A subsequent CHUNK_ROLLBACK against the (41, 7, 100)
+      triple returns NFS4ERR_NO_PREDECESSOR (Section 21.1.7).  The
+      client falls back to CHUNK_WRITE_REPAIR (Section 25.12),
+      reconstructing authoritative bytes from surviving data-server
+      shards and writing them under a new owner triple of its own
+      choosing -- for example (43, 7, 102).  The resulting COMMITTED
+      generation carries the new triple, NOT the released (41, 7, 100).
+      Any subsequent lifecycle operation that names the released (41, 7,
+      100) triple returns NFS4ERR_NO_PREDECESSOR -- the (41, 7, 100)
+      association was released under the retention scope, not by an
+      explicit CHUNK_ROLLBACK delete case within a live replay-cache
+      window, so the release-scope split at Section 21.1.7 routes to the
+      NO_PREDECESSOR arm consistent with the previous CHUNK_ROLLBACK
+      outcome in this trace: the fallback creates a new generation, it
+      does not resurrect the released predecessor.  When no
+      authoritative source exists for reconstruction, the fallback
+      itself terminates at NFS4ERR_PAYLOAD_LOST (Section 21.1.5) via
+      CB_CHUNK_REPAIR.
 
 28.  Security Considerations
 

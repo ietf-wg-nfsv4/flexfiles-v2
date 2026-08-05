@@ -2386,22 +2386,25 @@ from <span>[<a href="#RFC7863" class="cite xref">RFC7863</a>]</span>.<a href="#s
 <p id="section-1-9">This document defines <code>LAYOUT4_FLEX_FILES_V2</code>, a new and independent
 layout type that coexists with the Flexible File Version 1 Layout Type
 (<code>LAYOUT4_FLEX_FILES</code>, <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>).  The two layout types are
-wire-format-incompatible: an FFv1 receiver cannot parse FFv2
-layout bytes, and an FFv2 receiver cannot parse FFv1 layout
-bytes.  Semantically, however, FFv2 is a superset of FFv1:
-any FFv1 layout has a natural FFv2 representation using a
-single FFV2<em>ENCODING_PASSTHROUGH mirror (see
-<a href="#sec-encoding-passthrough" class="auto internal xref">Section 11.4</a>), with the FFv1 data servers
-mapped into ffv2_stripes4 and the FFv1 layout-level
-ffl_stripe_unit mapped into per-mirror ffv2m_striping_unit_size
-and ffv2m_striping.  The reverse does not hold: FFv2 layouts
-that use any CHUNK-based encoding (any FFV2_ENCODING</em>* value
-other than FFV2_ENCODING_PASSTHROUGH) have no FFv1
-representation, because FFv1 has neither the chunk envelope
-(chunk_guard4, per-chunk checksum) nor the per-mirror
-encoding choice that those encodings require.  A server <span class="bcp14">MAY</span>
-support both layout types simultaneously; a client selects
-the desired layout type in its LAYOUTGET request.<a href="#section-1-9" class="pilcrow">¶</a></p>
+wire-format-incompatible: a flexible file v1 layout receiver
+cannot parse flexible file v2 layout bytes, and a flexible file
+v2 layout receiver cannot parse flexible file v1 layout bytes.
+Semantically, however, the flexible file v2 layout is a superset
+of the flexible file v1 layout: any flexible file v1 layout has
+a natural flexible file v2 layout representation using a single
+FFV2<em>ENCODING_PASSTHROUGH mirror (see
+<a href="#sec-encoding-passthrough" class="auto internal xref">Section 11.4</a>), with the flexible file v1 layout's
+data servers mapped into ffv2_stripes4 and the flexible file v1
+layout's layout-level ffl_stripe_unit mapped into per-mirror
+ffv2m_striping_unit_size and ffv2m_striping.  The reverse does
+not hold: flexible file v2 layouts that use any CHUNK-based
+encoding (any FFV2_ENCODING</em>* value other than
+FFV2_ENCODING_PASSTHROUGH) have no flexible file v1 layout
+representation, because the flexible file v1 layout has neither
+the chunk envelope (chunk_guard4, per-chunk checksum) nor the
+per-mirror encoding choice that those encodings require.  A
+server <span class="bcp14">MAY</span> support both layout types simultaneously; a client
+selects the desired layout type in its LAYOUTGET request.<a href="#section-1-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="requirements-language">
@@ -3042,14 +3045,16 @@ sentences where the emphasis is on the mechanism, not the
 name.  Do NOT write "flexible file v2 layout version 2" -- the
 "v2" already carries the version, and appending "version 2"
 is a rendering hazard.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
-<p id="section-5.1-5">Informal short form (cross-references, tables, and prose where
-the full name would be repetitive): "FFv2", with "FFv1"
-reserved for the predecessor defined by <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  These
-short forms are convenient for tables ("FFv1-compatible
-mirror") and for sentences that need to contrast the two
-layout types ("FFv2 is a wire-format-incompatible extension
-of FFv1").  The short form is not appropriate for headings,
-IANA registrations, or the abstract.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">Short form (narrow tables and reviewer-aid appendix material
+where cell width or repetition would otherwise dominate):
+"FFv2", with "FFv1" reserved for the predecessor defined by
+<span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  The short forms are NOT appropriate in body
+prose, headings, IANA registrations, or the abstract; body
+prose that would otherwise repeat the layout name uses the
+running-text form above.  Their scoped use is in tables where
+"flexible file v2 layout" would break the column layout (e.g.,
+the four-variant wire-path comparison table in the
+Implementation Status appendix).<a href="#section-5.1-5" class="pilcrow">¶</a></p>
 <p id="section-5.1-6">XDR identifier: <code>LAYOUT4_FLEX_FILES_V2</code>.  This is the name
 assigned to the layout type by the layout-type registry
 (<span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span>) and is the constant a receiver compares against
@@ -3569,8 +3574,9 @@ protocol between the metadata server and the storage device
 that carries this state.  Such a back-end control protocol is
 out of scope for this document.<a href="#section-6.3.2-7" class="pilcrow">¶</a></p>
 <p id="section-6.3.2-8">A deployment that does not need those finer-grained
-associations -- for example, an FFv2 deployment whose per-file
-access-control decisions live entirely on the metadata server
+associations -- for example, a flexible file v2 layout
+deployment whose per-file access-control decisions live entirely
+on the metadata server
 and whose storage devices see only chunk-level CAS on layout
 stateids -- is conformant with the trusted stateid tight coupling
 model using only the TRUST_STATEID family.  That
@@ -4186,15 +4192,15 @@ is returned by the server as the layout type specific opaque field
 da_addr_body in the device_addr4 structure by a successful GETDEVICEINFO
 operation for LAYOUT_FLEX_FILES_V2.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
 <p id="section-7.1-2">ffv2_device_addr4 and ffv2_device_versions4 are the flexible
-file v2 counterparts to ff_device_addr4 and ff_device_versions4
-in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  The two structures are similar in shape but
-carry an FFv2-specific enrichment: the boolean
-ffdv_tightly_coupled from RFC 8435 has been widened to the
-uint32_t bitfield ffv2dv_coupling, which lets a storage device
-advertise more than one coupling capability at the same time
-(<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>).  Because the field type has
-changed, the FFv2 structs are named distinctly to avoid
-confusion with the RFC 8435 originals.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
+file v2 layout counterparts to ff_device_addr4 and
+ff_device_versions4 in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  The two structures are
+similar in shape but carry a flexible-file-v2-specific enrichment:
+the boolean ffdv_tightly_coupled from RFC 8435 has been widened
+to the uint32_t bitfield ffv2dv_coupling, which lets a storage
+device advertise more than one coupling capability at the same
+time (<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>).  Because the field type
+has changed, the flexible file v2 layout structs are named
+distinctly to avoid confusion with the RFC 8435 originals.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
 <span id="name-ffv2_device_versions4"></span><div id="fig-ff_device_versions4">
 <figure id="figure-5">
           <div class="lang-xdr sourcecode" id="section-7.1-3.1">
@@ -4633,7 +4639,7 @@ those sections is:<a href="#section-8.1.1-5" class="pilcrow">¶</a></p>
               <tr>
                 <td class="text-right" rowspan="1" colspan="1">1</td>
                 <td class="text-left" rowspan="1" colspan="1">FFV2_ENCODING_PASSTHROUGH</td>
-                <td class="text-left" rowspan="1" colspan="1">On-ramp from FFv1; direct NFSv3/v4 I/O, no chunk envelope</td>
+                <td class="text-left" rowspan="1" colspan="1">On-ramp from the flexible file v1 layout; direct NFSv3/v4 I/O, no chunk envelope</td>
                 <td class="text-left" rowspan="1" colspan="1">
                   <a href="#sec-encoding-passthrough" class="auto internal xref">Section 11.4</a>
 </td>
@@ -5285,17 +5291,17 @@ ffv2s_data_servers.<a href="#section-8.8-2" class="pilcrow">¶</a></p>
 <p id="section-8.8-3">ffv2_stripes4 has no direct counterpart in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  In
 the flexible file v1 layout, a mirror's data servers are
 listed directly on the mirror (via ffm_data_servers&lt;&gt; on
-ff_mirror4).  FFv2 introduces this intermediate stripes level
-so a single mirror <span class="bcp14">MAY</span> carry multiple stripe groups, and
-pushes the striping-mode metadata (ffv2m_striping,
-ffv2m_striping_unit_size) down onto the mirror (see
-<a href="#sec-ffv2-mirror4" class="auto internal xref">Section 8.9</a>) rather than onto the layout as
+ff_mirror4).  The flexible file v2 layout introduces this
+intermediate stripes level so a single mirror <span class="bcp14">MAY</span> carry
+multiple stripe groups, and pushes the striping-mode metadata
+(ffv2m_striping, ffv2m_striping_unit_size) down onto the mirror
+(see <a href="#sec-ffv2-mirror4" class="auto internal xref">Section 8.9</a>) rather than onto the layout as
 <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span> does with the layout-level ffl_stripe_unit.  The
 ffv2_striping4 enum (FFV2_STRIPING_NONE / _SPARSE / _DENSE)
 inherits its meaning from Section 13.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and
-Section 5.1 of <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>; the FFv2 evolution is that the
-striping mode is a per-mirror decision rather than a
-per-layout one.<a href="#section-8.8-3" class="pilcrow">¶</a></p>
+Section 5.1 of <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>; the flexible file v2 layout
+evolution is that the striping mode is a per-mirror decision
+rather than a per-layout one.<a href="#section-8.8-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-ffv2-mirror4">
@@ -5321,18 +5327,19 @@ per-layout one.<a href="#section-8.8-3" class="pilcrow">¶</a></p>
 <a href="#name-the-ffv2_mirror4" class="selfRef">The ffv2_mirror4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.9-2">The ffv2_mirror4 (in <a href="#fig-ffv2_mirror4" class="auto internal xref">Figure 17</a>) is the FFv2
-counterpart to ff_mirror4 in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  FFv2 is a
-semantic superset of FFv1: any ff_mirror4 can be re-expressed
-as an ffv2_mirror4 by setting
+<p id="section-8.9-2">The ffv2_mirror4 (in <a href="#fig-ffv2_mirror4" class="auto internal xref">Figure 17</a>) is the flexible
+file v2 layout counterpart to ff_mirror4 in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  The
+flexible file v2 layout is a semantic superset of the flexible
+file v1 layout: any ff_mirror4 can be re-expressed as an
+ffv2_mirror4 by setting
 ffv2m_coding_type_data = FFV2_ENCODING_PASSTHROUGH,
-ffv2m_striping and ffv2m_striping_unit_size to the FFv1
-layout-level values, ffv2m_checksum_algorithm to
-CHECKSUM_ALG_NONE, and wrapping the FFv1 ffm_data_servers&lt;&gt;
-in a single-element ffv2m_stripes&lt;&gt;.  The reverse does not
-hold: ffv2_mirror4 instances whose ffv2m_coding_type_data is
-anything other than FFV2_ENCODING_PASSTHROUGH have no
-ff_mirror4 representation.<a href="#section-8.9-2" class="pilcrow">¶</a></p>
+ffv2m_striping and ffv2m_striping_unit_size to the flexible
+file v1 layout's layout-level values, ffv2m_checksum_algorithm
+to CHECKSUM_ALG_NONE, and wrapping the flexible file v1
+layout's ffm_data_servers&lt;&gt; in a single-element
+ffv2m_stripes&lt;&gt;.  The reverse does not hold: ffv2_mirror4
+instances whose ffv2m_coding_type_data is anything other than
+FFV2_ENCODING_PASSTHROUGH have no ff_mirror4 representation.<a href="#section-8.9-2" class="pilcrow">¶</a></p>
 <p id="section-8.9-3">Relative to ff_mirror4, ffv2_mirror4 adds the following
 per-mirror fields:<a href="#section-8.9-3" class="pilcrow">¶</a></p>
 <ul class="normal">
@@ -5342,28 +5349,32 @@ per-mirror fields:<a href="#section-8.9-3" class="pilcrow">¶</a></p>
 layout to carry mirrors under different encodings
 (e.g., a PASSTHROUGH mirror alongside a Reed-Solomon
 mirror over the same file; see <a href="#fig-example_mixing" class="auto internal xref">Figure 31</a>) --
-the transition-window and per-mirror-optimization
-patterns that motivated FFv2.<a href="#section-8.9-4.1.1" class="pilcrow">¶</a></p>
+the transition-window and per-mirror-optimization patterns
+that motivated the flexible file v2 layout.<a href="#section-8.9-4.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.9-4.2">
             <p id="section-8.9-4.2.1">ffv2m_striping and ffv2m_striping_unit_size: pull the
 striping-mode decision from the layout level down to the
-mirror level.  FFv1's ffl_stripe_unit is layout-wide; in
-FFv2 different mirrors of the same file <span class="bcp14">MAY</span> use different
+mirror level.  The flexible file v1 layout's
+ffl_stripe_unit is layout-wide; in the flexible file v2
+layout different mirrors of the same file <span class="bcp14">MAY</span> use different
 striping configurations.<a href="#section-8.9-4.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.9-4.3">
             <p id="section-8.9-4.3.1">ffv2m_client_id: writer identity for chunk_guard4 CAS (see
-<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>).  No FFv1 counterpart; introduced
-for the CHUNK operation set that FFv2 adds.<a href="#section-8.9-4.3.1" class="pilcrow">¶</a></p>
+<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>).  No flexible file v1 layout
+counterpart; introduced for the CHUNK operation set that
+the flexible file v2 layout adds.<a href="#section-8.9-4.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.9-4.4">
             <p id="section-8.9-4.4.1">ffv2m_checksum_algorithm: per-mirror integrity-checksum
-algorithm.  No FFv1 counterpart; introduced for the
-per-chunk checksum integrity FFv2 adds.<a href="#section-8.9-4.4.1" class="pilcrow">¶</a></p>
+algorithm.  No flexible file v1 layout counterpart;
+introduced for the per-chunk checksum integrity the
+flexible file v2 layout adds.<a href="#section-8.9-4.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.9-4.5">
-            <p id="section-8.9-4.5.1">ffv2m_stripes&lt;&gt;: replaces FFv1's flat ffm_data_servers&lt;&gt;
+            <p id="section-8.9-4.5.1">ffv2m_stripes&lt;&gt;: replaces the flexible file v1 layout's
+flat ffm_data_servers&lt;&gt;
 with an array of ffv2_stripes4 (see <a href="#fig-ffv2_stripes4" class="auto internal xref">Figure 16</a>),
 allowing a single mirror to carry multiple stripe groups.<a href="#section-8.9-4.5.1" class="pilcrow">¶</a></p>
 </li>
@@ -7531,34 +7542,42 @@ handle.<a href="#section-11.2.8-3" class="pilcrow">¶</a></p>
         </h3>
 <p id="section-11.3-1">Multiple encoding types can be present in a Flexible File Version 2
 Layout Type layout.  The ffv2_layout4 has an array of ffv2_mirror4,
-each of which has a ffv2_encoding_type4.  Mixing encoding types in a
-single file's mirror set addresses several use cases:<a href="#section-11.3-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-11.3-2.1">
-            <p id="section-11.3-2.1.1">Assimilation of a non-erasure-coded file into an erasure-coded
-representation, or export of an erasure-coded file to a
-non-erasure-coded representation.<a href="#section-11.3-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-11.3-2.2">
-            <p id="section-11.3-2.2.1">Online migration between encodings, for example from a
-Reed-Solomon Vandermonde encoding to a Mojette systematic
-encoding when a read-access-pattern change makes the new encoding
-a better fit.  Both representations remain addressable through
-the layout throughout the transition.<a href="#section-11.3-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-11.3-2.3">
-            <p id="section-11.3-2.3.1">Cross-encoding recovery: when one encoding loses data to a
-correlated failure mode (an encoding implementation bug, a
-memory-corruption pattern that affects parity shards
-identically), a second mirror in a different encoding provides
-an independent recovery surface.<a href="#section-11.3-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-11.3-2.4">
-            <p id="section-11.3-2.4.1">Client-capability routing: a proxy server sees the full mirror
-set and chooses between encodings on behalf of clients that do
-not implement every encoding the file is represented in.<a href="#section-11.3-2.4.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
+each of which has a ffv2_encoding_type4.  Mixing encoding types in a single file's mirror set addresses
+several use cases:<a href="#section-11.3-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-11.3-2">
+          <dt id="section-11.3-2.1">Assimilation and export:</dt>
+          <dd style="margin-left: 1.5em" id="section-11.3-2.2">
+            <p id="section-11.3-2.2.1">assimilation of a non-erasure-coded file into an
+erasure-coded representation, or export of an erasure-coded
+file to a non-erasure-coded representation.<a href="#section-11.3-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-11.3-2.3">Online migration between encodings:</dt>
+          <dd style="margin-left: 1.5em" id="section-11.3-2.4">
+            <p id="section-11.3-2.4.1">for example, from a Reed-Solomon Vandermonde encoding to a
+Mojette systematic encoding when a read-access-pattern change
+makes the new encoding a better fit.  Both representations
+remain addressable through the layout throughout the
+transition.<a href="#section-11.3-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-11.3-2.5">Cross-encoding recovery:</dt>
+          <dd style="margin-left: 1.5em" id="section-11.3-2.6">
+            <p id="section-11.3-2.6.1">when one encoding loses data to a correlated failure mode
+(an encoding implementation bug, a memory-corruption pattern
+that affects parity shards identically), a second mirror in
+a different encoding provides an independent recovery
+surface.<a href="#section-11.3-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-11.3-2.7">Client-capability routing:</dt>
+          <dd style="margin-left: 1.5em" id="section-11.3-2.8">
+            <p id="section-11.3-2.8.1">a proxy server sees the full mirror set and chooses between
+encodings on behalf of clients that do not implement every
+encoding the file is represented in.<a href="#section-11.3-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
 <p id="section-11.3-3">Consider a layout that exposes a file in two encodings
 simultaneously: a PASSTHROUGH mirror over the original byte
 stream and a Reed-Solomon Vandermonde
@@ -7568,7 +7587,8 @@ file might appear as in <a href="#fig-example_mixing" class="auto internal xref"
 representations are active and addressable through the layout
 simultaneously.  This is the transition-window pattern: a file
 may transiently span encodings while it is being assimilated
-from a non-FFv2 source or migrated between encodings.  Steady
+from a non-flexible-file-v2 source or migrated between
+encodings.  Steady
 state is homogeneous; the multi-encoding window is what the
 protocol must accommodate.<a href="#section-11.3-3" class="pilcrow">¶</a></p>
 <p id="section-11.3-4">The active mirrors serve different access patterns concurrently:<a href="#section-11.3-4" class="pilcrow">¶</a></p>
@@ -8501,7 +8521,7 @@ layout.  Total storage overhead is <code>2/k</code> of payload.<a href="#section
           <h4 id="name-overview-3">
 <a href="#section-11.8.1" class="section-number selfRef">11.8.1. </a><a href="#name-overview-3" class="section-name selfRef">Overview</a>
           </h4>
-<p id="section-11.8.1-1">Reed-Solomon (RS) codes are Maximum Distance Separable (MDS) codes:
+<p id="section-11.8.1-1">Reed-Solomon (RS) codes are Maximum Distance Separable codes:
 for a (k+m, k) code, any k of the k+m encoded shards suffice to
 recover the original data.  The code tolerates the simultaneous loss
 of up to m shards.  <span>[<a href="#Plank97" class="cite xref">Plank97</a>]</span> is a tutorial treatment of RS
@@ -8708,30 +8728,42 @@ is O(k^3) in GF(2^8) multiplications.<a href="#section-11.8.5-3" class="pilcrow"
 interoperate, they <span class="bcp14">MUST</span> agree on all of the following parameters.
 Any deviation produces a different encoding matrix and renders
 data unrecoverable by a different implementation.<a href="#section-11.8.6-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-11.8.6-2.1">
-              <p id="section-11.8.6-2.1.1">Irreducible polynomial: x^8 + x^4 + x^3 + x^2 + 1 (0x11d)<a href="#section-11.8.6-2.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-11.8.6-2.2">
-              <p id="section-11.8.6-2.2.1">Primitive element: g = 2<a href="#section-11.8.6-2.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-11.8.6-2.3">
-              <p id="section-11.8.6-2.3.1">Evaluation points: shard i (i = 0, 1, ..., k+m-1) uses
-alpha_i = i + 1 in GF(2^8) (values 1 through k+m, all
-non-zero and distinct)<a href="#section-11.8.6-2.3.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-11.8.6-2.4">
-              <p id="section-11.8.6-2.4.1">Vandermonde entries: <code>V[i][j] = alpha_i^j = (i+1)^j</code> in GF(2^8)
-for <code>i = 0..k+m-1</code>, <code>j = 0..k-1</code><a href="#section-11.8.6-2.4.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-11.8.6-2.5">
-              <p id="section-11.8.6-2.5.1">Matrix normalization: E = V * T^(-1) where T is the top k x k
-sub-matrix (rows for shards 0..k-1)<a href="#section-11.8.6-2.5.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-11.8.6-2.6">
-              <p id="section-11.8.6-2.6.1">Parameter bound: k + m <span class="bcp14">MUST NOT</span> exceed 255<a href="#section-11.8.6-2.6.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
+<span class="break"></span><dl class="dlParallel" id="section-11.8.6-2">
+            <dt id="section-11.8.6-2.1">Irreducible polynomial:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.8.6-2.2">
+              <p id="section-11.8.6-2.2.1"><code>x^8 + x^4 + x^3 + x^2 + 1</code> (<code>0x11d</code>).<a href="#section-11.8.6-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-11.8.6-2.3">Primitive element:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.8.6-2.4">
+              <p id="section-11.8.6-2.4.1"><code>g = 2</code>.<a href="#section-11.8.6-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-11.8.6-2.5">Evaluation points:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.8.6-2.6">
+              <p id="section-11.8.6-2.6.1">shard <code>i</code> (<code>i = 0, 1, ..., k+m-1</code>) uses
+<code>alpha_i = i + 1</code> in GF(2^8) (values 1 through <code>k+m</code>, all
+non-zero and distinct).<a href="#section-11.8.6-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-11.8.6-2.7">Vandermonde entries:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.8.6-2.8">
+              <p id="section-11.8.6-2.8.1"><code>V[i][j] = alpha_i^j = (i+1)^j</code> in GF(2^8) for
+<code>i = 0..k+m-1</code>, <code>j = 0..k-1</code>.<a href="#section-11.8.6-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-11.8.6-2.9">Matrix normalization:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.8.6-2.10">
+              <p id="section-11.8.6-2.10.1"><code>E = V * T^(-1)</code> where <code>T</code> is the top <code>k x k</code> sub-matrix
+(rows for shards <code>0..k-1</code>).<a href="#section-11.8.6-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-11.8.6-2.11">Parameter bound:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.8.6-2.12">
+              <p id="section-11.8.6-2.12.1"><code>k + m</code> <span class="bcp14">MUST NOT</span> exceed 255.<a href="#section-11.8.6-2.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <p id="section-11.8.6-3">These parameters fully determine the encoding matrix for any
 (k, m) configuration in the permitted range.<a href="#section-11.8.6-3" class="pilcrow">¶</a></p>
 </section>
@@ -9094,10 +9126,10 @@ FFV2_ENCODING_MOJETTE_SYSTEMATIC and
 FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC in this revision.  All
 implementations <span class="bcp14">MUST</span> use W = 8; a future revision (or a distinct
 registered encoding type) may lift the fixed width, at which
-point it becomes a wire-visible parameter.  Fixing W now
-removes the interop hazard the review flagged (the same shard
-input, XOR'd at W = 4 vs W = 8, produces different bin values
-that appear "close but wrong" to a mismatched decoder).<a href="#section-11.9.1-3" class="pilcrow">¶</a></p>
+point it becomes a wire-visible parameter.  Fixing W in this
+revision prevents an interoperability hazard: the same shard
+input XOR'd at W = 4 versus W = 8 produces different bin values
+that appear "close but wrong" to a mismatched decoder.<a href="#section-11.9.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="grid-structure">
@@ -9128,19 +9160,23 @@ revision.  Non-unity q_i values may be introduced by a future
 distinct registered encoding type.<a href="#section-11.9.3-1" class="pilcrow">¶</a></p>
 <p id="section-11.9.3-2">For n = k + m total shards (Mojette non-systematic) or m parity
 shards (Mojette systematic), the direction set is determined by
-the following mandatory algorithm on the shard count N (N = n for
-non-systematic, N = m for systematic):<a href="#section-11.9.3-2" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-11.9.3-3">
-<pre>
-If N is even (N = 2t):
-    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t} }
-    // Symmetric around zero; |directions| = 2t = N.
-If N is odd (N = 2t + 1):
-    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t, t+1} }
-    // Asymmetric by including one additional positive magnitude
-    // to make |directions| = 2t + 1 = N.
-</pre><a href="#section-11.9.3-3" class="pilcrow">¶</a>
-</div>
+the following mandatory rule on the shard count N (N = n for
+non-systematic, N = m for systematic).<a href="#section-11.9.3-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-11.9.3-3">
+            <dt id="section-11.9.3-3.1">For N even (N = 2t):</dt>
+            <dd style="margin-left: 1.5em" id="section-11.9.3-3.2">
+              <p id="section-11.9.3-3.2.1"><code>directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t} }</code>
+-- symmetric around zero, giving <code>|directions| = 2t = N</code>.<a href="#section-11.9.3-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-11.9.3-3.3">For N odd (N = 2t + 1):</dt>
+            <dd style="margin-left: 1.5em" id="section-11.9.3-3.4">
+              <p id="section-11.9.3-3.4.1"><code>directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t, t+1} }</code>
+-- asymmetric by including one additional positive magnitude
+so that <code>|directions| = 2t + 1 = N</code>.<a href="#section-11.9.3-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <p id="section-11.9.3-4">Direction slots are then sorted by <code>p_i</code> ascending (most-negative
 p first, most-positive p last) to give the canonical direction
 order.  The direction in slot i is used to compute the projection
@@ -9257,9 +9293,9 @@ and the unknown-grid Q is r) OR the analogous p-sum condition
 over the residual.  Because the mandatory direction algorithm
 above generates <code>m</code> projections with distinct nonzero p values,
 the p-sum condition also holds for any loss pattern with
-<code>r + s &lt;= m</code>; the systematic form therefore achieves MDS-like
-recovery up to <code>m</code> combined data-row and parity-projection
-losses.<a href="#section-11.9.5-7" class="pilcrow">¶</a></p>
+<code>r + s &lt;= m</code>; the systematic form therefore achieves
+Maximum-Distance-Separable-like recovery up to <code>m</code> combined
+data-row and parity-projection losses.<a href="#section-11.9.5-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="inverse-transform-decoding">
@@ -9337,32 +9373,47 @@ failure count, but at higher baseline read cost than systematic.<a href="#sectio
           <h4 id="name-mojette-shard-sizes-and-lay">
 <a href="#section-11.9.9" class="section-number selfRef">11.9.9. </a><a href="#name-mojette-shard-sizes-and-lay" class="section-name selfRef">Mojette Shard Sizes and Layout</a>
           </h4>
-<p id="section-11.9.9-1"><strong>Slot-to-direction mapping.</strong>  The canonical shard layout for
-Mojette is:<a href="#section-11.9.9-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-11.9.9-2.1">
-              <p id="section-11.9.9-2.1.1">Systematic (FFV2_ENCODING_MOJETTE_SYSTEMATIC): shard slots
-<code>0..k-1</code> carry the k data rows (row r in slot r); shard
-slots <code>k..k+m-1</code> carry the m parity projections in the
-canonical direction order defined in the Directions
+<span class="break"></span><dl class="dlParallel" id="section-11.9.9-1">
+            <dt id="section-11.9.9-1.1">Slot-to-direction mapping:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.9.9-1.2">
+              <p id="section-11.9.9-1.2.1">The canonical shard layout for Mojette is:<a href="#section-11.9.9-1.2.1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-11.9.9-1.2.2">
+                <dt id="section-11.9.9-1.2.2.1">Systematic (FFV2_ENCODING_MOJETTE_SYSTEMATIC):</dt>
+                <dd style="margin-left: 1.5em" id="section-11.9.9-1.2.2.2">
+                  <p id="section-11.9.9-1.2.2.2.1">shard slots <code>0..k-1</code> carry the k data rows (row r in slot
+r); shard slots <code>k..k+m-1</code> carry the m parity projections
+in the canonical direction order defined in the Directions
 subsection above (direction slot i occupies shard slot
-<code>k + i</code>).<a href="#section-11.9.9-2.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-11.9.9-2.2">
-              <p id="section-11.9.9-2.2.1">Non-systematic (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC): shard
-slots <code>0..k+m-1</code> carry the n = k + m parity projections in
-the canonical direction order (direction slot i occupies
-shard slot i).<a href="#section-11.9.9-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
-<p id="section-11.9.9-3"><strong>Bin ordering within a projection.</strong>  Within a projection
-shard the bins are serialized in ascending bin-index order
-(bin 0 first, bin B-1 last), with no gap or header.  Each bin
-value is <code>W = 8</code> bytes wide; the W-byte element is serialized
-in big-endian byte order (the same order the data-row shards
-present their W-byte grid elements in).<a href="#section-11.9.9-3" class="pilcrow">¶</a></p>
-<p id="section-11.9.9-4"><strong>Projection sizes.</strong>  Unlike RS, Mojette parity shard sizes
-vary by direction:<a href="#section-11.9.9-4" class="pilcrow">¶</a></p>
+<code>k + i</code>).<a href="#section-11.9.9-1.2.2.2.1" class="pilcrow">¶</a></p>
+</dd>
+                <dd class="break"></dd>
+<dt id="section-11.9.9-1.2.2.3">Non-systematic (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC):</dt>
+                <dd style="margin-left: 1.5em" id="section-11.9.9-1.2.2.4">
+                  <p id="section-11.9.9-1.2.2.4.1">shard slots <code>0..k+m-1</code> carry the n = k + m parity
+projections in the canonical direction order (direction
+slot i occupies shard slot i).<a href="#section-11.9.9-1.2.2.4.1" class="pilcrow">¶</a></p>
+</dd>
+              <dd class="break"></dd>
+</dl>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-11.9.9-1.3">Bin ordering within a projection:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.9.9-1.4">
+              <p id="section-11.9.9-1.4.1">Within a projection shard the bins are serialized in
+ascending bin-index order (bin 0 first, bin B-1 last), with
+no gap or header.  Each bin value is <code>W = 8</code> bytes wide; the
+W-byte element is serialized in big-endian byte order (the
+same order the data-row shards present their W-byte grid
+elements in).<a href="#section-11.9.9-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-11.9.9-1.5">Projection sizes:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.9.9-1.6">
+              <p id="section-11.9.9-1.6.1">Unlike Reed-Solomon, Mojette parity shard sizes vary by
+direction:<a href="#section-11.9.9-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <span id="name-mojette-projection-sizes-fo"></span><div id="tbl-mojette-proj-sizes">
 <table class="center" id="table-10">
             <caption>
@@ -9410,36 +9461,43 @@ vary by direction:<a href="#section-11.9.9-4" class="pilcrow">¶</a></p>
             </tbody>
           </table>
 </div>
-<p id="section-11.9.9-6"><strong>Chunk sizing for variable-length projections.</strong>  When a
-projection shard is written via <code>CHUNK_WRITE</code> /
+<span class="break"></span><dl class="dlParallel" id="section-11.9.9-3">
+            <dt id="section-11.9.9-3.1">Chunk sizing for variable-length projections:</dt>
+            <dd style="margin-left: 1.5em" id="section-11.9.9-3.2">
+              <p id="section-11.9.9-3.2.1">When a projection shard is written via <code>CHUNK_WRITE</code> /
 <code>CHUNK_FINALIZE</code> / <code>CHUNK_COMMIT</code>, the shard is divided into
-chunks by the following mapping.  Let <code>shard_bytes = B * W</code> be
-the projection shard's total byte size (where B is the number
-of bins per the B formula above (<a href="#tbl-mojette-proj-sizes" class="auto internal xref">Table 10</a> uses it) applied to the shard's
-direction (p, q) and the grid dimensions (P, Q)):<a href="#section-11.9.9-6" class="pilcrow">¶</a></p>
+chunks by the following mapping.  Let <code>shard_bytes = B * W</code>
+be the projection shard's total byte size (where B is the
+number of bins per the B formula above
+(<a href="#tbl-mojette-proj-sizes" class="auto internal xref">Table 10</a> uses it) applied to the shard's
+direction (p, q) and the grid dimensions (P, Q)):<a href="#section-11.9.9-3.2.1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-11.9.9-7.1">
-              <p id="section-11.9.9-7.1.1"><code>num_chunks = ceil(shard_bytes / chunk_size)</code><a href="#section-11.9.9-7.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-11.9.9-3.2.2.1">
+                  <p id="section-11.9.9-3.2.2.1.1"><code>num_chunks = ceil(shard_bytes / chunk_size)</code><a href="#section-11.9.9-3.2.2.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-11.9.9-7.2">
-              <p id="section-11.9.9-7.2.1">Chunk <code>j</code> (for j = 0..num_chunks-1) covers the shard byte
-range <code>[j * chunk_size, min((j+1) * chunk_size, shard_bytes))</code>.<a href="#section-11.9.9-7.2.1" class="pilcrow">¶</a></p>
+                <li class="normal" id="section-11.9.9-3.2.2.2">
+                  <p id="section-11.9.9-3.2.2.2.1">Chunk <code>j</code> (for j = 0..num_chunks-1) covers the shard byte
+range <code>[j * chunk_size, min((j+1) * chunk_size,
+shard_bytes))</code>.<a href="#section-11.9.9-3.2.2.2.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-11.9.9-7.3">
-              <p id="section-11.9.9-7.3.1">The final chunk (chunk <code>num_chunks - 1</code>) <span class="bcp14">MAY</span> be shorter than
-<code>chunk_size</code> if <code>shard_bytes</code> is not a multiple of
+                <li class="normal" id="section-11.9.9-3.2.2.3">
+                  <p id="section-11.9.9-3.2.2.3.1">The final chunk (chunk <code>num_chunks - 1</code>) <span class="bcp14">MAY</span> be shorter
+than <code>chunk_size</code> if <code>shard_bytes</code> is not a multiple of
 <code>chunk_size</code>; all other chunks are exactly <code>chunk_size</code>
-bytes.<a href="#section-11.9.9-7.3.1" class="pilcrow">¶</a></p>
+bytes.<a href="#section-11.9.9-3.2.2.3.1" class="pilcrow">¶</a></p>
 </li>
-          </ul>
-<p id="section-11.9.9-8">The <code>chunk_size</code> value is a per-mirror parameter and does not
+              </ul>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-11.9.9-4">The <code>chunk_size</code> value is a per-mirror parameter and does not
 vary across the parity projections of a single file, even
 though the shard sizes vary.  For a file with parity
 projections of sizes <code>S_i = B_i * W</code>, the number of chunks per
 shard is <code>ceil(S_i / chunk_size)</code> per shard; a reader that
 requests chunk offset <code>&gt;= S_i</code> on shard i receives
 <code>NFS4ERR_PAYLOAD_LOST</code> (per <a href="#sec-NFS4ERR_PAYLOAD_LOST" class="auto internal xref">Section 21.1.5</a>) with a
-short read reporting the shard's true byte length.<a href="#section-11.9.9-8" class="pilcrow">¶</a></p>
+short read reporting the shard's true byte length.<a href="#section-11.9.9-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -9465,7 +9523,7 @@ short read reporting the shard's true byte length.<a href="#section-11.9.9-8" cl
           </thead>
           <tbody>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">MDS guarantee</td>
+              <td class="text-left" rowspan="1" colspan="1">Maximum Distance Separable guarantee</td>
               <td class="text-left" rowspan="1" colspan="1">Yes</td>
               <td class="text-left" rowspan="1" colspan="1">Yes (Katz)</td>
               <td class="text-left" rowspan="1" colspan="1">Yes (Katz)</td>
@@ -10113,7 +10171,13 @@ and B's old value simultaneously.  Applications that require
 multi-chunk atomicity <span class="bcp14">MUST</span> layer it above this protocol -- for
 example, via file-level checksums, application-level generation
 fields, or external transaction managers.<a href="#section-12.7-3" class="pilcrow">¶</a></p>
-<p id="section-12.7-4"><strong>The chunk is the unit of atomicity.</strong>  Two properties follow:<a href="#section-12.7-4" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-12.7-4">
+          <dt id="section-12.7-4.1">The chunk is the unit of atomicity:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.7-4.2">
+            <p id="section-12.7-4.2.1">Two properties follow.<a href="#section-12.7-4.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
 <ol start="1" type="1" class="normal type-1" id="section-12.7-5">
 <li id="section-12.7-5.1">
             <p id="section-12.7-5.1.1">Chunk-aligned writes do not interfere.  Two concurrent
@@ -10281,8 +10345,10 @@ data server <span class="bcp14">MUST</span> persist the owner-to-index associati
 with a durability floor that matches the payload's:
 without the association the payload can never again be
 addressed by a lifecycle operation.<a href="#section-12.9-1" class="pilcrow">¶</a></p>
-<p id="section-12.9-2"><strong>Uniqueness invariant</strong> (normative):
-An accepted (co_cohort_id, co_client_id, co_id) triple is
+<span class="break"></span><dl class="dlParallel" id="section-12.9-2">
+          <dt id="section-12.9-2.1">Uniqueness invariant (normative):</dt>
+          <dd style="margin-left: 1.5em" id="section-12.9-2.2">
+            <p id="section-12.9-2.2.1">An accepted (co_cohort_id, co_client_id, co_id) triple is
 UNIQUE across the live generations the data server holds
 for a given file: at any instant there is at most one
 live generation on any chunk of the file that matches
@@ -10298,45 +10364,56 @@ cwr_block_status slot.  The predecessor-retention rule
 retained predecessor and its successor on the same
 chunk index <span class="bcp14">MUST</span> carry distinct triples (typically
 distinct co_cohort_id under a shared co_client_id) so that
-CHUNK_ROLLBACK can name each unambiguously.<a href="#section-12.9-2" class="pilcrow">¶</a></p>
-<p id="section-12.9-3"><strong>Durability floor</strong> (normative, per CHUNK_WRITE
-<a href="#sec-CHUNK_WRITE" class="auto internal xref">Section 25.11</a> "Stability and Activation"):<a href="#section-12.9-3" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-12.9-4.1">
-            <p id="section-12.9-4.1.1">FILE_SYNC4: both the chunk payload AND its
-owner-to-index association <span class="bcp14">MUST</span> survive a data
-server restart.<a href="#section-12.9-4.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-12.9-4.2">
-            <p id="section-12.9-4.2.1">DATA_SYNC4: both the chunk payload AND its
-owner-to-index association <span class="bcp14">MUST</span> survive a data
-server restart.  (The association is retrieval
-metadata for the payload; it shares the payload's
-durability floor.  An implementation <span class="bcp14">MAY</span> treat
-DATA_SYNC4 identically to FILE_SYNC4.)<a href="#section-12.9-4.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-12.9-4.3">
-            <p id="section-12.9-4.3.1">UNSTABLE4: the association <span class="bcp14">MAY</span> be lost on restart,
-but ONLY if the payload is also lost.  A data
-server <span class="bcp14">MUST NOT</span> retain payload without its
-associated owner triple; a payload whose
-association was lost is unaddressable by every
-lifecycle operation and <span class="bcp14">MUST</span> be treated as
-destroyed.  cwr_writeverf changes on any restart
-that loses UNSTABLE4 state, allowing the client
-to detect the loss.<a href="#section-12.9-4.3.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
-<p id="section-12.9-5">A data server that cannot honour the durability floor
+CHUNK_ROLLBACK can name each unambiguously.<a href="#section-12.9-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-12.9-2.3">Durability floor (normative, per CHUNK_WRITE <a href="#sec-CHUNK_WRITE" class="auto internal xref">Section 25.11</a> "Stability and Activation"):</dt>
+          <dd style="margin-left: 1.5em" id="section-12.9-2.4">
+            <p id="section-12.9-2.4.1">The durability requirement varies by the CHUNK_WRITE
+stability level:<a href="#section-12.9-2.4.1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-12.9-2.4.2">
+              <dt id="section-12.9-2.4.2.1">FILE_SYNC4:</dt>
+              <dd style="margin-left: 1.5em" id="section-12.9-2.4.2.2">
+                <p id="section-12.9-2.4.2.2.1">both the chunk payload AND its owner-to-index
+association <span class="bcp14">MUST</span> survive a data server restart.<a href="#section-12.9-2.4.2.2.1" class="pilcrow">¶</a></p>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-12.9-2.4.2.3">DATA_SYNC4:</dt>
+              <dd style="margin-left: 1.5em" id="section-12.9-2.4.2.4">
+                <p id="section-12.9-2.4.2.4.1">both the chunk payload AND its owner-to-index
+association <span class="bcp14">MUST</span> survive a data server restart.
+(The association is retrieval metadata for the
+payload; it shares the payload's durability floor.
+An implementation <span class="bcp14">MAY</span> treat DATA_SYNC4 identically
+to FILE_SYNC4.)<a href="#section-12.9-2.4.2.4.1" class="pilcrow">¶</a></p>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-12.9-2.4.2.5">UNSTABLE4:</dt>
+              <dd style="margin-left: 1.5em" id="section-12.9-2.4.2.6">
+                <p id="section-12.9-2.4.2.6.1">the association <span class="bcp14">MAY</span> be lost on restart, but ONLY if
+the payload is also lost.  A data server <span class="bcp14">MUST NOT</span>
+retain payload without its associated owner triple;
+a payload whose association was lost is
+unaddressable by every lifecycle operation and <span class="bcp14">MUST</span>
+be treated as destroyed.  cwr_writeverf changes on
+any restart that loses UNSTABLE4 state, allowing the
+client to detect the loss.<a href="#section-12.9-2.4.2.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+</dl>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-12.9-3">A data server that cannot honour the durability floor
 for a given stability level <span class="bcp14">MUST</span> reject the CHUNK_WRITE
 with NFS4ERR_IO rather than accepting the payload without
-its association.<a href="#section-12.9-5" class="pilcrow">¶</a></p>
-<p id="section-12.9-6">The retention scope rule (<a href="#sec-system-model-retention-scope" class="auto internal xref">Section 12.8</a>)
+its association.<a href="#section-12.9-3" class="pilcrow">¶</a></p>
+<p id="section-12.9-4">The retention scope rule (<a href="#sec-system-model-retention-scope" class="auto internal xref">Section 12.8</a>)
 governs WHEN a predecessor generation's payload +
 association may be released; the payload/association
 biconditional in the next subsection governs the
 INVARIANT that whenever the payload survives, the
-association survives with it, and vice versa.<a href="#section-12.9-6" class="pilcrow">¶</a></p>
+association survives with it, and vice versa.<a href="#section-12.9-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-system-model-payload-association-biconditional">
@@ -11944,7 +12021,8 @@ servers via TRUST_STATEID:<a href="#section-20-1" class="pilcrow">¶</a></p>
 affected data files per <a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>.  The
 revoked client presents stale RPC credentials and receives
 NFS4ERR_ACCESS from the data server.  This is the
-FFv1-style fencing mechanism; it operates per data file and
+flexible-file-v1-layout-style fencing mechanism; it operates
+per data file and
 does not distinguish between clients that hold layouts on
 the same file.<a href="#section-20-2.2.1" class="pilcrow">¶</a></p>
 </dd>
@@ -11962,8 +12040,8 @@ across a data server.  Subsequent I/O from the revoked
 client carrying the revoked stateid receives
 NFS4ERR_BAD_STATEID.  This is the preferred mechanism for
 chunked layouts because it is per-client and avoids the
-FFv1 limitation of fencing all clients on a data file when
-only one needs to be revoked.<a href="#section-20-2.4.1" class="pilcrow">¶</a></p>
+flexible file v1 layout's limitation of fencing all clients
+on a data file when only one needs to be revoked.<a href="#section-20-2.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-20-2.5">Mixed:</dt>
@@ -13287,8 +13365,8 @@ takeover names.<a href="#section-24.4-1" class="pilcrow">¶</a></p>
           <div class="lang-xdr sourcecode" id="section-24.4-2.1">
 <pre>
    /// /* Registered proof profile identifier.  Values
-   ///  * are allocated from the FFv2 proof-profile
-   ///  * registry (see IANA Considerations,
+   ///  * are allocated from the flexible file v2 layout
+   ///  * proof-profile registry (see IANA Considerations,
    ///  * "Proof-Profile Registry"). */
    /// typedef uint32_t   proof_profile_id4;
    ///
@@ -15313,41 +15391,35 @@ at any time and a subsequent CHUNK_ROLLBACK <span class="bcp14">MAY</span>
 return NFS4ERR_NO_PREDECESSOR even though a
 previous CHUNK_HEADER_READ observed PRESENT.<a href="#section-25.5.3-5.12.3" class="pilcrow">¶</a></p>
 </dd>
+            <dd class="break"></dd>
+<dt id="section-25.5.3-5.13">Cardinality and short responses:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.5.3-5.14">
+              <p id="section-25.5.3-5.14.1">All five response arrays are the same length; the data
+server <span class="bcp14">MUST NOT</span> sparsify or truncate one array independently
+of the others.<a href="#section-25.5.3-5.14.1" class="pilcrow">¶</a></p>
+<p id="section-25.5.3-5.14.2">The response array length N <span class="bcp14">MAY</span> be smaller than chra_count
+when the requested range extends past the data server's last
+chunk (chrr_eof = TRUE, N = the number of chunks the data
+server holds within the requested range) or when the
+fully-populated response would exceed the session-negotiated
+ca_maxresponsesize (Section 18.36.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  In the
+response-size case the data server returns a short response
+with chrr_eof = FALSE containing as many entries N as fit
+under ca_maxresponsesize minus COMPOUND/RPC overhead; the
+client resumes at chra_offset + N.  If even the minimum
+useful response (a single entry) will not fit, the data
+server returns NFS4ERR_REP_TOO_BIG per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>; the
+client <span class="bcp14">MUST NOT</span> retry with a smaller chra_count (there is no
+positive integer below 1) and instead uses a session or
+COMPOUND with more available response budget.<a href="#section-25.5.3-5.14.2" class="pilcrow">¶</a></p>
+</dd>
           <dd class="break"></dd>
 </dl>
-<p id="section-25.5.3-6"><strong>Cardinality and short responses</strong>:<a href="#section-25.5.3-6" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-25.5.3-7.1">
-              <p id="section-25.5.3-7.1.1">All five response arrays are the same length; the
-data server <span class="bcp14">MUST NOT</span> sparsify or truncate one
-array independently of the others.<a href="#section-25.5.3-7.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-25.5.3-7.2">
-              <p id="section-25.5.3-7.2.1">The response array length N <span class="bcp14">MAY</span> be smaller than
-chra_count when the requested range extends past
-the data server's last chunk (chrr_eof = TRUE, N
-= the number of chunks the data server holds
-within the requested range) or when the fully-populated
-response would exceed the session-negotiated
-ca_maxresponsesize (Section 18.36.3 of
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  In the response-size case the data
-server returns a short response with chrr_eof =
-FALSE containing as many entries N as fit under
-ca_maxresponsesize minus COMPOUND/RPC overhead;
-the client resumes at chra_offset + N.  If even
-the minimum useful response (a single entry) will
-not fit, the data server returns NFS4ERR_REP_TOO_BIG
-per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>; the client <span class="bcp14">MUST NOT</span> retry with a
-smaller chra_count (there is no positive integer
-below 1) and instead uses a session or COMPOUND
-with more available response budget.<a href="#section-25.5.3-7.2.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
-<p id="section-25.5.3-8">The operation has several uses:<a href="#section-25.5.3-8" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-25.5.3-9">
-            <dt id="section-25.5.3-9.1">Whole-file repair scan:</dt>
-            <dd style="margin-left: 1.5em" id="section-25.5.3-9.2">
-              <p id="section-25.5.3-9.2.1">A repair actor selected via CB_CHUNK_REPAIR
+<p id="section-25.5.3-6">The operation has several uses:<a href="#section-25.5.3-6" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-25.5.3-7">
+            <dt id="section-25.5.3-7.1">Whole-file repair scan:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.5.3-7.2">
+              <p id="section-25.5.3-7.2.1">A repair actor selected via CB_CHUNK_REPAIR
 (<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 26.1</a>) walks the affected chunk
 range and uses the per-chunk chunk_owner4 returned by
 each mirror's data server to identify which chunks
@@ -15358,12 +15430,12 @@ drives the per-chunk decisions described in
 <a href="#sec-repair-multi-writer" class="auto internal xref">Section 11.2.6.5</a>; without it, a repair
 client would have to issue CHUNK_READ to retrieve the
 full payload of every chunk merely to inspect its
-guard.<a href="#section-25.5.3-9.2.1" class="pilcrow">¶</a></p>
+guard.<a href="#section-25.5.3-7.2.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.5.3-9.3">Client-side recovery from partial writes:</dt>
-            <dd style="margin-left: 1.5em" id="section-25.5.3-9.4">
-              <p id="section-25.5.3-9.4.1">After a network disruption or client restart, a writer
+<dt id="section-25.5.3-7.3">Client-side recovery from partial writes:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.5.3-7.4">
+              <p id="section-25.5.3-7.4.1">After a network disruption or client restart, a writer
 that holds the file's layout <span class="bcp14">MAY</span> issue
 CHUNK_HEADER_READ to learn which of its prior
 CHUNK_WRITEs reached the data server.  Chunks whose
@@ -15373,12 +15445,12 @@ recoverable; chunks absent from the response or
 carrying another writer's owner are not.  The writer
 can then re-issue CHUNK_WRITE for the missing chunks
 or CHUNK_ROLLBACK for the abandoned ones without
-reading payloads it has already committed locally.<a href="#section-25.5.3-9.4.1" class="pilcrow">¶</a></p>
+reading payloads it has already committed locally.<a href="#section-25.5.3-7.4.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.5.3-9.5">Read-side atomicity check:</dt>
-            <dd style="margin-left: 1.5em" id="section-25.5.3-9.6">
-              <p id="section-25.5.3-9.6.1">Before issuing a multi-chunk CHUNK_READ in
+<dt id="section-25.5.3-7.5">Read-side atomicity check:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.5.3-7.6">
+              <p id="section-25.5.3-7.6.1">Before issuing a multi-chunk CHUNK_READ in
 multiple-writer mode, a client <span class="bcp14">MAY</span> issue
 CHUNK_HEADER_READ to verify that the chunks in the
 target range share a common <code>(co_cohort_id,
@@ -15393,12 +15465,12 @@ NFS4ERR_PAYLOAD_NOT_ATOMIC via LAYOUTERROR.  This is
 a hint rather than a guarantee: a concurrent writer
 <span class="bcp14">MAY</span> advance a chunk's state between the
 CHUNK_HEADER_READ response and the subsequent
-CHUNK_READ.<a href="#section-25.5.3-9.6.1" class="pilcrow">¶</a></p>
+CHUNK_READ.<a href="#section-25.5.3-7.6.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.5.3-9.7">Predecessor-guided rollback discovery:</dt>
-            <dd style="margin-left: 1.5em" id="section-25.5.3-9.8">
-              <p id="section-25.5.3-9.8.1">A caller preparing a CHUNK_ROLLBACK against a
+<dt id="section-25.5.3-7.7">Predecessor-guided rollback discovery:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.5.3-7.8">
+              <p id="section-25.5.3-7.8.1">A caller preparing a CHUNK_ROLLBACK against a
 COMMITTED chunk inspects the corresponding
 chrr_predecessors entry to decide whether
 CHUNK_ROLLBACK will succeed:
@@ -15429,26 +15501,26 @@ between the CHUNK_HEADER_READ response and the
 CHUNK_ROLLBACK (a PRESENT observation <span class="bcp14">MAY</span>
 become ABSENT if the retention scope releases
 the predecessor and the caller does not hold a
-qualifying lock or escrow).<a href="#section-25.5.3-9.8.1" class="pilcrow">¶</a></p>
+qualifying lock or escrow).<a href="#section-25.5.3-7.8.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.5.3-9.9">Lock probe before write:</dt>
-            <dd style="margin-left: 1.5em" id="section-25.5.3-9.10">
-              <p id="section-25.5.3-9.10.1">A client <span class="bcp14">MAY</span> issue CHUNK_HEADER_READ and inspect the
+<dt id="section-25.5.3-7.9">Lock probe before write:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.5.3-7.10">
+              <p id="section-25.5.3-7.10.1">A client <span class="bcp14">MAY</span> issue CHUNK_HEADER_READ and inspect the
 chrr_locked array to discover whether any chunk in
 the target range is currently held by a CHUNK_LOCK
 (<a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.6</a>) before attempting CHUNK_WRITE,
 avoiding the round-trip cost of receiving
 NFS4ERR_CHUNK_LOCKED.  As above, this is a hint; a
 lock <span class="bcp14">MAY</span> be acquired between the header read and the
-write.<a href="#section-25.5.3-9.10.1" class="pilcrow">¶</a></p>
+write.<a href="#section-25.5.3-7.10.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
-<p id="section-25.5.3-10">CHUNK_HEADER_READ does not change any chunk state.<a href="#section-25.5.3-10" class="pilcrow">¶</a></p>
-<p id="section-25.5.3-11">If the current filehandle is not an ordinary file, an
+<p id="section-25.5.3-8">CHUNK_HEADER_READ does not change any chunk state.<a href="#section-25.5.3-8" class="pilcrow">¶</a></p>
+<p id="section-25.5.3-9">If the current filehandle is not an ordinary file, an
 error <span class="bcp14">MUST</span> be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
-NFS4ERR_WRONG_TYPE).<a href="#section-25.5.3-11" class="pilcrow">¶</a></p>
+NFS4ERR_WRONG_TYPE).<a href="#section-25.5.3-9" class="pilcrow">¶</a></p>
 <div id="per-chunk-status-encoding">
 <section id="section-25.5.3.1">
             <h5 id="name-per-chunk-status-encoding">
@@ -16676,29 +16748,31 @@ repair before any client commits it.<a href="#section-25.9.3-8.2.1" class="pilcr
 </li>
           </ol>
 <p id="section-25.9.3-9">The data server effects the rollback as follows:<a href="#section-25.9.3-9" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-25.9.3-10.1">
-              <p id="section-25.9.3-10.1.1">Chunks in PENDING with a matching chunk_owner4: the
-data server deletes the PENDING payload and restores
-the chunk to its prior state (EMPTY, or the prior
-COMMITTED generation if the rollback invariant in
-<a href="#sec-system-model-consistency" class="auto internal xref">Section 12.7</a> required retention).<a href="#section-25.9.3-10.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-25.9.3-10.2">
-              <p id="section-25.9.3-10.2.1">Chunks in FINALIZED with a matching chunk_owner4: the
-data server deletes the FINALIZED payload and the
-persisted finalization metadata, restoring the chunk
-to its prior state.<a href="#section-25.9.3-10.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-25.9.3-10.3">
-              <p id="section-25.9.3-10.3.1">Chunks not in PENDING or FINALIZED at the named
-generation, or whose chunk_owner4 does not match: the
-corresponding crr_chunk_status slot reports NFS4ERR_INVAL
-or NFS4ERR_NO_PREDECESSOR per the release-scope split at
-<a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Section 21.1.7</a>, and the chunk is left
-unchanged.<a href="#section-25.9.3-10.3.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
+<span class="break"></span><dl class="dlParallel" id="section-25.9.3-10">
+            <dt id="section-25.9.3-10.1">Chunks in PENDING with a matching chunk_owner4:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.9.3-10.2">
+              <p id="section-25.9.3-10.2.1">the data server deletes the PENDING payload and restores
+the chunk to its prior state (EMPTY, or the prior COMMITTED
+generation if the rollback invariant in
+<a href="#sec-system-model-consistency" class="auto internal xref">Section 12.7</a> required retention).<a href="#section-25.9.3-10.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-25.9.3-10.3">Chunks in FINALIZED with a matching chunk_owner4:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.9.3-10.4">
+              <p id="section-25.9.3-10.4.1">the data server deletes the FINALIZED payload and the
+persisted finalization metadata, restoring the chunk to its
+prior state.<a href="#section-25.9.3-10.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-25.9.3-10.5">Chunks not in PENDING or FINALIZED at the named generation, or whose chunk_owner4 does not match:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.9.3-10.6">
+              <p id="section-25.9.3-10.6.1">the corresponding crr_chunk_status slot reports
+NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR per the
+release-scope split at <a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Section 21.1.7</a>, and
+the chunk is left unchanged.<a href="#section-25.9.3-10.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <div id="deletion-atomicity-and-invalidated-triples">
 <section id="section-25.9.3.1">
             <h5 id="name-deletion-atomicity-and-inva">
@@ -16779,7 +16853,10 @@ restoring a prior COMMITTED generation that another
 client incorrectly advanced.  Two cases separate by
 whether the predecessor generation the caller wants to
 restore is still present on the data server:<a href="#section-25.9.3.2-1" class="pilcrow">¶</a></p>
-<p id="section-25.9.3.2-2"><strong>Case (a) -- retained predecessor.</strong>  The predecessor
+<span class="break"></span><dl class="dlParallel" id="section-25.9.3.2-2">
+              <dt id="section-25.9.3.2-2.1">Case (a) -- retained predecessor:</dt>
+              <dd style="margin-left: 1.5em" id="section-25.9.3.2-2.2">
+                <p id="section-25.9.3.2-2.2.1">The predecessor
 generation named in the cra_chunks entry is still held
 by the data server (typically the prior COMMITTED
 retained under the rollback invariant
@@ -16787,7 +16864,10 @@ retained under the rollback invariant
 displaced successor, and <span class="bcp14">MUST</span> have survived with its
 payload+association pair intact per the biconditional
 (<a href="#sec-system-model-payload-association-biconditional" class="auto internal xref">Section 12.10</a>)).
-The data server:<a href="#section-25.9.3.2-2" class="pilcrow">¶</a></p>
+The data server:<a href="#section-25.9.3.2-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+</dl>
 <ul class="normal">
 <li class="normal" id="section-25.9.3.2-3.1">
                 <p id="section-25.9.3.2-3.1.1">restores the retained predecessor as the current
@@ -16814,8 +16894,10 @@ split at <a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Sectio
 <p id="section-25.9.3.2-4">The restore is atomic with the delete: no intermediate
 state exposes both generations as current, and no
 intermediate state exposes neither.<a href="#section-25.9.3.2-4" class="pilcrow">¶</a></p>
-<p id="section-25.9.3.2-5"><strong>Case (b) -- predecessor no longer retained.</strong>  If
-the predecessor generation named in the cra_chunks
+<span class="break"></span><dl class="dlParallel" id="section-25.9.3.2-5">
+              <dt id="section-25.9.3.2-5.1">Case (b) -- predecessor no longer retained:</dt>
+              <dd style="margin-left: 1.5em" id="section-25.9.3.2-5.2">
+                <p id="section-25.9.3.2-5.2.1">If the predecessor generation named in the cra_chunks
 entry is NOT held by the data server (its
 payload+association pair was released some time earlier
 under the retention scope rule, whether by lease
@@ -16851,7 +16933,10 @@ predecessor's payload and its owner-to-index
 association jointly against that release rule for as
 long as the escrow-lock or a client-owned lock
 adopted from it remains in continuous custody (see
-<a href="#sec-composed-rollback" class="auto internal xref">Section 27</a>).<a href="#section-25.9.3.2-5" class="pilcrow">¶</a></p>
+<a href="#sec-composed-rollback" class="auto internal xref">Section 27</a>).<a href="#section-25.9.3.2-5.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+</dl>
 <p id="section-25.9.3.2-6">A non-repair CHUNK_ROLLBACK against a COMMITTED chunk
 is rejected with NFS4ERR_INVAL regardless of case.<a href="#section-25.9.3.2-6" class="pilcrow">¶</a></p>
 </section>
@@ -16903,7 +16988,10 @@ successor's triple per "Rollback of COMMITTED Chunks"
 above); after that window has elapsed the second call
 returns NFS4ERR_NO_PREDECESSOR per the release-scope
 split at <a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Section 21.1.7</a>.<a href="#section-25.9.3.4-1" class="pilcrow">¶</a></p>
-<p id="section-25.9.3.4-2"><strong>Uncertain-replay carve-out.</strong>  When the first
+<span class="break"></span><dl class="dlParallel" id="section-25.9.3.4-2">
+              <dt id="section-25.9.3.4-2.1">Uncertain-replay carve-out:</dt>
+              <dd style="margin-left: 1.5em" id="section-25.9.3.4-2.2">
+                <p id="section-25.9.3.4-2.2.1">When the first
 CHUNK_ROLLBACK completed at the data server but its
 response was lost (network error, dropped connection,
 data server restart before the reply was received), the
@@ -16915,7 +17003,10 @@ per-chunk NFS4ERR_INVAL (within the replay-cache
 window) or NFS4ERR_NO_PREDECESSOR (after the window has
 elapsed) as POSTCONDITION-EQUIVALENT SUCCESS on a
 slot-by-slot basis, PROVIDED all of the following hold
-for that slot:<a href="#section-25.9.3.4-2" class="pilcrow">¶</a></p>
+for that slot:<a href="#section-25.9.3.4-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+</dl>
 <ul class="normal">
 <li class="normal" id="section-25.9.3.4-3.1">
                 <p id="section-25.9.3.4-3.1.1">the reissue is byte-identical to the original op
@@ -18497,27 +18588,30 @@ stateids with NFS4ERR_BAD_STATEID.<a href="#section-25.14.3-5.2.1" class="pilcro
 </dl>
 <p id="section-25.14.3-6">The metadata server calls REVOKE_STATEID in any of the
 following situations:<a href="#section-25.14.3-6" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-25.14.3-7.1">
-              <p id="section-25.14.3-7.1.1">CB_LAYOUTRECALL timeout: the client did not return the
-layout within the recall timeout.  REVOKE_STATEID
-terminates the client's ability to issue further I/O
-to the data server without waiting for tsa_expire.<a href="#section-25.14.3-7.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-25.14.3-7.2">
-              <p id="section-25.14.3-7.2.1">LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM: the
-data server rejected the client's I/O; the trust
-entry is stale and must be removed.  This mirrors the
-fencing case in the loose-coupled model
-(<a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>).<a href="#section-25.14.3-7.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-25.14.3-7.3">
-              <p id="section-25.14.3-7.3.1">Explicit LAYOUTRETURN: the client returned the layout
-cleanly.  The metadata server <span class="bcp14">MAY</span> issue REVOKE_STATEID
-at this time or <span class="bcp14">MAY</span> rely on tsa_expire; either is
-correct.<a href="#section-25.14.3-7.3.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
+<span class="break"></span><dl class="dlParallel" id="section-25.14.3-7">
+            <dt id="section-25.14.3-7.1">CB_LAYOUTRECALL timeout:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.14.3-7.2">
+              <p id="section-25.14.3-7.2.1">the client did not return the layout within the recall
+timeout.  REVOKE_STATEID terminates the client's ability
+to issue further I/O to the data server without waiting
+for tsa_expire.<a href="#section-25.14.3-7.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-25.14.3-7.3">LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.14.3-7.4">
+              <p id="section-25.14.3-7.4.1">the data server rejected the client's I/O; the trust entry
+is stale and must be removed.  This mirrors the fencing
+case in the loose-coupled model (<a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>).<a href="#section-25.14.3-7.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-25.14.3-7.5">Explicit LAYOUTRETURN:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.14.3-7.6">
+              <p id="section-25.14.3-7.6.1">the client returned the layout cleanly.  The metadata
+server <span class="bcp14">MAY</span> issue REVOKE_STATEID at this time or <span class="bcp14">MAY</span> rely
+on tsa_expire; either is correct.<a href="#section-25.14.3-7.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <p id="section-25.14.3-8">In-flight CHUNK operations that arrived before
 REVOKE_STATEID completes <span class="bcp14">MAY</span> be allowed to finish.  The
 data server <span class="bcp14">MUST NOT</span> process new CHUNK operations
@@ -18710,31 +18804,32 @@ as a global cross-metadata-server table clear.<a href="#section-25.15.3-5.2.1" c
 </dl>
 <p id="section-25.15.3-6">The metadata server calls BULK_REVOKE_STATEID in any of
 the following situations:<a href="#section-25.15.3-6" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-25.15.3-7.1">
-              <p id="section-25.15.3-7.1.1">Client lease expiry: when a client's lease on the
-metadata server expires, the metadata server revokes
-all of that client's layouts.  A single
-BULK_REVOKE_STATEID with brsa_clientid set to the
-expired client's clientid sweeps every per-file trust
-entry the metadata server had registered for that
-client.<a href="#section-25.15.3-7.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-25.15.3-7.2">
-              <p id="section-25.15.3-7.2.1">CB_LAYOUTRECALL with LAYOUTRECALL4_ALL: the metadata
-server is recalling all layouts for a client.
-BULK_REVOKE_STATEID is the data-server-side
-complement.<a href="#section-25.15.3-7.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-25.15.3-7.3">
-              <p id="section-25.15.3-7.3.1">Metadata server restart cleanup: after the metadata
-server reconnects to a data server, it <span class="bcp14">MAY</span> issue
-BULK_REVOKE_STATEID with brsa_clientid set to
-all-zeros to clear the prior trust table before
-re-issuing TRUST_STATEID as clients reclaim.  See
-<a href="#sec-tight-coupling-mds-crash" class="auto internal xref">Section 6.4.8</a>.<a href="#section-25.15.3-7.3.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
+<span class="break"></span><dl class="dlParallel" id="section-25.15.3-7">
+            <dt id="section-25.15.3-7.1">Client lease expiry:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.15.3-7.2">
+              <p id="section-25.15.3-7.2.1">when a client's lease on the metadata server expires, the
+metadata server revokes all of that client's layouts.  A
+single BULK_REVOKE_STATEID with brsa_clientid set to the
+expired client's clientid sweeps every per-file trust entry
+the metadata server had registered for that client.<a href="#section-25.15.3-7.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-25.15.3-7.3">CB_LAYOUTRECALL with LAYOUTRECALL4_ALL:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.15.3-7.4">
+              <p id="section-25.15.3-7.4.1">the metadata server is recalling all layouts for a client.
+BULK_REVOKE_STATEID is the data-server-side complement.<a href="#section-25.15.3-7.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-25.15.3-7.5">Metadata server restart cleanup:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.15.3-7.6">
+              <p id="section-25.15.3-7.6.1">after the metadata server reconnects to a data server, it
+<span class="bcp14">MAY</span> issue BULK_REVOKE_STATEID with brsa_clientid set to
+all-zeros to clear the prior trust table before re-issuing
+TRUST_STATEID as clients reclaim.  See
+<a href="#sec-tight-coupling-mds-crash" class="auto internal xref">Section 6.4.8</a>.<a href="#section-25.15.3-7.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <p id="section-25.15.3-8">BULK_REVOKE_STATEID is scoped to the issuing metadata
 server's entries (see the tagging rule in
 <a href="#sec-TRUST_STATEID" class="auto internal xref">Section 25.13</a>).  The data server <span class="bcp14">MUST NOT</span> affect
@@ -19695,8 +19790,8 @@ per <a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a
       <h2 id="name-composed-rollback-guarantee">
 <a href="#section-27" class="section-number selfRef">27. </a><a href="#name-composed-rollback-guarantee" class="section-name selfRef">Composed Rollback Guarantee and Error Decision Tree</a>
       </h2>
-<p id="section-27-1">The FFv2 chunk protocol combines three related
-mechanisms -- writer-supplied opaque owner identity
+<p id="section-27-1">The flexible file v2 layout chunk protocol combines three
+related mechanisms -- writer-supplied opaque owner identity
 (<a href="#sec-chunk_owner4" class="auto internal xref">Section 24.2</a>), best-effort predecessor
 discovery (<a href="#sec-CHUNK_HEADER_READ" class="auto internal xref">Section 25.5</a> /
 <a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Section 21.1.7</a>), and metadata-server escrow
@@ -19775,8 +19870,8 @@ reconstruction into a NEW generation under a NEW
 owner triple, or terminal NFS4ERR_PAYLOAD_LOST
 when no authoritative source exists.<a href="#section-27.1-3" class="pilcrow">¶</a></p>
 <p id="section-27.1-4">The guarantee is a protocol-level protection against
-premature release: FFv2 implementations <span class="bcp14">MUST NOT</span>
-release the payload or owner-to-index association of
+premature release: flexible file v2 layout implementations
+<span class="bcp14">MUST NOT</span> release the payload or owner-to-index association of
 a predecessor covered by an active qualifying lock or
 metadata-server escrow lock, per the payload/association
 biconditional
@@ -19935,7 +20030,7 @@ co_client_id, co_id) throughout, per
 <a href="#sec-chunk_owner4" class="auto internal xref">Section 24.2</a>; per-chunk CAS state
 (cg_gen_id, cg_client_id) is data-server-managed and is
 distinct from these owner-identity numbers.<a href="#section-27.3-2" class="pilcrow">¶</a></p>
-<p id="section-27.3-3"><strong>Happy path (all three conditions hold).</strong><a href="#section-27.3-3" class="pilcrow">¶</a></p>
+<p id="section-27.3-3">Happy path (all three conditions hold):<a href="#section-27.3-3" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-27.3-4">
 <li id="section-27.3-4.1">
             <p id="section-27.3-4.1.1">The metadata server proactively installs an
@@ -20008,7 +20103,10 @@ durable escrow-tuple record for (file, E1,
 {this data server}).<a href="#section-27.3-4.7.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-27.3-5"><strong>Lost-callback branch.</strong>  Steps 1-6 proceed as
+<span class="break"></span><dl class="dlParallel" id="section-27.3-5">
+          <dt id="section-27.3-5.1">Lost-callback branch:</dt>
+          <dd style="margin-left: 1.5em" id="section-27.3-5.2">
+            <p id="section-27.3-5.2.1">Steps 1-6 proceed as
 above but the CB_CHUNK_REPAIR response is lost in
 transit (data server restart or network failure
 before the metadata server receives the reply).
@@ -20022,8 +20120,12 @@ preserved escrow_id4 = E1.  On the next
 CHUNK_ESCROW_ENUMERATE
 (<a href="#sec-CHUNK_ESCROW_ENUMERATE" class="auto internal xref">Section 25.18</a>) the metadata server
 observes the reappeared E1 and reissues repair
-under it.<a href="#section-27.3-5" class="pilcrow">¶</a></p>
-<p id="section-27.3-6"><strong>Fallback contrast (condition 1 fails).</strong>  Under
+under it.<a href="#section-27.3-5.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-27.3-5.3">Fallback contrast (condition 1 fails):</dt>
+          <dd style="margin-left: 1.5em" id="section-27.3-5.4">
+            <p id="section-27.3-5.4.1">Under
 an alternative setup where the metadata server did
 NOT install a metadata-server escrow before the retention
 scope
@@ -20059,7 +20161,10 @@ released predecessor.  When no authoritative
 source exists for reconstruction, the fallback
 itself terminates at NFS4ERR_PAYLOAD_LOST
 (<a href="#sec-NFS4ERR_PAYLOAD_LOST" class="auto internal xref">Section 21.1.5</a>) via
-CB_CHUNK_REPAIR.<a href="#section-27.3-6" class="pilcrow">¶</a></p>
+CB_CHUNK_REPAIR.<a href="#section-27.3-5.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
 </section>
 </div>
 </section>
