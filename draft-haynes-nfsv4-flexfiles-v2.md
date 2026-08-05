@@ -2141,23 +2141,17 @@ encoding types this document defines fall into two groups:
    No CHUNK_WRITE, no CHUNK_READ, no per-chunk CRC.  See
    {{sec-encoding-passthrough}}.
 
--  FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
-   FFV2_ENCODING_RS_VANDERMONDE,
-   FFV2_ENCODING_XOR_PARITY, and
-   FFV2_ENCODING_LINUX_MD_RAID all use the new operations
-   defined here: in particular CHUNK_WRITE
-   ({{sec-CHUNK_WRITE}}) and CHUNK_READ ({{sec-CHUNK_READ}}),
-   which carry the per-chunk checksum this version of the layout
-   type relies on for end-to-end integrity.  The encoding type
-   selects how chunks are produced from application data
-   (mirrored verbatim, Reed-Solomon shards over GF(2^8),
-   single-parity XOR, Linux md P+Q, or Mojette projections);
-   the wire and the storage device are the same in every case.
-   See the individual encoding sections
-   ({{sec-encoding-xor-parity}}, {{sec-encoding-linux-md-raid}})
-   for the mathematical constructions and wire-compatibility
-   relationships among the GF(2^8) family.
+-  Every other standards-track encoding (any FFV2_ENCODING_*
+   value other than FFV2_ENCODING_PASSTHROUGH; see
+   {{tbl-coding-types}}) uses the new operations defined here:
+   in particular CHUNK_WRITE ({{sec-CHUNK_WRITE}}) and CHUNK_READ
+   ({{sec-CHUNK_READ}}), which carry the per-chunk checksum this
+   version of the layout type relies on for end-to-end integrity.
+   The encoding type selects how chunks are produced from
+   application data; the wire and the storage device are the
+   same in every case.  See the individual encoding sections
+   for the mathematical constructions of each encoding and for
+   the wire-compatibility relationships among the GF(2^8) family.
 
 The 32-bit ffv2_encoding_type4 value space is partitioned by
 intended scope -- Standards Track, Experimental, Vendor (open),
@@ -4409,9 +4403,8 @@ The repair sequence when the selected client is the original writer is:
    set by a prior CHUNK_ERROR).
 
 2. For each errored chunk, the repair actor reconstructs the correct
-   data using the erasure coding algorithm (RS matrix inversion or Mojette
-   back-projection) from the surviving atomic chunks (treating each
-   chunk's payload as a shard of the stripe).
+   data using the erasure coding algorithm from the surviving atomic
+   chunks (treating each chunk's payload as a shard of the stripe).
 
 3. The repair actor issues CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}})
    to write the reconstructed data.  CHUNK_WRITE_REPAIR bypasses the guard
@@ -4705,10 +4698,10 @@ All three patterns coexist during the transition.
 {: #fig-example_mixing title="Example of Mixed Encoding Types in a Layout" }
 
 When performing I/O via a FFV2_ENCODING_PASSTHROUGH encoding type,
-the non-transformed data will be used; whereas with the chunked
-encoding types (FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_*,
-FFV2_ENCODING_RS_VANDERMONDE), a metadata header and transformed
-block will be sent.  Further, when reading data from the
+the non-transformed data will be used; whereas with any of the
+chunked encoding types (any FFV2_ENCODING_* value other than
+FFV2_ENCODING_PASSTHROUGH; see {{tbl-coding-types}}), a metadata
+header and transformed block will be sent.  Further, when reading data from the
 instance files, the client MUST be prepared to have one of the
 encoding types supply data and the other type not to supply data.
 I.e., the CHUNK_READ call to the data servers in mirror 1 might
@@ -7100,10 +7093,8 @@ column select by the mirror's ffv2m_coding_type_data value.
 FFV2_ENCODING_PASSTHROUGH ({{sec-encoding-passthrough}}) uses
 NFSv3 WRITE / READ or NFSv4 READ / WRITE directly and does not
 use the CHUNK operations.  Every other standards-track encoding
--- FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC,
-FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_XOR_PARITY, and
-FFV2_ENCODING_LINUX_MD_RAID -- is (chunked): it uses CHUNK_WRITE
+(any FFV2_ENCODING_* value other than FFV2_ENCODING_PASSTHROUGH;
+see {{tbl-coding-types}}) is (chunked): it uses CHUNK_WRITE
 ({{sec-CHUNK_WRITE}}) and CHUNK_READ ({{sec-CHUNK_READ}}) and
 MUST NOT use the RFC 8881 READ / WRITE / COMMIT operations
 against the data server.  FFV2_ENCODING_MIRRORED is (chunked)
@@ -11927,9 +11918,7 @@ is the chunk-protocol equivalent of writing reconstructed
 data into a RAID stripe whose other members are known
 healthy.  The reconstructed data is produced by the repair
 client from surviving shards via the erasure-coding
-algorithm of the file's layout (RS matrix inversion or
-Mojette corner-peeling, see {{sec-rs-encoding}} and
-{{sec-mojette-encoding}}).
+algorithm of the file's layout.
 
 The repair workflow that invokes CHUNK_WRITE_REPAIR is:
 
