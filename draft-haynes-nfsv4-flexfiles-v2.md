@@ -2145,42 +2145,20 @@ commit on PROXY_DONE".  This document specifies the per-mirror
 encoding naming primitive; the proxy-server document specifies
 the transactional machinery that uses it.
 
-### FFV2_ENCODING_PASSTHROUGH
+The full description of each encoding type is deferred to its
+own section.  The mapping between the enum values above and
+those sections is:
 
-The on-ramp from flexible file v1 layout ({{RFC8435}}) into
-this layout type.  A PASSTHROUGH mirror uses NFSv3 WRITE /
-READ ({{RFC1813}}) or NFSv4 READ / WRITE ({{RFC8881}})
-directly against the underlying file -- no chunk envelope, no
-per-chunk CRC.  The full description is in
-{{sec-encoding-passthrough}}.
-
-### FFV2_ENCODING_MIRRORED
-
-Chunked-with-integrity replication: the chunk produced for each
-replica is the application data verbatim -- no transform, no
-parity shards -- but it travels through CHUNK_WRITE /
-CHUNK_READ and so carries the per-chunk checksum and
-concurrent writer disambiguation.  N-way redundancy at N x
-storage cost.  The full description is in
-{{sec-encoding-mirrored}}.
-
-### FFV2_ENCODING_XOR_PARITY
-
-Single-parity systematic RAID-5-shape: k data shards plus one
-XOR-parity shard.  Parameters: k in the range 1 to 254, m
-fixed at 1.  No finite-field arithmetic; the encoding is a
-plain XOR reduction.  The full description, including the
-wire-compatibility relationship with the GF(2^8) family at
-m=1, is in {{sec-encoding-xor-parity}}.
-
-### FFV2_ENCODING_LINUX_MD_RAID
-
-Linux kernel md/raid6 P+Q double-parity encoding, over GF(2^8)
-with primitive polynomial 0x1d.  Parameters: k in the range
-2 to 253, m fixed at 2.  Wire-compatible with
-FFV2_ENCODING_RS_VANDERMONDE at m<=2 by construction.  The
-full description, including the P/Q construction and the
-wire-compat relationship, is in {{sec-encoding-linux-md-raid}}.
+| Value | Encoding type                        | Description                                              | Section                        |
+|------:|--------------------------------------|----------------------------------------------------------|--------------------------------|
+| 1     | FFV2_ENCODING_PASSTHROUGH            | On-ramp from FFv1; direct NFSv3/v4 I/O, no chunk envelope | {{sec-encoding-passthrough}}   |
+| 2     | FFV2_ENCODING_MOJETTE_SYSTEMATIC     | Discrete Radon projections, systematic (data shards passed through) | {{sec-mojette-encoding}}       |
+| 3     | FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC | Discrete Radon projections, non-systematic (all shards transformed) | {{sec-mojette-encoding}}       |
+| 4     | FFV2_ENCODING_RS_VANDERMONDE         | Reed-Solomon Vandermonde over GF(2^8); arbitrary (k, m)  | {{sec-rs-encoding}}            |
+| 5     | FFV2_ENCODING_MIRRORED               | Chunked replication; N-way redundancy at N x storage      | {{sec-encoding-mirrored}}      |
+| 6     | FFV2_ENCODING_XOR_PARITY             | Single-parity RAID-5 shape; k+1, m=1, pure XOR            | {{sec-encoding-xor-parity}}    |
+| 7     | FFV2_ENCODING_LINUX_MD_RAID          | Linux md/raid6 P+Q double-parity; k+2, m=2, GF(2^8)       | {{sec-encoding-linux-md-raid}} |
+{: #tbl-encoding-type-sections title="Encoding type value to section mapping"}
 
 ### Encoding Type Interoperability {#encoding-type-interoperability}
 
