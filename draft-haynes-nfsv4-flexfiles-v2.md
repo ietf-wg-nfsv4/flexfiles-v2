@@ -5472,18 +5472,17 @@ distinct registered encoding type.
 
 For n = k + m total shards (Mojette non-systematic) or m parity
 shards (Mojette systematic), the direction set is determined by
-the following mandatory algorithm on the shard count N (N = n for
-non-systematic, N = m for systematic):
+the following mandatory rule on the shard count N (N = n for
+non-systematic, N = m for systematic).
 
-~~~
-If N is even (N = 2t):
-    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t} }
-    // Symmetric around zero; |directions| = 2t = N.
-If N is odd (N = 2t + 1):
-    directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t, t+1} }
-    // Asymmetric by including one additional positive magnitude
-    // to make |directions| = 2t + 1 = N.
-~~~
+For N even (N = 2t):
+:  `directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t} }`
+   -- symmetric around zero, giving `|directions| = 2t = N`.
+
+For N odd (N = 2t + 1):
+:  `directions = { (p, 1) : p in {-t, -t+1, ..., -1, 1, 2, ..., t, t+1} }`
+   -- asymmetric by including one additional positive magnitude
+   so that `|directions| = 2t + 1 = N`.
 
 Direction slots are then sorted by `p_i` ascending (most-negative
 p first, most-positive p last) to give the canonical direction
