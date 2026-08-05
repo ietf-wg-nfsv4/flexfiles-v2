@@ -4622,28 +4622,36 @@ handle.
 
 Multiple encoding types can be present in a Flexible File Version 2
 Layout Type layout.  The ffv2_layout4 has an array of ffv2_mirror4,
-each of which has a ffv2_encoding_type4.  Mixing encoding types in a
-single file's mirror set addresses several use cases:
+each of which has a ffv2_encoding_type4.  Mixing encoding types in a single file's mirror set addresses
+several use cases:
 
-- Assimilation of a non-erasure-coded file into an erasure-coded
-  representation, or export of an erasure-coded file to a
-  non-erasure-coded representation.
+Assimilation and export:
 
-- Online migration between encodings, for example from a
-  Reed-Solomon Vandermonde encoding to a Mojette systematic
-  encoding when a read-access-pattern change makes the new encoding
-  a better fit.  Both representations remain addressable through
-  the layout throughout the transition.
+: assimilation of a non-erasure-coded file into an
+  erasure-coded representation, or export of an erasure-coded
+  file to a non-erasure-coded representation.
 
-- Cross-encoding recovery: when one encoding loses data to a
-  correlated failure mode (an encoding implementation bug, a
-  memory-corruption pattern that affects parity shards
-  identically), a second mirror in a different encoding provides
-  an independent recovery surface.
+Online migration between encodings:
 
-- Client-capability routing: a proxy server sees the full mirror
-  set and chooses between encodings on behalf of clients that do
-  not implement every encoding the file is represented in.
+: for example, from a Reed-Solomon Vandermonde encoding to a
+  Mojette systematic encoding when a read-access-pattern change
+  makes the new encoding a better fit.  Both representations
+  remain addressable through the layout throughout the
+  transition.
+
+Cross-encoding recovery:
+
+: when one encoding loses data to a correlated failure mode
+  (an encoding implementation bug, a memory-corruption pattern
+  that affects parity shards identically), a second mirror in
+  a different encoding provides an independent recovery
+  surface.
+
+Client-capability routing:
+
+: a proxy server sees the full mirror set and chooses between
+  encodings on behalf of clients that do not implement every
+  encoding the file is represented in.
 
 Consider a layout that exposes a file in two encodings
 simultaneously: a PASSTHROUGH mirror over the original byte
@@ -5331,16 +5339,33 @@ interoperate, they MUST agree on all of the following parameters.
 Any deviation produces a different encoding matrix and renders
 data unrecoverable by a different implementation.
 
-- Irreducible polynomial: x^8 + x^4 + x^3 + x^2 + 1 (0x11d)
-- Primitive element: g = 2
-- Evaluation points: shard i (i = 0, 1, ..., k+m-1) uses
-  alpha_i = i + 1 in GF(2^8) (values 1 through k+m, all
-  non-zero and distinct)
-- Vandermonde entries: `V[i][j] = alpha_i^j = (i+1)^j` in GF(2^8)
-  for `i = 0..k+m-1`, `j = 0..k-1`
-- Matrix normalization: E = V * T^(-1) where T is the top k x k
-  sub-matrix (rows for shards 0..k-1)
-- Parameter bound: k + m MUST NOT exceed 255
+Irreducible polynomial:
+
+: `x^8 + x^4 + x^3 + x^2 + 1` (`0x11d`).
+
+Primitive element:
+
+: `g = 2`.
+
+Evaluation points:
+
+: shard `i` (`i = 0, 1, ..., k+m-1`) uses
+  `alpha_i = i + 1` in GF(2^8) (values 1 through `k+m`, all
+  non-zero and distinct).
+
+Vandermonde entries:
+
+: `V[i][j] = alpha_i^j = (i+1)^j` in GF(2^8) for
+  `i = 0..k+m-1`, `j = 0..k-1`.
+
+Matrix normalization:
+
+: `E = V * T^(-1)` where `T` is the top `k x k` sub-matrix
+  (rows for shards `0..k-1`).
+
+Parameter bound:
+
+: `k + m` MUST NOT exceed 255.
 
 These parameters fully determine the encoding matrix for any
 (k, m) configuration in the permitted range.
@@ -6260,7 +6285,9 @@ multi-chunk atomicity MUST layer it above this protocol -- for
 example, via file-level checksums, application-level generation
 fields, or external transaction managers.
 
-**The chunk is the unit of atomicity.**  Two properties follow:
+The chunk is the unit of atomicity:
+
+: Two properties follow.
 
 1.  Chunk-aligned writes do not interfere.  Two concurrent
     writers whose writes cover disjoint chunks -- even writes
@@ -6404,8 +6431,9 @@ with a durability floor that matches the payload's:
 without the association the payload can never again be
 addressed by a lifecycle operation.
 
-**Uniqueness invariant** (normative):
-An accepted (co_cohort_id, co_client_id, co_id) triple is
+Uniqueness invariant (normative):
+
+: An accepted (co_cohort_id, co_client_id, co_id) triple is
 UNIQUE across the live generations the data server holds
 for a given file: at any instant there is at most one
 live generation on any chunk of the file that matches
@@ -6423,27 +6451,35 @@ chunk index MUST carry distinct triples (typically
 distinct co_cohort_id under a shared co_client_id) so that
 CHUNK_ROLLBACK can name each unambiguously.
 
-**Durability floor** (normative, per CHUNK_WRITE
-{{sec-CHUNK_WRITE}} "Stability and Activation"):
+Durability floor (normative, per CHUNK_WRITE {{sec-CHUNK_WRITE}} "Stability and Activation"):
 
-- FILE_SYNC4: both the chunk payload AND its
-  owner-to-index association MUST survive a data
-  server restart.
-- DATA_SYNC4: both the chunk payload AND its
-  owner-to-index association MUST survive a data
-  server restart.  (The association is retrieval
-  metadata for the payload; it shares the payload's
-  durability floor.  An implementation MAY treat
-  DATA_SYNC4 identically to FILE_SYNC4.)
-- UNSTABLE4: the association MAY be lost on restart,
-  but ONLY if the payload is also lost.  A data
-  server MUST NOT retain payload without its
-  associated owner triple; a payload whose
-  association was lost is unaddressable by every
-  lifecycle operation and MUST be treated as
-  destroyed.  cwr_writeverf changes on any restart
-  that loses UNSTABLE4 state, allowing the client
-  to detect the loss.
+: The durability requirement varies by the CHUNK_WRITE
+  stability level:
+
+  FILE_SYNC4:
+
+  : both the chunk payload AND its owner-to-index
+    association MUST survive a data server restart.
+
+  DATA_SYNC4:
+
+  : both the chunk payload AND its owner-to-index
+    association MUST survive a data server restart.
+    (The association is retrieval metadata for the
+    payload; it shares the payload's durability floor.
+    An implementation MAY treat DATA_SYNC4 identically
+    to FILE_SYNC4.)
+
+  UNSTABLE4:
+
+  : the association MAY be lost on restart, but ONLY if
+    the payload is also lost.  A data server MUST NOT
+    retain payload without its associated owner triple;
+    a payload whose association was lost is
+    unaddressable by every lifecycle operation and MUST
+    be treated as destroyed.  cwr_writeverf changes on
+    any restart that loses UNSTABLE4 state, allowing the
+    client to detect the loss.
 
 A data server that cannot honour the durability floor
 for a given stability level MUST reject the CHUNK_WRITE
@@ -9974,29 +10010,27 @@ chrr_predecessors:
    return NFS4ERR_NO_PREDECESSOR even though a
    previous CHUNK_HEADER_READ observed PRESENT.
 
-**Cardinality and short responses**:
+Cardinality and short responses:
 
-- All five response arrays are the same length; the
-  data server MUST NOT sparsify or truncate one
-  array independently of the others.
-- The response array length N MAY be smaller than
-  chra_count when the requested range extends past
-  the data server's last chunk (chrr_eof = TRUE, N
-  = the number of chunks the data server holds
-  within the requested range) or when the fully-populated
-  response would exceed the session-negotiated
-  ca_maxresponsesize (Section 18.36.3 of
-  {{RFC8881}}).  In the response-size case the data
-  server returns a short response with chrr_eof =
-  FALSE containing as many entries N as fit under
-  ca_maxresponsesize minus COMPOUND/RPC overhead;
-  the client resumes at chra_offset + N.  If even
-  the minimum useful response (a single entry) will
-  not fit, the data server returns NFS4ERR_REP_TOO_BIG
-  per {{RFC8881}}; the client MUST NOT retry with a
-  smaller chra_count (there is no positive integer
-  below 1) and instead uses a session or COMPOUND
-  with more available response budget.
+: All five response arrays are the same length; the data
+  server MUST NOT sparsify or truncate one array independently
+  of the others.
+
+  The response array length N MAY be smaller than chra_count
+  when the requested range extends past the data server's last
+  chunk (chrr_eof = TRUE, N = the number of chunks the data
+  server holds within the requested range) or when the
+  fully-populated response would exceed the session-negotiated
+  ca_maxresponsesize (Section 18.36.3 of {{RFC8881}}).  In the
+  response-size case the data server returns a short response
+  with chrr_eof = FALSE containing as many entries N as fit
+  under ca_maxresponsesize minus COMPOUND/RPC overhead; the
+  client resumes at chra_offset + N.  If even the minimum
+  useful response (a single entry) will not fit, the data
+  server returns NFS4ERR_REP_TOO_BIG per {{RFC8881}}; the
+  client MUST NOT retry with a smaller chra_count (there is no
+  positive integer below 1) and instead uses a session or
+  COMPOUND with more available response budget.
 
 The operation has several uses:
 
@@ -11007,23 +11041,25 @@ CHUNK_ROLLBACK has two principal scenarios:
 
 The data server effects the rollback as follows:
 
--  Chunks in PENDING with a matching chunk_owner4: the
-   data server deletes the PENDING payload and restores
-   the chunk to its prior state (EMPTY, or the prior
-   COMMITTED generation if the rollback invariant in
-   {{sec-system-model-consistency}} required retention).
+Chunks in PENDING with a matching chunk_owner4:
 
--  Chunks in FINALIZED with a matching chunk_owner4: the
-   data server deletes the FINALIZED payload and the
-   persisted finalization metadata, restoring the chunk
-   to its prior state.
+: the data server deletes the PENDING payload and restores
+  the chunk to its prior state (EMPTY, or the prior COMMITTED
+  generation if the rollback invariant in
+  {{sec-system-model-consistency}} required retention).
 
--  Chunks not in PENDING or FINALIZED at the named
-   generation, or whose chunk_owner4 does not match: the
-   corresponding crr_chunk_status slot reports NFS4ERR_INVAL
-   or NFS4ERR_NO_PREDECESSOR per the release-scope split at
-   {{sec-NFS4ERR_NO_PREDECESSOR}}, and the chunk is left
-   unchanged.
+Chunks in FINALIZED with a matching chunk_owner4:
+
+: the data server deletes the FINALIZED payload and the
+  persisted finalization metadata, restoring the chunk to its
+  prior state.
+
+Chunks not in PENDING or FINALIZED at the named generation, or whose chunk_owner4 does not match:
+
+: the corresponding crr_chunk_status slot reports
+  NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR per the
+  release-scope split at {{sec-NFS4ERR_NO_PREDECESSOR}}, and
+  the chunk is left unchanged.
 
 #### Deletion Atomicity and Invalidated Triples
 
@@ -11098,7 +11134,9 @@ client incorrectly advanced.  Two cases separate by
 whether the predecessor generation the caller wants to
 restore is still present on the data server:
 
-**Case (a) -- retained predecessor.**  The predecessor
+Case (a) -- retained predecessor:
+
+: The predecessor
 generation named in the cra_chunks entry is still held
 by the data server (typically the prior COMMITTED
 retained under the rollback invariant
@@ -11130,9 +11168,10 @@ The restore is atomic with the delete: no intermediate
 state exposes both generations as current, and no
 intermediate state exposes neither.
 
-**Case (b) -- predecessor no longer retained.**  If
-the predecessor generation named in the cra_chunks
-entry is NOT held by the data server (its
+Case (b) -- predecessor no longer retained:
+
+: If the predecessor generation named in the cra_chunks
+  entry is NOT held by the data server (its
 payload+association pair was released some time earlier
 under the retention scope rule, whether by lease
 expiry, by an even earlier CHUNK_ROLLBACK delete case,
@@ -11214,7 +11253,9 @@ above); after that window has elapsed the second call
 returns NFS4ERR_NO_PREDECESSOR per the release-scope
 split at {{sec-NFS4ERR_NO_PREDECESSOR}}.
 
-**Uncertain-replay carve-out.**  When the first
+Uncertain-replay carve-out:
+
+: When the first
 CHUNK_ROLLBACK completed at the data server but its
 response was lost (network error, dropped connection,
 data server restart before the reply was received), the
@@ -12431,21 +12472,24 @@ rsa_layout_stateid:
 The metadata server calls REVOKE_STATEID in any of the
 following situations:
 
--  CB_LAYOUTRECALL timeout: the client did not return the
-   layout within the recall timeout.  REVOKE_STATEID
-   terminates the client's ability to issue further I/O
-   to the data server without waiting for tsa_expire.
+CB_LAYOUTRECALL timeout:
 
--  LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM: the
-   data server rejected the client's I/O; the trust
-   entry is stale and must be removed.  This mirrors the
-   fencing case in the loose-coupled model
-   ({{sec-Fencing-Clients}}).
+: the client did not return the layout within the recall
+  timeout.  REVOKE_STATEID terminates the client's ability
+  to issue further I/O to the data server without waiting
+  for tsa_expire.
 
--  Explicit LAYOUTRETURN: the client returned the layout
-   cleanly.  The metadata server MAY issue REVOKE_STATEID
-   at this time or MAY rely on tsa_expire; either is
-   correct.
+LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM:
+
+: the data server rejected the client's I/O; the trust entry
+  is stale and must be removed.  This mirrors the fencing
+  case in the loose-coupled model ({{sec-Fencing-Clients}}).
+
+Explicit LAYOUTRETURN:
+
+: the client returned the layout cleanly.  The metadata
+  server MAY issue REVOKE_STATEID at this time or MAY rely
+  on tsa_expire; either is correct.
 
 In-flight CHUNK operations that arrived before
 REVOKE_STATEID completes MAY be allowed to finish.  The
@@ -12589,25 +12633,26 @@ brsa_clientid:
 The metadata server calls BULK_REVOKE_STATEID in any of
 the following situations:
 
--  Client lease expiry: when a client's lease on the
-   metadata server expires, the metadata server revokes
-   all of that client's layouts.  A single
-   BULK_REVOKE_STATEID with brsa_clientid set to the
-   expired client's clientid sweeps every per-file trust
-   entry the metadata server had registered for that
-   client.
+Client lease expiry:
 
--  CB_LAYOUTRECALL with LAYOUTRECALL4_ALL: the metadata
-   server is recalling all layouts for a client.
-   BULK_REVOKE_STATEID is the data-server-side
-   complement.
+: when a client's lease on the metadata server expires, the
+  metadata server revokes all of that client's layouts.  A
+  single BULK_REVOKE_STATEID with brsa_clientid set to the
+  expired client's clientid sweeps every per-file trust entry
+  the metadata server had registered for that client.
 
--  Metadata server restart cleanup: after the metadata
-   server reconnects to a data server, it MAY issue
-   BULK_REVOKE_STATEID with brsa_clientid set to
-   all-zeros to clear the prior trust table before
-   re-issuing TRUST_STATEID as clients reclaim.  See
-   {{sec-tight-coupling-mds-crash}}.
+CB_LAYOUTRECALL with LAYOUTRECALL4_ALL:
+
+: the metadata server is recalling all layouts for a client.
+  BULK_REVOKE_STATEID is the data-server-side complement.
+
+Metadata server restart cleanup:
+
+: after the metadata server reconnects to a data server, it
+  MAY issue BULK_REVOKE_STATEID with brsa_clientid set to
+  all-zeros to clear the prior trust table before re-issuing
+  TRUST_STATEID as clients reclaim.  See
+  {{sec-tight-coupling-mds-crash}}.
 
 BULK_REVOKE_STATEID is scoped to the issuing metadata
 server's entries (see the tagging rule in
@@ -13530,7 +13575,7 @@ co_client_id, co_id) throughout, per
 (cg_gen_id, cg_client_id) is data-server-managed and is
 distinct from these owner-identity numbers.
 
-**Happy path (all three conditions hold).**
+Happy path (all three conditions hold):
 
 1. The metadata server proactively installs an
    metadata-server escrow lock over chunk index 5 by sending
@@ -13595,7 +13640,9 @@ distinct from these owner-identity numbers.
    durable escrow-tuple record for (file, E1,
    {this data server}).
 
-**Lost-callback branch.**  Steps 1-6 proceed as
+Lost-callback branch:
+
+: Steps 1-6 proceed as
 above but the CB_CHUNK_REPAIR response is lost in
 transit (data server restart or network failure
 before the metadata server receives the reply).
@@ -13611,7 +13658,9 @@ CHUNK_ESCROW_ENUMERATE
 observes the reappeared E1 and reissues repair
 under it.
 
-**Fallback contrast (condition 1 fails).**  Under
+Fallback contrast (condition 1 fails):
+
+: Under
 an alternative setup where the metadata server did
 NOT install a metadata-server escrow before the retention
 scope
