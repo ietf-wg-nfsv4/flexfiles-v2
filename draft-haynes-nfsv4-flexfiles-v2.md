@@ -8349,47 +8349,49 @@ Deterministic contention resolution for concurrent writers:
    is expected to re-read and retry"); {{sec-system-model-progress}}
    documents the progress guarantee this rule underwrites.
 
-    - **At CHUNK_WRITE** (per data server, arrival-order): the
-      data server accepts the first CHUNK_WRITE whose
-      chunk_guard4 CAS check succeeds against the chunk's
-      current chunk_guard4 value.  Later writers whose CAS
-      fails receive NFS4ERR_CHUNK_GUARDED for that chunk.
-      Because arrival order can differ between data servers,
-      different subsets of the mirror set MAY initially
-      accept different clients' writes for different chunks;
-      that is transient divergence, resolved by the
-      client-driven rollback below.
+   At CHUNK_WRITE (per data server, arrival-order):
 
-    - **At NFS4ERR_CHUNK_GUARDED** (client-driven rollback and
-      retry): a client that observes NFS4ERR_CHUNK_GUARDED
-      on any chunk of an in-flight transaction MUST treat the
-      entire transaction as lost.  It MUST issue
-      CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}) against every
-      data server that accepted a CHUNK_WRITE under this
-      transaction's cohort pair, so that the data server can
-      release the PENDING state and revert cg_gen_id to the
-      value it held before the losing writer's CAS
-      succeeded.  The client then re-reads the chunks with
-      CHUNK_READ, applies its intended change to the
-      as-observed data, chooses a fresh cwa_cohort_id, and
-      re-issues CHUNK_WRITE with cwa_guard.cwg_check = TRUE
-      supplying the refreshed prior chunk_guard4.
+   : the data server accepts the first CHUNK_WRITE whose
+     chunk_guard4 CAS check succeeds against the chunk's
+     current chunk_guard4 value.  Later writers whose CAS
+     fails receive NFS4ERR_CHUNK_GUARDED for that chunk.
+     Because arrival order can differ between data servers,
+     different subsets of the mirror set MAY initially accept
+     different clients' writes for different chunks; that is
+     transient divergence, resolved by the client-driven
+     rollback below.
 
-    - **At CHUNK_FINALIZE** (single winner already
-      established): by the time the mirror set converges,
-      only one writer's cohort remains as the PENDING state
-      for each affected chunk (all others have rolled
-      back).  CHUNK_FINALIZE against that PENDING state
-      succeeds; there is no tiebreaker comparison against
-      the caller's co_client_id at FINALIZE.  A caller that
-      attempts CHUNK_FINALIZE against a chunk whose current
-      PENDING state carries a cohort pair not matching the
-      caller's transaction MUST receive
-      NFS4ERR_CHUNK_GUARDED and MUST proceed with the
-      rollback-and-retry flow above.  A caller whose own
-      PENDING state was overwritten by a different writer
-      SHOULD also receive NFS4ERR_CHUNK_GUARDED (the caller
-      no longer has a PENDING chunk to finalize).
+   At NFS4ERR_CHUNK_GUARDED (client-driven rollback and retry):
+
+   : a client that observes NFS4ERR_CHUNK_GUARDED on any
+     chunk of an in-flight transaction MUST treat the entire
+     transaction as lost.  It MUST issue CHUNK_ROLLBACK
+     ({{sec-CHUNK_ROLLBACK}}) against every data server that
+     accepted a CHUNK_WRITE under this transaction's cohort
+     pair, so that the data server can release the PENDING
+     state and revert cg_gen_id to the value it held before
+     the losing writer's CAS succeeded.  The client then
+     re-reads the chunks with CHUNK_READ, applies its intended
+     change to the as-observed data, chooses a fresh
+     cwa_cohort_id, and re-issues CHUNK_WRITE with
+     cwa_guard.cwg_check = TRUE supplying the refreshed prior
+     chunk_guard4.
+
+   At CHUNK_FINALIZE (single winner already established):
+
+   : by the time the mirror set converges, only one writer's
+     cohort remains as the PENDING state for each affected
+     chunk (all others have rolled back).  CHUNK_FINALIZE
+     against that PENDING state succeeds; there is no
+     tiebreaker comparison against the caller's co_client_id
+     at FINALIZE.  A caller that attempts CHUNK_FINALIZE
+     against a chunk whose current PENDING state carries a
+     cohort pair not matching the caller's transaction MUST
+     receive NFS4ERR_CHUNK_GUARDED and MUST proceed with the
+     rollback-and-retry flow above.  A caller whose own
+     PENDING state was overwritten by a different writer
+     SHOULD also receive NFS4ERR_CHUNK_GUARDED (the caller no
+     longer has a PENDING chunk to finalize).
 
    A client that has rolled back and retried but continues
    to observe NFS4ERR_CHUNK_GUARDED without forward
@@ -10102,30 +10104,32 @@ chrr_predecessors:
    ({{sec-system-model-retention-scope}}); the entry's
    discriminant is exactly one of:
 
-   - **RETAINED_GENERATION_DISPOSITION_ABSENT**: the
-     data server holds no retained predecessor at
-     that index (either the current chrr_chunks
-     generation is the only one, or the chunk is
-     EMPTY).  The arm carries no owner triple.
-   - **RETAINED_GENERATION_DISPOSITION_PRESENT**: the
-     data server retains an immediate predecessor
-     whose owner triple is carried in the restorable
-     arm and whose payload is in the AVAILABLE
-     read-time state
+   RETAINED_GENERATION_DISPOSITION_ABSENT:
+
+   : the data server holds no retained predecessor at that
+     index (either the current chrr_chunks generation is the
+     only one, or the chunk is EMPTY).  The arm carries no
+     owner triple.
+
+   RETAINED_GENERATION_DISPOSITION_PRESENT:
+
+   : the data server retains an immediate predecessor whose
+     owner triple is carried in the restorable arm and whose
+     payload is in the AVAILABLE read-time state
      ({{sec-system-model-read-time-status}}).  A
-     CHUNK_ROLLBACK naming this owner triple
-     satisfies "Rollback of COMMITTED Chunks" case
-     (a) ({{sec-CHUNK_ROLLBACK}}).
-   - **RETAINED_GENERATION_DISPOSITION_ERRORED**: the
-     data server retains the immediate predecessor's
-     owner triple (in the errored arm) but its
-     payload is in the ERRORED read-time state and
-     cannot be restored by CHUNK_ROLLBACK.  A
-     CHUNK_ROLLBACK naming this owner triple MUST
-     return NFS4ERR_NO_PREDECESSOR
-     ({{sec-NFS4ERR_NO_PREDECESSOR}}); the client
-     falls back to best-effort reconstruction via
-     CHUNK_WRITE_REPAIR
+     CHUNK_ROLLBACK naming this owner triple satisfies
+     "Rollback of COMMITTED Chunks" case (a)
+     ({{sec-CHUNK_ROLLBACK}}).
+
+   RETAINED_GENERATION_DISPOSITION_ERRORED:
+
+   : the data server retains the immediate predecessor's
+     owner triple (in the errored arm) but its payload is in
+     the ERRORED read-time state and cannot be restored by
+     CHUNK_ROLLBACK.  A CHUNK_ROLLBACK naming this owner
+     triple MUST return NFS4ERR_NO_PREDECESSOR
+     ({{sec-NFS4ERR_NO_PREDECESSOR}}); the client falls back
+     to best-effort reconstruction via CHUNK_WRITE_REPAIR
      ({{sec-CHUNK_WRITE_REPAIR}}) with an
      authoritative source of its own choosing.
      The owner triple is disclosed so a caller can
@@ -10220,27 +10224,31 @@ Predecessor-guided rollback discovery:
    COMMITTED chunk inspects the corresponding
    chrr_predecessors entry to decide whether
    CHUNK_ROLLBACK will succeed:
-   - **PRESENT**: name the disclosed owner triple
-     in the cra_chunks entry of the subsequent
-     CHUNK_ROLLBACK.  "Rollback of COMMITTED
-     Chunks" case (a) will succeed subject to the
+   PRESENT:
+
+   : name the disclosed owner triple in the cra_chunks entry
+     of the subsequent CHUNK_ROLLBACK.  "Rollback of
+     COMMITTED Chunks" case (a) will succeed subject to the
      composed rollback guarantee's continuous-custody
-     condition
-     ({{sec-composed-rollback}}).
-   - **ERRORED**: do NOT issue CHUNK_ROLLBACK
-     against the disclosed owner triple.  The
-     data server MUST return NFS4ERR_NO_PREDECESSOR
-     for that owner; use CHUNK_WRITE_REPAIR
-     ({{sec-CHUNK_WRITE_REPAIR}}) directly with a
-     reconstructed authoritative source.
-     The disclosed owner triple lets the caller
-     coordinate reconstruction from other sources.
-   - **ABSENT**: no restorable predecessor exists.
-     Skip CHUNK_ROLLBACK; use CHUNK_WRITE_REPAIR
-     ({{sec-CHUNK_WRITE_REPAIR}}) if reconstruction
-     is possible, or defer to a guaranteed-pinning
-     mechanism when the caller requires the
-     original owner triple be preserved.
+     condition ({{sec-composed-rollback}}).
+
+   ERRORED:
+
+   : do NOT issue CHUNK_ROLLBACK against the disclosed owner
+     triple.  The data server MUST return
+     NFS4ERR_NO_PREDECESSOR for that owner; use
+     CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) directly
+     with a reconstructed authoritative source.  The
+     disclosed owner triple lets the caller coordinate
+     reconstruction from other sources.
+
+   ABSENT:
+
+   : no restorable predecessor exists.  Skip CHUNK_ROLLBACK;
+     use CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) if
+     reconstruction is possible, or defer to a
+     guaranteed-pinning mechanism when the caller requires
+     the original owner triple be preserved.
    As with the atomicity check, a subsequent
    lifecycle event MAY change a chunk's disposition
    between the CHUNK_HEADER_READ response and the
@@ -13426,16 +13434,20 @@ Per-range dispositions (the callback is otherwise well-formed and evaluated per 
 : ccrr_range_status carries exactly one nfsstat4 per
   entry in ccra_ranges, co-indexed.  The top-level
   ccrr_status in this case is one of:
-    - **NFS4_OK**: every range reached CHUNK_REPAIRED
-      or CHUNK_UNLOCK per the completion contract;
-      every ccrr_range_status entry is NFS4_OK.
-    - **NFS4ERR_PARTIAL** ({{sec-NFS4ERR_PARTIAL}}): at
-      least one range did not reach the completion
-      state.  The metadata server MUST consume the
-      ccrr_range_status array to determine per-range
-      outcome; the array is authoritative.  An
-      NFS4ERR_PARTIAL response with an empty array
-      is malformed and MUST be rejected.
+
+  NFS4_OK:
+
+  : every range reached CHUNK_REPAIRED or CHUNK_UNLOCK per
+    the completion contract; every ccrr_range_status entry
+    is NFS4_OK.
+
+  NFS4ERR_PARTIAL ({{sec-NFS4ERR_PARTIAL}}):
+
+  : at least one range did not reach the completion state.
+    The metadata server MUST consume the ccrr_range_status
+    array to determine per-range outcome; the array is
+    authoritative.  An NFS4ERR_PARTIAL response with an
+    empty array is malformed and MUST be rejected.
 
 The precedence rule between top-level and per-range
 status is that a non-empty ccrr_range_status pairs
