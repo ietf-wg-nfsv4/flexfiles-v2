@@ -3715,7 +3715,7 @@ client MUST wait for the metadata server to complete resilvering
 and re-issue LAYOUTGET rather than attempt to route the I/O
 through the metadata server.
 
-## Erasure Coding
+## Client-Side Erasure Coding
 
 Erasure coding takes a data block and transforms it to a payload
 to send to the data servers (see {{fig-encoding-data-block}}).  It
