@@ -2540,9 +2540,9 @@ mirror entries have FFV2_DS_FLAGS_PROXY set on their
 ffv2_data_server4; the client directs I/O for that mirror
 to the proxy, which translates on behalf of the client.  The
 proxy server protocol itself is specified in the proxy server
-draft; this document defines only the layout-flag surface
-(this bit) that lets the metadata server mark a data-server
-entry as proxy-mediated.
+draft; this document defines only the layout flag (this bit)
+that lets the metadata server mark a data-server entry as
+proxy-mediated.
 
 ## ffv2_data_server4
 
@@ -3033,8 +3033,8 @@ Because the encoding type registry is expected to grow over time
 (new erasure encoding types are added, older ones fall out of favour,
 vendors register private codes; see {{iana-considerations}}),
 neither clients nor metadata servers are required to implement
-every registered encoding.  The protocol uses ffv2_layouthint4 as
-the negotiation surface:
+every registered encoding.  The protocol negotiates encoding
+capabilities via ffv2_layouthint4:
 
 Client-side advertisement:
 :  A client that wishes to influence encoding selection SHOULD
@@ -3101,13 +3101,13 @@ Fallback when no overlap exists:
        FFV2_DS_FLAGS_PROXY and a coding_type the client does
        support (typically FFV2_ENCODING_MIRRORED for a minimal
        NFSv4.2 client, or FFV2_ENCODING_PASSTHROUGH / a flat
-       NFSv3 surface for an NFSv3 client).  The proxy encodes
+       NFSv3 view for an NFSv3 client).  The proxy encodes
        and decodes on the fly
        against the real data servers.  This preserves parallel I/O
        for the encoding-ignorant client that the metadata-server I/O
        fallback loses.  The proxy registration, directive, and
        credential-forwarding rules are defined in the proxy server
-       draft; this draft defines only the layout-flag surface
+       draft; this draft defines only the layout flag
        (FFV2_DS_FLAGS_PROXY in
        {{sec-ffv2_ds_flags4}}) that makes the proxy visible to
        the client.
@@ -3130,7 +3130,7 @@ Runtime encoding change:
 
 This mechanism deliberately avoids a separate capability-bit
 handshake at EXCHANGE_ID.  ffv2_layouthint4 already provides
-per-request negotiation surface; adding a session-level
+per-request negotiation; adding a session-level
 capability set would duplicate it and would complicate encoding
 upgrades without additional value, because a client that
 genuinely upgrades its encoding set at runtime can simply update
@@ -4646,7 +4646,7 @@ Cross-encoding recovery:
   (an encoding implementation bug, a memory-corruption pattern
   that affects parity shards identically), a second mirror in
   a different encoding provides an independent recovery
-  surface.
+  path.
 
 Client-capability routing:
 
@@ -4745,8 +4745,8 @@ proxy server as a single endpoint, and the proxy server selects
 which of the file's
 mirrors to read from or write to on the client's behalf.  The
 two-mirror view in this section describes the metadata server's
-bookkeeping during the transition; the client's I/O surface is
-one endpoint.
+bookkeeping during the transition; the client directs its I/O
+to a single endpoint.
 
 ### Steady-state heterogeneous mirrors {#sec-steady-state-heterogeneous}
 
@@ -5824,7 +5824,7 @@ CHUNK_ROLLBACK, CHUNK_LOCK / CHUNK_UNLOCK, CHUNK_READ,
 CHUNK_REPAIRED, CHUNK_ERROR, CHUNK_HEADER_READ,
 CHUNK_WRITE_REPAIR) together with the per-chunk state machine
 ({{sec-system-model-chunk-state}}) and the chunk_guard4 CAS
-({{sec-chunk_guard4}}) are the entire surface a peer observes.
+({{sec-chunk_guard4}}) are everything a peer observes.
 The data server's internal representation of persistent state is
 not exposed on the wire, and two data-server implementations
 that satisfy the same wire semantics MAY differ arbitrarily in
@@ -5911,9 +5911,9 @@ what the protocol can guarantee.
 A protocol that exchanges file data as byte ranges with no
 envelope -- whether described as "block I/O" or as "generic
 data movement" -- is not interoperable with this specification's
-CHUNK operations.  The CHUNK operations are not a byte range
-I/O surface with optional integrity bolted on; they are a
-chunk-protocol surface in which the envelope is the primitive.
+CHUNK operations.  The CHUNK operations are not a byte-range
+I/O protocol with optional integrity bolted on; they are a
+chunk protocol in which the envelope is the primitive.
 
 ##  Actors and Roles {#sec-system-model-roles}
 
@@ -9038,7 +9038,7 @@ grants, guard generation, and lock escrow.  A client that issues
 CHUNK operations outside an active layout is operating outside
 this specification; the data server's behaviour in that case is
 undefined.  See {{sec-system-model-chunk-not-block}} for the
-distinction between the CHUNK operation surface and a generic block I/O
+distinction between the CHUNK operations and a generic block I/O
 interface.
 
    | Operation              | Number | Target Server     | Description |
@@ -12447,8 +12447,9 @@ trust table for a tightly coupled deployment.
 REVOKE_STATEID has no analog in {{RFC8881}}.  RFC 8881
 revokes pNFS layouts via LAYOUTRETURN with a special
 all-files marker or via implicit lease expiry;
-REVOKE_STATEID is the new metadata-server-to-data-server surface that lets the
-metadata server force per-client invalidation at the data
+REVOKE_STATEID is the new metadata-server-to-data-server operation
+that lets the metadata server force per-client invalidation at the
+data
 server without waiting for tsa_expire and without
 unsetting other clients' trust entries.
 
@@ -13377,7 +13378,7 @@ control-plane pinning ({{sec-CHUNK_ESCROW_INSTALL}} /
 {{sec-chunk_guard_mds}}) -- that together deliver a
 CONDITIONAL rollback guarantee.  This section states the
 guarantee scope precisely and specifies the client-side
-decision tree over the composed error surface.
+decision tree over the composed error set.
 
 ##  Guarantee Scope {#sec-composed-rollback-scope}
 
@@ -13452,7 +13453,7 @@ storage substrate.
 
 ##  Client-Side Error Decision Tree {#sec-composed-rollback-tree}
 
-A client operating over the composed error surface
+A client operating over the composed error set
 distinguishes control-plane failures (which the
 metadata server must resolve) from data-plane
 failures (which the client can address via
@@ -13818,10 +13819,10 @@ respect to its own chunks, in a restricted sense.  The data
 server validates the checksum against the bytes the client
 provided, so an authenticated client that chooses to send
 semantically-invalid bytes with a correctly computed checksum will
-have those bytes accepted.  The residual surface differs per
+have those bytes accepted.  The residual risk differs per
 authentication model:
 
--  Under AUTH_SYS with loose coupling, the residual surface is
+-  Under AUTH_SYS with loose coupling, the residual risk is
    essentially the pre-existing attack surface of NFSv3 writes:
    any host that can reach the data server with a valid uid can
    write nonsense to chunks that uid owns.  This is the Flex
@@ -13829,12 +13830,12 @@ authentication model:
    without modification for this path.
 
 -  Under RPCSEC_GSS or TLS with mutual authentication, the
-   residual surface reduces to: only the authenticated client
+   residual risk reduces to: only the authenticated client
    can write nonsense into chunks it owns.  Cross-client
    corruption is prevented because the data server verifies the
-   principal before accepting the write.  The remaining attack
-   surface is the client's own integrity: any deployment that
-   relies on data integrity above the wire MUST apply
+   principal before accepting the write.  The remaining
+   exposure is at the client's own integrity: any deployment
+   that relies on data integrity above the wire MUST apply
    application-level content validation.
 
 Flexible file v2 layout does not attempt to defend against this
@@ -14208,7 +14209,7 @@ Compromised control session:
 :  An attacker who controls the metadata-server-to-data-server
    control session can register or revoke
    arbitrary trust entries.  The control session is the
-   most security-sensitive surface introduced by tight
+   most security-sensitive element introduced by tight
    coupling.  Deployment MUST protect it with RPCSEC_GSS
    ({{RFC7861}}) using a service principal both sides
    trust, or with RPC-over-TLS ({{RFC9289}}) using
@@ -15189,7 +15190,7 @@ of the same data.  This was rejected because:
 
 If a future revision determines that layout-level generation is
 needed, it can be added as a protocol extension: the on-wire
-surface is additive rather than a replacement, because
+change is additive rather than a replacement, because
 cg_gen_id's semantics are independent of any outer layout
 epoch.
 
