@@ -9519,8 +9519,7 @@ ccr_status:
    per-chunk failures are reported in ccr_status rather
    than by failing the whole operation.  The top-level
    status returns a non-OK code only when the request
-   could not be evaluated at all (for example,
-   NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).
+   could not be evaluated at all.
 
 Like CHUNK_READ ({{sec-CHUNK_READ}}) and CHUNK_WRITE
 ({{sec-CHUNK_WRITE}}), CHUNK_COMMIT carries an explicit
@@ -9973,8 +9972,7 @@ cfr_status:
    entry; per-chunk failures are reported in cfr_status
    rather than by failing the whole operation.  The
    top-level status returns a non-OK code only when the
-   request could not be evaluated at all (for example,
-   NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).
+   request could not be evaluated at all.
 
 CHUNK_FINALIZE serves as the CRC validation checkpoint for
 the chunk lifecycle.  The data server SHOULD have validated
@@ -12134,7 +12132,7 @@ and reports the outcome per block in cwr_block_status (see
    block.  Per-block failures are reported in cwr_block_status,
    not by failing the whole operation.  The data server returns
    a top-level error only if it could not evaluate the request
-   at all (for example, NFS4ERR_BADXDR, NFS4ERR_SERVERFAULT).
+   at all.
 
 This is the "continue and report" discipline.  It is
 intentionally not all-or-none: atomicity is already per-chunk
