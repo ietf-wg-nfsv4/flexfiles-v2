@@ -10349,42 +10349,41 @@ Read-side atomicity check:
    CHUNK_READ.
 
 Predecessor-guided rollback discovery:
-:  A caller preparing a CHUNK_ROLLBACK against a
-   COMMITTED chunk inspects the corresponding
-   chrr_predecessors entry to decide whether
-   CHUNK_ROLLBACK will succeed:
-   PRESENT:
 
-   : name the disclosed owner triple in the cra_chunks entry
-     of the subsequent CHUNK_ROLLBACK.  "Rollback of
-     COMMITTED Chunks" case (a) will succeed subject to the
-     composed rollback guarantee's continuous-custody
-     condition ({{sec-composed-rollback}}).
+: A caller preparing a CHUNK_ROLLBACK against a COMMITTED
+  chunk inspects the corresponding chrr_predecessors entry
+  to decide whether CHUNK_ROLLBACK will succeed.
 
-   ERRORED:
+  PRESENT:
 
-   : do NOT issue CHUNK_ROLLBACK against the disclosed owner
-     triple.  The data server MUST return
-     NFS4ERR_NO_PREDECESSOR for that owner; use
-     CHUNK_WRITE_REPAIR directly
-     with a reconstructed authoritative source.  The
-     disclosed owner triple lets the caller coordinate
-     reconstruction from other sources.
+  : name the disclosed owner triple in the cra_chunks entry
+    of the subsequent CHUNK_ROLLBACK.  "Rollback of
+    COMMITTED Chunks" case (a) will succeed subject to the
+    composed rollback guarantee's continuous-custody
+    condition ({{sec-composed-rollback}}).
 
-   ABSENT:
+  ERRORED:
 
-   : no restorable predecessor exists.  Skip CHUNK_ROLLBACK;
-     use CHUNK_WRITE_REPAIR if
-     reconstruction is possible, or defer to a
-     guaranteed-pinning mechanism when the caller requires
-     the original owner triple be preserved.
-   As with the atomicity check, a subsequent
-   lifecycle event MAY change a chunk's disposition
-   between the CHUNK_HEADER_READ response and the
-   CHUNK_ROLLBACK (a PRESENT observation MAY
-   become ABSENT if the retention scope releases
-   the predecessor and the caller does not hold a
-   qualifying lock or escrow).
+  : do NOT issue CHUNK_ROLLBACK against the disclosed owner
+    triple.  The data server MUST return
+    NFS4ERR_NO_PREDECESSOR for that owner; use
+    CHUNK_WRITE_REPAIR directly with a reconstructed
+    authoritative source.  The disclosed owner triple lets
+    the caller coordinate reconstruction from other sources.
+
+  ABSENT:
+
+  : no restorable predecessor exists.  Skip CHUNK_ROLLBACK;
+    use CHUNK_WRITE_REPAIR if reconstruction is possible, or
+    defer to a guaranteed-pinning mechanism when the caller
+    requires the original owner triple be preserved.
+
+  As with the atomicity check, a subsequent lifecycle event
+  MAY change a chunk's disposition between the
+  CHUNK_HEADER_READ response and the CHUNK_ROLLBACK (a
+  PRESENT observation MAY become ABSENT if the retention
+  scope releases the predecessor and the caller does not
+  hold a qualifying lock or escrow).
 
 Lock probe before write:
 :  A client MAY issue CHUNK_HEADER_READ and inspect the
