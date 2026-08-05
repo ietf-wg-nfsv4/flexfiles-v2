@@ -13071,10 +13071,43 @@ lifecycle is not provably complete
 
 ### RESPONSE CODES
 
-NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
-NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP,
-NFS4ERR_PERM, NFS4ERR_SERVERFAULT,
-NFS4ERR_STALE_MDS_EPOCH.
+NFS4_OK:
+:  the metadata-server escrow lock has been installed
+   over the requested range with the specified escrow_id4.
+
+NFS4ERR_ACCESS:
+:  the metadata server is not authorized to install
+   escrows on this file.
+
+NFS4ERR_BADXDR:
+:  arguments could not be decoded.
+
+NFS4ERR_CHUNK_LOCKED:
+:  a chunk in [ceia_offset, ceia_offset + ceia_count)
+   carries an incompatible existing lock; the install
+   is all-or-nothing across the range.
+
+NFS4ERR_INVAL:
+:  ceia_offset or ceia_count is malformed, or
+   ceia_escrow_id is the reserved all-zeros value.
+
+NFS4ERR_NOTSUPP:
+:  the data server does not implement
+   CHUNK_ESCROW_INSTALL.
+
+NFS4ERR_PERM:
+:  the request arrived on a session whose owning
+   client did not present EXCHGID4_FLAG_USE_PNFS_MDS
+   (see {{sec-tight-coupling-control-session}}).
+
+NFS4ERR_SERVERFAULT:
+:  the data server failed while processing the
+   request.
+
+NFS4ERR_STALE_MDS_EPOCH:
+:  ceia_mds_epoch does not match the data server's
+   recorded value, or the current epoch's
+   epoch_expires_at has passed.
 
 ## Operation 93: CHUNK_ESCROW_RELEASE - Release a metadata-server escrow lock {#sec-CHUNK_ESCROW_RELEASE}
 
@@ -13146,10 +13179,45 @@ removing durable escrow-tuple bookkeeping."
 
 ### RESPONSE CODES
 
-NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
-NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM,
-NFS4ERR_SERVERFAULT, NFS4ERR_STALE_ESCROW,
-NFS4ERR_STALE_MDS_EPOCH.
+NFS4_OK:
+:  the metadata-server escrow lock matching
+   cera_escrow_id has been released.
+
+NFS4ERR_ACCESS:
+:  the metadata server is not authorized to release
+   escrows on this file.
+
+NFS4ERR_BADXDR:
+:  arguments could not be decoded.
+
+NFS4ERR_INVAL:
+:  cera_offset or cera_count is malformed.
+
+NFS4ERR_NOTSUPP:
+:  the data server does not implement
+   CHUNK_ESCROW_RELEASE.
+
+NFS4ERR_PERM:
+:  the request arrived on a session whose owning
+   client did not present EXCHGID4_FLAG_USE_PNFS_MDS
+   (see {{sec-tight-coupling-control-session}}).
+
+NFS4ERR_SERVERFAULT:
+:  the data server failed while processing the
+   request.
+
+NFS4ERR_STALE_ESCROW:
+:  no escrow covers the requested range, or the
+   covering escrow's identity differs from
+   cera_escrow_id (which may indicate the escrow
+   was consumed by CHUNK_LOCK adoption); the data
+   server MUST NOT alter any current lock or
+   escrow state as a side effect.
+
+NFS4ERR_STALE_MDS_EPOCH:
+:  cera_mds_epoch does not match the data server's
+   recorded value, or the current epoch's
+   epoch_expires_at has passed.
 
 ## Operation 94: CHUNK_ESCROW_ENUMERATE - Enumerate metadata-server escrow locks on a file {#sec-CHUNK_ESCROW_ENUMERATE}
 
@@ -13253,9 +13321,44 @@ NFS4ERR_STALE_MDS_EPOCH.
 
 ### RESPONSE CODES
 
-NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
-NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM,
-NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH.
+NFS4_OK:
+:  the requested escrow enumeration entries have
+   been returned; ceer_eof indicates whether more
+   remain.
+
+NFS4ERR_ACCESS:
+:  the metadata server is not authorized to
+   enumerate escrows on this file.
+
+NFS4ERR_BADXDR:
+:  arguments could not be decoded, or ceea_cookie
+   is malformed.
+
+NFS4ERR_INVAL:
+:  ceea_offset, ceea_count, or ceea_maxcount is
+   malformed, or ceea_cookie references a snapshot
+   the data server no longer holds.
+
+NFS4ERR_NOTSUPP:
+:  the data server does not implement
+   CHUNK_ESCROW_ENUMERATE.  See the
+   ceea_maxcount = 0 op-family capability probe in
+   the description for the distinction from
+   NFS4ERR_OP_ILLEGAL at COMPOUND decode time.
+
+NFS4ERR_PERM:
+:  the request arrived on a session whose owning
+   client did not present EXCHGID4_FLAG_USE_PNFS_MDS
+   (see {{sec-tight-coupling-control-session}}).
+
+NFS4ERR_SERVERFAULT:
+:  the data server failed while processing the
+   request.
+
+NFS4ERR_STALE_MDS_EPOCH:
+:  ceea_mds_epoch does not match the data server's
+   recorded value, or the current epoch's
+   epoch_expires_at has passed.
 
 ## Operation 95: CHUNK_ESCROW_TAKEOVER - Advance metadata-server epoch after incarnation change {#sec-CHUNK_ESCROW_TAKEOVER}
 
@@ -13364,9 +13467,51 @@ epochs installed.
 
 ### RESPONSE CODES
 
-NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR,
-NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM,
-NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH.
+NFS4_OK:
+:  the metadata server epoch has been advanced to
+   ceta_new_epoch, or refreshed under the renewal
+   form.
+
+NFS4ERR_ACCESS:
+:  presenter authorization or incarnation-lease
+   proof verification failed.  Per
+   {{sec-proof-profile}}, this outcome is returned
+   both for authorization failure and for proof
+   failure so that unauthenticated callers learn
+   nothing about supported profiles or current
+   epoch state.
+
+NFS4ERR_BADXDR:
+:  arguments could not be decoded, or ceta_proof_data
+   is structurally malformed.
+
+NFS4ERR_INVAL:
+:  ceta_expected_prior_epoch or ceta_new_epoch is
+   malformed (for example, ceta_new_epoch precedes
+   ceta_expected_prior_epoch and does not equal it
+   under the renewal form).
+
+NFS4ERR_NOTSUPP:
+:  the data server does not implement
+   CHUNK_ESCROW_TAKEOVER, or the presented
+   ceta_proof_profile is unknown to the data
+   server.
+
+NFS4ERR_PERM:
+:  the request arrived on a session whose owning
+   client did not present EXCHGID4_FLAG_USE_PNFS_MDS
+   (see {{sec-tight-coupling-control-session}}).
+
+NFS4ERR_SERVERFAULT:
+:  the data server failed while processing the
+   request.
+
+NFS4ERR_STALE_MDS_EPOCH:
+:  ceta_expected_prior_epoch does not match the
+   data server's recorded value; a concurrent
+   TAKEOVER has already advanced past it, or the
+   caller has been fenced by a superseding
+   takeover.
 
 # New NFSv4.2 Callback Operations
 
