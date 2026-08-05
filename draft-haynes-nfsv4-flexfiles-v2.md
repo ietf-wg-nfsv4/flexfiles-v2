@@ -2951,7 +2951,7 @@ ffv2lh_supported_types
 with the most preferred type first.  The server SHOULD select a type
 from this list but MAY choose any type it supports.  If the server
 does not support any of the listed types, it returns
-NFS4ERR_CODING_NOT_SUPPORTED, and the client can retry
+NFS4ERR_ENCODING_NOT_SUPPORTED, and the client can retry
 with a different list to discover the overlapping set.
 
 ffv2lh_preferred_protection
@@ -3054,7 +3054,7 @@ Metadata-server selection at file creation:
    specific encoding (for example, per-export objectives); in that
    case the server issues a layout with the policy-dictated
    encoding and the client MUST either honor it or fail its I/O
-   with NFS4ERR_CODING_NOT_SUPPORTED.
+   with NFS4ERR_ENCODING_NOT_SUPPORTED.
 
 Metadata-server selection for an existing file:
 :  When the LAYOUTGET is against a file that already has
@@ -3075,7 +3075,7 @@ Metadata-server selection for an existing file:
      the layout normally.
    - If it is not, the metadata server takes one of the
      fallback actions enumerated in "Fallback when no overlap
-     exists" below (return NFS4ERR_CODING_NOT_SUPPORTED,
+     exists" below (return NFS4ERR_ENCODING_NOT_SUPPORTED,
      route I/O through the metadata server, or route through
      a translating proxy server).
 
@@ -3083,7 +3083,7 @@ Fallback when no overlap exists:
 :  If the server's policy cannot be satisfied by any encoding the
    client supports, the metadata server has three options:
 
-   1.  Return NFS4ERR_CODING_NOT_SUPPORTED on the LAYOUTGET.
+   1.  Return NFS4ERR_ENCODING_NOT_SUPPORTED on the LAYOUTGET.
        The client MAY retry with a different (possibly empty)
        ffv2lh_supported_types list to learn the server's encoding
        repertoire through the errors returned.
@@ -3125,7 +3125,7 @@ Runtime encoding change:
    retires an older encoding), the metadata server MUST recall the
    affected layouts via CB_LAYOUTRECALL and may re-issue new
    layouts with the new encoding.  Clients that do not support the
-   new encoding LAYOUTRETURN with NFS4ERR_CODING_NOT_SUPPORTED,
+   new encoding LAYOUTRETURN with NFS4ERR_ENCODING_NOT_SUPPORTED,
    and the server either grants a layout using a mutually-supported encoding or the client falls back to I/O via the
    metadata server.
 
@@ -4297,7 +4297,7 @@ Deadline honored:
 :  The client MUST drive every range to
    its final flat state before ccra_deadline, or MUST respond
    to the CB_CHUNK_REPAIR with NFS4ERR_DELAY (requesting an
-   extension), NFS4ERR_CODING_NOT_SUPPORTED (declining), or
+   extension), NFS4ERR_ENCODING_NOT_SUPPORTED (declining), or
    NFS4ERR_PAYLOAD_LOST (declaring the data unrecoverable).
    A deadline that elapses without any of these leaves the
    metadata server free to re-select; the client MUST NOT
@@ -4306,7 +4306,7 @@ Deadline honored:
    chunk lock state.
 
 Terminal return codes:
-:  NFS4ERR_CODING_NOT_SUPPORTED
+:  NFS4ERR_ENCODING_NOT_SUPPORTED
    MUST mean "decline; select another client."
    NFS4ERR_PAYLOAD_LOST MUST mean "the data is not
    recoverable; do not retry."  The metadata server relies on
@@ -7803,7 +7803,7 @@ Mixed:
    ///
    /// /* Erasure Coding error constants; added to nfsstat4 enum */
    ///
-   /// const NFS4ERR_CODING_NOT_SUPPORTED         = 10097;
+   /// const NFS4ERR_ENCODING_NOT_SUPPORTED         = 10097;
    /// const NFS4ERR_PAYLOAD_NOT_ATOMIC           = 10098;
    /// const NFS4ERR_CHUNK_LOCKED                 = 10099;
    /// const NFS4ERR_CHUNK_GUARDED                = 10100;
@@ -7824,7 +7824,7 @@ The new error codes are shown in {{fig-errors-xdr}}.
 
  | Error                          | Number | Description   |
  |---
- | NFS4ERR_CODING_NOT_SUPPORTED   | 10097  | {{sec-NFS4ERR_CODING_NOT_SUPPORTED}} |
+ | NFS4ERR_ENCODING_NOT_SUPPORTED   | 10097  | {{sec-NFS4ERR_ENCODING_NOT_SUPPORTED}} |
  | NFS4ERR_PAYLOAD_NOT_ATOMIC | 10098  | {{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}} |
  | NFS4ERR_CHUNK_LOCKED | 10099  | {{sec-NFS4ERR_CHUNK_LOCKED}} |
  | NFS4ERR_CHUNK_GUARDED | 10100  | {{sec-NFS4ERR_CHUNK_GUARDED}} |
@@ -7837,7 +7837,7 @@ The new error codes are shown in {{fig-errors-xdr}}.
  | NFS4ERR_PARTIAL | 10107 | {{sec-NFS4ERR_PARTIAL}} |
 {: #tbl-protocol-errors title="Error Definitions"}
 
-### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
+### NFS4ERR_ENCODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_ENCODING_NOT_SUPPORTED}
 
 The client requested a ffv2_encoding_type4 which the metadata server
 does not support.  I.e., if the client sends a layout_hint requesting
@@ -8200,7 +8200,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
 
  | Callback Operation| Errors                                       |
  | ---
- | CB_CHUNK_REPAIR | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DEADSESSION, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_ISDIR, NFS4ERR_LOCKED, NFS4ERR_NOTSUPP, NFS4ERR_OLD_STATEID, NFS4ERR_PARTIAL, NFS4ERR_PAYLOAD_LOST, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CB_CHUNK_REPAIR | NFS4_OK, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DEADSESSION, NFS4ERR_DELAY, NFS4ERR_ENCODING_NOT_SUPPORTED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_ISDIR, NFS4ERR_LOCKED, NFS4ERR_NOTSUPP, NFS4ERR_OLD_STATEID, NFS4ERR_PARTIAL, NFS4ERR_PAYLOAD_LOST, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
 {: #tbl-cb-ops-and-errors title="Callback Operations and Their Valid Errors"}
 
 ## Errors and the Operations That Use Them
@@ -8211,7 +8211,7 @@ are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
 
  | Error                            | Operations                  |
  | ---
- | NFS4ERR_CODING_NOT_SUPPORTED     | CB_CHUNK_REPAIR, LAYOUTGET  |
+ | NFS4ERR_ENCODING_NOT_SUPPORTED     | CB_CHUNK_REPAIR, LAYOUTGET  |
  | NFS4ERR_PAYLOAD_NOT_ATOMIC       | CHUNK_READ                  |
  | NFS4ERR_CHUNK_LOCKED             | CHUNK_LOCK, CHUNK_WRITE, CHUNK_ESCROW_INSTALL |
  | NFS4ERR_CHUNK_GUARDED            | CHUNK_WRITE                 |
@@ -13783,7 +13783,7 @@ CB_CHUNK_REPAIR with a later ccra_deadline, or MAY re-select
 another client.  The client continues to hold any locks it has
 adopted until the original or extended deadline.
 
-NFS4ERR_CODING_NOT_SUPPORTED:
+NFS4ERR_ENCODING_NOT_SUPPORTED:
 :  The client does not implement the encoding type of the layout
 and cannot reconstruct.  The metadata server MUST NOT retry with
 the same client and SHOULD select a different client.
@@ -13804,7 +13804,7 @@ outcome; NFS4ERR_PARTIAL is not a whole-callback retriable
 error and MUST NOT be treated as one.  The array is
 authoritative: each ccrr_range_status entry maps directly to
 the co-indexed entry in ccra_ranges and is evaluated on its
-own terms (NFS4_OK, NFS4ERR_DELAY, NFS4ERR_CODING_NOT_SUPPORTED,
+own terms (NFS4_OK, NFS4ERR_DELAY, NFS4ERR_ENCODING_NOT_SUPPORTED,
 NFS4ERR_PAYLOAD_LOST, or another per-range disposition) per
 the result contract above.  An NFS4ERR_PARTIAL response with an
 empty ccrr_range_status array is malformed and the metadata
@@ -14771,7 +14771,7 @@ The upper 16 bits of the 32-bit value space (0x00010000 through
 0xFFFFFFFF) are reserved for future range extensions.  A receiver
 that observes an `ffv2_encoding_type4` value in the reserved
 region MUST treat it as an unsupported encoding type
-(NFS4ERR_CODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
+(NFS4ERR_ENCODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
 uninitialised-field sentinel and MUST NOT be allocated to an
 encoding.
 
@@ -14804,7 +14804,7 @@ type name SHOULD include an organizational identifier (e.g.,
 `FFV2_ENCODING_ACME_FOOBAR`).  A client that encounters a
 value in this range from an unrecognized server SHOULD treat
 it as an unsupported encoding type
-(`NFS4ERR_CODING_NOT_SUPPORTED`).
+(`NFS4ERR_ENCODING_NOT_SUPPORTED`).
 
 This partitioning prevents contention for small numbers in the
 Standards Track range and provides a clear signal to clients about
