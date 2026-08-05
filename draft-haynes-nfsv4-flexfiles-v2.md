@@ -5990,11 +5990,6 @@ chunk_guard4 CAS, lock continuity across revocation, and the
 integrity checks).  The choice is a data-server implementation
 concern and is transparent to clients and the metadata server.
 
-Each file is owned by exactly one metadata server at any given
-instant.  Ownership transfer between metadata servers (for
-example, during metadata server failover) is implementation-defined and out
-of scope for this document; see {{sec-system-model-consensus}}.
-
 ##  Failure Model {#sec-system-model-failures}
 
 The protocol assumes:
