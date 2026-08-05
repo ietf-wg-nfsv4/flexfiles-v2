@@ -1546,7 +1546,7 @@ others reject, the metadata server MAY return a layout covering
 only the accepting storage devices, provided the accepting subset
 still meets the minimum servable coverage for the file's
 encoding: at least one replica for FFV2_ENCODING_PASSTHROUGH or
-FFV2_ENCODING_MIRRORED, or at least k of the k+m storage
+FFV2_ENCODING_REPLICATED, or at least k of the k+m storage
 devices for an erasure-coded encoding at (k, m) parameters.
 If it does not, the metadata server MUST NOT return a partial
 layout and instead returns NFS4ERR_LAYOUTTRYLATER as in the
@@ -2132,7 +2132,7 @@ this otherwise opaque value, ffv2_layout4.
    ///     FFV2_ENCODING_MOJETTE_SYSTEMATIC      = 2,
    ///     FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC  = 3,
    ///     FFV2_ENCODING_RS_VANDERMONDE          = 4,
-   ///     FFV2_ENCODING_MIRRORED                = 5,
+   ///     FFV2_ENCODING_REPLICATED                = 5,
    ///     FFV2_ENCODING_XOR_PARITY              = 6,
    ///     FFV2_ENCODING_LINUX_MD_RAID           = 7
    /// };
@@ -2244,7 +2244,7 @@ those sections is:
 | 2     | FFV2_ENCODING_MOJETTE_SYSTEMATIC     | Discrete Radon projections, systematic (data shards passed through) | {{sec-mojette-encoding}}       |
 | 3     | FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC | Discrete Radon projections, non-systematic (all shards transformed) | {{sec-mojette-encoding}}       |
 | 4     | FFV2_ENCODING_RS_VANDERMONDE         | Reed-Solomon Vandermonde over GF(2^8); arbitrary (k, m)  | {{sec-rs-encoding}}            |
-| 5     | FFV2_ENCODING_MIRRORED               | Chunked replication; N-way redundancy at N x storage      | {{sec-encoding-mirrored}}      |
+| 5     | FFV2_ENCODING_REPLICATED               | Chunked replication; N-way redundancy at N x storage      | {{sec-encoding-replicated}}      |
 | 6     | FFV2_ENCODING_XOR_PARITY             | Single-parity RAID-5 shape; k+1, m=1, pure XOR            | {{sec-encoding-xor-parity}}    |
 | 7     | FFV2_ENCODING_LINUX_MD_RAID          | Linux md/raid6 P+Q double-parity; k+2, m=2, GF(2^8)       | {{sec-encoding-linux-md-raid}} |
 {: #tbl-encoding-type-sections title="Encoding type value to section mapping"}
@@ -2634,7 +2634,7 @@ The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
    ///         (ffv2_encoding_type4 fctd_coding) {
    ///     case FFV2_ENCODING_PASSTHROUGH:
    ///         ffv2_data_protection4   fctd_protection;
-   ///     case FFV2_ENCODING_MIRRORED:
+   ///     case FFV2_ENCODING_REPLICATED:
    ///         ffv2_data_protection4   fctd_protection;
    ///     default:
    ///         ffv2_data_protection4   fctd_protection;
@@ -2664,7 +2664,7 @@ The (data, parity) tuple is interpreted per encoding type:
    stored; the fdp_parity additional copies are the flexible file v1 layout
    mirror replicas.
 
--  FFV2_ENCODING_MIRRORED uses the N+0 notation: fdp_data is
+-  FFV2_ENCODING_REPLICATED uses the N+0 notation: fdp_data is
    the number of replicas (e.g., fdp_data=3 for 3-way
    mirroring) and fdp_parity MUST be 0.  Every replica is a
    full, independent data carrier; mirroring carries no
@@ -2693,7 +2693,7 @@ The (data, parity) tuple is interpreted per encoding type:
 
 Each stripe contains a set of data servers in ffv2s_data_servers.
 If the stripe is part of a ffv2_coding_type_data4 of
-FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then the
+FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_REPLICATED, then the
 length of ffv2s_data_servers MUST be 1: under both encoding
 types each stripe's data lives on a single data server, with
 replica multiplicity expressed in ffv2l_mirrors rather than in
@@ -2853,7 +2853,7 @@ The ffv2m_stripes is the array of stripes for the mirror; the
 length of the array is the stripe count.  If there is no
 striping or the ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
 then the length of ffv2m_stripes MUST be 1.  Under
-FFV2_ENCODING_MIRRORED the file MAY be striped within each
+FFV2_ENCODING_REPLICATED the file MAY be striped within each
 replica; the constraint that ffv2s_data_servers length is 1
 still applies, but ffv2m_stripes can carry multiple stripes.
 
@@ -2911,14 +2911,14 @@ The time is in seconds.
 {: #fig-parallel-filesystem title="The Relationship between Metadata Server and Data Servers"}
 
 As shown in {{fig-parallel-filesystem}} if the ffv2m_coding_type_data
-is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_MIRRORED, then each
+is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_REPLICATED, then each
 of the stripes MUST only have 1 storage device.  I.e., the length
 of ffv2s_data_servers MUST be 1.  The erasure-coding encoding types
 distribute shards across multiple storage devices and so carry
 multiple entries in ffv2s_data_servers.
 
 The abstraction here is that for FFV2_ENCODING_PASSTHROUGH and
-FFV2_ENCODING_MIRRORED, each stripe describes exactly one data
+FFV2_ENCODING_REPLICATED, each stripe describes exactly one data
 server.  And for the erasure-coded encoding types, each of the
 stripes describes a set of data servers to which the shards are
 distributed.  Further, the payload length can be different per
@@ -3000,7 +3000,7 @@ to grow to 16 GiB would send:
 
 ~~~
 ffv2lh_supported_types = { FFV2_ENCODING_PASSTHROUGH,
-                         FFV2_ENCODING_MIRRORED,
+                         FFV2_ENCODING_REPLICATED,
                          FFV2_ENCODING_MOJETTE_SYSTEMATIC,
                          FFV2_ENCODING_RS_VANDERMONDE }
 ffv2lh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
@@ -3011,7 +3011,7 @@ ffv2lh_expected_file_size   = 17179869184
 A server with a policy of RS 4+2 for this directory would ignore
 both encoding hints and return a layout with
 FFV2_ENCODING_RS_VANDERMONDE and (fdp_data=4, fdp_parity=2).  A
-server without erasure coding might return FFV2_ENCODING_MIRRORED
+server without erasure coding might return FFV2_ENCODING_REPLICATED
 with (fdp_data=3, fdp_parity=0) for 3-way mirroring with
 per-chunk integrity, or FFV2_ENCODING_PASSTHROUGH with
 (fdp_data=1, fdp_parity=2) for 3-way flexible file v1 layout-compatible
@@ -3099,7 +3099,7 @@ Fallback when no overlap exists:
        the client does support.  The metadata server issues a layout with
        the proxy's data-server entry carrying
        FFV2_DS_FLAGS_PROXY and a coding_type the client does
-       support (typically FFV2_ENCODING_MIRRORED for a minimal
+       support (typically FFV2_ENCODING_REPLICATED for a minimal
        NFSv4.2 client, or FFV2_ENCODING_PASSTHROUGH / a flat
        NFSv3 view for an NFSv3 client).  The proxy encodes
        and decodes on the fly
@@ -3465,7 +3465,7 @@ meaningful only if a proxy server is available to translate).
 
 ## Retry policy for mirrored and PASSTHROUGH encodings {#sec-io-error-retry-mirrored}
 
-For a mirror using FFV2_ENCODING_MIRRORED or
+For a mirror using FFV2_ENCODING_REPLICATED or
 FFV2_ENCODING_PASSTHROUGH, the storage device holds the file's
 bytes directly (no chunk envelope, no encoding transform), and
 an ordinary NFS READ or WRITE on the metadata server accesses
@@ -3537,7 +3537,7 @@ lets each mirror carry its own encoding
 (ffv2m_coding_type_data), its own striping pattern
 (ffv2m_striping and ffv2m_stripes), and its own set of data
 servers.  A single layout MAY combine dissimilar mirrors -- for
-example, one FFV2_ENCODING_MIRRORED mirror and one
+example, one FFV2_ENCODING_REPLICATED mirror and one
 FFV2_ENCODING_RS_VANDERMONDE mirror of the same file contents,
 as sketched in {{fig-parallel-filesystem}} -- and there is no
 cross-mirror constraint that striping patterns or encoding
@@ -3708,7 +3708,7 @@ request with an NFS4ERR_LAYOUTUNAVAILABLE.
 The client's fallback while the layout is withheld follows the
 per-encoding rules in
 {{sec-io-error-retry-mirrored}} and {{sec-io-error-retry-chunked}}:
-for a mirror whose I/O reduces to FFV2_ENCODING_MIRRORED or
+for a mirror whose I/O reduces to FFV2_ENCODING_REPLICATED or
 FFV2_ENCODING_PASSTHROUGH the client MAY perform the I/O through
 the metadata server as an ordinary NFSv4.1+ READ or WRITE; for a
 mirror using any chunked encoding the metadata server itself
@@ -4850,20 +4850,20 @@ PASSTHROUGH does NOT provide:
 PASSTHROUGH is RECOMMENDED for the assimilation, migration, and
 heterogeneous-mirror use cases described in
 {{sec-heterogeneous-mirrors}}.  New deployments that do not
-need a flexible file v1 layout on-ramp SHOULD use FFV2_ENCODING_MIRRORED for
+need a flexible file v1 layout on-ramp SHOULD use FFV2_ENCODING_REPLICATED for
 the integrity guarantees described in
-{{sec-encoding-mirrored}}.
+{{sec-encoding-replicated}}.
 
-## FFV2_ENCODING_MIRRORED {#sec-encoding-mirrored}
+## FFV2_ENCODING_REPLICATED {#sec-encoding-replicated}
 
-FFV2_ENCODING_MIRRORED is the chunked-with-integrity peer of
+FFV2_ENCODING_REPLICATED is the chunked-with-integrity peer of
 PASSTHROUGH.  The chunk produced for each replica is the
 application data verbatim -- no transform, no parity shards --
 but it travels on the wire and is stored on the data server
 through CHUNK_WRITE / CHUNK_READ and so carries every integrity
 property the encoded encoding types carry.
 
-What FFV2_ENCODING_MIRRORED keeps from the mirror model:
+What FFV2_ENCODING_REPLICATED keeps from the mirror model:
 
 -  Zero encoding compute at the client.  Each replica's chunk is
    the input bytes; there is no transform to apply on write and
@@ -4874,7 +4874,7 @@ What FFV2_ENCODING_MIRRORED keeps from the mirror model:
 -  Reading any one intact replica is sufficient.  If a replica
    fails to verify (see below), the client tries another.
 
-What FFV2_ENCODING_MIRRORED adds beyond PASSTHROUGH, by virtue
+What FFV2_ENCODING_REPLICATED adds beyond PASSTHROUGH, by virtue
 of using CHUNK_WRITE and CHUNK_READ:
 
 -  Per-chunk checksum on write and on read.  The CRC is computed
@@ -4900,7 +4900,7 @@ of using CHUNK_WRITE and CHUNK_READ:
    chunk wins and the other writer observes a deterministic
    loss instead of an unresolved split-mirror.
 
-What FFV2_ENCODING_MIRRORED is for: files where the deployment
+What FFV2_ENCODING_REPLICATED is for: files where the deployment
 wants integrity and replication without the storage savings or
 the reconstruction story of erasure coding.  Small files that
 do not exceed a single stripe, files whose access pattern is
@@ -4911,7 +4911,7 @@ file."  The coding choice is per-file; a deployment can mix
 mirrored and erasure-coded files in the same namespace and
 pick whichever fits each file's profile.
 
-What FFV2_ENCODING_MIRRORED is not: a substitute for erasure
+What FFV2_ENCODING_REPLICATED is not: a substitute for erasure
 coding when storage efficiency or multi-replica fault tolerance
 matters.  An N-way mirror tolerates up to N-1 replica losses
 but costs N x the payload; a (k, m) erasure coding tolerates m
@@ -5042,7 +5042,7 @@ is bit-for-bit compatible with Linux kernel `lib/raid6`
 The k=1 case (a single data shard with P and Q) is degenerate
 and MUST NOT be used with FFV2_ENCODING_LINUX_MD_RAID.  Callers
 who need triple-mirror semantics MUST use
-FFV2_ENCODING_MIRRORED with N=3 instead.
+FFV2_ENCODING_REPLICATED with N=3 instead.
 
 ### LINUX_MD_RAID Galois Field Arithmetic
 
@@ -7010,7 +7010,7 @@ issue SETATTR(FATTR4_SIZE) to the metadata-server filehandle
 (see {{sec-setattr-on-data-file}}).  The metadata server
 translates the logical truncate into per-shard size changes
 across the data servers in each mirror.  For
-FFV2_ENCODING_MIRRORED, per-shard size equals the logical
+FFV2_ENCODING_REPLICATED, per-shard size equals the logical
 truncate size; for erasure-coded encodings the per-shard sizes
 are derived from the geometry parameters below.
 
@@ -7077,9 +7077,10 @@ encoding types defined in this document -- i.e., every
 FFV2_ENCODING_* value except FFV2_ENCODING_PASSTHROUGH (see
 {{sec-encoding-passthrough}}) -- client operations use the
 CHUNK operations rather than READ / WRITE / COMMIT.  This
-includes FFV2_ENCODING_MIRRORED despite its name: the "mirrored"
-refers to the encoding's verbatim payload replication, not to
-the wire dispatch (see {{tbl-ops-allowed}} legend).
+includes FFV2_ENCODING_REPLICATED, whose per-shard payload is
+the input bytes verbatim but is dispatched via the CHUNK
+operations to carry the per-chunk checksum and guard
+({{tbl-ops-allowed}} legend).
 
 Required for all chunked clients:
 
@@ -7240,12 +7241,11 @@ use the CHUNK operations.  Every other standards-track encoding
 see {{tbl-coding-types}}) is (chunked): it uses CHUNK_WRITE
 ({{sec-CHUNK_WRITE}}) and CHUNK_READ ({{sec-CHUNK_READ}}) and
 MUST NOT use the RFC 8881 READ / WRITE / COMMIT operations
-against the data server.  FFV2_ENCODING_MIRRORED is (chunked)
-despite its name -- the "mirrored" refers to the encoding's
-verbatim replication of the payload, not to the wire dispatch;
-it uses the CHUNK operations for the per-chunk checksum this
-version of the layout type relies on for end-to-end integrity
-({{sec-encoding-mirrored}}).
+against the data server.  FFV2_ENCODING_REPLICATED replicates
+the payload verbatim across N shards but dispatches via the
+CHUNK operations so each shard carries the per-chunk checksum
+this version of the layout type relies on for end-to-end
+integrity ({{sec-encoding-replicated}}).
 
 
 #  Flexible File Version 2 Layout Type Return {#sec-layouthint}
@@ -14469,7 +14469,7 @@ what level of interoperability to expect.
 
 This document defines seven encoding types: the flexible file v1 layout-compatible
 PASSTHROUGH (see {{sec-encoding-passthrough}}), the chunked
-MIRRORED (see {{sec-encoding-mirrored}}), and five chunked
+MIRRORED (see {{sec-encoding-replicated}}), and five chunked
 erasure encoding types (see {{tbl-coding-types}}).
 
  | Encoding Type Name | Value | RFC      | How | Minor Versions    |
@@ -14478,7 +14478,7 @@ erasure encoding types (see {{tbl-coding-types}}).
  | FFV2_ENCODING_MOJETTE_SYSTEMATIC     | 2     | RFCTBD10 | L   | 2        |
  | FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC | 3     | RFCTBD10 | L   | 2        |
  | FFV2_ENCODING_RS_VANDERMONDE         | 4     | RFCTBD10 | L   | 2        |
- | FFV2_ENCODING_MIRRORED               | 5     | RFCTBD10 | L   | 2        |
+ | FFV2_ENCODING_REPLICATED               | 5     | RFCTBD10 | L   | 2        |
  | FFV2_ENCODING_XOR_PARITY             | 6     | RFCTBD10 | L   | 2        |
  | FFV2_ENCODING_LINUX_MD_RAID          | 7     | RFCTBD10 | L   | 2        |
 {: #tbl-coding-types title="Flexible File Version 2 Layout Type Encoding Type Assignments"}
@@ -14760,7 +14760,7 @@ Coverage:
   FINALIZED / COMMITTED) is implemented using write-temp /
   fdatasync / rename for crash safety.
 
-- Encoders for FFV2_ENCODING_MIRRORED, FFV2_ENCODING_PASSTHROUGH,
+- Encoders for FFV2_ENCODING_REPLICATED, FFV2_ENCODING_PASSTHROUGH,
   FFV2_ENCODING_XOR_PARITY, FFV2_ENCODING_LINUX_MD_RAID,
   FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
   and FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC are all implemented
@@ -14825,7 +14825,7 @@ Coverage:
   CHUNK_COMMIT), and DENSE per-shard offset canonicalization
   are implemented.
 
-- Encoders for FFV2_ENCODING_MIRRORED, FFV2_ENCODING_XOR_PARITY,
+- Encoders for FFV2_ENCODING_REPLICATED, FFV2_ENCODING_XOR_PARITY,
   FFV2_ENCODING_LINUX_MD_RAID, and FFV2_ENCODING_RS_VANDERMONDE
   are present.  FFV2_ENCODING_MOJETTE_SYSTEMATIC is scaffolded
   (returns -EOPNOTSUPP; native kernel implementation deferred).
