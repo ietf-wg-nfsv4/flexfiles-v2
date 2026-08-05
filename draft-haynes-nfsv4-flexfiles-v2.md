@@ -2030,10 +2030,10 @@ generic pNFS client layers but is interpreted by the flexible file
 layout type implementation.  This section defines the structure of
 this otherwise opaque value, ffv2_layout4.
 
-## ffv2_coding_type4
+## ffv2_encoding_type4
 
 ~~~ xdr
-   /// enum ffv2_coding_type4 {
+   /// enum ffv2_encoding_type4 {
    ///     FFV2_ENCODING_PASSTHROUGH             = 1,
    ///     FFV2_ENCODING_MOJETTE_SYSTEMATIC      = 2,
    ///     FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC  = 3,
@@ -2043,12 +2043,12 @@ this otherwise opaque value, ffv2_layout4.
    ///     FFV2_ENCODING_LINUX_MD_RAID           = 7
    /// };
 ~~~
-{: #fig-ffv2_coding_type4 title="The coding type"}
+{: #fig-ffv2_encoding_type4 title="The encoding type"}
 
-The ffv2_coding_type4 (see {{fig-ffv2_coding_type4}}) encompasses
+The ffv2_encoding_type4 (see {{fig-ffv2_encoding_type4}}) encompasses
 a new IANA registry for 'Flexible File Version 2 Layout Type Erasure Coding
 Type Registry'.  I.e., instead of defining a new Layout Type for
-each erasure coding, we define a new Erasure Coding Type.  The
+each erasure coding, we define a new Erasure Encoding Type.  The
 encoding types this document defines fall into two groups:
 
 -  FFV2_ENCODING_PASSTHROUGH is the non-chunked, non-integrity
@@ -2075,7 +2075,7 @@ encoding types this document defines fall into two groups:
    for the mathematical constructions and wire-compatibility
    relationships among the GF(2^8) family.
 
-The 32-bit ffv2_coding_type4 value space is partitioned by
+The 32-bit ffv2_encoding_type4 value space is partitioned by
 intended scope -- Standards Track, Experimental, Vendor (open),
 and Private / proprietary -- with different allocation policies
 per range, so that vendors can assign encoding values without
@@ -2407,7 +2407,7 @@ the data protection geometry as a pair of counts: the number of data
 shards (fdp_data, also known as k) and the number of parity or
 redundancy shards (fdp_parity, also known as m).  This structure is
 used in both layout hints and layout responses, and applies
-uniformly to all coding types:
+uniformly to all encoding types:
 
 | Protection Mode | fdp_data | fdp_parity | Total Data Servers | Description |
 |---
@@ -2419,7 +2419,7 @@ uniformly to all coding types:
 
 By expressing all protection modes as (fdp_data, fdp_parity) pairs,
 a single structure serves mirroring, striping, and all erasure
-coding types.  The coding type ({{fig-ffv2_coding_type4}}) determines
+encoding types.  The encoding type ({{fig-ffv2_encoding_type4}}) determines
 how the shards are encoded; the protection structure determines
 how many shards there are.
 
@@ -2431,7 +2431,7 @@ The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
 
 ~~~ xdr
    /// union ffv2_coding_type_data4 switch
-   ///         (ffv2_coding_type4 fctd_coding) {
+   ///         (ffv2_encoding_type4 fctd_coding) {
    ///     case FFV2_ENCODING_PASSTHROUGH:
    ///         ffv2_data_protection4   fctd_protection;
    ///     case FFV2_ENCODING_MIRRORED:
@@ -2443,9 +2443,9 @@ The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
 {: #fig-ffv2_coding_type_data4 title="The ffv2_coding_type_data4" }
 
 The ffv2_coding_type_data4 (in {{fig-ffv2_coding_type_data4}}) describes
-the data protection geometry for the layout.  All coding types carry an
+the data protection geometry for the layout.  All encoding types carry an
 ffv2_data_protection4 ({{fig-ffv2_data_protection4}}) specifying the
-number of data and parity shards.  The coding type enum determines how
+number of data and parity shards.  The encoding type enum determines how
 the shards are encoded; the protection structure determines how many
 shards there are.
 
@@ -2470,7 +2470,7 @@ The (data, parity) tuple is interpreted per encoding type:
    full, independent data carrier; mirroring carries no
    parity reconstruction.
 
--  Erasure coding types (FFV2_ENCODING_RS_VANDERMONDE,
+-  Erasure encoding types (FFV2_ENCODING_RS_VANDERMONDE,
    FFV2_ENCODING_MOJETTE_SYSTEMATIC,
    FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, and any future types
    subsequently registered in the IANA registry established by
@@ -2676,7 +2676,7 @@ stripe.
 
 ~~~ xdr
    /// struct ffv2_layouthint4 {
-   ///     ffv2_coding_type4       ffv2lh_supported_types<>;
+   ///     ffv2_encoding_type4       ffv2lh_supported_types<>;
    ///     ffv2_data_protection4   ffv2lh_preferred_protection;
    ///     uint32_t                ffv2lh_stripe_unit;
    ///     uint64_t                ffv2lh_expected_file_size;
@@ -2694,7 +2694,7 @@ them per administrative policy.
 
 ffv2lh_supported_types
 
-:  An ordered list of coding types the client supports,
+:  An ordered list of encoding types the client supports,
 with the most preferred type first.  The server SHOULD select a type
 from this list but MAY choose any type it supports.  If the server
 does not support any of the listed types, it returns
@@ -2777,8 +2777,8 @@ exactly the friction the hint exists to remove.
 
 ### Encoding Negotiation {#sec-encoding-negotiation}
 
-Because the coding-type registry is expected to grow over time
-(new erasure coding types are added, older ones fall out of favour,
+Because the encoding type registry is expected to grow over time
+(new erasure encoding types are added, older ones fall out of favour,
 vendors register private codes; see {{iana-considerations}}),
 neither clients nor metadata servers are required to implement
 every registered encoding.  The protocol uses ffv2_layouthint4 as
@@ -3380,13 +3380,13 @@ ensured for both parts.
 
 While the data block might have a length of 4kB, that does not
 necessarily mean that the length of the chunk is 4kB.  That length
-is determined by the erasure coding type algorithm.  For example,
+is determined by the erasure encoding type algorithm.  For example,
 Reed Solomon might have 4kB chunks with the data integrity being
 compromised by parity chunks.  Another example would be the Mojette
 Transformation, which might have 1kB chunk lengths.
 
 The payload contains redundancy which will allow the erasure
-coding type algorithm to repair chunks in the payload as it is
+encoding type algorithm to repair chunks in the payload as it is
 transformed back to a data block (see {{fig-decoding-db}}).
 
 The protocol provides two levels of payload integrity, consumed at
@@ -3627,7 +3627,7 @@ decode them into data blocks as shown in {{fig-decoding-db}}.
 At this time, the client could detect issues in the integrity of
 the data.  The handling and repair are out of the scope of this
 document and MUST be addressed in the document describing each
-erasure coding type.
+erasure encoding type.
 
 #### Worked Example: Checking the CRC32 {#sec-checking-crc32}
 
@@ -4145,7 +4145,7 @@ history of concurrent access.
 
 The client reads chunks from the data file via CHUNK_READ.  The
 number of chunks in the payload that need to be atomic depend
-on both the Erasure Coding Type and the level of protection selected.
+on both the Erasure Encoding Type and the level of protection selected.
 If the client has enough atomic chunks in the payload, then it
 can proceed to use them to build a data block.  If it does not have
 enough atomic chunks in the payload, then it can either decide
@@ -4192,11 +4192,11 @@ implementations will surface NFS4ERR_PAYLOAD_LOST on any failure
 that exceeds per-range repair's reach, including the multi-data-server failure scenarios the Proxy Server mechanism is intended to
 handle.
 
-## Mixing of Coding Types
+## Mixing of Encoding Types
 
-Multiple coding types can be present in a Flexible File Version 2
+Multiple encoding types can be present in a Flexible File Version 2
 Layout Type layout.  The ffv2_layout4 has an array of ffv2_mirror4,
-each of which has a ffv2_coding_type4.  Mixing coding types in a
+each of which has a ffv2_encoding_type4.  Mixing encoding types in a
 single file's mirror set addresses several use cases:
 
 - Assimilation of a non-erasure-coded file into an erasure-coded
@@ -4280,15 +4280,15 @@ All three patterns coexist during the transition.
  |     ffv2m_coding: FFV2_ENCODING_RS_VANDERMONDE      |
  +-----------------------------------------------------+
 ~~~
-{: #fig-example_mixing title="Example of Mixed Coding Types in a Layout" }
+{: #fig-example_mixing title="Example of Mixed Encoding Types in a Layout" }
 
-When performing I/O via a FFV2_ENCODING_PASSTHROUGH coding type,
+When performing I/O via a FFV2_ENCODING_PASSTHROUGH encoding type,
 the non-transformed data will be used; whereas with the chunked
-coding types (FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_*,
+encoding types (FFV2_ENCODING_MIRRORED, FFV2_ENCODING_MOJETTE_*,
 FFV2_ENCODING_RS_VANDERMONDE), a metadata header and transformed
 block will be sent.  Further, when reading data from the
 instance files, the client MUST be prepared to have one of the
-coding types supply data and the other type not to supply data.
+encoding types supply data and the other type not to supply data.
 I.e., the CHUNK_READ call to the data servers in mirror 1 might
 return rlr_eof set to true (see {{fig-read_chunk4}}), which
 indicates that there is no data, where the READ call to the
@@ -4339,7 +4339,7 @@ A 250-TB file cannot fit in any single pool.  Striping the
 file across all three pools is forced by capacity arithmetic:
 250 > 100.  And because each pool's data servers can only
 respond to the chunk operations of its own encoding, the layout
-for this file MUST name a different `ffv2_coding_type4` per
+for this file MUST name a different `ffv2_encoding_type4` per
 mirror covering each stripe segment.  The heterogeneity is
 not a transition window; it is the permanent structural
 consequence of striping across heterogeneous capability pools.
@@ -4358,7 +4358,7 @@ elements are required to express it.
 The transient case (one file moving between encodings) and the
 steady-state case (one file permanently striped across
 heterogeneous pools) share a single wire primitive: an
-`ffv2l_mirrors` array that admits mixed `ffv2_coding_type4`
+`ffv2l_mirrors` array that admits mixed `ffv2_encoding_type4`
 values.  Removing that primitive would foreclose both cases
 and would force one of three workarounds: (a) split the
 250-TB file into three independently-named files (loses
@@ -4419,7 +4419,7 @@ PASSTHROUGH.  The chunk produced for each replica is the
 application data verbatim -- no transform, no parity shards --
 but it travels on the wire and is stored on the data server
 through CHUNK_WRITE / CHUNK_READ and so carries every integrity
-property the encoded coding types carry.
+property the encoded encoding types carry.
 
 What FFV2_ENCODING_MIRRORED keeps from the mirror model:
 
@@ -4451,7 +4451,7 @@ of using CHUNK_WRITE and CHUNK_READ:
    resilvering is required.
 -  Per-chunk concurrent-writer disambiguation.  Mirrored
    writes carry the same chunk_guard4 ({{sec-chunk_guard4}})
-   the erasure coding types do.  Two clients racing to write
+   the erasure encoding types do.  Two clients racing to write
    the same offset of the same file fan out to every replica
    with a guard pair (generation, owning-client short-id) per
    chunk; the CHUNK_FINALIZE step resolves which writer's
@@ -5504,7 +5504,7 @@ Data server:
    per-chunk guard CAS (chunk_guard4), the per-chunk lock state
    (including the metadata-server escrow owner), and the chunk state machine
    (EMPTY / PENDING / FINALIZED / COMMITTED).  Has no
-   coordinator role.  Has no knowledge of the erasure coding type
+   coordinator role.  Has no knowledge of the erasure encoding type
    in use for any file: the erasure transform is performed
    entirely at the client, and the data server stores the
    resulting chunks without interpreting their contents.
@@ -6560,7 +6560,7 @@ The client MUST NOT send:
 ### Chunked Data Files
 
 For a mirror whose ffv2m_coding_type_data is any of the chunked
-coding types defined in this document -- i.e., every
+encoding types defined in this document -- i.e., every
 FFV2_ENCODING_* value except FFV2_ENCODING_PASSTHROUGH (see
 {{sec-encoding-passthrough}}) -- client operations use the
 CHUNK operations rather than READ / WRITE / COMMIT.  This
@@ -7041,7 +7041,7 @@ by the ffv2_layouthint4 type (see {{sec-ffv2-layouthint}}).
 The ff_layouthint4 is retained for backwards compatibility with
 flexible file v1 layouts.  For flexible file v2 layouts, clients
 SHOULD use ffv2_layouthint4 ({{fig-ffv2_layouthint4}}) instead,
-which provides coding type selection and data protection geometry
+which provides encoding type selection and data protection geometry
 hints via ffv2_data_protection4 ({{fig-ffv2_data_protection4}}).
 
 #  Recalling a Layout
@@ -7203,12 +7203,12 @@ The new error codes are shown in {{fig-errors-xdr}}.
 
 ### NFS4ERR_CODING_NOT_SUPPORTED (Error Code 10097) {#sec-NFS4ERR_CODING_NOT_SUPPORTED}
 
-The client requested a ffv2_coding_type4 which the metadata server
+The client requested a ffv2_encoding_type4 which the metadata server
 does not support.  I.e., if the client sends a layout_hint requesting
-an erasure coding type that the metadata server does not support,
+an erasure encoding type that the metadata server does not support,
 this error code can be returned.  The client might have to send the
 layout_hint several times to determine the overlapping set of
-supported erasure coding types.
+supported erasure encoding types.
 
 ### NFS4ERR_PAYLOAD_NOT_ATOMIC (Error Code 10098) {#sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}
 
@@ -7587,7 +7587,7 @@ be used in combination with all of the pNFS flags.
 If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
 EXCHANGE_ID operation, then it MUST support all of the operations
 in {{tbl-protocol-ops}}.  Further, this support is orthogonal to the
-Erasure Coding Type selected.  The data server is unaware of which type
+Erasure Encoding Type selected.  The data server is unaware of which type
 is driving the I/O.
 
 # New NFSv4.2 Attributes
@@ -13838,7 +13838,7 @@ assignment.
 {: #tbl_exchgid_flags title="EXCHGID4 Flag Assignments"}
 
 This document introduces the 'Flexible File Version 2 Layout Type
-Erasure Coding Type Registry'.  The registry uses a 32-bit value
+Erasure Encoding Type Registry'.  The registry uses a 32-bit value
 space partitioned into ranges based on the intended scope of the
 encoding type (see {{tbl-coding-ranges}}).
 
@@ -13851,37 +13851,37 @@ encoding type (see {{tbl-coding-ranges}}).
  | 0x8000-0xFFFE         | Private/proprietary | No registration required |
  | 0xFFFF                | Reserved | -- |
  | 0x00010000-0xFFFFFFFF | Reserved (upper range) | Reserved for future partition |
-{: #tbl-coding-ranges title="Erasure Coding Type Value Ranges (32-bit space)"}
+{: #tbl-coding-ranges title="Erasure Encoding Type Value Ranges (32-bit space)"}
 
 The upper 16 bits of the 32-bit value space (0x00010000 through
 0xFFFFFFFF) are reserved for future range extensions.  A receiver
-that observes an `ffv2_coding_type4` value in the reserved
+that observes an `ffv2_encoding_type4` value in the reserved
 region MUST treat it as an unsupported encoding type
 (NFS4ERR_CODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
 uninitialised-field sentinel and MUST NOT be allocated to an
 encoding.
 
 Standards Track (0x0000-0x00FF):
-:  Encoding types intended for broad interoperability.  The
+:  Enencoding types intended for broad interoperability.  The
 specification MUST include a complete mathematical description
 sufficient for independent interoperable implementations (see
 {{encoding-type-interoperability}}).  Allocated by IETF Review.
 
 Experimental (0x0100-0x0FFF):
-:  Encoding types under development or evaluation.  An Internet-Draft
+:  Enencoding types under development or evaluation.  An Internet-Draft
 is sufficient for allocation.  The specification SHOULD include
 enough detail for interoperability testing.  Allocated by Expert
 Review.
 
 Vendor (open) (0x1000-0x7FFF):
-:  Encoding types with a published specification or patent reference.
+:  Enencoding types with a published specification or patent reference.
 Interoperability is expected among implementations that license or
 implement the specification.  The registration MUST include either a
 math specification or a patent reference.  Allocated First Come
 First Served.
 
 Private/proprietary (0x8000-0xFFFE):
-:  Encoding types for use within a single vendor's ecosystem.
+:  Enencoding types for use within a single vendor's ecosystem.
 No IANA registration is required.  Interoperability with other
 implementations is not expected; accidental codepoint collisions
 between independent vendors are possible and are managed
@@ -13899,7 +13899,7 @@ what level of interoperability to expect.
 This document defines seven encoding types: the flexible file v1 layout-compatible
 PASSTHROUGH (see {{sec-encoding-passthrough}}), the chunked
 MIRRORED (see {{sec-encoding-mirrored}}), and five chunked
-erasure coding types (see {{tbl-coding-types}}).
+erasure encoding types (see {{tbl-coding-types}}).
 
  | Encoding Type Name | Value | RFC      | How | Minor Versions    |
  | ---
@@ -14554,7 +14554,7 @@ peeled the 16-byte prefix off and acted on it.
 
 This was rejected because:
 
--  It embedded a specific erasure coding type (Mojette) into the
+-  It embedded a specific erasure encoding type (Mojette) into the
    generic replication-method framework, preventing alternate
    codings from reusing the same wire format.
 
@@ -14850,7 +14850,7 @@ A proxy server is a peer of the metadata server and the data servers that:
 -  speaks the encoding on behalf of clients that cannot;
 -  receives whole-stripe operations from an encoding-ignorant client;
 -  encodes (or decodes) using whatever the layout's
-    {{fig-ffv2_coding_type4}} demands;
+    {{fig-ffv2_encoding_type4}} demands;
 -  drives the CHUNK operations to the participating data servers;
 -  carries the partial-write / FINALIZE / COMMIT recovery machinery
     that the encoding requires.
@@ -14863,7 +14863,7 @@ Three properties follow:
     the encoding is upgraded.
 
 -  Encoding evolution is a server-side concern.  Adding a new entry
-    to {{fig-ffv2_coding_type4}} requires updating the proxy servers and data servers,
+    to {{fig-ffv2_encoding_type4}} requires updating the proxy servers and data servers,
     not every client in the deployment.  This matches the operational
     pattern of every other distributed-storage protocol on the wire.
 
