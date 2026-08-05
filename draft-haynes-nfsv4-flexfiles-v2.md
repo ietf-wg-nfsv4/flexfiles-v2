@@ -693,11 +693,16 @@ an example.
 proxy server:
 
 :  a peer of the metadata server, defined in
-{{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, that admits client
-I/O on the metadata server's behalf -- either as a translator for
-clients that cannot speak the file's native encoding, or as a
-proxy-mediated data path during whole-file move and repair
-operations.  A proxy server may additional roles.
+{{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} (hereafter "the
+proxy server draft"), that admits client I/O on the metadata
+server's behalf -- either as a translator for clients that
+cannot speak the file's native encoding, or as a proxy-mediated
+data path during whole-file move and repair operations.  A
+proxy server may have additional roles.  This document cites
+the proxy server draft only when referencing a specific rule
+or section within it; other mentions of "proxy server" or "the
+proxy server draft" in this document refer to the same reference
+without repeating the citation.
 
 recalling a layout:
 
@@ -1367,13 +1372,13 @@ refer to the trusted stateid variant defined here.
 
 The receiver of these operations is any server the metadata
 server delegates client-I/O admission to.  In this document that
-is the storage device (data server).  The same mechanism applies to a
-proxy server {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} -- a proxy server may or may not additionally act as a data server, but in
-either role it needs the metadata server to register a layout
-stateid before it can admit client I/O.  Where this section
-says "storage device," read it as "storage device, or proxy
-server {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}"; the flag
-check and the three operations are identical for both roles.
+is the storage device (data server).  The same mechanism applies to
+a proxy server -- a proxy server may or may not additionally act
+as a data server, but in either role it needs the metadata server
+to register a layout stateid before it can admit client I/O.
+Where this section says "storage device," read it as "storage
+device, or proxy server"; the flag check and the three operations
+are identical for both roles.
 
 ###  Capability Discovery {#sec-tight-coupling-probe}
 
@@ -1611,10 +1616,9 @@ This is the expected setting for AUTH_SYS and TLS clients:
 
 When a client's I/O is routed through a proxy server -- that
 is, the layout the metadata server returns to the client has
-FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry,
-per {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}} -- the storage device observes
-CHUNK operations arriving from the proxy server's address rather than from
-the client directly.  The tsa_principal the metadata server
+FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry --
+the storage device observes CHUNK operations arriving from the
+proxy server's address rather than from the client directly.  The tsa_principal the metadata server
 populates in TRUST_STATEID is the principal the storage device
 will observe on those CHUNK operations, and {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}'s credential-forwarding rules (in particular rule 1,
 "Credential pass-through") require the proxy server to forward the
@@ -2340,9 +2344,8 @@ the client MUST update all mirrors.
    through the source mirror's encoding transform and re-encode
    for each target mirror's transform, which the metadata server
    itself cannot do for chunked encodings (it does not hold the
-   encoded shards); a proxy server
-   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) is the
-   entity that performs cross-encoding translation.  On a
+   encoded shards); a proxy server is the entity that performs
+   cross-encoding translation.  On a
    mixed-encoding layout without a proxy server for the affected
    file, the metadata server MUST leave
    FFV2_FLAGS_WRITE_ONE_MIRROR unset and require the client to
@@ -2529,11 +2532,10 @@ file's mirror set receives a layout in which one or more
 mirror entries have FFV2_DS_FLAGS_PROXY set on their
 ffv2_data_server4; the client directs I/O for that mirror
 to the proxy, which translates on behalf of the client.  The
-proxy server protocol itself is specified in
-{{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}; this
-document defines only the layout-flag surface (this bit) that
-lets the metadata server mark a data-server entry as
-proxy-mediated.
+proxy server protocol itself is specified in the proxy server
+draft; this document defines only the layout-flag surface
+(this bit) that lets the metadata server mark a data-server
+entry as proxy-mediated.
 
 ## ffv2_data_server4
 
@@ -3049,9 +3051,7 @@ Metadata-server selection for an existing file:
    existing file is a separate operation (see the
    heterogeneous mirror set primitive in
    {{sec-heterogeneous-mirrors}} and the migration paths in the
-   proxy server draft
-   {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), not a
-   consequence of a LAYOUTGET hint.  In this case
+   proxy server draft), not a consequence of a LAYOUTGET hint.  In this case
    ffv2lh_supported_types is not a selection input; it is an
    admissibility check.  The metadata server issues a layout
    with the file's actual encoding and evaluates whether the
@@ -3094,9 +3094,9 @@ Fallback when no overlap exists:
        against the real data servers.  This preserves parallel I/O
        for the encoding-ignorant client that the metadata-server I/O
        fallback loses.  The proxy registration, directive, and
-       credential-forwarding rules are defined in the
-       {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}; this draft defines only
-       the layout-flag surface (FFV2_DS_FLAGS_PROXY in
+       credential-forwarding rules are defined in the proxy server
+       draft; this draft defines only the layout-flag surface
+       (FFV2_DS_FLAGS_PROXY in
        {{sec-ffv2_ds_flags4}}) that makes the proxy visible to
        the client.
 
@@ -3505,9 +3505,8 @@ would either be rejected or would bypass the encoding transform
 and corrupt the file.
 
 Retrying the I/O through the metadata server is meaningful for
-a chunked encoding only when a proxy server
-({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) is available
-to translate on the metadata server's behalf: the proxy server
+a chunked encoding only when a proxy server is available to
+translate on the metadata server's behalf: the proxy server
 admits the client's I/O, performs the encoding transform, and
 issues the corresponding CHUNK operations to the data servers.
 When no proxy server is available for the affected file, the
@@ -3703,8 +3702,7 @@ the metadata server as an ordinary NFSv4.1+ READ or WRITE; for a
 mirror using any chunked encoding the metadata server itself
 cannot service that I/O (it does not hold the encoded shards),
 so the client's only fallback path is through a proxy server
-({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) if one is
-available for the file.  If no proxy server is available, the
+if one is available for the file.  If no proxy server is available, the
 client MUST wait for the metadata server to complete resilvering
 and re-issue LAYOUTGET rather than attempt to route the I/O
 through the metadata server.
@@ -4601,8 +4599,6 @@ place.  In this case the metadata server MUST either:
     byte ranges with NFS4ERR_PAYLOAD_LOST (see
     {{sec-NFS4ERR_PAYLOAD_LOST}}).
 
-The proxy server mechanism is specified in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}.
-
 Implementations that do not support the proxy server mechanism can
 still perform recovery for cases where per-range repair suffices,
 using CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}) and the repair
@@ -4634,10 +4630,9 @@ single file's mirror set addresses several use cases:
   identically), a second mirror in a different encoding provides
   an independent recovery surface.
 
-- Client-capability routing: a proxy server
-  ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) sees the full
-  mirror set and chooses between encodings on behalf of clients
-  that do not implement every encoding the file is represented in.
+- Client-capability routing: a proxy server sees the full mirror
+  set and chooses between encodings on behalf of clients that do
+  not implement every encoding the file is represented in.
 
 Consider a layout that exposes a file in two encodings
 simultaneously: a PASSTHROUGH mirror over the original byte
@@ -4663,8 +4658,7 @@ The active mirrors serve different access patterns concurrently:
   mirror).
 
 - A proxy server fronting legacy clients chooses between the two
-  encodings on the client's behalf
-  ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).
+  encodings on the client's behalf.
 
 All three patterns coexist during the transition.
 
@@ -4725,10 +4719,9 @@ The two-mirror layout shown in {{fig-example_mixing}} is the
 file's full mirror set as known to the metadata server.  A
 client that arrives during the assimilation or migration window
 above does not necessarily receive that layout; per the
-proxy server draft
-({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), the client
-gets a single layout naming the proxy server as a single
-endpoint, and the proxy server selects which of the file's
+proxy server draft, the client gets a single layout naming the
+proxy server as a single endpoint, and the proxy server selects
+which of the file's
 mirrors to read from or write to on the client's behalf.  The
 two-mirror view in this section describes the metadata server's
 bookkeeping during the transition; the client's I/O surface is
@@ -4745,19 +4738,31 @@ deployment's storage pools have different encoding capabilities
 and the file is too large to fit in any single pool.
 
 Consider an operator with three 100-TB storage pools.  Pool A
-is an FFv1 export speaking only NFSv3 (capable of
-FFV2_ENCODING_PASSTHROUGH only); Pool B is an FFv2 deployment
-whose data servers have implemented only
-FFV2_ENCODING_RS_VANDERMONDE; Pool C similarly has data
-servers that have implemented only FFV2_ENCODING_MOJETTE_SYSTEMATIC.
-A 250-TB file cannot fit in any single pool.  Striping the
-file across all three pools is forced by capacity arithmetic:
-250 > 100.  And because each pool's data servers can only
-respond to the chunk operations of its own encoding, the layout
-for this file MUST name a different `ffv2_encoding_type4` per
-mirror covering each stripe segment.  The heterogeneity is
-not a transition window; it is the permanent structural
-consequence of striping across heterogeneous capability pools.
+is a set of NFSv3-only data servers, which is a hard capability
+constraint: the chunked encodings require NFSv4.2's CHUNK
+operations, so an NFSv3-only pool can hold data only under an
+FFV2_ENCODING_PASSTHROUGH mirror.  Pools B and C are NFSv4.2
+data servers, which are encoding-agnostic at the wire level
+(CHUNK_READ and CHUNK_WRITE just move opaque chunk payloads;
+the encoding transform is client-side).  The operator, however,
+has chosen to write Pool B under FFV2_ENCODING_RS_VANDERMONDE
+and Pool C under FFV2_ENCODING_MOJETTE_SYSTEMATIC -- a policy
+decision motivated by durability diversity (hedging against a
+correlated failure in any single encoder implementation) and by
+per-workload fit (each encoding's reconstruction cost and
+failure-tolerance profile suits a different tenant on that pool).
+
+A 250-TB file cannot fit in any single pool.  Striping the file
+across all three pools is forced by capacity arithmetic: 250 >
+100.  Because bytes in each pool were written under the pool's
+chosen encoding, the layout for this file MUST name the actual
+per-mirror `ffv2_encoding_type4` so that clients decode each
+segment correctly: PASSTHROUGH for the Pool A segment,
+RS_VANDERMONDE for the Pool B segment, MOJETTE_SYSTEMATIC for
+the Pool C segment.  The heterogeneity is not a transition
+window; it is the permanent consequence of striping across
+pools whose bytes were written under different operator-chosen
+encodings.
 
 In this steady-state case, no proxy server mediated transition
 machinery is involved.  The client receives a layout
@@ -4765,7 +4770,8 @@ enumerating the mirrors at different `ffv2m_coding` values and
 routes chunk operations to the appropriate data server per
 segment (or, if the client cannot speak one of the encodings,
 requests proxy mediation per the proxy server draft's section
-"Encoding Translation for Encoding-Ignorant Clients").  The layout
+"Encoding Translation for Encoding-Ignorant Clients"
+({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}})).  The layout
 machinery that supports this case is exactly the per-mirror
 encoding naming primitive described above; no additional protocol
 elements are required to express it.
@@ -5902,8 +5908,8 @@ metadata-server-directed CB_CHUNK_REPAIR.  Independent of the actor role,
 any entity may operate as encoding-aware (issuing CHUNK
 operations directly against data servers) or encoding-unaware
 (operating through the proxy server mediated READ / WRITE path
-described in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).
-Proxy-server registration carries the encoding capability
+described in the proxy server draft).  Proxy-server registration
+carries the encoding capability
 explicitly; direct pNFS clients reveal their encoding posture
 implicitly through the operations they issue.
 
@@ -6891,10 +6897,9 @@ Non-stripe-aligned truncate:
    parity shards re-encoded from the truncated data.  Because
    re-encoding requires running the erasure transform, the
    metadata server MUST delegate this case to an encoding-aware
-   actor: either a proxy server
-   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) for
-   proxy-mediated truncate, or an encoding-aware client selected
-   per {{sec-repair-selection}} via CB_CHUNK_REPAIR with the
+   actor: either a proxy server for proxy-mediated truncate, or
+   an encoding-aware client selected per {{sec-repair-selection}}
+   via CB_CHUNK_REPAIR with the
    affected partial-stripe chunks as the repair target.  If
    neither path is available, the metadata server MUST return
    NFS4ERR_NOTSUPP to the originating SETATTR.
@@ -14532,9 +14537,8 @@ Implementation:
 :  `reffs` is an NFSv4.2 server written in C that acts as both a
    metadata server and a data server in a flexible file v2 layout
    deployment.  A separate binary implements the proxy server role
-   defined in the companion draft
-   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).  `ec_demo`
-   is a client-side library with a demonstration driver that
+   defined in the proxy server draft.  `ec_demo` is a client-side
+   library with a demonstration driver that
    exercises the flexible file v2 layout data path over NFSv4.2.
 
 Coverage:
@@ -15081,10 +15085,9 @@ layout-level counter would disambiguate successive placements
 of the same data.  This was rejected because:
 
 -  The use case is already covered.  CB_CHUNK_REPAIR (see
-   {{sec-CB_CHUNK_REPAIR}}) and the proxy server
-   mechanism (see {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) together
-   handle mid-layout remap without requiring a layout-level
-   epoch on the wire.  CB_CHUNK_REPAIR reaches the specific
+   {{sec-CB_CHUNK_REPAIR}}) and the proxy server mechanism
+   together handle mid-layout remap without requiring a
+   layout-level epoch on the wire.  CB_CHUNK_REPAIR reaches the specific
    chunks that need redirection; the proxy server reaches the
    broader re-placement case; between them the full remap
    space is covered.
@@ -15217,9 +15220,8 @@ belong inside a storage boundary, not at the client.
 ## How the Proxy Server Addresses This
 {:numbered="false"}
 
-The proxy server role, defined in
-{{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, is the storage
-boundary that Christoph and David asked for.
+The proxy server role is the storage boundary that Christoph
+and David asked for.
 
 A proxy server is a peer of the metadata server and the data servers that:
 
