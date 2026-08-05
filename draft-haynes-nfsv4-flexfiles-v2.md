@@ -5870,34 +5870,44 @@ has an envelope that blocks do not.
 
 A chunk carries five properties that a block does not:
 
--  **Atomicity.**  The chunk_guard4 compare-and-swap guard
-   ({{sec-chunk_guard4}}) sequences concurrent writers and
-   rejects torn-write attempts.  Block I/O has no comparable
-   primitive; concurrent block writes either serialize at the
-   storage layer or interleave unpredictably.
+Atomicity:
 
--  **Integrity.**  The checksum in each chunk header is computed
-   over the header and payload and verified end-to-end on the
-   read path ({{sec-CHUNK_READ}}).  Block I/O carries no
-   integrity tag; data-corruption detection is delegated to
-   the underlying storage medium or is absent.
+: the chunk_guard4 compare-and-swap guard ({{sec-chunk_guard4}})
+  sequences concurrent writers and rejects torn-write attempts.
+  Block I/O has no comparable primitive; concurrent block
+  writes either serialize at the storage layer or interleave
+  unpredictably.
 
--  **Provenance.**  The chunk_owner4 ({{sec-chunk_owner4}})
-   records which transaction produced the chunk.  Block I/O
-   carries no per-write provenance; a block's bytes have no
-   protocol-visible producer.
+Integrity:
 
--  **Lifecycle state.**  A chunk progresses through PENDING
-   -> FINALIZED -> COMMITTED via CHUNK_FINALIZE / CHUNK_COMMIT
-   ({{sec-system-model-chunk-state}}).  Block I/O has no
-   lifecycle states; a block is either present or absent.
+: the checksum in each chunk header is computed over the header
+  and payload and verified end-to-end on the read path
+  ({{sec-CHUNK_READ}}).  Block I/O carries no integrity tag;
+  data-corruption detection is delegated to the underlying
+  storage medium or is absent.
 
--  **Lock continuity across revocation.**  The chunk's lock
-   ({{sec-CHUNK_LOCK}}) is transferred to the metadata server
-   in escrow when a holder's stateid is revoked, and adopted
-   by a repair actor via CHUNK_LOCK_FLAGS_ADOPT.  Block I/O
-   has no per-block locking and no continuity mechanism;
-   client failure leaves any external lock indeterminate.
+Provenance:
+
+: the chunk_owner4 ({{sec-chunk_owner4}}) records which
+  transaction produced the chunk.  Block I/O carries no
+  per-write provenance; a block's bytes have no
+  protocol-visible producer.
+
+Lifecycle state:
+
+: a chunk progresses through PENDING -> FINALIZED -> COMMITTED
+  via CHUNK_FINALIZE / CHUNK_COMMIT
+  ({{sec-system-model-chunk-state}}).  Block I/O has no
+  lifecycle states; a block is either present or absent.
+
+Lock continuity across revocation:
+
+: the chunk's lock ({{sec-CHUNK_LOCK}}) is transferred to the
+  metadata server in escrow when a holder's stateid is revoked,
+  and adopted by a repair actor via CHUNK_LOCK_FLAGS_ADOPT.
+  Block I/O has no per-block locking and no continuity
+  mechanism; client failure leaves any external lock
+  indeterminate.
 
 Each of these properties is load-bearing for some part of the
 flexible file v2 layout's consistency story: the chunk_guard4
@@ -6505,8 +6515,9 @@ payload and its owner-to-index association
 lifetime.  A conforming data server MUST NOT release
 one while retaining the other:
 
-- **MUST NOT retain payload without association.**  A
-  chunk payload whose owner-to-index association has
+MUST NOT retain payload without association:
+
+: A chunk payload whose owner-to-index association has
   been released is unaddressable by every lifecycle
   operation (CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}),
   CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}),
@@ -6525,16 +6536,17 @@ one while retaining the other:
   Retaining the payload while making it unaddressable
   serves no purpose and is prohibited.  The payload MUST be released
   atomically with the association.
-- **MUST NOT release association while retaining
-  payload.**  A recorded owner-to-index association
-  refers to a specific chunk payload; the data server
-  MUST NOT retain the association after releasing that
-  payload.  A subsequent CHUNK_READ or lifecycle
-  operation whose recorded index still points to a
-  released payload would return data whose provenance
-  the client cannot verify against its own writer
-  history; forbidding this releases the client from
-  having to detect such stale associations.
+
+MUST NOT release association while retaining payload:
+
+: A recorded owner-to-index association refers to a specific
+  chunk payload; the data server MUST NOT retain the
+  association after releasing that payload.  A subsequent
+  CHUNK_READ or lifecycle operation whose recorded index still
+  points to a released payload would return data whose
+  provenance the client cannot verify against its own writer
+  history; forbidding this releases the client from having to
+  detect such stale associations.
 
 The biconditional is symmetric: released together,
 retained together.  This coupling is what makes
@@ -7764,9 +7776,10 @@ can concretely observe about the presented triple, NOT
 on historical knowledge the data server may no longer
 retain:
 
-- **NFS4ERR_INVAL** is returned in exactly the cases
-  where the data server can concretely recognize the
-  presented triple as invalid:
+NFS4ERR_INVAL:
+
+: returned in exactly the cases where the data server can
+  concretely recognize the presented triple as invalid:
   (a) **structurally invalid**: the triple is
       malformed or truncated, or names a different
       file or a different data server; or
@@ -7779,9 +7792,10 @@ retain:
       context that identifies this triple as
       released-by-delete-case.
 
-- **NFS4ERR_NO_PREDECESSOR** covers every other case
-  in which the data server holds no association for
-  the presented triple, including:
+NFS4ERR_NO_PREDECESSOR:
+
+: covers every other case in which the data server holds no
+  association for the presented triple, including:
   (a) release under the retention scope rule (lease
       expiry, storage-pressure release);
   (b) the eventual release of a triple invalidated
@@ -8563,9 +8577,10 @@ COSE_Sign1 structure (Section 4.2 of {{!RFC9052}})
 over a deterministic CBOR payload (Section 4.2 of
 {{!RFC8949}}) with the following normative choices:
 
-- **Signature algorithm** (mandatory-to-implement):
-  Ed25519 (algorithm identifier -8 per
-  {{!RFC9053}}).  A conforming signer MUST use
+Signature algorithm (mandatory-to-implement):
+
+: Ed25519 (algorithm identifier -8 per {{!RFC9053}}).  A
+  conforming signer MUST use
   Ed25519; a conforming verifier MUST accept
   Ed25519.  Other signature algorithms (e.g.,
   ECDSA-P256 with identifier -7, RSASSA-PSS-SHA256
@@ -8579,9 +8594,10 @@ over a deterministic CBOR payload (Section 4.2 of
   kid, the data server attempts verification
   against each configured trust anchor and accepts
   on the first match.
-- **Payload map fields**: the signed CBOR payload
-  is a map with integer-keyed fields (per
-  {{!RFC9053}} convention for compact wire size).
+Payload map fields:
+
+: the signed CBOR payload is a map with integer-keyed fields
+  (per {{!RFC9053}} convention for compact wire size).
   The mandatory-profile keys are:
    - 1 = principal (CBOR text string): the
      metadata-server principal that holds this
@@ -8735,14 +8751,16 @@ The recovery rule takes two forms distinguished by
 the state of the token_id replay cache at the data
 server:
 
-- **Cache-hit form** (ordinary lost-response
-  case): the token_id is present in the token_id
-  replay cache.  The data server recognizes the
+Cache-hit form (ordinary lost-response case):
+
+: the token_id is present in the token_id replay cache.  The
+  data server recognizes the
   cached byte-identical decision and returns the
   cached NFS4_OK result; step 5 is not re-executed.
-- **Cache-miss form** (applies after eviction or
-  non-persisted restart): the token_id is not
-  present in the replay cache.  The data server
+Cache-miss form (applies after eviction or non-persisted restart):
+
+: the token_id is not present in the replay cache.  The data
+  server
   treats the presentation as a fresh byte-identical
   proof under the two epoch predicates
   above and does NOT execute step 5 (the epoch is
@@ -13280,14 +13298,14 @@ on any chunk in a requested range.
 CB_CHUNK_REPAIR returns a top-level ccrr_status plus a
 co-indexed per-range status array ccrr_range_status:
 
-- **Operation-wide errors** (decode failure,
-  authorization failure, session-stale, and other
-  conditions that fail every range at once): the
+Operation-wide errors (decode failure, authorization failure, session-stale, and other conditions that fail every range at once):
+
+: the
   operation-wide error is placed in ccrr_status and
   ccrr_range_status MUST be empty (zero entries).
-- **Per-range dispositions** (the callback is
-  otherwise well-formed and evaluated per range):
-  ccrr_range_status carries exactly one nfsstat4 per
+Per-range dispositions (the callback is otherwise well-formed and evaluated per range):
+
+: ccrr_range_status carries exactly one nfsstat4 per
   entry in ccra_ranges, co-indexed.  The top-level
   ccrr_status in this case is one of:
     - **NFS4_OK**: every range reached CHUNK_REPAIRED
@@ -13461,85 +13479,81 @@ fallback).  Ordering matters: control-plane
 failures must be resolved before data-plane
 recovery is attempted.
 
-- **CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT ->
-  NFS4ERR_NO_ADOPTABLE_LOCK
-  ({{sec-NFS4ERR_NO_ADOPTABLE_LOCK}}):** custody /
-  control-plane failure BEFORE any usable lock is
-  in hand.  The four state causes (no escrow /
-  identity mismatch / reconciliation hold /
-  already-adopted) are all conditions the
-  metadata server is best placed to resolve.
+CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT -> NFS4ERR_NO_ADOPTABLE_LOCK ({{sec-NFS4ERR_NO_ADOPTABLE_LOCK}}):
+
+: custody / control-plane failure BEFORE any usable lock is
+  in hand.  The four state causes (no escrow / identity
+  mismatch / reconciliation hold / already-adopted) are all
+  conditions the metadata server is best placed to resolve.
   The client MUST report the outcome via the
-  ccrr_range_status array
-  ({{sec-CB_CHUNK_REPAIR}}) and MUST NOT
-  unilaterally retry the adoption or begin the
+  ccrr_range_status array ({{sec-CB_CHUNK_REPAIR}}) and MUST
+  NOT unilaterally retry the adoption or begin the
   CHUNK_WRITE_REPAIR fallback path
-  ({{sec-CHUNK_WRITE_REPAIR}}); that fallback
-  assumes a usable lock, and no lock exists here
-  to fall back under.
-- **CHUNK_LOCK -> NFS4ERR_ACCESS:** presenter
-  authorization failure.  Report to the metadata
+  ({{sec-CHUNK_WRITE_REPAIR}}); that fallback assumes a
+  usable lock, and no lock exists here to fall back under.
+
+CHUNK_LOCK -> NFS4ERR_ACCESS:
+
+: presenter authorization failure.  Report to the metadata
   server; do not retry.
-- **After successful CHUNK_LOCK / ADOPT ->
-  CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}}):**
-  read the primary owner and chrr_predecessors
-  array.  If the intended predecessor's triple
-  appears in the list, proceed to CHUNK_ROLLBACK.
-  If absent, the CHUNK_WRITE_REPAIR fallback path
-  may begin directly (do not issue CHUNK_ROLLBACK against a
-  predecessor known-absent).
-- **CHUNK_ROLLBACK -> NFS4ERR_NO_PREDECESSOR
-  ({{sec-NFS4ERR_NO_PREDECESSOR}}):** data-plane
-  result AFTER a usable lock is in hand.  The
-  actor has the lock; there is simply no
-  restorable predecessor.  The client MAY invoke
-  best-effort reconstruction via CHUNK_WRITE_REPAIR
-  under a new owner triple
-  ({{sec-CHUNK_WRITE_REPAIR}});
-  fallback MAY terminate at NFS4ERR_PAYLOAD_LOST
-  ({{sec-NFS4ERR_PAYLOAD_LOST}}) if no
-  authoritative source exists.
-- **CHUNK_ROLLBACK -> NFS4ERR_INVAL or
-  NFS4ERR_NO_PREDECESSOR** for a fresh op naming a
-  released triple: terminal per-entry failure.
-  Caller holds a stale reference; no operation
-  defined in this document resurrects the deleted
-  generation.  The data server returns
-  NFS4ERR_INVAL within the delete case's session-slot
-  replay-cache window and NFS4ERR_NO_PREDECESSOR
-  after the window has elapsed or for any other
-  terminal release (per the release-scope split at
-  {{sec-NFS4ERR_NO_PREDECESSOR}}).  Compare either
-  code to the uncertain-replay carve-out
-  ({{sec-CHUNK_ROLLBACK}} "Idempotence and
-  Uncertain-Replay Carve-Out") which permits an
-  EXACT reissue after uncertain prior completion
-  to treat NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR
-  as postcondition-equivalent success, but ONLY
-  when the caller independently verifies the
-  postcondition holds.
-- **Any CHUNK_ESCROW operation -> NFS4ERR_STALE_ESCROW
-  ({{sec-NFS4ERR_STALE_ESCROW}}):** control-plane
-  identity mismatch or no covering escrow on the
-  metadata server's own CHUNK_ESCROW_RELEASE.
-  The response never authorizes tuple removal by
-  itself when adoption may have consumed the
-  escrow (see {{sec-CHUNK_ESCROW_RELEASE}}).
-- **Any CHUNK_ESCROW operation -> NFS4ERR_STALE_MDS_EPOCH
-  ({{sec-NFS4ERR_STALE_MDS_EPOCH}}):** the
-  metadata server has been fenced by a
-  superseding CHUNK_ESCROW_TAKEOVER.  The metadata
-  server MUST obtain a fresh incarnation-lease token
-  and reissue via CHUNK_ESCROW_TAKEOVER
-  ({{sec-CHUNK_ESCROW_TAKEOVER}}); TAKEOVER is
-  exempt from this rejection.
-- **CB_CHUNK_REPAIR response -> NFS4ERR_PARTIAL
-  ({{sec-NFS4ERR_PARTIAL}}):** at least one
-  named range did not reach completion; the
+
+After successful CHUNK_LOCK / ADOPT -> CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}}):
+
+: read the primary owner and chrr_predecessors array.  If the
+  intended predecessor's triple appears in the list, proceed
+  to CHUNK_ROLLBACK.  If absent, the CHUNK_WRITE_REPAIR
+  fallback path may begin directly (do not issue
+  CHUNK_ROLLBACK against a predecessor known-absent).
+
+CHUNK_ROLLBACK -> NFS4ERR_NO_PREDECESSOR ({{sec-NFS4ERR_NO_PREDECESSOR}}):
+
+: data-plane result AFTER a usable lock is in hand.  The
+  actor has the lock; there is simply no restorable
+  predecessor.  The client MAY invoke best-effort
+  reconstruction via CHUNK_WRITE_REPAIR under a new owner
+  triple ({{sec-CHUNK_WRITE_REPAIR}}); fallback MAY terminate
+  at NFS4ERR_PAYLOAD_LOST ({{sec-NFS4ERR_PAYLOAD_LOST}}) if
+  no authoritative source exists.
+
+CHUNK_ROLLBACK -> NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR for a fresh op naming a released triple:
+
+: terminal per-entry failure.  Caller holds a stale
+  reference; no operation defined in this document
+  resurrects the deleted generation.  The data server
+  returns NFS4ERR_INVAL within the delete case's
+  session-slot replay-cache window and NFS4ERR_NO_PREDECESSOR
+  after the window has elapsed or for any other terminal
+  release (per the release-scope split at
+  {{sec-NFS4ERR_NO_PREDECESSOR}}).  Compare either code to
+  the uncertain-replay carve-out ({{sec-CHUNK_ROLLBACK}}
+  "Idempotence and Uncertain-Replay Carve-Out") which
+  permits an EXACT reissue after uncertain prior completion
+  to treat NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR as
+  postcondition-equivalent success, but ONLY when the caller
+  independently verifies the postcondition holds.
+
+Any CHUNK_ESCROW operation -> NFS4ERR_STALE_ESCROW ({{sec-NFS4ERR_STALE_ESCROW}}):
+
+: control-plane identity mismatch or no covering escrow on
+  the metadata server's own CHUNK_ESCROW_RELEASE.  The
+  response never authorizes tuple removal by itself when
+  adoption may have consumed the escrow (see
+  {{sec-CHUNK_ESCROW_RELEASE}}).
+
+Any CHUNK_ESCROW operation -> NFS4ERR_STALE_MDS_EPOCH ({{sec-NFS4ERR_STALE_MDS_EPOCH}}):
+
+: the metadata server has been fenced by a superseding
+  CHUNK_ESCROW_TAKEOVER.  The metadata server MUST obtain a
+  fresh incarnation-lease token and reissue via
+  CHUNK_ESCROW_TAKEOVER ({{sec-CHUNK_ESCROW_TAKEOVER}});
+  TAKEOVER is exempt from this rejection.
+
+CB_CHUNK_REPAIR response -> NFS4ERR_PARTIAL ({{sec-NFS4ERR_PARTIAL}}):
+
+: at least one named range did not reach completion; the
   metadata server MUST consume the per-range
-  ccrr_range_status array
-  ({{sec-CB_CHUNK_REPAIR}}) to determine
-  per-range outcome.
+  ccrr_range_status array ({{sec-CB_CHUNK_REPAIR}}) to
+  determine per-range outcome.
 
 The essential distinction is that
 NFS4ERR_NO_ADOPTABLE_LOCK and
@@ -14921,26 +14935,37 @@ The wire-spread convergence does not mean encoder choice is
 irrelevant.  It means encoder choice is decided by properties
 other than raw algorithm speed at typical operating points:
 
-- **Fault tolerance and geometry**: FFV2_ENCODING_RS_VANDERMONDE
-  and the Mojette family support arbitrary (k, m);
-  FFV2_ENCODING_XOR_PARITY is m = 1 only;
+Fault tolerance and geometry:
+
+: FFV2_ENCODING_RS_VANDERMONDE and the Mojette family support
+  arbitrary (k, m); FFV2_ENCODING_XOR_PARITY is m = 1 only;
   FFV2_ENCODING_LINUX_MD_RAID is m = 2 only.
-- **Interoperability**: the m <= 2 byte-identical set described
-  above lets a deployment mix implementations of different
-  encoders at the same k and m without cross-encoding.
-- **Reconstruction cost**: systematic encodings
-  (FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-  FFV2_ENCODING_XOR_PARITY, FFV2_ENCODING_LINUX_MD_RAID) short-circuit
-  no-loss reads at wire speed;
-  FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC transforms every shard on
-  every read.
-- **Wide-geometry scaling**: at k >= 8, m >= 4, the Mojette
-  back-projection reconstruction cost scales with m (parity
-  count) rather than k (data count), so its reconstruction
-  overhead does not exhibit the O(k^3) growth Reed-Solomon
-  matrix inversion incurs at wider geometries.
-- **Implementation availability**:
-  FFV2_ENCODING_XOR_PARITY has no external dependency;
+
+Interoperability:
+
+: the m <= 2 byte-identical set described above lets a
+  deployment mix implementations of different encoders at the
+  same k and m without cross-encoding.
+
+Reconstruction cost:
+
+: systematic encodings (FFV2_ENCODING_RS_VANDERMONDE,
+  FFV2_ENCODING_MOJETTE_SYSTEMATIC, FFV2_ENCODING_XOR_PARITY,
+  FFV2_ENCODING_LINUX_MD_RAID) short-circuit no-loss reads at
+  wire speed; FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC transforms
+  every shard on every read.
+
+Wide-geometry scaling:
+
+: at k >= 8, m >= 4, the Mojette back-projection reconstruction
+  cost scales with m (parity count) rather than k (data count),
+  so its reconstruction overhead does not exhibit the O(k^3)
+  growth Reed-Solomon matrix inversion incurs at wider
+  geometries.
+
+Implementation availability:
+
+: FFV2_ENCODING_XOR_PARITY has no external dependency;
   FFV2_ENCODING_LINUX_MD_RAID's reference construction is
   present in every Linux kernel at `lib/raid6/`
   ({{LINUX-RAID6}}).  The remaining encoders in this document
