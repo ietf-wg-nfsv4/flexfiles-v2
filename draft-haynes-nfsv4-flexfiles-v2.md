@@ -7455,9 +7455,9 @@ used the layout, the client MAY identify "hot" byte ranges for which
 to report I/O statistics.  The definition and/or configuration
 mechanism of what is considered "hot" and the size of the reported
 byte range are out of the scope of this document.  For client
-implementation, providing reasonable default values and an optional
-run-time management interface to control these parameters is
-suggested.  For example, a client can define the default byte range
+implementations, providing reasonable default values and an
+optional run-time management interface to control these
+parameters is suggested.  For example, a client can define the default byte range
 resolution to be 1 MB in size and the thresholds for reporting to
 be 1 MB/second or 10 I/O operations per second.
 
