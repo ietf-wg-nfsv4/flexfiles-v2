@@ -1870,11 +1870,17 @@ in specific cases:
    required to authorize the writer, and therefore cannot
    serve a non-PASSTHROUGH mirror.
 
-PASSTHROUGH mirrors with FFV2_COUPLING_SYNTHETIC_UIDS are the
-only loose-coupling configuration; the (ffv2dv_version,
-ffv2dv_minorversion) tuples (3, 0) and (4, 1) remain valid only
-for that configuration.  All other configurations require
-NFSv4.2 and at least one tight-coupling flag.
+PASSTHROUGH is the only encoding that admits loose coupling
+(FFV2_COUPLING_SYNTHETIC_UIDS); every non-PASSTHROUGH encoding
+requires ffv2dv_version = 4, ffv2dv_minorversion = 2, and at
+least one tight-coupling flag set in ffv2dv_coupling.
+PASSTHROUGH itself may be advertised under any of the
+following (ffv2dv_version, ffv2dv_minorversion) tuples:
+(3, 0), (4, 1), or (4, 2); the first two of these tuples
+are valid only for PASSTHROUGH under
+FFV2_COUPLING_SYNTHETIC_UIDS, because they precede or lack
+the NFSv4.2 features on which the CHUNK operations and the
+TRUST_STATEID family depend.
 
 Note that while the client might determine that it cannot use any of
 the configured combinations of ffv2dv_version, ffv2dv_minorversion, and
