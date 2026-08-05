@@ -13715,14 +13715,20 @@ client.  Each callback is independent; the client drives
 each to completion before the deadline on that callback's
 ranges.
 
-The fact that a range appears in ccra_ranges implies the
-data server holds a chunk lock on the range (the failure
-occurred in or around a PENDING or FINALIZED state that
-established the lock).  The repair actor MUST use
-CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT
-({{sec-CHUNK_LOCK}}) to take ownership of the lock before
-issuing CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK, or CHUNK_WRITE
-on any chunk in a requested range.
+The metadata server MUST NOT name a range in ccra_ranges
+unless the data server holds a chunk lock on that range at
+the time the callback is issued (the failure occurred in
+or around a PENDING or FINALIZED state that established
+the lock).  The repair actor MUST use CHUNK_LOCK with
+CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) to take
+ownership of the lock before issuing CHUNK_WRITE_REPAIR,
+CHUNK_ROLLBACK, or CHUNK_WRITE on any chunk in a requested
+range.  Because callback delivery and lock state can race,
+a repair actor that receives NFS4ERR_NO_ADOPTABLE_LOCK on
+the adoption MUST report the mismatch via
+ccrr_range_status per
+{{sec-NFS4ERR_NO_ADOPTABLE_LOCK}} rather than attempt
+recovery.
 
 CB_CHUNK_REPAIR returns a top-level ccrr_status plus a
 co-indexed per-range status array ccrr_range_status:
