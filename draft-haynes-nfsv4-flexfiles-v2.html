@@ -4538,7 +4538,8 @@ The encoding type selects how chunks are produced from
 application data; the wire and the storage device are the
 same in every case.  See the individual encoding sections
 for the mathematical constructions of each encoding and for
-the wire-compatibility relationships among the GF(2^8) family.<a href="#section-8.1-3.2.1" class="pilcrow">¶</a></p>
+the wire-compatibility relationships among the Galois Field
+GF(2^8) family.<a href="#section-8.1-3.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-8.1-4">The 32-bit ffv2_encoding_type4 value space is partitioned by
@@ -5039,9 +5040,9 @@ mirror entries have FFV2_DS_FLAGS_PROXY set on their
 ffv2_data_server4; the client directs I/O for that mirror
 to the proxy, which translates on behalf of the client.  The
 proxy server protocol itself is specified in the proxy server
-draft; this document defines only the layout-flag surface
-(this bit) that lets the metadata server mark a data-server
-entry as proxy-mediated.<a href="#section-8.4-11" class="pilcrow">¶</a></p>
+draft; this document defines only the layout flag (this bit)
+that lets the metadata server mark a data-server entry as
+proxy-mediated.<a href="#section-8.4-11" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="ffv2dataserver4">
@@ -5665,8 +5666,8 @@ exactly the friction the hint exists to remove.<a href="#section-8.11-9" class="
 (new erasure encoding types are added, older ones fall out of favour,
 vendors register private codes; see <a href="#iana-considerations" class="auto internal xref">Section 29</a>),
 neither clients nor metadata servers are required to implement
-every registered encoding.  The protocol uses ffv2_layouthint4 as
-the negotiation surface:<a href="#section-8.11.1-1" class="pilcrow">¶</a></p>
+every registered encoding.  The protocol negotiates encoding
+capabilities via ffv2_layouthint4:<a href="#section-8.11.1-1" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-8.11.1-2">
             <dt id="section-8.11.1-2.1">Client-side advertisement:</dt>
             <dd style="margin-left: 1.5em" id="section-8.11.1-2.2">
@@ -5748,13 +5749,13 @@ the proxy's data-server entry carrying
 FFV2_DS_FLAGS_PROXY and a coding_type the client does
 support (typically FFV2_ENCODING_MIRRORED for a minimal
 NFSv4.2 client, or FFV2_ENCODING_PASSTHROUGH / a flat
-NFSv3 surface for an NFSv3 client).  The proxy encodes
+NFSv3 view for an NFSv3 client).  The proxy encodes
 and decodes on the fly
 against the real data servers.  This preserves parallel I/O
 for the encoding-ignorant client that the metadata-server I/O
 fallback loses.  The proxy registration, directive, and
 credential-forwarding rules are defined in the proxy server
-draft; this draft defines only the layout-flag surface
+draft; this draft defines only the layout flag
 (FFV2_DS_FLAGS_PROXY in
 <a href="#sec-ffv2_ds_flags4" class="auto internal xref">Section 8.4</a>) that makes the proxy visible to
 the client.<a href="#section-8.11.1-2.8.2.3.1" class="pilcrow">¶</a></p>
@@ -5782,7 +5783,7 @@ metadata server.<a href="#section-8.11.1-2.10.1" class="pilcrow">¶</a></p>
 </dl>
 <p id="section-8.11.1-3">This mechanism deliberately avoids a separate capability-bit
 handshake at EXCHANGE_ID.  ffv2_layouthint4 already provides
-per-request negotiation surface; adding a session-level
+per-request negotiation; adding a session-level
 capability set would duplicate it and would complicate encoding
 upgrades without additional value, because a client that
 genuinely upgrades its encoding set at runtime can simply update
@@ -7567,7 +7568,7 @@ transition.<a href="#section-11.3-2.4.1" class="pilcrow">¶</a></p>
 (an encoding implementation bug, a memory-corruption pattern
 that affects parity shards identically), a second mirror in
 a different encoding provides an independent recovery
-surface.<a href="#section-11.3-2.6.1" class="pilcrow">¶</a></p>
+path.<a href="#section-11.3-2.6.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 <dt id="section-11.3-2.7">Client-capability routing:</dt>
@@ -7676,8 +7677,8 @@ proxy server as a single endpoint, and the proxy server selects
 which of the file's
 mirrors to read from or write to on the client's behalf.  The
 two-mirror view in this section describes the metadata server's
-bookkeeping during the transition; the client's I/O surface is
-one endpoint.<a href="#section-11.3-9" class="pilcrow">¶</a></p>
+bookkeeping during the transition; the client directs its I/O
+to a single endpoint.<a href="#section-11.3-9" class="pilcrow">¶</a></p>
 <div id="sec-steady-state-heterogeneous">
 <section id="section-11.3.1">
           <h4 id="name-steady-state-heterogeneous-">
@@ -9633,7 +9634,7 @@ CHUNK_ROLLBACK, CHUNK_LOCK / CHUNK_UNLOCK, CHUNK_READ,
 CHUNK_REPAIRED, CHUNK_ERROR, CHUNK_HEADER_READ,
 CHUNK_WRITE_REPAIR) together with the per-chunk state machine
 (<a href="#sec-system-model-chunk-state" class="auto internal xref">Section 12.5</a>) and the chunk_guard4 CAS
-(<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>) are the entire surface a peer observes.
+(<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>) are everything a peer observes.
 The data server's internal representation of persistent state is
 not exposed on the wire, and two data-server implementations
 that satisfy the same wire semantics <span class="bcp14">MAY</span> differ arbitrarily in
@@ -9687,42 +9688,52 @@ file's address space (the application's view); "chunk" refers to
 the addressable unit carried by the CHUNK operations, which
 has an envelope that blocks do not.<a href="#section-12.2-1" class="pilcrow">¶</a></p>
 <p id="section-12.2-2">A chunk carries five properties that a block does not:<a href="#section-12.2-2" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-12.2-3.1">
-            <p id="section-12.2-3.1.1"><strong>Atomicity.</strong>  The chunk_guard4 compare-and-swap guard
-(<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>) sequences concurrent writers and
-rejects torn-write attempts.  Block I/O has no comparable
-primitive; concurrent block writes either serialize at the
-storage layer or interleave unpredictably.<a href="#section-12.2-3.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-12.2-3.2">
-            <p id="section-12.2-3.2.1"><strong>Integrity.</strong>  The checksum in each chunk header is computed
-over the header and payload and verified end-to-end on the
-read path (<a href="#sec-CHUNK_READ" class="auto internal xref">Section 25.7</a>).  Block I/O carries no
-integrity tag; data-corruption detection is delegated to
-the underlying storage medium or is absent.<a href="#section-12.2-3.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-12.2-3.3">
-            <p id="section-12.2-3.3.1"><strong>Provenance.</strong>  The chunk_owner4 (<a href="#sec-chunk_owner4" class="auto internal xref">Section 24.2</a>)
-records which transaction produced the chunk.  Block I/O
-carries no per-write provenance; a block's bytes have no
-protocol-visible producer.<a href="#section-12.2-3.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-12.2-3.4">
-            <p id="section-12.2-3.4.1"><strong>Lifecycle state.</strong>  A chunk progresses through PENDING
--&gt; FINALIZED -&gt; COMMITTED via CHUNK_FINALIZE / CHUNK_COMMIT
+<span class="break"></span><dl class="dlParallel" id="section-12.2-3">
+          <dt id="section-12.2-3.1">Atomicity:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.2-3.2">
+            <p id="section-12.2-3.2.1">the chunk_guard4 compare-and-swap guard (<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.1</a>)
+sequences concurrent writers and rejects torn-write attempts.
+Block I/O has no comparable primitive; concurrent block
+writes either serialize at the storage layer or interleave
+unpredictably.<a href="#section-12.2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-12.2-3.3">Integrity:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.2-3.4">
+            <p id="section-12.2-3.4.1">the checksum in each chunk header is computed over the header
+and payload and verified end-to-end on the read path
+(<a href="#sec-CHUNK_READ" class="auto internal xref">Section 25.7</a>).  Block I/O carries no integrity tag;
+data-corruption detection is delegated to the underlying
+storage medium or is absent.<a href="#section-12.2-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-12.2-3.5">Provenance:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.2-3.6">
+            <p id="section-12.2-3.6.1">the chunk_owner4 (<a href="#sec-chunk_owner4" class="auto internal xref">Section 24.2</a>) records which
+transaction produced the chunk.  Block I/O carries no
+per-write provenance; a block's bytes have no
+protocol-visible producer.<a href="#section-12.2-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-12.2-3.7">Lifecycle state:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.2-3.8">
+            <p id="section-12.2-3.8.1">a chunk progresses through PENDING -&gt; FINALIZED -&gt; COMMITTED
+via CHUNK_FINALIZE / CHUNK_COMMIT
 (<a href="#sec-system-model-chunk-state" class="auto internal xref">Section 12.5</a>).  Block I/O has no
-lifecycle states; a block is either present or absent.<a href="#section-12.2-3.4.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-12.2-3.5">
-            <p id="section-12.2-3.5.1"><strong>Lock continuity across revocation.</strong>  The chunk's lock
-(<a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.6</a>) is transferred to the metadata server
-in escrow when a holder's stateid is revoked, and adopted
-by a repair actor via CHUNK_LOCK_FLAGS_ADOPT.  Block I/O
-has no per-block locking and no continuity mechanism;
-client failure leaves any external lock indeterminate.<a href="#section-12.2-3.5.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
+lifecycle states; a block is either present or absent.<a href="#section-12.2-3.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-12.2-3.9">Lock continuity across revocation:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.2-3.10">
+            <p id="section-12.2-3.10.1">the chunk's lock (<a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.6</a>) is transferred to the
+metadata server in escrow when a holder's stateid is revoked,
+and adopted by a repair actor via CHUNK_LOCK_FLAGS_ADOPT.
+Block I/O has no per-block locking and no continuity
+mechanism; client failure leaves any external lock
+indeterminate.<a href="#section-12.2-3.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
 <p id="section-12.2-4">Each of these properties is load-bearing for some part of the
 flexible file v2 layout's consistency story: the chunk_guard4
 CAS underlies multi-writer correctness; the checksum underlies
@@ -9734,9 +9745,9 @@ what the protocol can guarantee.<a href="#section-12.2-4" class="pilcrow">¶</a>
 <p id="section-12.2-5">A protocol that exchanges file data as byte ranges with no
 envelope -- whether described as "block I/O" or as "generic
 data movement" -- is not interoperable with this specification's
-CHUNK operations.  The CHUNK operations are not a byte range
-I/O surface with optional integrity bolted on; they are a
-chunk-protocol surface in which the envelope is the primitive.<a href="#section-12.2-5" class="pilcrow">¶</a></p>
+CHUNK operations.  The CHUNK operations are not a byte-range
+I/O protocol with optional integrity bolted on; they are a
+chunk protocol in which the envelope is the primitive.<a href="#section-12.2-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-system-model-roles">
@@ -9811,10 +9822,6 @@ EMPTY / PENDING / FINALIZED / COMMITTED transitions, the
 chunk_guard4 CAS, lock continuity across revocation, and the
 integrity checks).  The choice is a data-server implementation
 concern and is transparent to clients and the metadata server.<a href="#section-12.3-5" class="pilcrow">¶</a></p>
-<p id="section-12.3-6">Each file is owned by exactly one metadata server at any given
-instant.  Ownership transfer between metadata servers (for
-example, during metadata server failover) is implementation-defined and out
-of scope for this document; see <a href="#sec-system-model-consensus" class="auto internal xref">Section 12.12</a>.<a href="#section-12.3-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-system-model-failures">
@@ -10429,10 +10436,11 @@ payload and its owner-to-index association
 (<a href="#sec-system-model-owner-persistence" class="auto internal xref">Section 12.9</a>) <span class="bcp14">MUST</span> share a
 lifetime.  A conforming data server <span class="bcp14">MUST NOT</span> release
 one while retaining the other:<a href="#section-12.10-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-12.10-2.1">
-            <p id="section-12.10-2.1.1"><strong><span class="bcp14">MUST NOT</span> retain payload without association.</strong>  A
-chunk payload whose owner-to-index association has
+<span class="break"></span><dl class="dlParallel" id="section-12.10-2">
+          <dt id="section-12.10-2.1">
+<span class="bcp14">MUST NOT</span> retain payload without association:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.10-2.2">
+            <p id="section-12.10-2.2.1">A chunk payload whose owner-to-index association has
 been released is unaddressable by every lifecycle
 operation (CHUNK_COMMIT (<a href="#sec-CHUNK_COMMIT" class="auto internal xref">Section 25.2</a>),
 CHUNK_FINALIZE (<a href="#sec-CHUNK_FINALIZE" class="auto internal xref">Section 25.4</a>),
@@ -10450,21 +10458,23 @@ delete case within the session slot's replay-cache
 window), NFS4ERR_NO_PREDECESSOR otherwise.
 Retaining the payload while making it unaddressable
 serves no purpose and is prohibited.  The payload <span class="bcp14">MUST</span> be released
-atomically with the association.<a href="#section-12.10-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-12.10-2.2">
-            <p id="section-12.10-2.2.1"><strong><span class="bcp14">MUST NOT</span> release association while retaining
-payload.</strong>  A recorded owner-to-index association
-refers to a specific chunk payload; the data server
-<span class="bcp14">MUST NOT</span> retain the association after releasing that
-payload.  A subsequent CHUNK_READ or lifecycle
-operation whose recorded index still points to a
-released payload would return data whose provenance
-the client cannot verify against its own writer
-history; forbidding this releases the client from
-having to detect such stale associations.<a href="#section-12.10-2.2.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
+atomically with the association.<a href="#section-12.10-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-12.10-2.3">
+<span class="bcp14">MUST NOT</span> release association while retaining payload:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.10-2.4">
+            <p id="section-12.10-2.4.1">A recorded owner-to-index association refers to a specific
+chunk payload; the data server <span class="bcp14">MUST NOT</span> retain the
+association after releasing that payload.  A subsequent
+CHUNK_READ or lifecycle operation whose recorded index still
+points to a released payload would return data whose
+provenance the client cannot verify against its own writer
+history; forbidding this releases the client from having to
+detect such stale associations.<a href="#section-12.10-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
 <p id="section-12.10-3">The biconditional is symmetric: released together,
 retained together.  This coupling is what makes
 CHUNK_ROLLBACK's delete case (<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref">Section 25.9</a>)
@@ -12333,11 +12343,11 @@ from NFS4ERR_INVAL on the basis of what the data server
 can concretely observe about the presented triple, NOT
 on historical knowledge the data server may no longer
 retain:<a href="#section-21.1.7-3" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-21.1.7-4.1">
-              <p id="section-21.1.7-4.1.1"><strong>NFS4ERR_INVAL</strong> is returned in exactly the cases
-where the data server can concretely recognize the
-presented triple as invalid:
+<span class="break"></span><dl class="dlParallel" id="section-21.1.7-4">
+            <dt id="section-21.1.7-4.1">NFS4ERR_INVAL:</dt>
+            <dd style="margin-left: 1.5em" id="section-21.1.7-4.2">
+              <p id="section-21.1.7-4.2.1">returned in exactly the cases where the data server can
+concretely recognize the presented triple as invalid:
 (a) <strong>structurally invalid</strong>: the triple is
     malformed or truncated, or names a different
     file or a different data server; or
@@ -12348,12 +12358,13 @@ presented triple as invalid:
     window of that CHUNK_ROLLBACK, so the data
     server still holds the concrete invalidation
     context that identifies this triple as
-    released-by-delete-case.<a href="#section-21.1.7-4.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-21.1.7-4.2">
-              <p id="section-21.1.7-4.2.1"><strong>NFS4ERR_NO_PREDECESSOR</strong> covers every other case
-in which the data server holds no association for
-the presented triple, including:
+    released-by-delete-case.<a href="#section-21.1.7-4.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-21.1.7-4.3">NFS4ERR_NO_PREDECESSOR:</dt>
+            <dd style="margin-left: 1.5em" id="section-21.1.7-4.4">
+              <p id="section-21.1.7-4.4.1">covers every other case in which the data server holds no
+association for the presented triple, including:
 (a) release under the retention scope rule (lease
     expiry, storage-pressure release);
 (b) the eventual release of a triple invalidated
@@ -12362,9 +12373,10 @@ the presented triple, including:
 (c) a well-formed triple for this file and this
     data server for which the data server holds no
     surviving record and no concrete invalidation
-    context.<a href="#section-21.1.7-4.2.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
+    context.<a href="#section-21.1.7-4.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <p id="section-21.1.7-5">An implementation following the no-tombstone model
 cannot distinguish "the data server never recorded
 this triple" from "the data server recorded and later
@@ -13404,97 +13416,84 @@ metadata server itself).  The envelope is a
 COSE_Sign1 structure (Section 4.2 of <span>[<a href="#RFC9052" class="cite xref">RFC9052</a>]</span>)
 over a deterministic CBOR payload (Section 4.2 of
 <span>[<a href="#RFC8949" class="cite xref">RFC8949</a>]</span>) with the following normative choices:<a href="#section-24.4.1-2" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-24.4.1-3.1">
-              <p id="section-24.4.1-3.1.1"><strong>Signature algorithm</strong> (mandatory-to-implement):
-Ed25519 (algorithm identifier -8 per
-<span>[<a href="#RFC9053" class="cite xref">RFC9053</a>]</span>).  A conforming signer <span class="bcp14">MUST</span> use
+<span class="break"></span><dl class="dlParallel" id="section-24.4.1-3">
+            <dt id="section-24.4.1-3.1">Signature algorithm (mandatory-to-implement):</dt>
+            <dd style="margin-left: 1.5em" id="section-24.4.1-3.2">
+              <p id="section-24.4.1-3.2.1">Ed25519 (algorithm identifier -8 per <span>[<a href="#RFC9053" class="cite xref">RFC9053</a>]</span>).  A
+conforming signer <span class="bcp14">MUST</span> use
 Ed25519; a conforming verifier <span class="bcp14">MUST</span> accept
 Ed25519.  Other signature algorithms (e.g.,
 ECDSA-P256 with identifier -7, RSASSA-PSS-SHA256
 with identifier -37) <span class="bcp14">MAY</span> be registered as
-additional profiles per the IANA Considerations.<a href="#section-24.4.1-3.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-24.4.1-3.2">
-              <p id="section-24.4.1-3.2.1"><strong>kid header parameter</strong>: <span class="bcp14">OPTIONAL</span>.  A deployment
+additional profiles per the IANA Considerations.
+- <strong>kid header parameter</strong>: <span class="bcp14">OPTIONAL</span>.  A deployment
 with a single trust anchor <span class="bcp14">MAY</span> omit it; a
 deployment supporting key rotation or multiple
 trust anchors <span class="bcp14">SHOULD</span> include it so a data server
 can select the correct verification key.  Absent
 kid, the data server attempts verification
 against each configured trust anchor and accepts
-on the first match.<a href="#section-24.4.1-3.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-24.4.1-3.3">
-              <p id="section-24.4.1-3.3.1"><strong>Payload map fields</strong>: the signed CBOR payload
-is a map with integer-keyed fields (per
-<span>[<a href="#RFC9053" class="cite xref">RFC9053</a>]</span> convention for compact wire size).
-The mandatory-profile keys are:<a href="#section-24.4.1-3.3.1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-24.4.1-3.3.2.1">
-                  <p id="section-24.4.1-3.3.2.1.1">1 = principal (CBOR text string): the
-metadata-server principal that holds this
-incarnation.  Comparison is byte-for-byte
-against the RPCSEC_GSS authenticated name of
-the presenter (Section 5 of <span>[<a href="#RFC7861" class="cite xref">RFC7861</a>]</span>),
-with no Unicode normalization or case
-folding; a deployment <span class="bcp14">MUST</span> provision the
-authority to sign tokens whose principal
-field is exactly the RPC-authenticated name
-the data server will observe.<a href="#section-24.4.1-3.3.2.1.1" class="pilcrow">¶</a></p>
-</li>
-                <li class="normal" id="section-24.4.1-3.3.2.2">
-                  <p id="section-24.4.1-3.3.2.2.1">2 = epoch (CBOR uint): the metadata-server
-epoch value being claimed.  On presentation in
-CHUNK_ESCROW_TAKEOVER
-(<a href="#sec-CHUNK_ESCROW_TAKEOVER" class="auto internal xref">Section 25.19</a>) the data server
-<span class="bcp14">MUST</span> verify that this field equals
-ceta_new_epoch in the operation arguments; any
-mismatch is a signature-and-payload check
-failure at step 4 of "Presentation and
-Verification" below and returns NFS4ERR_ACCESS.<a href="#section-24.4.1-3.3.2.2.1" class="pilcrow">¶</a></p>
-</li>
-                <li class="normal" id="section-24.4.1-3.3.2.3">
-                  <p id="section-24.4.1-3.3.2.3.1">3 = scope (CBOR text string): identifier of
-the data server or data-server set the token
-is valid for.  Comparison is byte-for-byte
-against the data-server-side value the
-deployment provisions at trust-anchor setup
-(see "Trust Anchor Provisioning" below); a
-data server accepts a token whose scope
-field exactly matches any scope identifier
-it has been provisioned to serve, and
-rejects any other value.  The scope
-namespace is deployment-local -- this
-specification neither defines a format nor
-constrains the character set beyond
-requiring UTF-8 CBOR text.<a href="#section-24.4.1-3.3.2.3.1" class="pilcrow">¶</a></p>
-</li>
-                <li class="normal" id="section-24.4.1-3.3.2.4">
-                  <p id="section-24.4.1-3.3.2.4.1">4 = issued_at (CBOR tag-1 epoch-based
-date/time per <span>[<a href="#RFC8949" class="cite xref">RFC8949</a>]</span> Section 3.4.2):
-the instant the authority signed the token.
-A conforming issuer <span class="bcp14">MUST</span> encode this as a
-CBOR unsigned integer number of seconds
-since the POSIX epoch; a verifier <span class="bcp14">MUST</span>
-reject a token whose issued_at is not an
-unsigned integer under tag 1 (fractional or
-negative values are rejected).<a href="#section-24.4.1-3.3.2.4.1" class="pilcrow">¶</a></p>
-</li>
-                <li class="normal" id="section-24.4.1-3.3.2.5">
-                  <p id="section-24.4.1-3.3.2.5.1">5 = expires_at (CBOR tag-1 epoch-based
-date/time per <span>[<a href="#RFC8949" class="cite xref">RFC8949</a>]</span> Section 3.4.2):
-the instant the token ceases to be
-admissible.  Same encoding constraints as
-issued_at.<a href="#section-24.4.1-3.3.2.5.1" class="pilcrow">¶</a></p>
-</li>
-                <li class="normal" id="section-24.4.1-3.3.2.6">
-                  <p id="section-24.4.1-3.3.2.6.1">6 = token_id (CBOR byte string, 16 bytes):
-a nonce for replay detection.<a href="#section-24.4.1-3.3.2.6.1" class="pilcrow">¶</a></p>
-</li>
-              </ul>
-</li>
-          </ul>
+on the first match.
+Payload map fields:<a href="#section-24.4.1-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-24.4.1-3.3"></dt>
+            <dd style="margin-left: 1.5em" id="section-24.4.1-3.4">
+              <p id="section-24.4.1-3.4.1">the signed CBOR payload is a map with integer-keyed fields
+(per <span>[<a href="#RFC9053" class="cite xref">RFC9053</a>]</span> convention for compact wire size).
+The mandatory-profile keys are:
+ - 1 = principal (CBOR text string): the
+   metadata-server principal that holds this
+   incarnation.  Comparison is byte-for-byte
+   against the RPCSEC_GSS authenticated name of
+   the presenter (Section 5 of <span>[<a href="#RFC7861" class="cite xref">RFC7861</a>]</span>),
+   with no Unicode normalization or case
+   folding; a deployment <span class="bcp14">MUST</span> provision the
+   authority to sign tokens whose principal
+   field is exactly the RPC-authenticated name
+   the data server will observe.
+ - 2 = epoch (CBOR uint): the metadata-server
+   epoch value being claimed.  On presentation in
+   CHUNK_ESCROW_TAKEOVER
+   (<a href="#sec-CHUNK_ESCROW_TAKEOVER" class="auto internal xref">Section 25.19</a>) the data server
+   <span class="bcp14">MUST</span> verify that this field equals
+   ceta_new_epoch in the operation arguments; any
+   mismatch is a signature-and-payload check
+   failure at step 4 of "Presentation and
+   Verification" below and returns NFS4ERR_ACCESS.
+ - 3 = scope (CBOR text string): identifier of
+   the data server or data-server set the token
+   is valid for.  Comparison is byte-for-byte
+   against the data-server-side value the
+   deployment provisions at trust-anchor setup
+   (see "Trust Anchor Provisioning" below); a
+   data server accepts a token whose scope
+   field exactly matches any scope identifier
+   it has been provisioned to serve, and
+   rejects any other value.  The scope
+   namespace is deployment-local -- this
+   specification neither defines a format nor
+   constrains the character set beyond
+   requiring UTF-8 CBOR text.
+ - 4 = issued_at (CBOR tag-1 epoch-based
+   date/time per <span>[<a href="#RFC8949" class="cite xref">RFC8949</a>]</span> Section 3.4.2):
+   the instant the authority signed the token.
+   A conforming issuer <span class="bcp14">MUST</span> encode this as a
+   CBOR unsigned integer number of seconds
+   since the POSIX epoch; a verifier <span class="bcp14">MUST</span>
+   reject a token whose issued_at is not an
+   unsigned integer under tag 1 (fractional or
+   negative values are rejected).
+ - 5 = expires_at (CBOR tag-1 epoch-based
+   date/time per <span>[<a href="#RFC8949" class="cite xref">RFC8949</a>]</span> Section 3.4.2):
+   the instant the token ceases to be
+   admissible.  Same encoding constraints as
+   issued_at.
+ - 6 = token_id (CBOR byte string, 16 bytes):
+   a nonce for replay detection.<a href="#section-24.4.1-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 </section>
 </div>
 <div id="presentation-and-verification">
@@ -13617,24 +13616,27 @@ no-op).<a href="#section-24.4.3-3.2.1" class="pilcrow">¶</a></p>
 <p id="section-24.4.3-4">The recovery rule takes two forms distinguished by
 the state of the token_id replay cache at the data
 server:<a href="#section-24.4.3-4" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-24.4.3-5.1">
-              <p id="section-24.4.3-5.1.1"><strong>Cache-hit form</strong> (ordinary lost-response
-case): the token_id is present in the token_id
-replay cache.  The data server recognizes the
+<span class="break"></span><dl class="dlParallel" id="section-24.4.3-5">
+            <dt id="section-24.4.3-5.1">Cache-hit form (ordinary lost-response case):</dt>
+            <dd style="margin-left: 1.5em" id="section-24.4.3-5.2">
+              <p id="section-24.4.3-5.2.1">the token_id is present in the token_id replay cache.  The
+data server recognizes the
 cached byte-identical decision and returns the
-cached NFS4_OK result; step 5 is not re-executed.<a href="#section-24.4.3-5.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-24.4.3-5.2">
-              <p id="section-24.4.3-5.2.1"><strong>Cache-miss form</strong> (applies after eviction or
-non-persisted restart): the token_id is not
-present in the replay cache.  The data server
+cached NFS4_OK result; step 5 is not re-executed.
+Cache-miss form (applies after eviction or non-persisted restart):<a href="#section-24.4.3-5.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-24.4.3-5.3"></dt>
+            <dd style="margin-left: 1.5em" id="section-24.4.3-5.4">
+              <p id="section-24.4.3-5.4.1">the token_id is not present in the replay cache.  The data
+server
 treats the presentation as a fresh byte-identical
 proof under the two epoch predicates
 above and does NOT execute step 5 (the epoch is
-already at the post-advance state).<a href="#section-24.4.3-5.2.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
+already at the post-advance state).<a href="#section-24.4.3-5.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <p id="section-24.4.3-6">Under these predicates the data server returns
 NFS4_OK without side effect: the epoch and
 epoch_expires_at are already at the post-advance
@@ -13979,7 +13981,7 @@ grants, guard generation, and lock escrow.  A client that issues
 CHUNK operations outside an active layout is operating outside
 this specification; the data server's behaviour in that case is
 undefined.  See <a href="#sec-system-model-chunk-not-block" class="auto internal xref">Section 12.2</a> for the
-distinction between the CHUNK operation surface and a generic block I/O
+distinction between the CHUNK operations and a generic block I/O
 interface.<a href="#section-25-7" class="pilcrow">¶</a></p>
 <span id="name-protocol-ops"></span><div id="tbl-protocol-ops">
 <table class="center" id="table-17">
@@ -18562,8 +18564,9 @@ trust table for a tightly coupled deployment.<a href="#section-25.14.3-1" class=
 <p id="section-25.14.3-2">REVOKE_STATEID has no analog in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.  RFC 8881
 revokes pNFS layouts via LAYOUTRETURN with a special
 all-files marker or via implicit lease expiry;
-REVOKE_STATEID is the new metadata-server-to-data-server surface that lets the
-metadata server force per-client invalidation at the data
+REVOKE_STATEID is the new metadata-server-to-data-server operation
+that lets the metadata server force per-client invalidation at the
+data
 server without waiting for tsa_expire and without
 unsetting other clients' trust entries.<a href="#section-25.14.3-2" class="pilcrow">¶</a></p>
 <p id="section-25.14.3-3">REVOKE_STATEID is a metadata-server-to-data-server operation; pNFS clients
@@ -19671,38 +19674,33 @@ issuing CHUNK_WRITE_REPAIR, CHUNK_ROLLBACK, or CHUNK_WRITE
 on any chunk in a requested range.<a href="#section-26.1.3-6" class="pilcrow">¶</a></p>
 <p id="section-26.1.3-7">CB_CHUNK_REPAIR returns a top-level ccrr_status plus a
 co-indexed per-range status array ccrr_range_status:<a href="#section-26.1.3-7" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-26.1.3-8.1">
-              <p id="section-26.1.3-8.1.1"><strong>Operation-wide errors</strong> (decode failure,
-authorization failure, session-stale, and other
-conditions that fail every range at once): the
+<span class="break"></span><dl class="dlParallel" id="section-26.1.3-8">
+            <dt id="section-26.1.3-8.1">Operation-wide errors (decode failure, authorization failure, session-stale, and other conditions that fail every range at once):</dt>
+            <dd style="margin-left: 1.5em" id="section-26.1.3-8.2">
+              <p id="section-26.1.3-8.2.1">the
 operation-wide error is placed in ccrr_status and
-ccrr_range_status <span class="bcp14">MUST</span> be empty (zero entries).<a href="#section-26.1.3-8.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="section-26.1.3-8.2">
-              <p id="section-26.1.3-8.2.1"><strong>Per-range dispositions</strong> (the callback is
-otherwise well-formed and evaluated per range):
-ccrr_range_status carries exactly one nfsstat4 per
+ccrr_range_status <span class="bcp14">MUST</span> be empty (zero entries).
+Per-range dispositions (the callback is otherwise well-formed and evaluated per range):<a href="#section-26.1.3-8.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-26.1.3-8.3"></dt>
+            <dd style="margin-left: 1.5em" id="section-26.1.3-8.4">
+              <p id="section-26.1.3-8.4.1">ccrr_range_status carries exactly one nfsstat4 per
 entry in ccra_ranges, co-indexed.  The top-level
-ccrr_status in this case is one of:<a href="#section-26.1.3-8.2.1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-26.1.3-8.2.2.1">
-                  <p id="section-26.1.3-8.2.2.1.1"><strong>NFS4_OK</strong>: every range reached CHUNK_REPAIRED
-or CHUNK_UNLOCK per the completion contract;
-every ccrr_range_status entry is NFS4_OK.<a href="#section-26.1.3-8.2.2.1.1" class="pilcrow">¶</a></p>
-</li>
-                <li class="normal" id="section-26.1.3-8.2.2.2">
-                  <p id="section-26.1.3-8.2.2.2.1"><strong>NFS4ERR_PARTIAL</strong> (<a href="#sec-NFS4ERR_PARTIAL" class="auto internal xref">Section 21.1.11</a>): at
-least one range did not reach the completion
-state.  The metadata server <span class="bcp14">MUST</span> consume the
-ccrr_range_status array to determine per-range
-outcome; the array is authoritative.  An
-NFS4ERR_PARTIAL response with an empty array
-is malformed and <span class="bcp14">MUST</span> be rejected.<a href="#section-26.1.3-8.2.2.2.1" class="pilcrow">¶</a></p>
-</li>
-              </ul>
-</li>
-          </ul>
+ccrr_status in this case is one of:
+  - <strong>NFS4_OK</strong>: every range reached CHUNK_REPAIRED
+    or CHUNK_UNLOCK per the completion contract;
+    every ccrr_range_status entry is NFS4_OK.
+  - <strong>NFS4ERR_PARTIAL</strong> (<a href="#sec-NFS4ERR_PARTIAL" class="auto internal xref">Section 21.1.11</a>): at
+    least one range did not reach the completion
+    state.  The metadata server <span class="bcp14">MUST</span> consume the
+    ccrr_range_status array to determine per-range
+    outcome; the array is authoritative.  An
+    NFS4ERR_PARTIAL response with an empty array
+    is malformed and <span class="bcp14">MUST</span> be rejected.<a href="#section-26.1.3-8.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <p id="section-26.1.3-9">The precedence rule between top-level and per-range
 status is that a non-empty ccrr_range_status pairs
 only with NFS4_OK or NFS4ERR_PARTIAL at the top
@@ -19802,7 +19800,7 @@ control-plane pinning (<a href="#sec-CHUNK_ESCROW_INSTALL" class="auto internal 
 <a href="#sec-chunk_guard_mds" class="auto internal xref">Section 24.1.4</a>) -- that together deliver a
 CONDITIONAL rollback guarantee.  This section states the
 guarantee scope precisely and specifies the client-side
-decision tree over the composed error surface.<a href="#section-27-1" class="pilcrow">¶</a></p>
+decision tree over the composed error set.<a href="#section-27-1" class="pilcrow">¶</a></p>
 <div id="sec-composed-rollback-scope">
 <section id="section-27.1">
         <h3 id="name-guarantee-scope">
@@ -19888,110 +19886,98 @@ storage substrate.<a href="#section-27.1-4" class="pilcrow">¶</a></p>
         <h3 id="name-client-side-error-decision-">
 <a href="#section-27.2" class="section-number selfRef">27.2. </a><a href="#name-client-side-error-decision-" class="section-name selfRef">Client-Side Error Decision Tree</a>
         </h3>
-<p id="section-27.2-1">A client operating over the composed error surface
+<p id="section-27.2-1">A client operating over the composed error set
 distinguishes control-plane failures (which the
 metadata server must resolve) from data-plane
 failures (which the client can address via
 fallback).  Ordering matters: control-plane
 failures must be resolved before data-plane
 recovery is attempted.<a href="#section-27.2-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-27.2-2.1">
-            <p id="section-27.2-2.1.1"><strong>CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT -&gt;
-NFS4ERR_NO_ADOPTABLE_LOCK
-(<a href="#sec-NFS4ERR_NO_ADOPTABLE_LOCK" class="auto internal xref">Section 21.1.8</a>):</strong> custody /
-control-plane failure BEFORE any usable lock is
-in hand.  The four state causes (no escrow /
-identity mismatch / reconciliation hold /
-already-adopted) are all conditions the
-metadata server is best placed to resolve.
+<span class="break"></span><dl class="dlParallel" id="section-27.2-2">
+          <dt id="section-27.2-2.1">CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT -&gt; NFS4ERR_NO_ADOPTABLE_LOCK (<a href="#sec-NFS4ERR_NO_ADOPTABLE_LOCK" class="auto internal xref">Section 21.1.8</a>):</dt>
+          <dd style="margin-left: 1.5em" id="section-27.2-2.2">
+            <p id="section-27.2-2.2.1">custody / control-plane failure BEFORE any usable lock is
+in hand.  The four state causes (no escrow / identity
+mismatch / reconciliation hold / already-adopted) are all
+conditions the metadata server is best placed to resolve.
 The client <span class="bcp14">MUST</span> report the outcome via the
-ccrr_range_status array
-(<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 26.1</a>) and <span class="bcp14">MUST NOT</span>
-unilaterally retry the adoption or begin the
+ccrr_range_status array (<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 26.1</a>) and <span class="bcp14">MUST NOT</span> unilaterally retry the adoption or begin the
 CHUNK_WRITE_REPAIR fallback path
-(<a href="#sec-CHUNK_WRITE_REPAIR" class="auto internal xref">Section 25.12</a>); that fallback
-assumes a usable lock, and no lock exists here
-to fall back under.<a href="#section-27.2-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-27.2-2.2">
-            <p id="section-27.2-2.2.1"><strong>CHUNK_LOCK -&gt; NFS4ERR_ACCESS:</strong> presenter
-authorization failure.  Report to the metadata
-server; do not retry.<a href="#section-27.2-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-27.2-2.3">
-            <p id="section-27.2-2.3.1"><strong>After successful CHUNK_LOCK / ADOPT -&gt;
-CHUNK_HEADER_READ (<a href="#sec-CHUNK_HEADER_READ" class="auto internal xref">Section 25.5</a>):</strong>
-read the primary owner and chrr_predecessors
-array.  If the intended predecessor's triple
-appears in the list, proceed to CHUNK_ROLLBACK.
-If absent, the CHUNK_WRITE_REPAIR fallback path
-may begin directly (do not issue CHUNK_ROLLBACK against a
-predecessor known-absent).<a href="#section-27.2-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-27.2-2.4">
-            <p id="section-27.2-2.4.1"><strong>CHUNK_ROLLBACK -&gt; NFS4ERR_NO_PREDECESSOR
-(<a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Section 21.1.7</a>):</strong> data-plane
-result AFTER a usable lock is in hand.  The
-actor has the lock; there is simply no
-restorable predecessor.  The client <span class="bcp14">MAY</span> invoke
-best-effort reconstruction via CHUNK_WRITE_REPAIR
-under a new owner triple
-(<a href="#sec-CHUNK_WRITE_REPAIR" class="auto internal xref">Section 25.12</a>);
-fallback <span class="bcp14">MAY</span> terminate at NFS4ERR_PAYLOAD_LOST
-(<a href="#sec-NFS4ERR_PAYLOAD_LOST" class="auto internal xref">Section 21.1.5</a>) if no
-authoritative source exists.<a href="#section-27.2-2.4.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-27.2-2.5">
-            <p id="section-27.2-2.5.1"><strong>CHUNK_ROLLBACK -&gt; NFS4ERR_INVAL or
-NFS4ERR_NO_PREDECESSOR</strong> for a fresh op naming a
-released triple: terminal per-entry failure.
-Caller holds a stale reference; no operation
-defined in this document resurrects the deleted
-generation.  The data server returns
-NFS4ERR_INVAL within the delete case's session-slot
-replay-cache window and NFS4ERR_NO_PREDECESSOR
-after the window has elapsed or for any other
-terminal release (per the release-scope split at
-<a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Section 21.1.7</a>).  Compare either
-code to the uncertain-replay carve-out
-(<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref">Section 25.9</a> "Idempotence and
-Uncertain-Replay Carve-Out") which permits an
-EXACT reissue after uncertain prior completion
-to treat NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR
-as postcondition-equivalent success, but ONLY
-when the caller independently verifies the
-postcondition holds.<a href="#section-27.2-2.5.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-27.2-2.6">
-            <p id="section-27.2-2.6.1"><strong>Any CHUNK_ESCROW operation -&gt; NFS4ERR_STALE_ESCROW
-(<a href="#sec-NFS4ERR_STALE_ESCROW" class="auto internal xref">Section 21.1.9</a>):</strong> control-plane
-identity mismatch or no covering escrow on the
-metadata server's own CHUNK_ESCROW_RELEASE.
-The response never authorizes tuple removal by
-itself when adoption may have consumed the
-escrow (see <a href="#sec-CHUNK_ESCROW_RELEASE" class="auto internal xref">Section 25.17</a>).<a href="#section-27.2-2.6.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-27.2-2.7">
-            <p id="section-27.2-2.7.1"><strong>Any CHUNK_ESCROW operation -&gt; NFS4ERR_STALE_MDS_EPOCH
-(<a href="#sec-NFS4ERR_STALE_MDS_EPOCH" class="auto internal xref">Section 21.1.10</a>):</strong> the
-metadata server has been fenced by a
-superseding CHUNK_ESCROW_TAKEOVER.  The metadata
-server <span class="bcp14">MUST</span> obtain a fresh incarnation-lease token
-and reissue via CHUNK_ESCROW_TAKEOVER
-(<a href="#sec-CHUNK_ESCROW_TAKEOVER" class="auto internal xref">Section 25.19</a>); TAKEOVER is
-exempt from this rejection.<a href="#section-27.2-2.7.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-27.2-2.8">
-            <p id="section-27.2-2.8.1"><strong>CB_CHUNK_REPAIR response -&gt; NFS4ERR_PARTIAL
-(<a href="#sec-NFS4ERR_PARTIAL" class="auto internal xref">Section 21.1.11</a>):</strong> at least one
-named range did not reach completion; the
+(<a href="#sec-CHUNK_WRITE_REPAIR" class="auto internal xref">Section 25.12</a>); that fallback assumes a
+usable lock, and no lock exists here to fall back under.<a href="#section-27.2-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-27.2-2.3">CHUNK_LOCK -&gt; NFS4ERR_ACCESS:</dt>
+          <dd style="margin-left: 1.5em" id="section-27.2-2.4">
+            <p id="section-27.2-2.4.1">presenter authorization failure.  Report to the metadata
+server; do not retry.<a href="#section-27.2-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-27.2-2.5">After successful CHUNK_LOCK / ADOPT -&gt; CHUNK_HEADER_READ (<a href="#sec-CHUNK_HEADER_READ" class="auto internal xref">Section 25.5</a>):</dt>
+          <dd style="margin-left: 1.5em" id="section-27.2-2.6">
+            <p id="section-27.2-2.6.1">read the primary owner and chrr_predecessors array.  If the
+intended predecessor's triple appears in the list, proceed
+to CHUNK_ROLLBACK.  If absent, the CHUNK_WRITE_REPAIR
+fallback path may begin directly (do not issue
+CHUNK_ROLLBACK against a predecessor known-absent).<a href="#section-27.2-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-27.2-2.7">CHUNK_ROLLBACK -&gt; NFS4ERR_NO_PREDECESSOR (<a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Section 21.1.7</a>):</dt>
+          <dd style="margin-left: 1.5em" id="section-27.2-2.8">
+            <p id="section-27.2-2.8.1">data-plane result AFTER a usable lock is in hand.  The
+actor has the lock; there is simply no restorable
+predecessor.  The client <span class="bcp14">MAY</span> invoke best-effort
+reconstruction via CHUNK_WRITE_REPAIR under a new owner
+triple (<a href="#sec-CHUNK_WRITE_REPAIR" class="auto internal xref">Section 25.12</a>); fallback <span class="bcp14">MAY</span> terminate
+at NFS4ERR_PAYLOAD_LOST (<a href="#sec-NFS4ERR_PAYLOAD_LOST" class="auto internal xref">Section 21.1.5</a>) if
+no authoritative source exists.<a href="#section-27.2-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-27.2-2.9">CHUNK_ROLLBACK -&gt; NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR for a fresh op naming a released triple:</dt>
+          <dd style="margin-left: 1.5em" id="section-27.2-2.10">
+            <p id="section-27.2-2.10.1">terminal per-entry failure.  Caller holds a stale
+reference; no operation defined in this document
+resurrects the deleted generation.  The data server
+returns NFS4ERR_INVAL within the delete case's
+session-slot replay-cache window and NFS4ERR_NO_PREDECESSOR
+after the window has elapsed or for any other terminal
+release (per the release-scope split at
+<a href="#sec-NFS4ERR_NO_PREDECESSOR" class="auto internal xref">Section 21.1.7</a>).  Compare either code to
+the uncertain-replay carve-out (<a href="#sec-CHUNK_ROLLBACK" class="auto internal xref">Section 25.9</a>
+"Idempotence and Uncertain-Replay Carve-Out") which
+permits an EXACT reissue after uncertain prior completion
+to treat NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR as
+postcondition-equivalent success, but ONLY when the caller
+independently verifies the postcondition holds.<a href="#section-27.2-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-27.2-2.11">Any CHUNK_ESCROW operation -&gt; NFS4ERR_STALE_ESCROW (<a href="#sec-NFS4ERR_STALE_ESCROW" class="auto internal xref">Section 21.1.9</a>):</dt>
+          <dd style="margin-left: 1.5em" id="section-27.2-2.12">
+            <p id="section-27.2-2.12.1">control-plane identity mismatch or no covering escrow on
+the metadata server's own CHUNK_ESCROW_RELEASE.  The
+response never authorizes tuple removal by itself when
+adoption may have consumed the escrow (see
+<a href="#sec-CHUNK_ESCROW_RELEASE" class="auto internal xref">Section 25.17</a>).<a href="#section-27.2-2.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-27.2-2.13">Any CHUNK_ESCROW operation -&gt; NFS4ERR_STALE_MDS_EPOCH (<a href="#sec-NFS4ERR_STALE_MDS_EPOCH" class="auto internal xref">Section 21.1.10</a>):</dt>
+          <dd style="margin-left: 1.5em" id="section-27.2-2.14">
+            <p id="section-27.2-2.14.1">the metadata server has been fenced by a superseding
+CHUNK_ESCROW_TAKEOVER.  The metadata server <span class="bcp14">MUST</span> obtain a
+fresh incarnation-lease token and reissue via
+CHUNK_ESCROW_TAKEOVER (<a href="#sec-CHUNK_ESCROW_TAKEOVER" class="auto internal xref">Section 25.19</a>);
+TAKEOVER is exempt from this rejection.<a href="#section-27.2-2.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-27.2-2.15">CB_CHUNK_REPAIR response -&gt; NFS4ERR_PARTIAL (<a href="#sec-NFS4ERR_PARTIAL" class="auto internal xref">Section 21.1.11</a>):</dt>
+          <dd style="margin-left: 1.5em" id="section-27.2-2.16">
+            <p id="section-27.2-2.16.1">at least one named range did not reach completion; the
 metadata server <span class="bcp14">MUST</span> consume the per-range
-ccrr_range_status array
-(<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 26.1</a>) to determine
-per-range outcome.<a href="#section-27.2-2.8.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
+ccrr_range_status array (<a href="#sec-CB_CHUNK_REPAIR" class="auto internal xref">Section 26.1</a>) to
+determine per-range outcome.<a href="#section-27.2-2.16.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
 <p id="section-27.2-3">The essential distinction is that
 NFS4ERR_NO_ADOPTABLE_LOCK and
 NFS4ERR_NO_PREDECESSOR both prevent the direct
@@ -20295,11 +20281,11 @@ respect to its own chunks, in a restricted sense.  The data
 server validates the checksum against the bytes the client
 provided, so an authenticated client that chooses to send
 semantically-invalid bytes with a correctly computed checksum will
-have those bytes accepted.  The residual surface differs per
+have those bytes accepted.  The residual risk differs per
 authentication model:<a href="#section-28.1-4" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-28.1-5.1">
-            <p id="section-28.1-5.1.1">Under AUTH_SYS with loose coupling, the residual surface is
+            <p id="section-28.1-5.1.1">Under AUTH_SYS with loose coupling, the residual risk is
 essentially the pre-existing attack surface of NFSv3 writes:
 any host that can reach the data server with a valid uid can
 write nonsense to chunks that uid owns.  This is the Flex
@@ -20308,12 +20294,12 @@ without modification for this path.<a href="#section-28.1-5.1.1" class="pilcrow"
 </li>
           <li class="normal" id="section-28.1-5.2">
             <p id="section-28.1-5.2.1">Under RPCSEC_GSS or TLS with mutual authentication, the
-residual surface reduces to: only the authenticated client
+residual risk reduces to: only the authenticated client
 can write nonsense into chunks it owns.  Cross-client
 corruption is prevented because the data server verifies the
-principal before accepting the write.  The remaining attack
-surface is the client's own integrity: any deployment that
-relies on data integrity above the wire <span class="bcp14">MUST</span> apply
+principal before accepting the write.  The remaining
+exposure is at the client's own integrity: any deployment
+that relies on data integrity above the wire <span class="bcp14">MUST</span> apply
 application-level content validation.<a href="#section-28.1-5.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
@@ -20767,7 +20753,7 @@ opening during revocation.<a href="#section-28.7.2-1.8.1" class="pilcrow">¶</a>
               <p id="section-28.7.2-1.10.1">An attacker who controls the metadata-server-to-data-server
 control session can register or revoke
 arbitrary trust entries.  The control session is the
-most security-sensitive surface introduced by tight
+most security-sensitive element introduced by tight
 coupling.  Deployment <span class="bcp14">MUST</span> protect it with RPCSEC_GSS
 (<span>[<a href="#RFC7861" class="cite xref">RFC7861</a>]</span>) using a service principal both sides
 trust, or with RPC-over-TLS (<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) using
@@ -22097,42 +22083,49 @@ zero decode cost (the shard is copied through unchanged).<a href="#appendix-A.3.
 <p id="appendix-A.3.5-1">The wire-spread convergence does not mean encoder choice is
 irrelevant.  It means encoder choice is decided by properties
 other than raw algorithm speed at typical operating points:<a href="#appendix-A.3.5-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="appendix-A.3.5-2.1">
-              <p id="appendix-A.3.5-2.1.1"><strong>Fault tolerance and geometry</strong>: FFV2_ENCODING_RS_VANDERMONDE
-and the Mojette family support arbitrary (k, m);
-FFV2_ENCODING_XOR_PARITY is m = 1 only;
-FFV2_ENCODING_LINUX_MD_RAID is m = 2 only.<a href="#appendix-A.3.5-2.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="appendix-A.3.5-2.2">
-              <p id="appendix-A.3.5-2.2.1"><strong>Interoperability</strong>: the m &lt;= 2 byte-identical set described
-above lets a deployment mix implementations of different
-encoders at the same k and m without cross-encoding.<a href="#appendix-A.3.5-2.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="appendix-A.3.5-2.3">
-              <p id="appendix-A.3.5-2.3.1"><strong>Reconstruction cost</strong>: systematic encodings
-(FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-FFV2_ENCODING_XOR_PARITY, FFV2_ENCODING_LINUX_MD_RAID) short-circuit
-no-loss reads at wire speed;
-FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC transforms every shard on
-every read.<a href="#appendix-A.3.5-2.3.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="appendix-A.3.5-2.4">
-              <p id="appendix-A.3.5-2.4.1"><strong>Wide-geometry scaling</strong>: at k &gt;= 8, m &gt;= 4, the Mojette
-back-projection reconstruction cost scales with m (parity
-count) rather than k (data count), so its reconstruction
-overhead does not exhibit the O(k^3) growth Reed-Solomon
-matrix inversion incurs at wider geometries.<a href="#appendix-A.3.5-2.4.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="appendix-A.3.5-2.5">
-              <p id="appendix-A.3.5-2.5.1"><strong>Implementation availability</strong>:
-FFV2_ENCODING_XOR_PARITY has no external dependency;
+<span class="break"></span><dl class="dlParallel" id="appendix-A.3.5-2">
+            <dt id="appendix-A.3.5-2.1">Fault tolerance and geometry:</dt>
+            <dd style="margin-left: 1.5em" id="appendix-A.3.5-2.2">
+              <p id="appendix-A.3.5-2.2.1">FFV2_ENCODING_RS_VANDERMONDE and the Mojette family support
+arbitrary (k, m); FFV2_ENCODING_XOR_PARITY is m = 1 only;
+FFV2_ENCODING_LINUX_MD_RAID is m = 2 only.<a href="#appendix-A.3.5-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="appendix-A.3.5-2.3">Interoperability:</dt>
+            <dd style="margin-left: 1.5em" id="appendix-A.3.5-2.4">
+              <p id="appendix-A.3.5-2.4.1">the m &lt;= 2 byte-identical set described above lets a
+deployment mix implementations of different encoders at the
+same k and m without cross-encoding.<a href="#appendix-A.3.5-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="appendix-A.3.5-2.5">Reconstruction cost:</dt>
+            <dd style="margin-left: 1.5em" id="appendix-A.3.5-2.6">
+              <p id="appendix-A.3.5-2.6.1">systematic encodings (FFV2_ENCODING_RS_VANDERMONDE,
+FFV2_ENCODING_MOJETTE_SYSTEMATIC, FFV2_ENCODING_XOR_PARITY,
+FFV2_ENCODING_LINUX_MD_RAID) short-circuit no-loss reads at
+wire speed; FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC transforms
+every shard on every read.<a href="#appendix-A.3.5-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="appendix-A.3.5-2.7">Wide-geometry scaling:</dt>
+            <dd style="margin-left: 1.5em" id="appendix-A.3.5-2.8">
+              <p id="appendix-A.3.5-2.8.1">at k &gt;= 8, m &gt;= 4, the Mojette back-projection reconstruction
+cost scales with m (parity count) rather than k (data count),
+so its reconstruction overhead does not exhibit the O(k^3)
+growth Reed-Solomon matrix inversion incurs at wider
+geometries.<a href="#appendix-A.3.5-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="appendix-A.3.5-2.9">Implementation availability:</dt>
+            <dd style="margin-left: 1.5em" id="appendix-A.3.5-2.10">
+              <p id="appendix-A.3.5-2.10.1">FFV2_ENCODING_XOR_PARITY has no external dependency;
 FFV2_ENCODING_LINUX_MD_RAID's reference construction is
 present in every Linux kernel at <code>lib/raid6/</code>
 (<span>[<a href="#LINUX-RAID6" class="cite xref">LINUX-RAID6</a>]</span>).  The remaining encoders in this document
-have reference implementations in the sources cited above.<a href="#appendix-A.3.5-2.5.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
+have reference implementations in the sources cited above.<a href="#appendix-A.3.5-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
 <p id="appendix-A.3.5-3">A full benchmark report with per-cell tables, per-host medians,
 and per-variant transmit decompositions is available alongside
 the source code.<a href="#appendix-A.3.5-3" class="pilcrow">¶</a></p>
@@ -22427,7 +22420,7 @@ disturbing other holders.<a href="#appendix-B.7-2.3.1" class="pilcrow">¶</a></p
         </ul>
 <p id="appendix-B.7-3">If a future revision determines that layout-level generation is
 needed, it can be added as a protocol extension: the on-wire
-surface is additive rather than a replacement, because
+change is additive rather than a replacement, because
 cg_gen_id's semantics are independent of any outer layout
 epoch.<a href="#appendix-B.7-3" class="pilcrow">¶</a></p>
 </section>

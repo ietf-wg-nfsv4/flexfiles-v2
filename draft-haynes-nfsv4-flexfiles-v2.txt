@@ -2287,7 +2287,7 @@ Table of Contents
       application data; the wire and the storage device are the same in
       every case.  See the individual encoding sections for the
       mathematical constructions of each encoding and for the wire-
-      compatibility relationships among the GF(2^8) family.
+      compatibility relationships among the Galois Field GF(2^8) family.
 
    The 32-bit ffv2_encoding_type4 value space is partitioned by intended
    scope -- Standards Track, Experimental, Vendor (open), and Private /
@@ -2660,9 +2660,9 @@ Table of Contents
    FFV2_DS_FLAGS_PROXY set on their ffv2_data_server4; the client
    directs I/O for that mirror to the proxy, which translates on behalf
    of the client.  The proxy server protocol itself is specified in the
-   proxy server draft; this document defines only the layout-flag
-   surface (this bit) that lets the metadata server mark a data-server
-   entry as proxy-mediated.
+   proxy server draft; this document defines only the layout flag (this
+   bit) that lets the metadata server mark a data-server entry as proxy-
+   mediated.
 
 8.5.  ffv2_data_server4
 
@@ -3136,7 +3136,7 @@ Table of Contents
    erasure encoding types are added, older ones fall out of favour,
    vendors register private codes; see Section 29), neither clients nor
    metadata servers are required to implement every registered encoding.
-   The protocol uses ffv2_layouthint4 as the negotiation surface:
+   The protocol negotiates encoding capabilities via ffv2_layouthint4:
 
    Client-side advertisement:  A client that wishes to influence
       encoding selection SHOULD send the set of encodings it actually
@@ -3199,15 +3199,14 @@ Table of Contents
           proxy's data-server entry carrying FFV2_DS_FLAGS_PROXY and a
           coding_type the client does support (typically
           FFV2_ENCODING_MIRRORED for a minimal NFSv4.2 client, or
-          FFV2_ENCODING_PASSTHROUGH / a flat NFSv3 surface for an NFSv3
+          FFV2_ENCODING_PASSTHROUGH / a flat NFSv3 view for an NFSv3
           client).  The proxy encodes and decodes on the fly against the
           real data servers.  This preserves parallel I/O for the
           encoding-ignorant client that the metadata-server I/O fallback
           loses.  The proxy registration, directive, and credential-
           forwarding rules are defined in the proxy server draft; this
-          draft defines only the layout-flag surface
-          (FFV2_DS_FLAGS_PROXY in Section 8.4) that makes the proxy
-          visible to the client.
+          draft defines only the layout flag (FFV2_DS_FLAGS_PROXY in
+          Section 8.4) that makes the proxy visible to the client.
 
       Options (1), (2), and (3) are not mutually exclusive: a given
       deployment MAY implement any combination.  A deployment that
@@ -3226,8 +3225,8 @@ Table of Contents
 
    This mechanism deliberately avoids a separate capability-bit
    handshake at EXCHANGE_ID.  ffv2_layouthint4 already provides per-
-   request negotiation surface; adding a session-level capability set
-   would duplicate it and would complicate encoding upgrades without
+   request negotiation; adding a session-level capability set would
+   duplicate it and would complicate encoding upgrades without
    additional value, because a client that genuinely upgrades its
    encoding set at runtime can simply update the ffv2lh_supported_types
    on its next LAYOUTGET.
@@ -4668,7 +4667,7 @@ Table of Contents
       correlated failure mode (an encoding implementation bug, a memory-
       corruption pattern that affects parity shards identically), a
       second mirror in a different encoding provides an independent
-      recovery surface.
+      recovery path.
 
    Client-capability routing:  a proxy server sees the full mirror set
       and chooses between encodings on behalf of clients that do not
@@ -4758,7 +4757,7 @@ Table of Contents
    proxy server selects which of the file's mirrors to read from or
    write to on the client's behalf.  The two-mirror view in this section
    describes the metadata server's bookkeeping during the transition;
-   the client's I/O surface is one endpoint.
+   the client directs its I/O to a single endpoint.
 
 11.3.1.  Steady-state heterogeneous mirrors
 
@@ -5852,11 +5851,11 @@ Table of Contents
    CHUNK_COMMIT, CHUNK_ROLLBACK, CHUNK_LOCK / CHUNK_UNLOCK, CHUNK_READ,
    CHUNK_REPAIRED, CHUNK_ERROR, CHUNK_HEADER_READ, CHUNK_WRITE_REPAIR)
    together with the per-chunk state machine (Section 12.5) and the
-   chunk_guard4 CAS (Section 24.1) are the entire surface a peer
-   observes.  The data server's internal representation of persistent
-   state is not exposed on the wire, and two data-server implementations
-   that satisfy the same wire semantics MAY differ arbitrarily in their
-   internal structure.
+   chunk_guard4 CAS (Section 24.1) are everything a peer observes.  The
+   data server's internal representation of persistent state is not
+   exposed on the wire, and two data-server implementations that satisfy
+   the same wire semantics MAY differ arbitrarily in their internal
+   structure.
 
    In particular, the protocol does NOT exchange:
 
@@ -5899,33 +5898,31 @@ Table of Contents
 
    A chunk carries five properties that a block does not:
 
-   *  *Atomicity.* The chunk_guard4 compare-and-swap guard
-      (Section 24.1) sequences concurrent writers and rejects torn-write
-      attempts.  Block I/O has no comparable primitive; concurrent block
-      writes either serialize at the storage layer or interleave
-      unpredictably.
+   Atomicity:  the chunk_guard4 compare-and-swap guard (Section 24.1)
+      sequences concurrent writers and rejects torn-write attempts.
+      Block I/O has no comparable primitive; concurrent block writes
+      either serialize at the storage layer or interleave unpredictably.
 
-   *  *Integrity.* The checksum in each chunk header is computed over
-      the header and payload and verified end-to-end on the read path
+   Integrity:  the checksum in each chunk header is computed over the
+      header and payload and verified end-to-end on the read path
       (Section 25.7).  Block I/O carries no integrity tag; data-
       corruption detection is delegated to the underlying storage medium
       or is absent.
 
-   *  *Provenance.* The chunk_owner4 (Section 24.2) records which
+   Provenance:  the chunk_owner4 (Section 24.2) records which
       transaction produced the chunk.  Block I/O carries no per-write
       provenance; a block's bytes have no protocol-visible producer.
 
-   *  *Lifecycle state.* A chunk progresses through PENDING -> FINALIZED
-      -> COMMITTED via CHUNK_FINALIZE / CHUNK_COMMIT (Section 12.5).
-      Block I/O has no lifecycle states; a block is either present or
-      absent.
+   Lifecycle state:  a chunk progresses through PENDING -> FINALIZED ->
+      COMMITTED via CHUNK_FINALIZE / CHUNK_COMMIT (Section 12.5).  Block
+      I/O has no lifecycle states; a block is either present or absent.
 
-   *  *Lock continuity across revocation.* The chunk's lock
-      (Section 25.6) is transferred to the metadata server in escrow
-      when a holder's stateid is revoked, and adopted by a repair actor
-      via CHUNK_LOCK_FLAGS_ADOPT.  Block I/O has no per-block locking
-      and no continuity mechanism; client failure leaves any external
-      lock indeterminate.
+   Lock continuity across revocation:  the chunk's lock (Section 25.6)
+      is transferred to the metadata server in escrow when a holder's
+      stateid is revoked, and adopted by a repair actor via
+      CHUNK_LOCK_FLAGS_ADOPT.  Block I/O has no per-block locking and no
+      continuity mechanism; client failure leaves any external lock
+      indeterminate.
 
    Each of these properties is load-bearing for some part of the
    flexible file v2 layout's consistency story: the chunk_guard4 CAS
@@ -5938,9 +5935,9 @@ Table of Contents
    A protocol that exchanges file data as byte ranges with no envelope
    -- whether described as "block I/O" or as "generic data movement" --
    is not interoperable with this specification's CHUNK operations.  The
-   CHUNK operations are not a byte range I/O surface with optional
-   integrity bolted on; they are a chunk-protocol surface in which the
-   envelope is the primitive.
+   CHUNK operations are not a byte-range I/O protocol with optional
+   integrity bolted on; they are a chunk protocol in which the envelope
+   is the primitive.
 
 12.3.  Actors and Roles
 
@@ -6002,11 +5999,6 @@ Table of Contents
    and the integrity checks).  The choice is a data-server
    implementation concern and is transparent to clients and the metadata
    server.
-
-   Each file is owned by exactly one metadata server at any given
-   instant.  Ownership transfer between metadata servers (for example,
-   during metadata server failover) is implementation-defined and out of
-   scope for this document; see Section 12.12.
 
 12.4.  Failure Model
 
@@ -6452,23 +6444,23 @@ Table of Contents
    association (Section 12.9) MUST share a lifetime.  A conforming data
    server MUST NOT release one while retaining the other:
 
-   *  *MUST NOT retain payload without association.* A chunk payload
-      whose owner-to-index association has been released is
-      unaddressable by every lifecycle operation (CHUNK_COMMIT
-      (Section 25.2), CHUNK_FINALIZE (Section 25.4), CHUNK_ROLLBACK
-      (Section 25.9)) because those operations name generations by full
-      owner triple (Section 24.2).  A data server that cannot locate the
-      recorded chunk index for a presented triple returns the
-      appropriate per-entry error under the release-scope split at
-      Section 21.1.7: NFS4ERR_INVAL when the data server holds a
-      concrete invalidation context that identifies the triple
-      (structurally invalid, or released by an explicit CHUNK_ROLLBACK
-      delete case within the session slot's replay-cache window),
-      NFS4ERR_NO_PREDECESSOR otherwise.  Retaining the payload while
-      making it unaddressable serves no purpose and is prohibited.  The
-      payload MUST be released atomically with the association.
+   MUST NOT retain payload without association:  A chunk payload whose
+      owner-to-index association has been released is unaddressable by
+      every lifecycle operation (CHUNK_COMMIT (Section 25.2),
+      CHUNK_FINALIZE (Section 25.4), CHUNK_ROLLBACK (Section 25.9))
+      because those operations name generations by full owner triple
+      (Section 24.2).  A data server that cannot locate the recorded
+      chunk index for a presented triple returns the appropriate per-
+      entry error under the release-scope split at Section 21.1.7:
+      NFS4ERR_INVAL when the data server holds a concrete invalidation
+      context that identifies the triple (structurally invalid, or
+      released by an explicit CHUNK_ROLLBACK delete case within the
+      session slot's replay-cache window), NFS4ERR_NO_PREDECESSOR
+      otherwise.  Retaining the payload while making it unaddressable
+      serves no purpose and is prohibited.  The payload MUST be released
+      atomically with the association.
 
-   *  *MUST NOT release association while retaining payload.* A recorded
+   MUST NOT release association while retaining payload:  A recorded
       owner-to-index association refers to a specific chunk payload; the
       data server MUST NOT retain the association after releasing that
       payload.  A subsequent CHUNK_READ or lifecycle operation whose
@@ -7717,18 +7709,17 @@ Table of Contents
    data server can concretely observe about the presented triple, NOT on
    historical knowledge the data server may no longer retain:
 
-   *  *NFS4ERR_INVAL* is returned in exactly the cases where the data
-      server can concretely recognize the presented triple as invalid:
-      (a) *structurally invalid*: the triple is malformed or truncated,
-      or names a different file or a different data server; or (b)
-      *within-window release*: a prior explicit CHUNK_ROLLBACK delete
-      case released the association and the current request falls within
-      the same session slot's replay-cache window of that
-      CHUNK_ROLLBACK, so the data server still holds the concrete
-      invalidation context that identifies this triple as released-by-
-      delete-case.
+   NFS4ERR_INVAL:  returned in exactly the cases where the data server
+      can concretely recognize the presented triple as invalid: (a)
+      *structurally invalid*: the triple is malformed or truncated, or
+      names a different file or a different data server; or (b) *within-
+      window release*: a prior explicit CHUNK_ROLLBACK delete case
+      released the association and the current request falls within the
+      same session slot's replay-cache window of that CHUNK_ROLLBACK, so
+      the data server still holds the concrete invalidation context that
+      identifies this triple as released-by-delete-case.
 
-   *  *NFS4ERR_NO_PREDECESSOR* covers every other case in which the data
+   NFS4ERR_NO_PREDECESSOR:  covers every other case in which the data
       server holds no association for the presented triple, including:
       (a) release under the retention scope rule (lease expiry, storage-
       pressure release); (b) the eventual release of a triple
@@ -8538,64 +8529,52 @@ Table of Contents
    deterministic CBOR payload (Section 4.2 of [RFC8949]) with the
    following normative choices:
 
-   *  *Signature algorithm* (mandatory-to-implement): Ed25519 (algorithm
+   Signature algorithm (mandatory-to-implement):  Ed25519 (algorithm
       identifier -8 per [RFC9053]).  A conforming signer MUST use
       Ed25519; a conforming verifier MUST accept Ed25519.  Other
       signature algorithms (e.g., ECDSA-P256 with identifier -7, RSASSA-
       PSS-SHA256 with identifier -37) MAY be registered as additional
-      profiles per the IANA Considerations.
+      profiles per the IANA Considerations. - *kid header parameter*:
+      OPTIONAL.  A deployment with a single trust anchor MAY omit it; a
+      deployment supporting key rotation or multiple trust anchors
+      SHOULD include it so a data server can select the correct
+      verification key.  Absent kid, the data server attempts
+      verification against each configured trust anchor and accepts on
+      the first match.  Payload map fields:
 
-   *  *kid header parameter*: OPTIONAL.  A deployment with a single
-      trust anchor MAY omit it; a deployment supporting key rotation or
-      multiple trust anchors SHOULD include it so a data server can
-      select the correct verification key.  Absent kid, the data server
-      attempts verification against each configured trust anchor and
-      accepts on the first match.
-
-   *  *Payload map fields*: the signed CBOR payload is a map with
-      integer-keyed fields (per [RFC9053] convention for compact wire
-      size).  The mandatory-profile keys are:
-
-      -  1 = principal (CBOR text string): the metadata-server principal
-         that holds this incarnation.  Comparison is byte-for-byte
-         against the RPCSEC_GSS authenticated name of the presenter
-         (Section 5 of [RFC7861]), with no Unicode normalization or case
-         folding; a deployment MUST provision the authority to sign
-         tokens whose principal field is exactly the RPC-authenticated
-         name the data server will observe.
-
-      -  2 = epoch (CBOR uint): the metadata-server epoch value being
-         claimed.  On presentation in CHUNK_ESCROW_TAKEOVER
-         (Section 25.19) the data server MUST verify that this field
-         equals ceta_new_epoch in the operation arguments; any mismatch
-         is a signature-and-payload check failure at step 4 of
-         "Presentation and Verification" below and returns
-         NFS4ERR_ACCESS.
-
-      -  3 = scope (CBOR text string): identifier of the data server or
-         data-server set the token is valid for.  Comparison is byte-
-         for-byte against the data-server-side value the deployment
-         provisions at trust-anchor setup (see "Trust Anchor
-         Provisioning" below); a data server accepts a token whose scope
-         field exactly matches any scope identifier it has been
-         provisioned to serve, and rejects any other value.  The scope
-         namespace is deployment-local -- this specification neither
-         defines a format nor constrains the character set beyond
-         requiring UTF-8 CBOR text.
-
-      -  4 = issued_at (CBOR tag-1 epoch-based date/time per [RFC8949]
-         Section 3.4.2): the instant the authority signed the token.  A
-         conforming issuer MUST encode this as a CBOR unsigned integer
-         number of seconds since the POSIX epoch; a verifier MUST reject
-         a token whose issued_at is not an unsigned integer under tag 1
-         (fractional or negative values are rejected).
-
-      -  5 = expires_at (CBOR tag-1 epoch-based date/time per [RFC8949]
-         Section 3.4.2): the instant the token ceases to be admissible.
-         Same encoding constraints as issued_at.
-
-      -  6 = token_id (CBOR byte string, 16 bytes): a nonce for replay
-         detection.
+      the signed CBOR payload is a map with integer-keyed fields (per
+      [RFC9053] convention for compact wire size).  The mandatory-
+      profile keys are: - 1 = principal (CBOR text string): the
+      metadata-server principal that holds this incarnation.  Comparison
+      is byte-for-byte against the RPCSEC_GSS authenticated name of the
+      presenter (Section 5 of [RFC7861]), with no Unicode normalization
+      or case folding; a deployment MUST provision the authority to sign
+      tokens whose principal field is exactly the RPC-authenticated name
+      the data server will observe.  - 2 = epoch (CBOR uint): the
+      metadata-server epoch value being claimed.  On presentation in
+      CHUNK_ESCROW_TAKEOVER (Section 25.19) the data server MUST verify
+      that this field equals ceta_new_epoch in the operation arguments;
+      any mismatch is a signature-and-payload check failure at step 4 of
+      "Presentation and Verification" below and returns NFS4ERR_ACCESS.
+      - 3 = scope (CBOR text string): identifier of the data server or
+      data-server set the token is valid for.  Comparison is byte-for-
+      byte against the data-server-side value the deployment provisions
+      at trust-anchor setup (see "Trust Anchor Provisioning" below); a
+      data server accepts a token whose scope field exactly matches any
+      scope identifier it has been provisioned to serve, and rejects any
+      other value.  The scope namespace is deployment-local -- this
+      specification neither defines a format nor constrains the
+      character set beyond requiring UTF-8 CBOR text.  - 4 = issued_at
+      (CBOR tag-1 epoch-based date/time per [RFC8949] Section 3.4.2):
+      the instant the authority signed the token.  A conforming issuer
+      MUST encode this as a CBOR unsigned integer number of seconds
+      since the POSIX epoch; a verifier MUST reject a token whose
+      issued_at is not an unsigned integer under tag 1 (fractional or
+      negative values are rejected).  - 5 = expires_at (CBOR tag-1
+      epoch-based date/time per [RFC8949] Section 3.4.2): the instant
+      the token ceases to be admissible.  Same encoding constraints as
+      issued_at.  - 6 = token_id (CBOR byte string, 16 bytes): a nonce
+      for replay detection.
 
 24.4.2.  Presentation and Verification
 
@@ -8679,16 +8658,16 @@ Table of Contents
    The recovery rule takes two forms distinguished by the state of the
    token_id replay cache at the data server:
 
-   *  *Cache-hit form* (ordinary lost-response case): the token_id is
+   Cache-hit form (ordinary lost-response case):  the token_id is
       present in the token_id replay cache.  The data server recognizes
       the cached byte-identical decision and returns the cached NFS4_OK
-      result; step 5 is not re-executed.
+      result; step 5 is not re-executed.  Cache-miss form (applies after
+      eviction or non-persisted restart):
 
-   *  *Cache-miss form* (applies after eviction or non-persisted
-      restart): the token_id is not present in the replay cache.  The
-      data server treats the presentation as a fresh byte-identical
-      proof under the two epoch predicates above and does NOT execute
-      step 5 (the epoch is already at the post-advance state).
+      the token_id is not present in the replay cache.  The data server
+      treats the presentation as a fresh byte-identical proof under the
+      two epoch predicates above and does NOT execute step 5 (the epoch
+      is already at the post-advance state).
 
    Under these predicates the data server returns NFS4_OK without side
    effect: the epoch and epoch_expires_at are already at the post-
@@ -8945,8 +8924,8 @@ Table of Contents
    generation, and lock escrow.  A client that issues CHUNK operations
    outside an active layout is operating outside this specification; the
    data server's behaviour in that case is undefined.  See Section 12.2
-   for the distinction between the CHUNK operation surface and a generic
-   block I/O interface.
+   for the distinction between the CHUNK operations and a generic block
+   I/O interface.
 
     +========================+========+=================+=============+
     | Operation              | Number | Target Server   | Description |
@@ -11810,7 +11789,7 @@ Table of Contents
    REVOKE_STATEID has no analog in [RFC8881].  RFC 8881 revokes pNFS
    layouts via LAYOUTRETURN with a special all-files marker or via
    implicit lease expiry; REVOKE_STATEID is the new metadata-server-to-
-   data-server surface that lets the metadata server force per-client
+   data-server operation that lets the metadata server force per-client
    invalidation at the data server without waiting for tsa_expire and
    without unsetting other clients' trust entries.
 
@@ -12513,25 +12492,22 @@ Table of Contents
    CB_CHUNK_REPAIR returns a top-level ccrr_status plus a co-indexed
    per-range status array ccrr_range_status:
 
-   *  *Operation-wide errors* (decode failure, authorization failure,
-      session-stale, and other conditions that fail every range at
-      once): the operation-wide error is placed in ccrr_status and
-      ccrr_range_status MUST be empty (zero entries).
+   Operation-wide errors (decode failure, authorization failure,
+   session-stale, and other conditions that fail every range at
+   once):  the operation-wide error is placed in ccrr_status and
+      ccrr_range_status MUST be empty (zero entries).  Per-range
+      dispositions (the callback is otherwise well-formed and evaluated
+      per range):
 
-   *  *Per-range dispositions* (the callback is otherwise well-formed
-      and evaluated per range): ccrr_range_status carries exactly one
-      nfsstat4 per entry in ccra_ranges, co-indexed.  The top-level
-      ccrr_status in this case is one of:
-
-      -  *NFS4_OK*: every range reached CHUNK_REPAIRED or CHUNK_UNLOCK
-         per the completion contract; every ccrr_range_status entry is
-         NFS4_OK.
-
-      -  *NFS4ERR_PARTIAL* (Section 21.1.11): at least one range did not
-         reach the completion state.  The metadata server MUST consume
-         the ccrr_range_status array to determine per-range outcome; the
-         array is authoritative.  An NFS4ERR_PARTIAL response with an
-         empty array is malformed and MUST be rejected.
+      ccrr_range_status carries exactly one nfsstat4 per entry in
+      ccra_ranges, co-indexed.  The top-level ccrr_status in this case
+      is one of: - *NFS4_OK*: every range reached CHUNK_REPAIRED or
+      CHUNK_UNLOCK per the completion contract; every ccrr_range_status
+      entry is NFS4_OK.  - *NFS4ERR_PARTIAL* (Section 21.1.11): at least
+      one range did not reach the completion state.  The metadata server
+      MUST consume the ccrr_range_status array to determine per-range
+      outcome; the array is authoritative.  An NFS4ERR_PARTIAL response
+      with an empty array is malformed and MUST be rejected.
 
    The precedence rule between top-level and per-range status is that a
    non-empty ccrr_range_status pairs only with NFS4_OK or
@@ -12597,7 +12573,7 @@ Table of Contents
    Section 25.17 / Section 25.18 / Section 25.19, Section 24.1.4) --
    that together deliver a CONDITIONAL rollback guarantee.  This section
    states the guarantee scope precisely and specifies the client-side
-   decision tree over the composed error surface.
+   decision tree over the composed error set.
 
 27.1.  Guarantee Scope
 
@@ -12654,34 +12630,34 @@ Table of Contents
 
 27.2.  Client-Side Error Decision Tree
 
-   A client operating over the composed error surface distinguishes
-   control-plane failures (which the metadata server must resolve) from
-   data-plane failures (which the client can address via fallback).
-   Ordering matters: control-plane failures must be resolved before
-   data-plane recovery is attempted.
+   A client operating over the composed error set distinguishes control-
+   plane failures (which the metadata server must resolve) from data-
+   plane failures (which the client can address via fallback).  Ordering
+   matters: control-plane failures must be resolved before data-plane
+   recovery is attempted.
 
-   *  *CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT ->
-      NFS4ERR_NO_ADOPTABLE_LOCK (Section 21.1.8):* custody / control-
-      plane failure BEFORE any usable lock is in hand.  The four state
-      causes (no escrow / identity mismatch / reconciliation hold /
-      already-adopted) are all conditions the metadata server is best
-      placed to resolve.  The client MUST report the outcome via the
+   CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT ->
+   NFS4ERR_NO_ADOPTABLE_LOCK (Section 21.1.8):  custody / control-plane
+      failure BEFORE any usable lock is in hand.  The four state causes
+      (no escrow / identity mismatch / reconciliation hold / already-
+      adopted) are all conditions the metadata server is best placed to
+      resolve.  The client MUST report the outcome via the
       ccrr_range_status array (Section 26.1) and MUST NOT unilaterally
       retry the adoption or begin the CHUNK_WRITE_REPAIR fallback path
       (Section 25.12); that fallback assumes a usable lock, and no lock
       exists here to fall back under.
 
-   *  *CHUNK_LOCK -> NFS4ERR_ACCESS:* presenter authorization failure.
+   CHUNK_LOCK -> NFS4ERR_ACCESS:  presenter authorization failure.
       Report to the metadata server; do not retry.
 
-   *  *After successful CHUNK_LOCK / ADOPT -> CHUNK_HEADER_READ
-      (Section 25.5):* read the primary owner and chrr_predecessors
-      array.  If the intended predecessor's triple appears in the list,
-      proceed to CHUNK_ROLLBACK.  If absent, the CHUNK_WRITE_REPAIR
-      fallback path may begin directly (do not issue CHUNK_ROLLBACK
-      against a predecessor known-absent).
+   After successful CHUNK_LOCK / ADOPT -> CHUNK_HEADER_READ
+   (Section 25.5):  read the primary owner and chrr_predecessors array.
+      If the intended predecessor's triple appears in the list, proceed
+      to CHUNK_ROLLBACK.  If absent, the CHUNK_WRITE_REPAIR fallback
+      path may begin directly (do not issue CHUNK_ROLLBACK against a
+      predecessor known-absent).
 
-   *  *CHUNK_ROLLBACK -> NFS4ERR_NO_PREDECESSOR (Section 21.1.7):* data-
+   CHUNK_ROLLBACK -> NFS4ERR_NO_PREDECESSOR (Section 21.1.7):  data-
       plane result AFTER a usable lock is in hand.  The actor has the
       lock; there is simply no restorable predecessor.  The client MAY
       invoke best-effort reconstruction via CHUNK_WRITE_REPAIR under a
@@ -12689,8 +12665,8 @@ Table of Contents
       NFS4ERR_PAYLOAD_LOST (Section 21.1.5) if no authoritative source
       exists.
 
-   *  *CHUNK_ROLLBACK -> NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR* for a
-      fresh op naming a released triple: terminal per-entry failure.
+   CHUNK_ROLLBACK -> NFS4ERR_INVAL or NFS4ERR_NO_PREDECESSOR for a
+   fresh op naming a released triple:  terminal per-entry failure.
       Caller holds a stale reference; no operation defined in this
       document resurrects the deleted generation.  The data server
       returns NFS4ERR_INVAL within the delete case's session-slot
@@ -12704,21 +12680,21 @@ Table of Contents
       ONLY when the caller independently verifies the postcondition
       holds.
 
-   *  *Any CHUNK_ESCROW operation -> NFS4ERR_STALE_ESCROW
-      (Section 21.1.9):* control-plane identity mismatch or no covering
+   Any CHUNK_ESCROW operation -> NFS4ERR_STALE_ESCROW
+   (Section 21.1.9):  control-plane identity mismatch or no covering
       escrow on the metadata server's own CHUNK_ESCROW_RELEASE.  The
       response never authorizes tuple removal by itself when adoption
       may have consumed the escrow (see Section 25.17).
 
-   *  *Any CHUNK_ESCROW operation -> NFS4ERR_STALE_MDS_EPOCH
-      (Section 21.1.10):* the metadata server has been fenced by a
+   Any CHUNK_ESCROW operation -> NFS4ERR_STALE_MDS_EPOCH
+   (Section 21.1.10):  the metadata server has been fenced by a
       superseding CHUNK_ESCROW_TAKEOVER.  The metadata server MUST
       obtain a fresh incarnation-lease token and reissue via
       CHUNK_ESCROW_TAKEOVER (Section 25.19); TAKEOVER is exempt from
       this rejection.
 
-   *  *CB_CHUNK_REPAIR response -> NFS4ERR_PARTIAL (Section 21.1.11):*
-      at least one named range did not reach completion; the metadata
+   CB_CHUNK_REPAIR response -> NFS4ERR_PARTIAL (Section 21.1.11):  at
+      least one named range did not reach completion; the metadata
       server MUST consume the per-range ccrr_range_status array
       (Section 26.1) to determine per-range outcome.
 
@@ -12948,9 +12924,9 @@ Table of Contents
    the checksum against the bytes the client provided, so an
    authenticated client that chooses to send semantically-invalid bytes
    with a correctly computed checksum will have those bytes accepted.
-   The residual surface differs per authentication model:
+   The residual risk differs per authentication model:
 
-   *  Under AUTH_SYS with loose coupling, the residual surface is
+   *  Under AUTH_SYS with loose coupling, the residual risk is
       essentially the pre-existing attack surface of NFSv3 writes: any
       host that can reach the data server with a valid uid can write
       nonsense to chunks that uid owns.  This is the Flex Files v1
@@ -12958,12 +12934,12 @@ Table of Contents
       without modification for this path.
 
    *  Under RPCSEC_GSS or TLS with mutual authentication, the residual
-      surface reduces to: only the authenticated client can write
-      nonsense into chunks it owns.  Cross-client corruption is
-      prevented because the data server verifies the principal before
-      accepting the write.  The remaining attack surface is the client's
-      own integrity: any deployment that relies on data integrity above
-      the wire MUST apply application-level content validation.
+      risk reduces to: only the authenticated client can write nonsense
+      into chunks it owns.  Cross-client corruption is prevented because
+      the data server verifies the principal before accepting the write.
+      The remaining exposure is at the client's own integrity: any
+      deployment that relies on data integrity above the wire MUST apply
+      application-level content validation.
 
    Flexible file v2 layout does not attempt to defend against this
    authenticated-but-malicious case.  The checksum mechanism is a
@@ -13295,7 +13271,7 @@ Table of Contents
    Compromised control session:  An attacker who controls the metadata-
       server-to-data-server control session can register or revoke
       arbitrary trust entries.  The control session is the most
-      security-sensitive surface introduced by tight coupling.
+      security-sensitive element introduced by tight coupling.
       Deployment MUST protect it with RPCSEC_GSS ([RFC7861]) using a
       service principal both sides trust, or with RPC-over-TLS
       ([RFC9289]) using mutual authentication and allowlisted
@@ -14198,29 +14174,28 @@ Encoder-family trade-offs
    irrelevant.  It means encoder choice is decided by properties other
    than raw algorithm speed at typical operating points:
 
-   *  *Fault tolerance and geometry*: FFV2_ENCODING_RS_VANDERMONDE and
-      the Mojette family support arbitrary (k, m);
-      FFV2_ENCODING_XOR_PARITY is m = 1 only;
-      FFV2_ENCODING_LINUX_MD_RAID is m = 2 only.
+   Fault tolerance and geometry:  FFV2_ENCODING_RS_VANDERMONDE and the
+      Mojette family support arbitrary (k, m); FFV2_ENCODING_XOR_PARITY
+      is m = 1 only; FFV2_ENCODING_LINUX_MD_RAID is m = 2 only.
 
-   *  *Interoperability*: the m <= 2 byte-identical set described above
-      lets a deployment mix implementations of different encoders at the
-      same k and m without cross-encoding.
+   Interoperability:  the m <= 2 byte-identical set described above lets
+      a deployment mix implementations of different encoders at the same
+      k and m without cross-encoding.
 
-   *  *Reconstruction cost*: systematic encodings
+   Reconstruction cost:  systematic encodings
       (FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
       FFV2_ENCODING_XOR_PARITY, FFV2_ENCODING_LINUX_MD_RAID) short-
       circuit no-loss reads at wire speed;
       FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC transforms every shard on
       every read.
 
-   *  *Wide-geometry scaling*: at k >= 8, m >= 4, the Mojette back-
+   Wide-geometry scaling:  at k >= 8, m >= 4, the Mojette back-
       projection reconstruction cost scales with m (parity count) rather
       than k (data count), so its reconstruction overhead does not
       exhibit the O(k^3) growth Reed-Solomon matrix inversion incurs at
       wider geometries.
 
-   *  *Implementation availability*: FFV2_ENCODING_XOR_PARITY has no
+   Implementation availability:  FFV2_ENCODING_XOR_PARITY has no
       external dependency; FFV2_ENCODING_LINUX_MD_RAID's reference
       construction is present in every Linux kernel at lib/raid6/
       ([LINUX-RAID6]).  The remaining encoders in this document have
@@ -14450,7 +14425,7 @@ Layout-Level Generation Counter
       refresh on LAYOUTGET without disturbing other holders.
 
    If a future revision determines that layout-level generation is
-   needed, it can be added as a protocol extension: the on-wire surface
+   needed, it can be added as a protocol extension: the on-wire change
    is additive rather than a replacement, because cg_gen_id's semantics
    are independent of any outer layout epoch.
 
