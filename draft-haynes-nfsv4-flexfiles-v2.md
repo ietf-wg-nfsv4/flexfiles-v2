@@ -3932,14 +3932,12 @@ the CHUNK_WRITEargs.
 The examples in this section and in
 {{sec-checking-crc32}} illustrate checksum computation
 and verification using CHECKSUM_ALG_CRC32 as the worked
-algorithm.  Other registered checksum algorithms
-(CHECKSUM_ALG_CRC32C, CHECKSUM_ALG_FLETCHER4,
-CHECKSUM_ALG_SHA256, CHECKSUM_ALG_SHA512,
-CHECKSUM_ALG_BLAKE3; see {{sec-checksum4}}) follow the same
-pattern -- the algorithm names a function over the header
-and chunk bytes, the writer fills cs_value with the
-computed output, and the reader recomputes and compares.
-Only the algorithm and the cs_value length differ.
+algorithm.  The other registered checksum algorithms (see
+{{sec-checksum4}}) follow the same pattern -- the algorithm
+names a function over the header and chunk bytes, the writer
+fills cs_value with the computed output, and the reader
+recomputes and compares.  Only the algorithm and the
+cs_value length differ.
 
 ~~~
   +--------------------+
