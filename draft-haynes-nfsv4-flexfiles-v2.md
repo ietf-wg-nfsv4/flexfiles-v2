@@ -384,7 +384,7 @@ without implementing it.  The tagged checksum4
 registered checksum algorithm per file.  The
 authorization-outcome parity rule
 ({{sec-state-locking}}) lets data servers that do not
-expose a POSIX file namespace satisfy the tight-coupling
+expose a POSIX file namespace satisfy the tight coupling
 requirements without materialising POSIX uid/gid bits.
 
 A protocol-level consequence of placing erasure coding at
@@ -437,7 +437,7 @@ Multiple writers without sustained contention (occasional):
    chunk are rare.  Examples include shared-directory append-only
    logs and distributed builds.  The chunk_guard4 CAS primitive and
    per-chunk locking cover this case without penalizing the common
-   single-writer path.
+   single writer path.
 
 Multiple writers, disjoint regions (rare):
 :  High-performance computing (HPC) checkpoint workloads, in which
@@ -459,7 +459,7 @@ order of tens of thousands of concurrent clients for HPC
 checkpointing), parallel-filesystem replacements, and multi-rack
 shared-storage clusters.  The repair protocol (see
 {{sec-repair-selection}}) is designed to let such deployments
-tolerate data-server failures and concurrent-writer races without
+tolerate data-server failures and concurrent writer races without
 blocking the critical path for the first two workload classes.
 
 #  Definitions
@@ -719,7 +719,7 @@ stateid:
 
 :  a 128-bit quantity returned by a server that uniquely defines the set
 of locking-related state provided by the server.  Stateids may designate
-state related to open files, byte-range locks, delegations, or layouts.
+state related to open files, byte range locks, delegations, or layouts.
 
 storage device:
 
@@ -746,18 +746,18 @@ tight coupling:
 specifically for control communication.  It may be either a proprietary
 protocol adapted specifically to a particular metadata server or a
 protocol based on a Standards Track document.  The specific
-tight-coupling variant defined by this document, in which the
+tight coupling variant defined by this document, in which the
 control protocol is the TRUST_STATEID family, is referred to as
-trusted-stateid tight coupling (see {{sec-tight-coupling-control}}).
+trusted stateid tight coupling (see {{sec-tight-coupling-control}}).
 
-trusted-stateid tight coupling:
+trusted stateid tight coupling:
 
-:  the specific tight-coupling control protocol defined in this
+:  the specific tight coupling control protocol defined in this
 document, consisting of the operations TRUST_STATEID, REVOKE_STATEID,
 and BULK_REVOKE_STATEID.  Within the scope of this document,
 unqualified references to "tight coupling" or "tightly coupled" refer
-to trusted-stateid tight coupling unless the context explicitly
-discusses the general concept.  Other tight-coupling control
+to trusted stateid tight coupling unless the context explicitly
+discusses the general concept.  Other tight coupling control
 protocols (proprietary or future Standards Track) may exist but
 are not covered by this specification.
 
@@ -798,7 +798,7 @@ state, and locking are managed.
 The loosely and tightly coupled locking models defined in Section 2.3
 of {{RFC8435}} apply equally to this layout type, including the use of
 anonymous stateids with loosely coupled storage devices, the handling
-of lock and delegation stateids, and the mandatory byte-range lock
+of lock and delegation stateids, and the mandatory byte range lock
 requirements for the tightly coupled model.
 
 ##  LAYOUTCOMMIT
@@ -1013,7 +1013,7 @@ between the metadata server and the storage device,
 discovered or advertised out-of-band as described above.
 
 Some storage devices cannot operate under the loosely
-coupled model at all.  The loose-coupling model in this
+coupled model at all.  The loose coupling model in this
 specification relies on the storage device authorizing
 client access against synthetic uid and gid values
 ({{sec-Fencing-Clients}}), which presupposes that the data
@@ -1050,9 +1050,9 @@ as follows:
 -  OPEN_DOWNGRADE and CLOSE only require local execution on the
    metadata server.
 
--  Advisory byte-range locks can be implemented locally on the
+-  Advisory byte range locks can be implemented locally on the
    metadata server.  As in the case of OPENs, the stateids associated
-   with byte-range locks are assigned by the metadata server and only
+   with byte range locks are assigned by the metadata server and only
    used on the metadata server.
 
 -  Delegations are assigned by the metadata server that initiates
@@ -1067,7 +1067,7 @@ stateid.  Thus, the storage device has no information about the openowner
 and lockowner responsible for issuing a particular I/O operation.
 As a result:
 
--  Mandatory byte-range locking cannot be supported because the
+-  Mandatory byte range locking cannot be supported because the
    storage device has no way of distinguishing I/O done on behalf of
    the lock owner from those done by others.
 
@@ -1148,23 +1148,23 @@ as follows:
    are executed initially on the metadata server, but the state change
    MUST be propagated to the storage device.
 
--  Advisory byte-range locks can be implemented locally on the
+-  Advisory byte range locks can be implemented locally on the
    metadata server.  As in the case of OPENs, the stateids associated
-   with byte-range locks are assigned by the metadata server and are
+   with byte range locks are assigned by the metadata server and are
    available for use on the metadata server.  Because I/O operations
    are allowed to present lock stateids, the metadata server needs the
    ability to make the storage device aware of the association between
    the metadata-server-chosen stateid and the corresponding open stateid
    it is associated with.
 
--  Mandatory byte-range locks can be supported when both the metadata
+-  Mandatory byte range locks can be supported when both the metadata
    server and the storage devices have the appropriate support.  As in
-   the case of advisory byte-range locks, these are assigned by the
+   the case of advisory byte range locks, these are assigned by the
    metadata server and are available for use on the metadata server.
    To enable mandatory lock enforcement on the storage device, the
    metadata server needs the ability to make the storage device aware
    of the association between the metadata-server-chosen stateid and
-   the client, openowner, and lock (i.e., lockowner, byte-range, and
+   the client, openowner, and lock (i.e., lockowner, byte range, and
    lock-type) that it represents.  Because I/O operations are allowed
    to present lock stateids, this information needs to be propagated to
    all storage devices to which I/O might be directed rather than only
@@ -1195,20 +1195,20 @@ REVOKE_STATEID, and BULK_REVOKE_STATEID
 between a layout stateid, the ffv2m_client_id the metadata
 server assigned to the client, and (for TRUST_STATEID) the
 iomode, expiry, and principal.  They do NOT carry openowner,
-lockowner, byte-range, lock-type, the identity of an
+lockowner, byte range, lock-type, the identity of an
 associated open stateid, or delegation-type.
 
-The bullets above (OPEN state, advisory byte-range lock state,
-mandatory byte-range lock state, and delegation state)
+The bullets above (OPEN state, advisory byte range lock state,
+mandatory byte range lock state, and delegation state)
 enumerate the associations the storage device would need in
-order to enforce POSIX-conformant OPEN, byte-range locking,
+order to enforce POSIX-conformant OPEN, byte range locking,
 and delegation semantics against per-client identity rather
-than against the loose-coupling synthetic uid/gid.  These are
-inherited from the general tight-coupling locking model in
+than against the loose coupling synthetic uid/gid.  These are
+inherited from the general tight coupling locking model in
 Section 2.3 of {{RFC8435}}.  Trusted-stateid tight coupling as
 defined by this document satisfies these associations only
 for the layout stateid; a deployment that requires mandatory
-byte-range locking, delegation recall, or the finer-grained
+byte range locking, delegation recall, or the finer-grained
 open/lock stateid associations MUST use a back-end control
 protocol between the metadata server and the storage device
 that carries this state.  Such a back-end control protocol is
@@ -1218,7 +1218,7 @@ A deployment that does not need those finer-grained
 associations -- for example, an FFv2 deployment whose per-file
 access-control decisions live entirely on the metadata server
 and whose storage devices see only chunk-level CAS on layout
-stateids -- is conformant with the trusted-stateid tight-
+stateids -- is conformant with the trusted stateid tight-
 coupling model using only the TRUST_STATEID family.  That
 scope covers the layout stateid and, transitively via
 ffv2m_client_id, the writer identity carried on CHUNK
@@ -1252,7 +1252,7 @@ control protocol that:
     timeout, lease expiry, or layout return after error.
 
 This specification defines one such control protocol, designated
-trusted-stateid tight coupling, as three new NFSv4.2 operations:
+trusted stateid tight coupling, as three new NFSv4.2 operations:
 TRUST_STATEID ({{sec-TRUST_STATEID}}), REVOKE_STATEID
 ({{sec-REVOKE_STATEID}}), and BULK_REVOKE_STATEID
 ({{sec-BULK_REVOKE_STATEID}}).  These operations are sent by the
@@ -1260,11 +1260,11 @@ metadata server to each storage device over a dedicated control
 session (see {{sec-tight-coupling-control-session}}) and MUST NOT
 be sent by pNFS clients.
 
-Other tight-coupling control protocols may exist or be defined
+Other tight coupling control protocols may exist or be defined
 elsewhere.  Existing pNFS server implementations with established
 back-end control protocols -- for example, dCache {{?DCACHE}},
 which has its own control protocol between its metadata
-service and its data servers -- satisfy the tightly-coupled
+service and its data servers -- satisfy the tightly coupled
 locking model
 ({{sec-state-locking}}) through their own mechanisms and are
 conformant under this specification provided they meet the
@@ -1274,14 +1274,14 @@ with the TRUST_STATEID family is outside the scope of this
 document.
 
 A storage device that does not implement TRUST_STATEID is treated
-as not supporting trusted-stateid tight coupling specifically; the
+as not supporting trusted stateid tight coupling specifically; the
 capability probe in {{sec-tight-coupling-probe}} detects this and
 the metadata server falls back to loose coupling
 ({{sec-tight-coupling-compat}}) or, if the storage device's own
 control protocol is in use, that protocol governs.  Within the
 remainder of {{sec-tight-coupling-control}} and its subsections,
 unqualified references to "tight coupling" or "tightly coupled"
-refer to the trusted-stateid variant defined here.
+refer to the trusted stateid variant defined here.
 
 The receiver of these operations is any server the metadata
 server delegates client-I/O admission to.  In this document that
@@ -1295,11 +1295,11 @@ check and the three operations are identical for both roles.
 
 ###  Capability Discovery {#sec-tight-coupling-probe}
 
-A storage device indicates support for trusted-stateid tight
+A storage device indicates support for trusted stateid tight
 coupling implicitly, by processing TRUST_STATEID rather than
 returning NFS4ERR_NOTSUPP.  (A storage device that supports a
 non-TRUST_STATEID form of tight coupling but not the
-trusted-stateid variant defined here will return NFS4ERR_NOTSUPP
+trusted stateid variant defined here will return NFS4ERR_NOTSUPP
 on this probe; from this specification's perspective it is
 treated the same as a storage device that does not support tight
 coupling at all.)  The metadata server probes each storage device
@@ -1321,16 +1321,16 @@ probe cannot accidentally register garbage in the trust table.  The
 metadata server interprets the probe response as follows:
 
 NFS4ERR_NOTSUPP:
-:  trusted-stateid tight coupling is not supported on this
+:  trusted stateid tight coupling is not supported on this
    storage device.  The metadata server leaves the
    FFV2_COUPLING_TRUSTED_STATEID bit clear in ffv2dv_coupling
    for this storage device.  If ffv2dv_coupling has no other
-   tight-coupling bits set for this storage device, the
+   tight coupling bits set for this storage device, the
    metadata server falls back to the synthetic-uid model
    (anonymous stateid plus fencing).
 
 NFS4ERR_INVAL:
-:  trusted-stateid tight coupling is supported.  The anonymous
+:  trusted stateid tight coupling is supported.  The anonymous
    stateid was correctly rejected.  The metadata server sets the
    FFV2_COUPLING_TRUSTED_STATEID bit in ffv2dv_coupling for this
    storage device.
@@ -1350,7 +1350,7 @@ its own ffv2dv_coupling value, set independently.
 ###  Control Session {#sec-tight-coupling-control-session}
 
 The metadata server establishes an NFSv4.2 session to each
-tight-coupling-capable storage device at startup.  On this session
+tight coupling capable storage device at startup.  On this session
 the metadata server acts as the storage device's client and
 presents EXCHGID4_FLAG_USE_PNFS_MDS in its EXCHANGE_ID args.
 
@@ -1434,7 +1434,7 @@ For each new or refreshed layout segment, the metadata server:
 
 1.  chooses the layout stateid (as it would without tight coupling);
 
-2.  identifies the trusted-stateid-capable storage devices in
+2.  identifies the trusted stateid capable storage devices in
     the mirror set (those for which ffv2dv_coupling has the
     FFV2_COUPLING_TRUSTED_STATEID flag set);
 
@@ -1463,7 +1463,7 @@ server's LAYOUTGET-response budget is exhausted.  If a storage
 device returns NFS4ERR_NOTSUPP at this time (having accepted
 the probe earlier), the metadata server MUST clear the
 FFV2_COUPLING_TRUSTED_STATEID flag in ffv2dv_coupling for this
-storage device.  If no tight-coupling flags remain set for
+storage device.  If no tight coupling flags remain set for
 this device, the metadata server falls back to the
 synthetic-uid model and re-issues the layout accordingly.
 
@@ -1605,12 +1605,12 @@ interpreted consistently within the storage device's local
 clock.  Deployments unable to guarantee sub-lease-period clock
 synchronization MUST either (a) shorten the effective TRUST_STATEID
 lease so it exceeds the worst-case skew by at least 2x, or (b)
-use the metadata-server-inband fallback path (no tight-coupling
+use the metadata-server-inband fallback path (no tight coupling
 control session, no TRUST_STATEID) so lease enforcement stays
 on the metadata server's clock alone.  A storage device that
 detects sustained clock divergence from the metadata server
 (e.g., via periodic wall-clock exchange as part of its
-tight-coupling control-session heartbeats) SHOULD log the
+tight coupling control-session heartbeats) SHOULD log the
 divergence and MAY refuse further TRUST_STATEID entries with
 NFS4ERR_DELAY until the divergence is corrected.
 
@@ -1757,7 +1757,7 @@ retrieve that information.
 ##  ffv2_device_addr4 {#sec-ff_device_addr4}
 
 The ffv2_device_addr4 data structure (see {{fig-ff_device_addr4}})
-is returned by the server as the layout-type-specific opaque field
+is returned by the server as the layout type specific opaque field
 da_addr_body in the device_addr4 structure by a successful GETDEVICEINFO
 operation for LAYOUT_FLEX_FILES_V2.
 
@@ -1776,7 +1776,7 @@ confusion with the RFC 8435 originals.
    /*
     * ffv2dv_coupling flags -- bitwise-OR of the values below.
     *
-    * A zero value (no flags set) indicates the loose-coupling
+    * A zero value (no flags set) indicates the loose coupling
     * synthetic-uid model of RFC 8435: the client presents an
     * anonymous stateid and an MDS-issued synthetic uid, and
     * the storage device validates access via that synthetic
@@ -1795,7 +1795,7 @@ confusion with the RFC 8435 originals.
     * BULK_REVOKE_STATEID operations defined in
     * {{sec-tight-coupling-control}}.
     *
-    * The two tight-coupling flags are orthogonal: a storage
+    * The two tight coupling flags are orthogonal: a storage
     * device MAY set either, both, or neither.  See
     * {{sec-tight-coupling-control}} for the semantics of each
     * combination.
@@ -1855,11 +1855,11 @@ in specific cases:
    ffv2dv_version = 4 and ffv2dv_minorversion = 2.  The
    TRUST_STATEID family of operations is defined as NFSv4.2;
    NFSv4.1 storage devices cannot participate in
-   trusted-stateid tight coupling.
+   trusted stateid tight coupling.
 
 -  When a mirror's encoding type uses CHUNK operations, the
    corresponding storage device MUST be advertised with
-   ffv2dv_coupling having at least one tight-coupling flag set
+   ffv2dv_coupling having at least one tight coupling flag set
    (FFV2_COUPLING_TIGHTLY_COUPLED or
    FFV2_COUPLING_TRUSTED_STATEID, or both).  The chunk
    lifecycle depends on the metadata-server-registered layout
@@ -1873,7 +1873,7 @@ in specific cases:
 PASSTHROUGH is the only encoding that admits loose coupling
 (FFV2_COUPLING_SYNTHETIC_UIDS); every non-PASSTHROUGH encoding
 requires ffv2dv_version = 4, ffv2dv_minorversion = 2, and at
-least one tight-coupling flag set in ffv2dv_coupling.
+least one tight coupling flag set in ffv2dv_coupling.
 PASSTHROUGH itself may be advertised under any of the
 following (ffv2dv_version, ffv2dv_minorversion) tuples:
 (3, 0), (4, 1), or (4, 2); the first two of these tuples
@@ -1897,13 +1897,13 @@ device can have a different rsize or wsize than the metadata server,
 the ffv2dv_rsize and ffv2dv_wsize allow the metadata server to
 communicate that information on behalf of the storage device.
 
-ffv2dv_coupling informs the client which tight-coupling
+ffv2dv_coupling informs the client which tight coupling
 capabilities the storage device supports.  The two
-tight-coupling flags are orthogonal:
+tight coupling flags are orthogonal:
 
 - FFV2_COUPLING_TIGHTLY_COUPLED asserts that the deployment
   has an MDS-to-DS back-end control protocol (the RFC 8435
-  general tight-coupling concept); this document does not
+  general tight coupling concept); this document does not
   specify what that protocol is or how it operates.  A dCache
   {{?DCACHE}} deployment, for example, would set this flag
   based on its own MDS/pool control plane.
@@ -1919,13 +1919,13 @@ tight-coupling flags are orthogonal:
 
 A storage device MAY advertise either, both, or neither
 flag.  When both are set, the deployment supports two
-tight-coupling paths concurrently and MAY use either for a
+tight coupling paths concurrently and MAY use either for a
 given operation.  When neither is set (ffv2dv_coupling equals
 FFV2_COUPLING_SYNTHETIC_UIDS), the storage device is loosely
 coupled and the RFC 8435 synthetic-uid model applies (see
 {{sec-Fencing-Clients}}).
 
-If ffv2dv_coupling has no tight-coupling flag set, then the
+If ffv2dv_coupling has no tight coupling flag set, then the
 client MUST commit writes to the storage devices for the file
 before sending a
 LAYOUTCOMMIT to the metadata server.  That is, the writes MUST be
@@ -2160,7 +2160,7 @@ Chunked-with-integrity replication: the chunk produced for each
 replica is the application data verbatim -- no transform, no
 parity shards -- but it travels through CHUNK_WRITE /
 CHUNK_READ and so carries the per-chunk checksum and
-concurrent-writer disambiguation.  N-way redundancy at N x
+concurrent writer disambiguation.  N-way redundancy at N x
 storage cost.  The full description is in
 {{sec-encoding-mirrored}}.
 
@@ -2920,7 +2920,7 @@ issues between the client and storage devices.
 
 For tight coupling, ffv2fi_stateid provides the stateid to be used
 by the client to access the file.  The metadata server registers
-ffv2fi_stateid with each tight-coupling-capable storage device via
+ffv2fi_stateid with each tight coupling capable storage device via
 TRUST_STATEID (see {{sec-tight-coupling-control}}) before returning
 the layout; the storage device validates subsequent CHUNK operations
 against its trust table.
@@ -2934,7 +2934,7 @@ device that is not participating in the control protocol.  In
 this case the metadata server MUST set ffv2fi_stateid to the
 anonymous stateid.
 
-For an NFSv3 storage device (ffv2dv_version = 3), the tight-coupling
+For an NFSv3 storage device (ffv2dv_version = 3), the tight coupling
 model does not apply: {{sec-ff_device_addr4}} requires
 ffv2dv_coupling to equal FFV2_COUPLING_SYNTHETIC_UIDS whenever
 ffv2dv_version equals 3, because NFSv3 has no wire encoding for
@@ -2982,7 +2982,7 @@ provide the synthetic user and group to be used in the RPC credentials
 that the client presents to the storage device to access the data
 files.  For tightly coupled storage devices, the user and group on
 the storage device will be the same as on the metadata server; that
-is, if ffv2dv_coupling has any tight-coupling flag set (see
+is, if ffv2dv_coupling has any tight coupling flag set (see
 {{sec-ff_device_addr4}}), then the client MUST ignore both
 ffv2ds_user and ffv2ds_group.
 
@@ -3812,7 +3812,7 @@ attempting the repair.
 
 Operational expectations for CB_CHUNK_REPAIR:
 CB_CHUNK_REPAIR is an exceptional path, triggered only by
-concurrent-writer races or data-server failures.  It is not a
+concurrent writer races or data-server failures.  It is not a
 steady-state operation and its frequency is a function of
 racing-writer and data-server-failure rates in the deployment
 rather than of normal client workload.  Implementations SHOULD
@@ -4001,20 +4001,20 @@ The repair sequence when the selected client is the original writer is:
 #### Transitioning from Single Writer Mode to Multiple Writer Mode {#sec-swm-to-mwm}
 
 When a second writer requests a write layout for a file currently
-covered by a single-writer layout (FFV2_FLAGS_ONLY_ONE_WRITER set),
+covered by a single writer layout (FFV2_FLAGS_ONLY_ONE_WRITER set),
 the metadata server recalls the existing layout before granting
 the new request.  The sequence is:
 
-1. The metadata server issues CB_LAYOUTRECALL to the single-writer
+1. The metadata server issues CB_LAYOUTRECALL to the single writer
    client.
 
-2. The single-writer client drains its outstanding I/O issued
-   under the single-writer assumption (CHUNK_WRITE with
+2. The single writer client drains its outstanding I/O issued
+   under the single writer assumption (CHUNK_WRITE with
    cwa_guard.cwg_check = FALSE).  Operations already underway
    complete under the layout that authorized them: CHUNK_FINALIZE
    and CHUNK_COMMIT proceed normally for blocks already written.
 
-3. Once drained, the single-writer client issues LAYOUTRETURN.
+3. Once drained, the single writer client issues LAYOUTRETURN.
 
 4. The metadata server grants the new writer a layout without
    FFV2_FLAGS_ONLY_ONE_WRITER set.  When the original writer next
@@ -4024,12 +4024,12 @@ the new request.  The sequence is:
    and a chunk_guard4 on every CHUNK_WRITE.
 
 The transition uses standard NFSv4.1 layout recall semantics
-(Section 12.5.5 of {{RFC8881}}).  Drained single-writer I/O does
+(Section 12.5.5 of {{RFC8881}}).  Drained single writer I/O does
 not need to be re-issued under multiple writer rules; it
 completed under the layout that authorized it.  If the
-single-writer client fails to return the layout within the
+single writer client fails to return the layout within the
 recall window, the metadata server escalates to layout
-revocation (Section 12.5.5.2.1 of {{RFC8881}}); any single-writer
+revocation (Section 12.5.5.2.1 of {{RFC8881}}); any single writer
 writes that did not complete before revocation are repaired via
 the multiple-writer repair path on subsequent access.
 
@@ -4123,7 +4123,7 @@ determines that only one writer holds a write layout for a file
 (for example, because other writers' layouts have been returned or
 their leases have expired), it MAY recall the remaining writer's
 layout and grant a fresh layout with FFV2_FLAGS_ONLY_ONE_WRITER
-set, restoring the single-writer optimization.  The metadata
+set, restoring the single writer optimization.  The metadata
 server MAY also leave the writer in multiple writer mode
 indefinitely; single writer mode is an optimization, not a
 correctness requirement.
@@ -4133,11 +4133,11 @@ FFV2_FLAGS_ONLY_ONE_WRITER is policy and is implementation-defined.
 A metadata server that aggressively grants single writer mode and
 then must recall it each time a second writer appears can produce
 recall churn under workloads with irregular concurrent access:
-each single-writer-to-multiple-writer transition costs a
+each single writer to multiple writer transition costs a
 CB_LAYOUTRECALL round trip and drain time for in-flight I/O.
 Strategies to limit churn include withholding
-FFV2_FLAGS_ONLY_ONE_WRITER until sustained single-writer behavior
-is observed, deferring the single-writer grant after a recent
+FFV2_FLAGS_ONLY_ONE_WRITER until sustained single writer behavior
+is observed, deferring the single writer grant after a recent
 recall, or never granting single writer mode for files with a
 history of concurrent access.
 
@@ -4402,7 +4402,7 @@ PASSTHROUGH does NOT provide:
 -  Chunk-grained repair.  The repair unit is the whole file:
    resilvering picks a trusted replica and replicates it end
    to end to the affected replica(s).
--  The concurrent-writer disambiguation that chunk_guard4
+-  The concurrent writer disambiguation that chunk_guard4
    provides for encoded types.
 
 PASSTHROUGH is RECOMMENDED for the assimilation, migration, and
@@ -4449,7 +4449,7 @@ of using CHUNK_WRITE and CHUNK_READ:
    is the chunk, not the file: CHUNK_READ the good replica,
    CHUNK_WRITE to the bad replica, done.  No whole-file
    resilvering is required.
--  Per-chunk concurrent-writer disambiguation.  Mirrored
+-  Per-chunk concurrent writer disambiguation.  Mirrored
    writes carry the same chunk_guard4 ({{sec-chunk_guard4}})
    the erasure encoding types do.  Two clients racing to write
    the same offset of the same file fan out to every replica
@@ -4490,7 +4490,7 @@ Unlike Reed-Solomon and Linux md/raid6, XOR_PARITY requires no
 finite-field arithmetic.  The "encoding" is a plain XOR
 reduction across k shards, so the implementation footprint is
 trivial and the compute cost scales at memory bandwidth.  This
-makes XOR_PARITY the simplest MTI-candidate encoding: any
+makes XOR_PARITY the simplest candidate encoding: any
 conformant implementation can support it without a GF(2^8)
 library.
 
@@ -4691,7 +4691,7 @@ input at m <= 2.
   P+Q rows byte-for-byte.
 
 RS_VANDERMONDE joined the m <= 2 wire-compat set as a
-wire-format revision in this document: its m <= 2 parity rows
+wire format revision in this document: its m <= 2 parity rows
 are the hand-crafted P/Q construction rather than the
 normalized-Vandermonde bottom rows RS uses at m >= 3.  See
 {{sec-rs-encoding}} for the RS construction and its
@@ -5476,7 +5476,7 @@ what the protocol can guarantee.
 A protocol that exchanges file data as byte ranges with no
 envelope -- whether described as "block I/O" or as "generic
 data movement" -- is not interoperable with this specification's
-CHUNK operations.  The CHUNK operations are not a byte-range
+CHUNK operations.  The CHUNK operations are not a byte range
 I/O surface with optional integrity bolted on; they are a
 chunk-protocol surface in which the envelope is the primitive.
 
@@ -5873,7 +5873,7 @@ fields, or external transaction managers.
 
 Applications that require byte-level write merging or sub-chunk
 ordering guarantees MUST serialize such writes externally, for
-example via NFSv4 byte-range locks ({{RFC8881}}, Section 12).
+example via NFSv4 byte range locks ({{RFC8881}}, Section 12).
 The chunk size that bounds the atomicity unit for a given file
 is the product of ffv2m_striping_unit_size and the stripe width
 W in {{fig-striping-math}}; applications can query
@@ -6348,14 +6348,14 @@ when issued by the metadata server:
    18.35, 18.36, 18.37, 18.34, 18.50): control-session
    management.  The metadata server sets
    EXCHGID4_FLAG_USE_PNFS_MDS in its EXCHANGE_ID.  A data
-   server that supports the tight-coupling control protocol
+   server that supports the tight coupling control protocol
    (see {{sec-tight-coupling-control-session}}) identifies the
    metadata server's session by EXCHGID4_FLAG_USE_PNFS_MDS and
    accepts TRUST_STATEID, REVOKE_STATEID, and
    BULK_REVOKE_STATEID on that session.
 -  TRUST_STATEID ({{sec-TRUST_STATEID}}), REVOKE_STATEID
    ({{sec-REVOKE_STATEID}}), BULK_REVOKE_STATEID
-   ({{sec-BULK_REVOKE_STATEID}}): the metadata-server-to-data-server tight-coupling
+   ({{sec-BULK_REVOKE_STATEID}}): the metadata-server-to-data-server tight coupling
    trust-table control operations.
 
 The metadata server MAY also use other NFSv4.2 operations on data
@@ -6394,12 +6394,12 @@ supported on data files as on any NFSv4.2 file.
 The stateid presented on a CHUNK operation is a **layout
 stateid** returned by a prior LAYOUTGET against the metadata
 server (see Section 18.43 of {{RFC8881}}), NOT an open
-stateid, byte-range lock stateid, or delegation stateid.  A
+stateid, byte range lock stateid, or delegation stateid.  A
 pNFS client does NOT issue OPEN against the data server.
 This is a meaningful departure from the stateid model in
 Section 18.32 of {{RFC8881}} (which states that the WRITE
 stateid "represents a value returned from a previous
-byte-range LOCK or OPEN request or the stateid associated
+byte range LOCK or OPEN request or the stateid associated
 with a delegation"), and clients implementing
 Flexible File Version 2 MUST NOT carry over those
 expectations to the data path.
@@ -6418,13 +6418,13 @@ Open and share-mode tracking:
 
 Byte-range lock tracking:
 :  Does not apply at the data server.  Locking on the data
-   path is chunk-range rather than byte-range, expressed
+   path is chunk-range rather than byte range, expressed
    via CHUNK_LOCK ({{sec-CHUNK_LOCK}}), and the lock holder
    is identified by chunk_owner4 (the (co_cohort_id,
    co_client_id, co_id) triple) rather than by a lock stateid.  A
-   client wanting byte-range locks on a file MUST acquire
+   client wanting byte range locks on a file MUST acquire
    them on the metadata-server filehandle, where standard
-   {{RFC8881}} Section 12 byte-range locking applies.
+   {{RFC8881}} Section 12 byte range locking applies.
 
 I/O authorization on the data server:
 :  The layout stateid carried on CHUNK operations.
@@ -6736,7 +6736,7 @@ version of the layout type relies on for end-to-end integrity
 #  Flexible File Version 2 Layout Type Return {#sec-layouthint}
 
 layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
-layout-type-specific information to the server.  It is defined in
+layout type specific information to the server.  It is defined in
 Section 18.44.1 of {{RFC8881}} (also shown in {{fig-LAYOUTRETURN}}).
 
 ~~~ xdr
@@ -6942,7 +6942,7 @@ mechanism of what is considered "hot" and the size of the reported
 byte range are out of the scope of this document.  For client
 implementation, providing reasonable default values and an optional
 run-time management interface to control these parameters is
-suggested.  For example, a client can define the default byte-range
+suggested.  For example, a client can define the default byte range
 resolution to be 1 MB in size and the thresholds for reporting to
 be 1 MB/second or 10 I/O operations per second.
 
@@ -8070,7 +8070,7 @@ opaque proof payload identified by a proof profile
 identifier.  The proof is not the metadata server's
 own machine credential (which would only prove the
 role, not the current exclusive incarnation): it is
-an assertion issued by a single-writer authority
+an assertion issued by a single writer authority
 external to the metadata server (a high-availability
 manager, a cluster-consensus service, or an
 operator-mediated recovery workflow) that only one
@@ -8568,15 +8568,15 @@ storage devices on the metadata-server-to-data-server control session (see
 {{sec-tight-coupling-control-session}}); they MUST NOT be sent by
 pNFS clients.  The escrow control-plane operations (92 through
 95) are available on the metadata-server-to-data-server control session under either
-loose- or tight-coupling deployment; the tight-coupling section
+loose- or tight coupling deployment; the tight coupling section
 is cited for its description of the session itself, not to
-restrict availability to the tight-coupling profile.
+restrict availability to the tight coupling profile.
 
 All CHUNK operations MUST be issued under an active flexible
 file v2 layout obtained via LAYOUTGET against the metadata
 server.  Because encodings that use CHUNK operations require tight coupling (see
 the three constraints in {{sec-ff_device_addr4}}), the presented
-stateid is the tight-coupling-registered layout stateid, and the
+stateid is the tight coupling registered layout stateid, and the
 data server MUST validate it against its per-file trust table:
 a stateid not present in the trust table MUST be rejected with
 NFS4ERR_BAD_STATEID per {{sec-TRUST_STATEID}}.  The anonymous
@@ -8815,7 +8815,7 @@ CHUNK_COMMIT by validating cca_stateid against the file
 identified by the current filehandle: cca_stateid MUST be
 the layout stateid the metadata server issued to the
 caller for the current filehandle, or the special anonymous
-stateid (see below).  Under trusted-stateid tight coupling
+stateid (see below).  Under trusted stateid tight coupling
 ({{sec-TRUST_STATEID}}), the data server rejects
 CHUNK_COMMIT with NFS4ERR_BAD_STATEID unless cca_stateid
 is present in the data server's trust table for the
@@ -8873,7 +8873,7 @@ CHUNK_FINALIZE before CHUNK_COMMIT is accepted:
 
 The three-step CHUNK_WRITE -> CHUNK_FINALIZE -> CHUNK_COMMIT
 sequence MAY be pipelined within a single NFSv4.2 compound
-(see Section 12.8 of {{RFC8881}}) in single-writer mode, where
+(see Section 12.8 of {{RFC8881}}) in single writer mode, where
 no other writer can race the client's per-chunk transitions
 and the CHUNK_WRITE per-block status array reports only
 local-failure cases (NFS4ERR_NOSPC, NFS4ERR_IO, and so on).
@@ -8964,7 +8964,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -9042,7 +9042,7 @@ The client provides:
 
 cea_stateid:
 :  the layout stateid the metadata server granted for
-   this file.  Under trusted-stateid tight coupling
+   this file.  Under trusted stateid tight coupling
    ({{sec-TRUST_STATEID}}), this stateid MUST be in the
    data server's trust table; otherwise the data server
    rejects the operation with NFS4ERR_BAD_STATEID.
@@ -9106,7 +9106,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -9286,7 +9286,7 @@ cfa_stateid against the file identified by the current
 filehandle: cfa_stateid MUST be the layout stateid the
 metadata server issued to the caller for the current
 filehandle, or the special anonymous stateid (see below).
-Under trusted-stateid tight coupling
+Under trusted stateid tight coupling
 ({{sec-TRUST_STATEID}}), the data server rejects
 CHUNK_FINALIZE with NFS4ERR_BAD_STATEID unless
 cfa_stateid is present in the data server's trust table
@@ -9320,7 +9320,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -9442,7 +9442,7 @@ The client provides:
 
 chra_stateid:
 :  the layout stateid the metadata server granted for
-   this file.  Under trusted-stateid tight coupling
+   this file.  Under trusted stateid tight coupling
    ({{sec-TRUST_STATEID}}), this stateid MUST be in the
    data server's trust table; otherwise the data server
    rejects the operation with NFS4ERR_BAD_STATEID.
@@ -9725,7 +9725,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -9808,7 +9808,7 @@ CHUNK_LOCK is loosely analogous to LOCK ({{RFC8881}}
 Section 18.10) in that it acquires an exclusive
 guard against concurrent modification, but the two
 operate on different coordinate systems and use
-different naming: LOCK is byte-range and stateid-based;
+different naming: LOCK is byte range and stateid-based;
 CHUNK_LOCK is chunk-range and chunk_owner4-based.
 CHUNK_LOCK is used in multiple-writer mode
 ({{sec-multi-writer}}) to serialize racing writers on a
@@ -9820,7 +9820,7 @@ The client provides:
 
 cla_stateid:
 :  the layout stateid the metadata server granted for
-   this file.  Under trusted-stateid tight coupling
+   this file.  Under trusted stateid tight coupling
    ({{sec-TRUST_STATEID}}), this stateid MUST be in the
    data server's trust table; otherwise the data server
    rejects the operation with NFS4ERR_BAD_STATEID.
@@ -9924,7 +9924,7 @@ encodings that use CHUNK operations require tight coupling
 ({{sec-ff_device_addr4}}), the metadata server notifies the data
 server of the ADOPT designation via the control protocol (e.g.,
 TRUST_STATEID with the new client's stateid or a similar
-facility); no loose-coupling ADOPT path exists.
+facility); no loose coupling ADOPT path exists.
 
 The current lock holder at the moment of ADOPT MAY be:
 
@@ -9991,7 +9991,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -10211,7 +10211,7 @@ value represents a layout stateid returned by a prior
 LAYOUTGET against the metadata server (see Section 18.43
 of {{RFC8881}}).  The data server uses cra_stateid to
 verify that the client holds a valid layout that
-authorizes reading this file.  Under trusted-stateid tight
+authorizes reading this file.  Under trusted stateid tight
 coupling ({{sec-TRUST_STATEID}}), the data server
 additionally checks that the metadata server has
 registered the stateid via TRUST_STATEID; an unregistered
@@ -10226,7 +10226,7 @@ all bits equal to one, the data server MAY allow CHUNK_READ
 to bypass lock-state reporting at the data server.  These
 special-stateid behaviours mirror the corresponding READ
 semantics in {{RFC8881}} adapted to the chunk-locking
-model ({{sec-CHUNK_LOCK}}) rather than the byte-range
+model ({{sec-CHUNK_LOCK}}) rather than the byte range
 locking model of {{RFC8881}} Section 12.
 
 If the current filehandle is not an ordinary file, an
@@ -10305,7 +10305,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -10384,7 +10384,7 @@ The client provides:
 
 cra_stateid:
 :  the layout stateid the metadata server granted to the
-   repair actor.  Under trusted-stateid tight coupling
+   repair actor.  Under trusted stateid tight coupling
    ({{sec-TRUST_STATEID}}), this stateid MUST be in the
    data server's trust table; otherwise the data server
    rejects the operation with NFS4ERR_BAD_STATEID.
@@ -10446,7 +10446,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -10772,7 +10772,7 @@ cra_stateid against the file identified by the current
 filehandle: cra_stateid MUST be the layout stateid the
 metadata server issued to the caller for the current
 filehandle, or the special anonymous stateid (see below).
-Under trusted-stateid tight coupling
+Under trusted stateid tight coupling
 ({{sec-TRUST_STATEID}}), the data server rejects
 CHUNK_ROLLBACK with NFS4ERR_BAD_STATEID unless
 cra_stateid is present in the data server's trust table
@@ -10866,7 +10866,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -10930,7 +10930,7 @@ The client provides:
 
 cua_stateid:
 :  the layout stateid the metadata server granted for
-   this file.  Under trusted-stateid tight coupling
+   this file.  Under trusted stateid tight coupling
    ({{sec-TRUST_STATEID}}), this stateid MUST be in the
    data server's trust table; otherwise the data server
    rejects the operation with NFS4ERR_BAD_STATEID.
@@ -11001,7 +11001,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -11258,7 +11258,7 @@ Except when special stateids are used, cwa_stateid
 represents a layout stateid returned by a prior LAYOUTGET
 against the metadata server (see Section 18.43 of
 {{RFC8881}}) that authorizes write access to this file.
-Under trusted-stateid tight coupling
+Under trusted stateid tight coupling
 ({{sec-TRUST_STATEID}}), the data server additionally
 checks that the metadata server has registered the
 stateid via TRUST_STATEID; an unregistered stateid (other
@@ -11273,7 +11273,7 @@ server MAY allow CHUNK_WRITE to bypass lock-state
 checking at the data server.  These special-stateid
 behaviours mirror the corresponding WRITE semantics in
 {{RFC8881}} adapted to the chunk-locking model
-({{sec-CHUNK_LOCK}}) rather than the byte-range locking
+({{sec-CHUNK_LOCK}}) rather than the byte range locking
 model of {{RFC8881}} Section 12.
 
 If the current filehandle is not an ordinary file, an
@@ -11355,7 +11355,7 @@ and unstable writes in subtle ways:
    the flag, allowing the chunk to enter PENDING and
    proceed through the standard CHUNK_FINALIZE +
    CHUNK_COMMIT path.  The shortcut remains available in
-   single-writer mode where CAS contention cannot arise.
+   single writer mode where CAS contention cannot arise.
 
 -  A client that issues an UNSTABLE4 CHUNK_WRITE and
    observes a FALSE entry in cwr_block_activated for a
@@ -11394,7 +11394,7 @@ and reports the outcome per block in cwr_block_status (see
 -  Each block is subjected to the guard check (when
    cwa_guard.cwg_check is TRUE), the cg_client_id validation
    (see {{sec-chunk_guard4}}), and any other local preconditions
-   (storage-space limits, tight-coupling trust-table state,
+   (storage-space limits, tight coupling trust-table state,
    etc.).
 
 -  Blocks that pass their preconditions are written and their
@@ -11446,7 +11446,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -11620,7 +11620,7 @@ by construction):
 
 cwra_stateid:
 :  the layout stateid the metadata server granted to the
-   repair actor.  Under trusted-stateid tight coupling
+   repair actor.  Under trusted stateid tight coupling
    ({{sec-TRUST_STATEID}}), this stateid MUST be in the
    data server's trust table; otherwise the data server
    rejects the operation with NFS4ERR_BAD_STATEID.
@@ -11744,7 +11744,7 @@ NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
 NFS4ERR_BAD_STATEID:
-:  no active layout stateid for this file (or, in trusted-stateid
+:  no active layout stateid for this file (or, in trusted stateid
    tight coupling, the stateid is not in the trust table).  See
    {{sec-new-ops}}.
 
@@ -11819,7 +11819,7 @@ metadata server and the data server for a particular layout.
 
 TRUST_STATEID has no analog in {{RFC8881}}: pNFS layouts in
 RFC 8881 do not register the layout stateid with data
-servers; data servers in the loose-coupling model trust the
+servers; data servers in the loose coupling model trust the
 synthetic uid/gid the metadata server inserts on each I/O
 ({{sec-Fencing-Clients}}).  TRUST_STATEID is the new
 metadata-server-to-data-server control-plane operation
@@ -13483,7 +13483,7 @@ An incarnation-lease authority MUST NOT delegate signing to
 any component the metadata server can spoof; the security of
 the proof mechanism rests on the assumption that the
 authority is a distinct entity from any metadata server and
-can independently attest current single-writer ownership.
+can independently attest current single writer ownership.
 
 ###  Replay-cache exhaustion and durability
 
@@ -13675,7 +13675,7 @@ three ways:
 
 -  The data server does NOT need its own Kerberos keytab
    to validate each client principal individually.  In a
-   loose-coupling Kerberos deployment the data server
+   loose coupling Kerberos deployment the data server
    would have to be a service principal in every realm
    it serves clients from; under tight coupling the data
    server's keytab is only required for its session with
@@ -14197,7 +14197,7 @@ Coverage:
   and cross-verified against the wire-compatibility relationships
   described in the per-encoding sections of this document.
 
-- The tight-coupling control protocol (TRUST_STATEID,
+- The tight coupling control protocol (TRUST_STATEID,
   REVOKE_STATEID, BULK_REVOKE_STATEID) is specified but not
   yet implemented.  Data servers currently advertise
   `ffv2dv_coupling = FFV2_COUPLING_SYNTHETIC_UIDS`, and
@@ -14262,7 +14262,7 @@ Coverage:
 
 - NFSv3 and NFSv4.2 data-server dispatch are both implemented.
 
-- NFS4ERR_DELAY retry-with-backoff for concurrent-writer
+- NFS4ERR_DELAY retry-with-backoff for concurrent writer
   contention on CHUNK_WRITE is not yet implemented; multi-
   writer workloads fall back to the metadata-server-inband
   write path.
@@ -14514,7 +14514,7 @@ group's review of this work are addressed in
 {{sec-rejected-alternatives}}: the per-RPC byte-shuffling cost of
 the original Mojette-specific projection header has been replaced
 with XDR-encoded chunk metadata (see {{sec-chunk_guard4}}), so the
-remaining wire-format cost is the XDR-encoded chunk header itself,
+remaining wire format cost is the XDR-encoded chunk header itself,
 which is identical for every encoding and is part of the +7% to +22%
 v2 write overhead measured above.
 
@@ -14601,12 +14601,12 @@ This was rejected because:
 
 -  The approach was biased toward correctness at the expense of
    throughput, which inverted the expected workload mix where
-   single-writer cases dominate.
+   single writer cases dominate.
 
 ##  Server-Side Byte-Range Lock Manager per File
 {:numbered="false"}
 
-Another proposal relied on byte-range locks obtained by clients
+Another proposal relied on byte range locks obtained by clients
 before writing, with the lock manager state spread across the data
 servers.  This was rejected because:
 
@@ -14635,7 +14635,7 @@ rejected because:
 
 -  The constant-factor cost per write (two or three round trips,
    leader election overhead, majority quorum requirement) was
-   unacceptable for workloads where single-writer throughput
+   unacceptable for workloads where single writer throughput
    dominates the deployment mix.
 
 -  The approach demanded that data servers be peers in a
@@ -15060,7 +15060,7 @@ Mkrtchyan, Rick Macklem, Christoph Hellwig, and Sorin
 Faibish for their detailed review of earlier revisions of
 this draft.  Their comments shaped the system model
 presentation, the chunk lifecycle and guard semantics, the
-trusted-stateid design, and many smaller choices recorded
+trusted stateid design, and many smaller choices recorded
 throughout the
 document.
 
