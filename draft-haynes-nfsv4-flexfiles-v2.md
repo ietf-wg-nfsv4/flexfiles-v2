@@ -3225,11 +3225,13 @@ storage device, or fall back to metadata-server-terminated I/O
 via the encoding-negotiation path
 ({{sec-encoding-negotiation}}) with the flag cleared.
 
-The prior draft's "the flag functions as a hint" language is
-withdrawn; the encoding-negotiation fallback path that requires
-metadata-server I/O to be possible is served by the metadata server clearing
-NO_IO_THRU_MDS on the fallback layout, not by clients ignoring
-the flag on a NO_IO_THRU_MDS layout.
+The NO_IO_THRU_MDS flag is not advisory; it is an
+instruction the client MUST honour.  When metadata-server-
+inband I/O is required (for example, via the encoding-
+negotiation fallback path in {{sec-encoding-negotiation}}),
+the metadata server MUST clear NO_IO_THRU_MDS on the
+fallback layout it issues.  A client MUST NOT interpret
+a set NO_IO_THRU_MDS flag as advisory or bypass it.
 
 ##  LAYOUTCOMMIT
 
@@ -3928,9 +3930,9 @@ regulated by chunk_guard4 ({{sec-chunk_guard4}}), not by an
 implicit lock.  A racing writer whose guard check fails
 receives NFS4ERR_CHUNK_GUARDED; an explicit CHUNK_LOCK
 ({{sec-CHUNK_LOCK}}) holder is signaled by NFS4ERR_CHUNK_LOCKED.
-No implicit chunk-write lock is acquired by CHUNK_WRITE; the
-prior draft's "as if CHUNK_LOCK had been performed" language
-is not part of this specification.
+No implicit chunk-write lock is acquired by CHUNK_WRITE.
+A client that requires exclusive access to a chunk MUST
+invoke CHUNK_LOCK explicitly ({{sec-CHUNK_LOCK}}).
 
 If the CHUNK_WRITE results in a atomic data block, then the
 client will send a CHUNK_FINALIZE in a subsequent compound to inform
