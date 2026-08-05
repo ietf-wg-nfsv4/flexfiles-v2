@@ -755,7 +755,7 @@ device.  Each layout type specifies the set of storage protocols.
 
 systematic encoding:
 
-:  An erasure coding scheme in which the first k of the k+m encoded
+:  An erasure coding scheme in which the first k of the k + m encoded
 shards are identical to the original k data blocks.  A healthy read
 (no failures) requires no decoding -- the data shards are read directly.
 Decoding is triggered only when data shards are missing.  Reed-Solomon
@@ -1546,7 +1546,7 @@ others reject, the metadata server MAY return a layout covering
 only the accepting storage devices, provided the accepting subset
 still meets the minimum servable coverage for the file's
 encoding: at least one replica for FFV2_ENCODING_PASSTHROUGH or
-FFV2_ENCODING_REPLICATED, or at least k of the k+m storage
+FFV2_ENCODING_REPLICATED, or at least k of the k + m storage
 devices for an erasure-coded encoding at (k, m) parameters.
 If it does not, the metadata server MUST NOT return a partial
 layout and instead returns NFS4ERR_LAYOUTTRYLATER as in the
@@ -2024,7 +2024,7 @@ client MUST commit writes to the storage devices for the file
 before sending a
 LAYOUTCOMMIT to the metadata server.  That is, the writes MUST be
 committed by the client to stable storage via issuing WRITEs with
-stable_how == FILE_SYNC or by issuing a COMMIT after WRITEs with
+stable_how = FILE_SYNC or by issuing a COMMIT after WRITEs with
 stable_how != FILE_SYNC (see Section 3.3.7 of {{RFC1813}}).
 
 ##  Storage Device Multipathing
@@ -2245,8 +2245,8 @@ those sections is:
 | 3     | FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC | Discrete Radon projections, non-systematic (all shards transformed) | {{sec-mojette-encoding}}       |
 | 4     | FFV2_ENCODING_RS_VANDERMONDE         | Reed-Solomon Vandermonde over GF(2^8); arbitrary (k, m)  | {{sec-rs-encoding}}            |
 | 5     | FFV2_ENCODING_REPLICATED               | Chunked replication; N-way redundancy at N x storage      | {{sec-encoding-replicated}}      |
-| 6     | FFV2_ENCODING_XOR_PARITY             | Single-parity RAID-5 shape; k+1, m=1, pure XOR            | {{sec-encoding-xor-parity}}    |
-| 7     | FFV2_ENCODING_LINUX_MD_RAID          | Linux md/raid6 P+Q double-parity; k+2, m=2, GF(2^8)       | {{sec-encoding-linux-md-raid}} |
+| 6     | FFV2_ENCODING_XOR_PARITY             | Single-parity RAID-5 shape; k + 1, m=1, pure XOR            | {{sec-encoding-xor-parity}}    |
+| 7     | FFV2_ENCODING_LINUX_MD_RAID          | Linux md/raid6 P + Q double-parity; k + 2, m=2, GF(2^8)       | {{sec-encoding-linux-md-raid}} |
 {: #tbl-encoding-type-sections title="Encoding type value to section mapping"}
 
 ### Encoding Type Interoperability {#encoding-type-interoperability}
@@ -2664,7 +2664,7 @@ The (data, parity) tuple is interpreted per encoding type:
    stored; the fdp_parity additional copies are the flexible file v1 layout
    mirror replicas.
 
--  FFV2_ENCODING_REPLICATED uses the N+0 notation: fdp_data is
+-  FFV2_ENCODING_REPLICATED uses the N + 0 notation: fdp_data is
    the number of replicas (e.g., fdp_data=3 for 3-way
    mirroring) and fdp_parity MUST be 0.  Every replica is a
    full, independent data carrier; mirroring carries no
@@ -3495,7 +3495,7 @@ retry disposition is correspondingly different.
 
 For a CHUNK_READ error, the client SHOULD attempt local
 reconstruction from surviving shards before returning the layout,
-provided the encoding is a k+m code and the client holds
+provided the encoding is a k + m code and the client holds
 (directly or by fetching from unaffected data servers in the
 same stripe) at least k surviving shards.  A successful local
 reconstruction satisfies the read; the client MUST still record
@@ -4906,7 +4906,7 @@ the reconstruction story of erasure coding.  Small files that
 do not exceed a single stripe, files whose access pattern is
 read-mostly and where the N x storage cost is acceptable, and
 files where the operator prefers the simplicity of "any one
-replica is the file" over "k of (k+m) shards reconstruct the
+replica is the file" over "k of (k + m) shards reconstruct the
 file."  The coding choice is per-file; a deployment can mix
 mirrored and erasure-coded files in the same namespace and
 pick whichever fits each file's profile.
@@ -4915,7 +4915,7 @@ What FFV2_ENCODING_REPLICATED is not: a substitute for erasure
 coding when storage efficiency or multi-replica fault tolerance
 matters.  An N-way mirror tolerates up to N-1 replica losses
 but costs N x the payload; a (k, m) erasure coding tolerates m
-losses at (k+m)/k x the payload.  Both have per-chunk
+losses at (k + m)/k x the payload.  Both have per-chunk
 integrity under this document; the choice is the
 cost-vs-tolerance one.
 
@@ -5025,7 +5025,7 @@ layout.  Total storage overhead is `1/k` of payload.
 
 ### Overview
 
-FFV2_ENCODING_LINUX_MD_RAID is the Linux kernel md/raid6 P+Q
+FFV2_ENCODING_LINUX_MD_RAID is the Linux kernel md/raid6 P + Q
 double-parity encoding, evaluated in GF(2^8) with primitive
 polynomial `x^8 + x^4 + x^3 + x^2 + 1` (encoded as `0x1d` when
 the implicit degree-8 term is dropped, `0x11d` when it is
@@ -5090,14 +5090,14 @@ where multiplication is in GF(2^8) and `g = 2`.  All shards
 
 The P row is identical to FFV2_ENCODING_XOR_PARITY's parity by
 construction; the two encodings share the P computation.  The
-Q row is the m=2 P+Q construction from {{sec-rs-encoding}},
+Q row is the m=2 P + Q construction from {{sec-rs-encoding}},
 and produces byte-identical output to
 FFV2_ENCODING_RS_VANDERMONDE at m=2.
 
 ### LINUX_MD_RAID Recovery
 
 LINUX_MD_RAID tolerates up to two concurrent shard losses (any
-two of the k+2 shards).
+two of the k + 2 shards).
 
 Single-shard failure:
 :  If only P or only Q is missing, recompute from the k intact
@@ -5129,8 +5129,8 @@ input at m <= 2.
 - At m = 1, LINUX_MD_RAID's P row equals RS_VANDERMONDE's m=1
   parity and equals XOR_PARITY's parity (see
   {{sec-encoding-xor-parity}}).
-- At m = 2, LINUX_MD_RAID's P+Q equals RS_VANDERMONDE's m=2
-  P+Q rows byte-for-byte.
+- At m = 2, LINUX_MD_RAID's P + Q equals RS_VANDERMONDE's m=2
+  P + Q rows byte-for-byte.
 
 RS_VANDERMONDE joined the m <= 2 wire-compat set as a
 wire format revision in this document: its m <= 2 parity rows
@@ -5184,7 +5184,7 @@ layout.  Total storage overhead is `2/k` of payload.
 ### Overview
 
 Reed-Solomon (RS) codes are Maximum Distance Separable codes:
-for a (k+m, k) code, any k of the k+m encoded shards suffice to
+for a (k + m, k) code, any k of the k + m encoded shards suffice to
 recover the original data.  The code tolerates the simultaneous loss
 of up to m shards.  {{Plank97}} is a tutorial treatment of RS
 coding in RAID-like systems and is the recommended background
@@ -5257,17 +5257,17 @@ RS_VANDERMONDE at m <= 2 byte-for-byte (and vice versa).
 The parity rows are the bottom m rows of a normalized
 Vandermonde encoding matrix, constructed as follows.
 
-1. Assign each of the k+m shards a distinct non-zero evaluation
-   point in GF(2^8): shard i (for i = 0, 1, ..., k+m-1) is assigned
+1. Assign each of the k + m shards a distinct non-zero evaluation
+   point in GF(2^8): shard i (for i = 0, 1, ..., k + m - 1) is assigned
    the point alpha_i = i + 1.  This gives evaluation points
-   1, 2, ..., k+m, all non-zero and distinct.  The value k+m MUST
+   1, 2, ..., k + m, all non-zero and distinct.  The value k + m MUST
    NOT exceed 255 so that all points fit in GF(2^8) \ {0}.
 
-2. Construct a (k+m) x k Vandermonde matrix V where the row for
+2. Construct a (k + m) x k Vandermonde matrix V where the row for
    shard i is the geometric progression of alpha_i:
 
    ~~~
-   V[i][j] = alpha_i^j = (i+1)^j    for j = 0, 1, ..., k-1
+   V[i][j] = alpha_i^j = (i + 1)^j    for j = 0, 1, ..., k-1
    ~~~
 
    Row i is (1, alpha_i, alpha_i^2, ..., alpha_i^(k-1)).  The
@@ -5278,7 +5278,7 @@ Vandermonde encoding matrix, constructed as follows.
    unambiguous).  Any k distinct rows form a k x k Vandermonde
    matrix on k distinct non-zero evaluation points, which is
    invertible over GF(2^8); this is the property that gives the
-   code its Maximum Distance Separable (any k of k+m shards
+   code its Maximum Distance Separable (any k of k + m shards
    recover the data) guarantee.  The minimum useful geometry
    is `k >= 1` and `m >= 1` (`k = 0` gives no data and `m = 0`
    gives no redundancy); the maximum is bounded by `k + m <= 255`
@@ -5291,7 +5291,7 @@ Vandermonde encoding matrix, constructed as follows.
 
 5. Multiply: E = V * T_inv.  The result has an identity block on top
    (rows 0 through k-1) and the parity generation matrix P on the
-   bottom (rows k through k+m-1).
+   bottom (rows k through k + m - 1).
 
 The identity block makes the code systematic: data shards pass through
 unchanged, and only the parity sub-matrix P is needed during encoding.
@@ -5317,7 +5317,7 @@ parity) are the same size.
 When one or more shards are lost (up to m), reconstruction proceeds
 by matrix inversion:
 
-1. Select k available shards (from the k+m total).
+1. Select k available shards (from the k + m total).
 
 2. Form a k x k sub-matrix S of the encoding matrix E by selecting the
    rows corresponding to the available shards.
@@ -5766,7 +5766,7 @@ characteristics and operational priorities.
 ## Handling write holes
 
 A write hole occurs when a client begins writing a stripe but does not
-successfully write all k+m shards before a failure.  Some data servers
+successfully write all k + m shards before a failure.  Some data servers
 will hold new data while others still hold old data, producing an
 non-atomic payload.
 
@@ -6334,7 +6334,7 @@ require redefining those primitives.
 
 Erasure-coded reads:
 :  A reader of an erasure-coded file reconstructs the plaintext
-   from any sufficient subset of k shards of the (k+m)-shard
+   from any sufficient subset of k shards of the (k + m)-shard
    stripe; the guard values on those shards MUST agree.  Shards
    with stale guards are ignored.  This is not a quorum read in
    the Paxos sense -- there is no voting on a value; there is
@@ -6696,7 +6696,7 @@ Pessimistic locks off the critical path:
 
 Erasure-coded reads replace quorum reads:
 :  A reader
-   reconstructs from any k of k+m shards with matching guards.
+   reconstructs from any k of k + m shards with matching guards.
    No voting is needed because there is no disagreement to
    resolve: the guard identifies the single generation that was
    committed.
@@ -7751,7 +7751,7 @@ Returned by a repair actor on the CB_CHUNK_REPAIR response
 repaired and the underlying data is no longer recoverable.
 Causes include: too few surviving shards to meet the
 reconstruction threshold (Katz criterion for Mojette, any
-k-of-(k+m) subset for Reed-Solomon Vandermonde), inability to
+k-of-(k + m) subset for Reed-Solomon Vandermonde), inability to
 roll back to a previously committed payload because that payload
 is also lost, or exhaustion of all FFV2_DS_FLAGS_REPAIR data
 servers available in the layout with no additional replacement
@@ -9497,7 +9497,7 @@ in a previous compound; the CHUNK_COMMIT operates on a chunk
 whose CHUNK_FINALIZE the client has already inspected.  If
 any per-block status in compound N reports a guard loss or
 other failure, the client abandons the affected chunk (via
-CHUNK_ROLLBACK in compound N+1 or later) without ever issuing
+CHUNK_ROLLBACK in compound N + 1 or later) without ever issuing
 the trailing FINALIZE / COMMIT for it.
 
 This pattern adds two compounds of latency between a chunk's
@@ -11756,7 +11756,7 @@ the layout (see {{sec-ffv2-mirror4}}); a mismatch is rejected
 with NFS4ERR_INVAL.  The data server validates each chunk's
 checksum at CHUNK_WRITE time and rejects mismatched chunks
 with NFS4ERR_IO in the corresponding cwr_block_status slot.
-An empty cwa_checksums array (cwa_checksums_len == 0)
+An empty cwa_checksums array (cwa_checksums_len = 0)
 indicates the client did not supply per-chunk checksums; the
 data server still computes and persists per-chunk checksums
 from the payload bytes for later integrity verification but
@@ -11778,7 +11778,7 @@ store to cover the new chunks, with intervening offsets
 remaining EMPTY ({{sec-system-model-chunk-state}}) until
 they too are written.  If the cwa_chunks payload is empty
 (zero bytes), the CHUNK_WRITE succeeds and writes zero
-chunks (cwr_count == 0).
+chunks (cwr_count = 0).
 
 In all situations the data server MAY choose to write
 fewer chunks than the client requested; the client must be
@@ -11918,7 +11918,7 @@ only after a subsequent CHUNK_FINALIZE and CHUNK_COMMIT.
 The activation shortcut interacts with concurrent writers
 and unstable writes in subtle ways:
 
--  A chunk written with cwa_stable == UNSTABLE4 cannot be
+-  A chunk written with cwa_stable = UNSTABLE4 cannot be
    activated by CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY
    because the payload has not been committed to stable
    storage; the chunk enters the PENDING state regardless
@@ -14957,7 +14957,7 @@ byte-for-byte:
 - At m = 2: FFV2_ENCODING_LINUX_MD_RAID and
   FFV2_ENCODING_RS_VANDERMONDE emit byte-identical output for
   the same (k, data) input, provided RS_VANDERMONDE uses the
-  hand-crafted P+Q parity rows this document defines (see
+  hand-crafted P + Q parity rows this document defines (see
   {{sec-encoding-linux-md-raid}}).
 - At m >= 3: the encoders diverge; RS_VANDERMONDE reverts to
   normalized-Vandermonde bottom rows and no cross-encoder
@@ -15047,7 +15047,7 @@ lost was approximately 80 ms; at 16 MB, approximately 990 ms.
 Mojette systematic at the same operating points was
 approximately 72 ms and 900 ms respectively.  Repair cost
 decomposes as `degraded-read cost + write-back cost per lost
-shard` (not (k+m) writes -- CHUNK_WRITE_REPAIR is targeted).
+shard` (not (k + m) writes -- CHUNK_WRITE_REPAIR is targeted).
 
 At file sizes >= 64 KB, repair cost is within one order of
 magnitude of a healthy write of the same size -- not the
@@ -15256,9 +15256,9 @@ rejected because:
    consensus protocol, which is a substantially heavier
    requirement than being independent chunk stores.
 
--  A majority of (k+m) data servers must be reachable for any
+-  A majority of (k + m) data servers must be reachable for any
    progress, which is a strictly stronger availability requirement
-   than the k-of-(k+m) needed for erasure-coded reads.
+   than the k-of-(k + m) needed for erasure-coded reads.
 
 Working-group feedback on this proposal was uniformly negative.
 The current design retains the option -- nothing in this
