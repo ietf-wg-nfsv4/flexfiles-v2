@@ -8342,6 +8342,12 @@ Deterministic contention resolution for concurrent writers:
    retry under a fresh cohort id.  Convergence is achieved
    by making losing writers back off, not by having the data
    server pick a winner from the losing writer's state.
+   This is the wire-level mechanism that implements the
+   consistency invariant in {{sec-system-model-consistency}}
+   ("one writer's entire chunk-generation wins and becomes
+   COMMITTED; the other writer sees NFS4ERR_CHUNK_GUARDED and
+   is expected to re-read and retry"); {{sec-system-model-progress}}
+   documents the progress guarantee this rule underwrites.
 
     - **At CHUNK_WRITE** (per data server, arrival-order): the
       data server accepts the first CHUNK_WRITE whose
