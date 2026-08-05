@@ -5647,29 +5647,37 @@ failure count, but at higher baseline read cost than systematic.
 
 ### Mojette Shard Sizes and Layout
 
-**Slot-to-direction mapping.**  The canonical shard layout for
-Mojette is:
+Slot-to-direction mapping:
 
-- Systematic (FFV2_ENCODING_MOJETTE_SYSTEMATIC): shard slots
-  `0..k-1` carry the k data rows (row r in slot r); shard
-  slots `k..k+m-1` carry the m parity projections in the
-  canonical direction order defined in the Directions
-  subsection above (direction slot i occupies shard slot
-  `k + i`).
-- Non-systematic (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC): shard
-  slots `0..k+m-1` carry the n = k + m parity projections in
-  the canonical direction order (direction slot i occupies
-  shard slot i).
+: The canonical shard layout for Mojette is:
 
-**Bin ordering within a projection.**  Within a projection
-shard the bins are serialized in ascending bin-index order
-(bin 0 first, bin B-1 last), with no gap or header.  Each bin
-value is `W = 8` bytes wide; the W-byte element is serialized
-in big-endian byte order (the same order the data-row shards
-present their W-byte grid elements in).
+  Systematic (FFV2_ENCODING_MOJETTE_SYSTEMATIC):
 
-**Projection sizes.**  Unlike RS, Mojette parity shard sizes
-vary by direction:
+  : shard slots `0..k-1` carry the k data rows (row r in slot
+    r); shard slots `k..k+m-1` carry the m parity projections
+    in the canonical direction order defined in the Directions
+    subsection above (direction slot i occupies shard slot
+    `k + i`).
+
+  Non-systematic (FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC):
+
+  : shard slots `0..k+m-1` carry the n = k + m parity
+    projections in the canonical direction order (direction
+    slot i occupies shard slot i).
+
+Bin ordering within a projection:
+
+: Within a projection shard the bins are serialized in
+  ascending bin-index order (bin 0 first, bin B-1 last), with
+  no gap or header.  Each bin value is `W = 8` bytes wide; the
+  W-byte element is serialized in big-endian byte order (the
+  same order the data-row shards present their W-byte grid
+  elements in).
+
+Projection sizes:
+
+: Unlike Reed-Solomon, Mojette parity shard sizes vary by
+  direction:
 
 | Direction (p, q) | Bins (B) for P=512, Q=4 | Size (bytes, W=8) |
 |---
@@ -5681,21 +5689,24 @@ vary by direction:
 | (3, 1) | 521 | 4168 |
 {: #tbl-mojette-proj-sizes title="Mojette projection sizes for 4+2, 4KB shards, W=8"}
 
-**Chunk sizing for variable-length projections.**  When a
-projection shard is written via `CHUNK_WRITE` /
-`CHUNK_FINALIZE` / `CHUNK_COMMIT`, the shard is divided into
-chunks by the following mapping.  Let `shard_bytes = B * W` be
-the projection shard's total byte size (where B is the number
-of bins per the B formula above ({{tbl-mojette-proj-sizes}} uses it) applied to the shard's
-direction (p, q) and the grid dimensions (P, Q)):
+Chunk sizing for variable-length projections:
 
-- `num_chunks = ceil(shard_bytes / chunk_size)`
-- Chunk `j` (for j = 0..num_chunks-1) covers the shard byte
-  range `[j * chunk_size, min((j+1) * chunk_size, shard_bytes))`.
-- The final chunk (chunk `num_chunks - 1`) MAY be shorter than
-  `chunk_size` if `shard_bytes` is not a multiple of
-  `chunk_size`; all other chunks are exactly `chunk_size`
-  bytes.
+: When a projection shard is written via `CHUNK_WRITE` /
+  `CHUNK_FINALIZE` / `CHUNK_COMMIT`, the shard is divided into
+  chunks by the following mapping.  Let `shard_bytes = B * W`
+  be the projection shard's total byte size (where B is the
+  number of bins per the B formula above
+  ({{tbl-mojette-proj-sizes}} uses it) applied to the shard's
+  direction (p, q) and the grid dimensions (P, Q)):
+
+  - `num_chunks = ceil(shard_bytes / chunk_size)`
+  - Chunk `j` (for j = 0..num_chunks-1) covers the shard byte
+    range `[j * chunk_size, min((j+1) * chunk_size,
+    shard_bytes))`.
+  - The final chunk (chunk `num_chunks - 1`) MAY be shorter
+    than `chunk_size` if `shard_bytes` is not a multiple of
+    `chunk_size`; all other chunks are exactly `chunk_size`
+    bytes.
 
 The `chunk_size` value is a per-mirror parameter and does not
 vary across the parity projections of a single file, even
