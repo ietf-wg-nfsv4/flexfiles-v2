@@ -7477,13 +7477,17 @@ data.
 ###  ff_layoutupdate4 {#sec-ff_layoutupdate4}
 
 ~~~ xdr
+   /// const FFV2_LAYOUTSTATS_FLAGS_LOCAL  = 0x00000001;
+   ///
+   /// typedef uint32_t   ffv2_layoutstats_flags4;
+   ///
    /// struct ffv2_layoutupdate4 {
-   ///         netaddr4         ffv2l_addr;
-   ///         nfs_fh4          ffv2l_fhandle;
-   ///         ffv2_io_latency4 ffv2l_read;
-   ///         ffv2_io_latency4 ffv2l_write;
-   ///         nfstime4         ffv2l_duration;
-   ///         bool             ffv2l_local;
+   ///         netaddr4                ffv2l_addr;
+   ///         nfs_fh4                 ffv2l_fhandle;
+   ///         ffv2_io_latency4        ffv2l_read;
+   ///         ffv2_io_latency4        ffv2l_write;
+   ///         nfstime4                ffv2l_duration;
+   ///         ffv2_layoutstats_flags4 ffv2l_flags;
    /// };
    ///
 ~~~
@@ -7494,10 +7498,13 @@ to on the storage device.  In the case of multipathing, ffv2l_fhandle
 indicates which read-only copy was selected. ffv2l_read and ffv2l_write
 convey the latencies for both READ and WRITE operations, respectively.
 ffv2l_duration is used to indicate the time period over which the
-statistics were collected.  If true, ffv2l_local indicates that the
-I/O was serviced by the client's cache.  This flag allows the client
-to inform the metadata server about "hot" access to a file it would
-not normally be allowed to report on.
+statistics were collected.  ffv2l_flags is a 32-bit bitmask
+reporting per-report properties; when FFV2_LAYOUTSTATS_FLAGS_LOCAL
+is set, the I/O was serviced by the client's cache.  This flag
+allows the client to inform the metadata server about "hot" access
+to a file it would not normally be allowed to report on.
+Unassigned bits are reserved for future revisions; receivers MUST
+ignore bits they do not recognize.
 
 ###  ff_iostats4
 
@@ -8720,6 +8727,32 @@ matching a CHUNK_LOCK adoption against an
 installed escrow, or when reconciling an escrow
 tuple against a discovery response, and does not
 interpret the internal structure.
+
+## chunk_state_flags4 {#sec-chunk_state_flags4}
+
+~~~ xdr
+   /// const CHUNK_STATE_FLAGS_LOCKED  = 0x00000001;
+   ///
+   /// typedef uint32_t   chunk_state_flags4;
+~~~
+{: #fig-chunk_state_flags4 title="XDR for chunk_state_flags4" }
+
+The chunk_state_flags4 is a 32-bit bitmask carried in per-chunk
+result arrays (chrr_locked in CHUNK_HEADER_READ4resok, cr_locked
+in read_chunk4) to report the read-time state of a chunk on the
+data server.  The value 0 means "no state flags set"; each
+defined bit indicates a specific state property.  Unassigned
+bits are reserved for future revisions of this specification;
+receivers MUST ignore bits they do not recognize so that
+additions are additive on the wire.
+
+CHUNK_STATE_FLAGS_LOCKED:
+
+: the chunk currently has a CHUNK_LOCK held by some
+  chunk_owner4.  This state is reported orthogonally to the
+  per-chunk chrr_status / cr_status so that a locked chunk
+  still surfaces its lifecycle state and chunk_owner4 to the
+  inspector.
 
 ## Incarnation-Lease Proof {#sec-proof-profile}
 
@@ -10082,10 +10115,10 @@ NFS4ERR_STALE:
    ///     bool                chrr_eof;
    ///     nfsstat4
    ///         chrr_status<CHUNK_HEADER_READ_MAX4>;
-   ///     bool
+   ///     chunk_state_flags4
    ///         chrr_locked<CHUNK_HEADER_READ_MAX4>;
    ///     chunk_owner4
-   ///         chrr_chunks<CHUNK_HEADER_READ_MAX4>;
+   ///         chrr_owners<CHUNK_HEADER_READ_MAX4>;
    ///     chunk_guard4
    ///         chrr_guards<CHUNK_HEADER_READ_MAX4>;
    ///     optional_retained4
@@ -10154,14 +10187,15 @@ chrr_status:
    (see "Per-Chunk Status Encoding" below).
 
 chrr_locked:
-:  per-chunk boolean.  TRUE if the chunk currently has a
-   CHUNK_LOCK held by some
-   chunk_owner4; FALSE otherwise.  Lock state is
-   reported orthogonally to chrr_status so that a locked
-   chunk still surfaces its lifecycle state and
-   chunk_owner4 to the inspector.
+:  per-chunk chunk_state_flags4
+   ({{sec-chunk_state_flags4}}).  CHUNK_STATE_FLAGS_LOCKED
+   set indicates the chunk currently has a CHUNK_LOCK held
+   by some chunk_owner4.  Lock state is reported
+   orthogonally to chrr_status so that a locked chunk
+   still surfaces its lifecycle state and chunk_owner4 to
+   the inspector.
 
-chrr_chunks:
+chrr_owners:
 :  per-chunk chunk_owner4 ({{fig-chunk_owner4}}).  For a
    chunk whose chrr_status is NFS4_OK the field is the
    COMMITTED generation's owner.  For
@@ -10194,7 +10228,7 @@ chrr_predecessors:
 :  per-chunk immediate-predecessor disposition, one
    optional_retained4 entry per chunk in the returned
    range, co-indexed with chrr_status, chrr_locked, and
-   chrr_chunks.  Each entry names the read-time state
+   chrr_owners.  Each entry names the read-time state
    of the single most recent retained predecessor of
    the current generation the data server holds for
    that chunk index under the retention scope rule
@@ -10204,7 +10238,7 @@ chrr_predecessors:
    RETAINED_GENERATION_DISPOSITION_ABSENT:
 
    : the data server holds no retained predecessor at that
-     index (either the current chrr_chunks generation is the
+     index (either the current chrr_owners generation is the
      only one, or the chunk is EMPTY).  The arm carries no
      owner triple.
 
@@ -10301,7 +10335,7 @@ Read-side atomicity check:
    multiple-writer mode, a client MAY issue
    CHUNK_HEADER_READ to verify that the chunks in the
    target range share a common `(co_cohort_id,
-   co_client_id)` pair in chrr_chunks (the cohort-atomicity
+   co_client_id)` pair in chrr_owners (the cohort-atomicity
    property in
    {{sec-system-model-consistency}}) and MAY additionally
    inspect chrr_guards as a cheaper generation-level
@@ -10374,19 +10408,19 @@ lifecycle state encoded as an nfsstat4:
 
 NFS4_OK:
 :  the chunk is COMMITTED and the chunk_owner4 in the
-   corresponding chrr_chunks slot is the COMMITTED
+   corresponding chrr_owners slot is the COMMITTED
    generation's owner.
 
 NFS4ERR_PAYLOAD_NOT_ATOMIC:
 :  the chunk is PENDING or FINALIZED (a non-globally-visible
    generation is in progress).  The
-   chunk_owner4 in the corresponding chrr_chunks slot
+   chunk_owner4 in the corresponding chrr_owners slot
    names the writer of that in-progress generation.
 
 NFS4ERR_NOENT:
 :  the chunk is EMPTY (no COMMITTED generation has been
    written at this offset).  The chunk_owner4 in the
-   corresponding chrr_chunks slot is unspecified.
+   corresponding chrr_owners slot is unspecified.
 
 CHUNK_HEADER_READ never returns NFS4ERR_CHUNK_LOCKED in
 chrr_status; lock state is reported orthogonally via
@@ -10707,14 +10741,14 @@ NFS4ERR_SERVERFAULT:
 
 ~~~ xdr
    /// struct read_chunk4 {
-   ///     checksum4       cr_checksum;
-   ///     uint32_t        cr_effective_len;
-   ///     chunk_owner4    cr_owner;
-   ///     chunk_guard4    cr_guard;
-   ///     uint32_t        cr_payload_id;
-   ///     bool            cr_locked;
-   ///     nfsstat4        cr_status;
-   ///     opaque          cr_chunk<>;
+   ///     checksum4          cr_checksum;
+   ///     uint32_t           cr_effective_len;
+   ///     chunk_owner4       cr_owner;
+   ///     chunk_guard4       cr_guard;
+   ///     uint32_t           cr_payload_id;
+   ///     chunk_state_flags4 cr_locked;
+   ///     nfsstat4           cr_status;
+   ///     opaque             cr_chunk<>;
    /// };
 ~~~
 {: #fig-read_chunk4 title="XDR for read_chunk4" }
@@ -10840,8 +10874,10 @@ cr_payload_id:
    correlate chunks across mirrors.
 
 cr_locked:
-:  TRUE if the chunk currently has a CHUNK_LOCK held against it; FALSE otherwise.
-   Lock state does not block the read.
+:  chunk_state_flags4 ({{sec-chunk_state_flags4}}).
+   CHUNK_STATE_FLAGS_LOCKED set indicates the chunk
+   currently has a CHUNK_LOCK held against it.  Lock
+   state does not block the read.
 
 cr_status:
 :  per-chunk status.  NFS4_OK indicates that cr_chunk is
@@ -13821,7 +13857,7 @@ Happy path (all three conditions hold):
    adoption.
 
 4. The repair actor issues CHUNK_HEADER_READ over
-   chunk index 5.  The response shows chrr_chunks
+   chunk index 5.  The response shows chrr_owners
    as the (42, 7, 101) current generation and
    `chrr_predecessors[0]` as the (41, 7, 100)
    retained predecessor
