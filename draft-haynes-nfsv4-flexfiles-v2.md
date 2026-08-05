@@ -231,10 +231,23 @@ from {{RFC7863}}.
 
 This document defines `LAYOUT4_FLEX_FILES_V2`, a new and independent
 layout type that coexists with the Flexible File Version 1 Layout Type
-(`LAYOUT4_FLEX_FILES`, {{RFC8435}}).  The two layout types are NOT
-backward compatible: a flexible file v2 layout cannot be parsed as a flexible file v1 layout
-and vice versa.  A server MAY support both layout types simultaneously;
-a client selects the desired layout type in its LAYOUTGET request.
+(`LAYOUT4_FLEX_FILES`, {{RFC8435}}).  The two layout types are
+wire-format-incompatible: an FFv1 receiver cannot parse FFv2
+layout bytes, and an FFv2 receiver cannot parse FFv1 layout
+bytes.  Semantically, however, FFv2 is a superset of FFv1:
+any FFv1 layout has a natural FFv2 representation using a
+single FFV2_ENCODING_PASSTHROUGH mirror (see
+{{sec-encoding-passthrough}}), with the FFv1 data servers
+mapped into ffv2_stripes4 and the FFv1 layout-level
+ffl_stripe_unit mapped into per-mirror ffv2m_striping_unit_size
+and ffv2m_striping.  The reverse does not hold: FFv2 layouts
+that use any CHUNK-based encoding (any FFV2_ENCODING_* value
+other than FFV2_ENCODING_PASSTHROUGH) have no FFv1
+representation, because FFv1 has neither the chunk envelope
+(chunk_guard4, per-chunk checksum) nor the per-mirror
+encoding choice that those encodings require.  A server MAY
+support both layout types simultaneously; a client selects
+the desired layout type in its LAYOUTGET request.
 
 # Requirements Language
 
@@ -2625,14 +2638,21 @@ per-layout one.
 ~~~
 {: #fig-ffv2_mirror4 title="The ffv2_mirror4" }
 
-The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) evolves the
-ff_mirror4 structure from {{RFC8435}}.  In FFv1, ff_mirror4
-carries only ffm_data_servers<> -- the set of data servers
-holding replicas of the mirror's content -- with the
-encoding shape (single-layout-wide), the striping unit
-(single-layout-wide via ffl_stripe_unit), and the writer /
-integrity fields not present at the mirror level.  FFv2 adds
-the following per-mirror fields:
+The ffv2_mirror4 (in {{fig-ffv2_mirror4}}) is the FFv2
+counterpart to ff_mirror4 in {{RFC8435}}.  FFv2 is a
+semantic superset of FFv1: any ff_mirror4 can be re-expressed
+as an ffv2_mirror4 by setting
+ffv2m_coding_type_data = FFV2_ENCODING_PASSTHROUGH,
+ffv2m_striping and ffv2m_striping_unit_size to the FFv1
+layout-level values, ffv2m_checksum_algorithm to
+CHECKSUM_ALG_NONE, and wrapping the FFv1 ffm_data_servers<>
+in a single-element ffv2m_stripes<>.  The reverse does not
+hold: ffv2_mirror4 instances whose ffv2m_coding_type_data is
+anything other than FFV2_ENCODING_PASSTHROUGH have no
+ff_mirror4 representation.
+
+Relative to ff_mirror4, ffv2_mirror4 adds the following
+per-mirror fields:
 
 - ffv2m_coding_type_data: per-mirror encoding type choice
   (see {{fig-ffv2_encoding_type4}}).  This enables a single
