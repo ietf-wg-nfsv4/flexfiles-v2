@@ -7890,13 +7890,13 @@ NFS4ERR_NO_PREDECESSOR:
     for which the data server holds no surviving record and
     no concrete invalidation context.
 
-An implementation following the no-tombstone model
-cannot distinguish "the data server never recorded
-this triple" from "the data server recorded and later
-released this triple" outside a live invalidation
-context, and this specification does not require it
-to: both cases resolve to NFS4ERR_NO_PREDECESSOR under
-the "no surviving record" case above.  The two errors are
+An implementation that does not retain a per-triple record
+after release cannot distinguish "the data server never
+recorded this triple" from "the data server recorded and later
+released this triple" outside a live invalidation context, and
+this specification does not require it to: both cases resolve
+to NFS4ERR_NO_PREDECESSOR under the "no surviving record" case
+above.  The two errors are
 not interchangeable: NFS4ERR_INVAL is a caller-side
 signal that the client MUST NOT retry the same
 identity, while NFS4ERR_NO_PREDECESSOR is a data-plane
