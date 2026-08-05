@@ -14173,20 +14173,43 @@ on I/O operations on behalf of its local users, it MUST authenticate
 and authorize the user by issuing respective OPEN and ACCESS calls
 to the metadata server, similar to having NFSv4 data delegations.
 
-The combination of filehandle, synthetic uid, and gid in the layout
-is the way that the metadata server enforces access control to the
-data server.  The client only has access to filehandles of file
-objects and not directory objects.  Thus, given a filehandle in a
-layout, it is not possible to guess the parent directory filehandle.
-Further, as the data file permissions only allow the given synthetic
-uid read/write permission and the given synthetic gid read permission,
-knowing the synthetic ids of one file does not necessarily allow
+Under loose coupling, the combination of filehandle,
+synthetic uid, and gid in the layout is the way that the
+metadata server enforces access control to the data server.
+The client only has access to filehandles of file objects
+and not directory objects.  Thus, given a filehandle in a
+layout, it is not possible to guess the parent directory
+filehandle.  Further, as the data file permissions only
+allow the given synthetic uid read/write permission and
+the given synthetic gid read permission, knowing the
+synthetic ids of one file does not necessarily allow
 access to any other data file on the storage device.
 
-The metadata server can also deny access at any time by fencing the
-data file, which means changing the synthetic ids.  In turn, that
-forces the client to return its current layout and get a new layout
+Under loose coupling, the metadata server can also deny
+access at any time by fencing the data file, which means
+changing the synthetic ids.  In turn, that forces the
+client to return its current layout and get a new layout
 if it wants to continue I/O to the data file.
+
+Under tight coupling
+({{sec-tight-coupling-control-session}}), the metadata
+server does not rely on synthetic uid and gid values to
+enforce access at the data server.  Instead, the metadata
+server injects a per-stateid trust entry into the data
+server via TRUST_STATEID ({{sec-TRUST_STATEID}}); the data
+server validates each CHUNK operation against the
+registered trust entry and rejects operations that do not
+present a registered stateid.  The metadata server rescinds
+that authorization via REVOKE_STATEID
+({{sec-REVOKE_STATEID}}) for a single stateid or
+BULK_REVOKE_STATEID ({{sec-BULK_REVOKE_STATEID}}) for
+every stateid a client currently holds; both are the
+tight-coupling equivalent of a synthetic-id change and
+achieve the same effect (the client MUST return its
+current layout and obtain a new one to continue I/O to
+the data file).  The security implications of the
+trust-stateid channel are covered in
+{{sec-security-trust-stateid}}.
 
 If access is allowed, the client uses the corresponding (read-only
 or read/write) credentials to perform the I/O operations at the
