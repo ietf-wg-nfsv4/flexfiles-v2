@@ -6952,10 +6952,10 @@ side only to files the data server has identified as chunked data
 files.  A data server identifies a file by any of the following
 means, in decreasing order of authority:
 
-fattr4_ffv2_chunked_data_file = TRUE:
+fattr4_chunked_data_file = TRUE:
 
 : The metadata server has set this attribute
-  ({{sec-fattr4_ffv2_chunked_data_file}}) when it allocated the
+  ({{sec-fattr4_chunked_data_file}}) when it allocated the
   file as a chunked data file.  This is the authoritative
   per-file identification and is required for a data server that
   supports the attribute.
@@ -6967,7 +6967,7 @@ Live TRUST_STATEID entry for the file:
   file registered via TRUST_STATEID ({{sec-TRUST_STATEID}})
   identifies the file as under FFv2 management.  This is a
   fallback for data servers that do not yet support
-  fattr4_ffv2_chunked_data_file, and it is per-client rather
+  fattr4_chunked_data_file, and it is per-client rather
   than per-file, but it is sufficient to trigger the "MUST
   reject" rules for that client's operations against the file.
 
@@ -8250,18 +8250,18 @@ File Version 2 Layout Type.  By querying it, the client can determine
 the data block size it is to use when coding the data blocks to
 chunks.
 
-## Attribute 90: fattr4_ffv2_chunked_data_file {#sec-fattr4_ffv2_chunked_data_file}
+## Attribute 90: fattr4_chunked_data_file {#sec-fattr4_chunked_data_file}
 
 ~~~ xdr
-   /// typedef bool                      fattr4_ffv2_chunked_data_file;
+   /// typedef bool                      fattr4_chunked_data_file;
    ///
-   /// const FATTR4_FFV2_CHUNKED_DATA_FILE  = 90;
+   /// const FATTR4_CHUNKED_DATA_FILE  = 90;
    ///
 ~~~
-{: #fig-fattr4_ffv2_chunked_data_file title="XDR for fattr4_ffv2_chunked_data_file" }
+{: #fig-fattr4_chunked_data_file title="XDR for fattr4_chunked_data_file" }
 
-The new attribute fattr4_ffv2_chunked_data_file (see
-{{fig-fattr4_ffv2_chunked_data_file}}) is an OPTIONAL to NFSv4.2
+The new attribute fattr4_chunked_data_file (see
+{{fig-fattr4_chunked_data_file}}) is an OPTIONAL to NFSv4.2
 attribute a data server uses to classify a data file as a
 chunked-encoding data file for the purpose of enforcing the client
 restrictions in {{sec-ops-client}}.  When set to TRUE, the file is
@@ -8275,7 +8275,7 @@ Only the metadata server sets this attribute; the metadata server
 sets it as part of allocating a chunked-encoding data file on the
 data server and does not change it during the file's lifetime.
 Clients MUST NOT SETATTR this attribute; a data server MUST reject
-a client SETATTR of FATTR4_FFV2_CHUNKED_DATA_FILE with
+a client SETATTR of FATTR4_CHUNKED_DATA_FILE with
 NFS4ERR_INVAL.  A data server that does not support this attribute
 falls back to the other identification methods described in
 {{sec-data-file-identification}}.
@@ -9284,10 +9284,14 @@ anonymous stateid MUST reject it with NFS4ERR_BAD_STATEID.
 The chunk envelope's safety properties (atomicity via
 chunk_guard4 CAS, integrity via checksum, lock continuity across
 revocation) depend on metadata-server coordination of layout
-grants, guard generation, and lock escrow.  A client that issues
-CHUNK operations outside an active layout is operating outside
-this specification; the data server's behavior in that case is
-undefined.  See {{sec-system-model-chunk-not-block}} for the
+grants, guard generation, and lock escrow.  A client that
+issues CHUNK operations without an active chunked-encoding
+layout has no chunked-layout stateid to present; whatever
+stateid it does send (anonymous, open, lock, forged, expired)
+is rejected by the data server's normal stateid validation
+per {{RFC8881}} Section 8.2, typically with NFS4ERR_BAD_STATEID
+(or NFS4ERR_STALE_STATEID or NFS4ERR_OLD_STATEID as
+appropriate).  See {{sec-system-model-chunk-not-block}} for the
 distinction between the CHUNK operations and a generic block I/O
 interface.
 
@@ -14562,7 +14566,7 @@ the NFSv4 attribute-number registry (see Section 20 of {{RFC8881}}).
  | Attribute Number | Attribute Name                  | RFC      | Reference                            |
  |---
  | 89               | FATTR4_CODING_BLOCK_SIZE        | RFCTBD10 | {{sec-fattr4_coding_block_size}}     |
- | 90               | FATTR4_FFV2_CHUNKED_DATA_FILE   | RFCTBD10 | {{sec-fattr4_ffv2_chunked_data_file}} |
+ | 90               | FATTR4_CHUNKED_DATA_FILE   | RFCTBD10 | {{sec-fattr4_chunked_data_file}} |
 {: #tbl_attribute_assignments title="NFSv4 Attribute Assignments"}
 
 This document introduces the 'Flexible File Version 2 Layout Type
