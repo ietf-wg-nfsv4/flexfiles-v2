@@ -2138,11 +2138,11 @@ arriving during a transition sees a single layout naming the
 proxy server rather than two layouts naming the source and
 destination encodings, and the rule that the metadata server's
 commit of a transition is a single transaction -- is specified
-in the proxy-server draft
+in the proxy server draft
 ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), in the
 sections "Layout Shape During a Proxy Operation" and "Atomic
 commit on PROXY_DONE".  This document specifies the per-mirror
-encoding naming primitive; the proxy-server document specifies
+encoding naming primitive; the proxy server document specifies
 the transactional machinery that uses it.
 
 The full description of each encoding type is deferred to its
@@ -2393,13 +2393,13 @@ and rely on the metadata-server-initiated repair flow above
 to promote a replacement.
 
 The FFV2_DS_FLAGS_PROXY flag identifies a data-server entry
-that names a Proxy Server rather than a real storage device.
+that names a proxy server rather than a real storage device.
 A client whose local encoding capabilities cannot cover the
 file's mirror set receives a layout in which one or more
 mirror entries have FFV2_DS_FLAGS_PROXY set on their
 ffv2_data_server4; the client directs I/O for that mirror
 to the proxy, which translates on behalf of the client.  The
-Proxy Server protocol itself is specified in
+proxy server protocol itself is specified in
 {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}; this
 document defines only the layout-flag surface (this bit) that
 lets the metadata server mark a data-server entry as
@@ -3830,7 +3830,7 @@ distinct paths, as shown in {{fig-repair-topology}}.
 The metadata server is the authority that selects the repair
 actor for a non-atomic payload.  The candidate set is any
 client, any data server (in a tightly coupled deployment), or
-the proxy server (in a proxy-server deployment); the selection
+the proxy server (in a proxy server deployment); the selection
 is analogous to the way the metadata server assigns per-mirror
 priority via ffv2ds_efficiency (see {{sec-select-mirror}}): the
 protocol does not prescribe the selection algorithm, and each
@@ -4229,25 +4229,25 @@ place.  In this case the metadata server MUST either:
     drive the reconstruction via the proxy server mechanism (a
     designated data server acts as the source of truth for client
     I/O during the transition, pushing reconstructed content to the
-    replacement data servers in the background).  The Proxy Server mechanism also covers the non-repair cases where a file's layout
+    replacement data servers in the background).  The proxy server mechanism also covers the non-repair cases where a file's layout
     must change while remaining available to clients -- policy-driven layout transitions, data server maintenance evacuation,
     administrative ingest, TLS coverage transition, and
     filehandle-backend migration.
 
-2.  If the metadata server has no proxy-server-capable data server
+2.  If the metadata server has no proxy server capable data server
     available, or the surviving shards are insufficient to
     reconstruct any portion of the file, terminate the affected
     byte ranges with NFS4ERR_PAYLOAD_LOST (see
     {{sec-NFS4ERR_PAYLOAD_LOST}}).
 
-The Proxy Server mechanism is specified in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}.
+The proxy server mechanism is specified in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}.
 
-Implementations that do not support the Proxy Server mechanism can
+Implementations that do not support the proxy server mechanism can
 still perform recovery for cases where per-range repair suffices,
 using CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}) and the repair
 client selection rules in {{sec-repair-selection}}.  Such
 implementations will surface NFS4ERR_PAYLOAD_LOST on any failure
-that exceeds per-range repair's reach, including the multi-data-server failure scenarios the Proxy Server mechanism is intended to
+that exceeds per-range repair's reach, including the multi-data-server failure scenarios the proxy server mechanism is intended to
 handle.
 
 ## Mixing of Encoding Types
@@ -4273,7 +4273,7 @@ single file's mirror set addresses several use cases:
   identically), a second mirror in a different encoding provides
   an independent recovery surface.
 
-- Client-capability routing: a Proxy Server
+- Client-capability routing: a proxy server
   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) sees the full
   mirror set and chooses between encodings on behalf of clients
   that do not implement every encoding the file is represented in.
@@ -4301,7 +4301,7 @@ The active mirrors serve different access patterns concurrently:
   ({{sec-CHUNK_READ}}) calls to index 1 (the RS_VANDERMONDE
   mirror).
 
-- A Proxy Server fronting legacy clients chooses between the two
+- A proxy server fronting legacy clients chooses between the two
   encodings on the client's behalf
   ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).
 
@@ -4364,7 +4364,7 @@ The two-mirror layout shown in {{fig-example_mixing}} is the
 file's full mirror set as known to the metadata server.  A
 client that arrives during the assimilation or migration window
 above does not necessarily receive that layout; per the
-proxy-server draft
+proxy server draft
 ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), the client
 gets a single layout naming the proxy server as a single
 endpoint, and the proxy server selects which of the file's
@@ -4398,12 +4398,12 @@ mirror covering each stripe segment.  The heterogeneity is
 not a transition window; it is the permanent structural
 consequence of striping across heterogeneous capability pools.
 
-In this steady-state case, no proxy-server-mediated transition
+In this steady-state case, no proxy server mediated transition
 machinery is involved.  The client receives a layout
 enumerating the mirrors at different `ffv2m_coding` values and
 routes chunk operations to the appropriate data server per
 segment (or, if the client cannot speak one of the encodings,
-requests proxy mediation per the proxy-server draft's section
+requests proxy mediation per the proxy server draft's section
 "Encoding Translation for Encoding-Ignorant Clients").  The layout
 machinery that supports this case is exactly the per-mirror
 encoding naming primitive described above; no additional protocol
@@ -4421,7 +4421,7 @@ implement every encoding (forces a single-vendor or
 single-implementation procurement story), or (c) require an
 always-on transcoding proxy in front of every read and write
 (re-introduces the centralized data-plane that the
-proxy-server role is scoped to avoid in steady state).  None
+proxy server role is scoped to avoid in steady state).  None
 of these alternatives address the steady-state case while
 preserving the transition-window flexibility this document
 specifies.
@@ -5540,7 +5540,7 @@ server -- for example, when selected as the repair actor by an
 metadata-server-directed CB_CHUNK_REPAIR.  Independent of the actor role,
 any entity may operate as encoding-aware (issuing CHUNK
 operations directly against data servers) or encoding-unaware
-(operating through the proxy-server-mediated READ / WRITE path
+(operating through the proxy server mediated READ / WRITE path
 described in {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).
 Proxy-server registration carries the encoding capability
 explicitly; direct pNFS clients reveal their encoding posture
@@ -6530,7 +6530,7 @@ Non-stripe-aligned truncate:
    parity shards re-encoded from the truncated data.  Because
    re-encoding requires running the erasure transform, the
    metadata server MUST delegate this case to an encoding-aware
-   actor: either a Proxy Server
+   actor: either a proxy server
    ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) for
    proxy-mediated truncate, or an encoding-aware client selected
    per {{sec-repair-selection}} via CB_CHUNK_REPAIR with the
@@ -14174,7 +14174,7 @@ Source:
 Implementation:
 :  `reffs` is an NFSv4.2 server written in C that acts as both a
    metadata server and a data server in a flexible file v2 layout
-   deployment.  A separate binary implements the proxy-server role
+   deployment.  A separate binary implements the proxy server role
    defined in the companion draft
    ({{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}).  `ec_demo`
    is a client-side library with a demonstration driver that
@@ -14219,7 +14219,7 @@ Coverage:
   AUTH_SYS credentials with fencing are used for access
   control.
 
-- The proxy-server-mediated repair callback CB_PROXY_REPAIR is
+- The proxy server mediated repair callback CB_PROXY_REPAIR is
   specified but not yet implemented.  Single-shard repair is
   currently client-driven via `ec_demo`.
 
@@ -14384,7 +14384,7 @@ others without re-encoding.
 ### Transmit cost -- three-host real-network sweep
 
 A three-host LAN measurement distributes the roles: one client
-host (kernel NFSv4.2 mount), one proxy-server host, and one
+host (kernel NFSv4.2 mount), one proxy server host, and one
 host running both the metadata server and the data servers.
 Four wire-path variants are distinguished:
 
@@ -14419,7 +14419,7 @@ network serialisation; encoder algorithm cost is a rounding-
 error contributor at these operating points.
 
 The approximately seven-fold variant d penalty (1.1-2.2 MB/s
-vs 10.0-13.5 MB/s) is the extra client-to-proxy-server hop,
+vs 10.0-13.5 MB/s) is the extra client to proxy server hop,
 not the encoder.
 
 Decomposing a 1 MiB write on this topology into cost
@@ -14719,7 +14719,7 @@ layout-level counter would disambiguate successive placements
 of the same data.  This was rejected because:
 
 -  The use case is already covered.  CB_CHUNK_REPAIR (see
-   {{sec-CB_CHUNK_REPAIR}}) and the Proxy Server
+   {{sec-CB_CHUNK_REPAIR}}) and the proxy server
    mechanism (see {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}) together
    handle mid-layout remap without requiring a layout-level
    epoch on the wire.  CB_CHUNK_REPAIR reaches the specific
@@ -14855,7 +14855,7 @@ belong inside a storage boundary, not at the client.
 ## How the Proxy Server Addresses This
 {:numbered="false"}
 
-The Proxy Server role, defined in
+The proxy server role, defined in
 {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}, is the storage
 boundary that Christoph and David asked for.
 
@@ -15030,7 +15030,7 @@ checks rather than via a global wall-clock or consensus protocol.
 ## Combined Effect on the "Cluster Tax"
 {:numbered="false"}
 
-The Proxy Server addresses the encoding-distribution cost; the trust
+The proxy server addresses the encoding-distribution cost; the trust
 stateid mechanism addresses the layout-mutation cost.  Together,
 they confine the residual cluster overhead to:
 
