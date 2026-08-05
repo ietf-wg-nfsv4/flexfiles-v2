@@ -8612,7 +8612,7 @@ cg_client_id of any client-originated chunk_guard4 or
 chunk_owner4.  A data server that receives such a value from
 a client MUST reject the operation with NFS4ERR_INVAL.
 
-### Reserved cg_client_id Value: CHUNK_GUARD_CLIENT_ID_MDS {#sec-chunk_guard_mds}
+### CHUNK_GUARD_CLIENT_ID_MDS and the Metadata-Server Escrow Lock {#sec-chunk_guard_mds}
 
 The value `CHUNK_GUARD_CLIENT_ID_MDS` (0xFFFFFFFF) is reserved.
 It denotes that the chunk lock is held by the metadata server
