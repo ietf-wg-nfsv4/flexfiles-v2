@@ -9435,13 +9435,11 @@ cca_chunks:
    on this data server for this file, or the recorded
    chunk index lies outside the requested range, the
    entry is rejected with NFS4ERR_INVAL in the
-   corresponding ccr_status slot.  The co_id itself is
-   opaque per {{sec-chunk_owner4}} and is NOT compared
-   numerically with cca_offset or cca_count.  The
-   reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
-   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
-   co_client_id of any cca_chunks entry; see
-   {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
+   corresponding ccr_status slot.  The reserved sentinels
+   CHUNK_GUARD_CLIENT_ID_NONE and CHUNK_GUARD_CLIENT_ID_MDS
+   MUST NOT appear as the co_client_id of any cca_chunks
+   entry; see {{sec-chunk_guard_none}} and
+   {{sec-chunk_guard_mds}}.
 
 cca_offset and cca_count are NOT redundant with
 cca_chunks: the owner triples in cca_chunks name specific
@@ -9896,13 +9894,11 @@ cfa_chunks:
    on this data server for this file, or the recorded
    chunk index lies outside the requested range, the
    entry is rejected with NFS4ERR_INVAL in the
-   corresponding cfr_status slot.  The co_id itself is
-   opaque per {{sec-chunk_owner4}} and is NOT compared
-   numerically with cfa_offset or cfa_count.  The
-   reserved sentinels CHUNK_GUARD_CLIENT_ID_NONE and
-   CHUNK_GUARD_CLIENT_ID_MDS MUST NOT appear as the
-   co_client_id of any cfa_chunks entry; see
-   {{sec-chunk_guard_none}} and {{sec-chunk_guard_mds}}.
+   corresponding cfr_status slot.  The reserved sentinels
+   CHUNK_GUARD_CLIENT_ID_NONE and CHUNK_GUARD_CLIENT_ID_MDS
+   MUST NOT appear as the co_client_id of any cfa_chunks
+   entry; see {{sec-chunk_guard_none}} and
+   {{sec-chunk_guard_mds}}.
 
 The CHUNK_FINALIZE result reports the outcome per chunk in
 the same order as cfa_chunks:
