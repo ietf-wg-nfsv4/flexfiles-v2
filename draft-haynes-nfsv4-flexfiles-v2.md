@@ -7690,9 +7690,6 @@ Mixed:
    /// const NFS4ERR_NO_ADOPTABLE_LOCK            = 10104;
    /// const NFS4ERR_STALE_ESCROW                 = 10105;
    /// const NFS4ERR_STALE_MDS_EPOCH              = 10106;
-   /// /* NFS4ERR_PARTIAL numeric TBD at draft-edit time
-   ///    (collision scan against the current nfsstat4
-   ///    range required before publication). */
    /// const NFS4ERR_PARTIAL                      = 10107;
    ///
 ~~~
@@ -8045,11 +8042,6 @@ top level with an EMPTY per-range array.
 NFS4ERR_PARTIAL requires a co-indexed array with
 one entry per named range and MAY carry any mix
 of NFS4_OK and per-range failure codes.
-
-The numeric value 10107 is provisional; a final
-draft-edit-time collision scan against the
-current nfsstat4 range in {{RFC8881}} may adjust
-the assignment.
 
 ## Operations and Their Valid Errors
 
