@@ -2941,7 +2941,7 @@ layout_hint (see Section 5.12.4 of {{RFC8881}}) that the client can
 provide to the metadata server.
 
 The client provides four hints.  All four are advisory; the
-metadata server MAY honour any subset and MAY override any of
+metadata server MAY honor any subset and MAY override any of
 them per administrative policy.
 
 ffv2lh_supported_types
@@ -3030,7 +3030,7 @@ exactly the friction the hint exists to remove.
 ### Encoding Negotiation {#sec-encoding-negotiation}
 
 Because the encoding type registry is expected to grow over time
-(new erasure encoding types are added, older ones fall out of favour,
+(new erasure encoding types are added, older ones fall out of favor,
 vendors register private codes; see {{iana-considerations}}),
 neither clients nor metadata servers are required to implement
 every registered encoding.  The protocol negotiates encoding
@@ -3052,7 +3052,7 @@ Metadata-server selection at file creation:
    The server MAY override the hint when its policy dictates a
    specific encoding (for example, per-export objectives); in that
    case the server issues a layout with the policy-dictated
-   encoding and the client MUST either honour it or fail its I/O
+   encoding and the client MUST either honor it or fail its I/O
    with NFS4ERR_CODING_NOT_SUPPORTED.
 
 Metadata-server selection for an existing file:
@@ -3319,7 +3319,7 @@ via the encoding-negotiation path
 ({{sec-encoding-negotiation}}) with the flag cleared.
 
 The NO_IO_THRU_MDS flag is not advisory; it is an
-instruction the client MUST honour.  When I/O through the
+instruction the client MUST honor.  When I/O through the
 metadata server is required (for example, via the encoding-
 negotiation fallback path in {{sec-encoding-negotiation}}),
 the metadata server MUST clear NO_IO_THRU_MDS on the
@@ -6486,7 +6486,7 @@ Durability floor (normative, per CHUNK_WRITE {{sec-CHUNK_WRITE}} "Stability and 
     any restart that loses UNSTABLE4 state, allowing the
     client to detect the loss.
 
-A data server that cannot honour the durability floor
+A data server that cannot honor the durability floor
 for a given stability level MUST reject the CHUNK_WRITE
 with NFS4ERR_IO rather than accepting the payload without
 its association.
@@ -9048,7 +9048,7 @@ chunk_guard4 CAS, integrity via checksum, lock continuity across
 revocation) depend on metadata-server coordination of layout
 grants, guard generation, and lock escrow.  A client that issues
 CHUNK operations outside an active layout is operating outside
-this specification; the data server's behaviour in that case is
+this specification; the data server's behavior in that case is
 undefined.  See {{sec-system-model-chunk-not-block}} for the
 distinction between the CHUNK operations and a generic block I/O
 interface.
@@ -12075,7 +12075,7 @@ via CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).
 
 The arguments mirror CHUNK_WRITE except that
 CHUNK_WRITE_REPAIR has no cwa_flags field (the
-activation-shortcut behaviour is not offered on the repair
+activation-shortcut behavior is not offered on the repair
 path) and no cwa_guard field (the guard CAS is bypassed
 by construction):
 
@@ -13240,7 +13240,7 @@ ccra_reason:
    The two reasons share all other semantics: the same
    ccra_ranges encoding, the same response codes, the same
    deadline contract.  Only the priority and retry
-   behaviour differs.
+   behavior differs.
 
 ccra_escrow_id:
 :  the escrow_id4 ({{sec-escrow_id4}}) of the metadata-server escrow
@@ -13427,7 +13427,7 @@ against the named predecessor:
    predecessor whose payload has become ERRORED
    through media loss, unrecoverable corruption,
    loss of all redundant data servers, or non-conforming
-   data-server behaviour is not covered
+   data-server behavior is not covered
    -- an ERRORED predecessor follows the best-effort
    reconstruction path
    ({{sec-CHUNK_WRITE_REPAIR}}) and MAY terminate
@@ -14166,7 +14166,7 @@ Compromised metadata server:
    TRUST_STATEID for any (layout stateid, principal)
    pair.  This is the same trust assumption pNFS already
    makes -- the metadata server grants layouts and the
-   data servers honour them.  Deployment defence is the
+   data servers honor them.  Deployment defense is the
    same: restrict administrative access to the metadata
    server, require RPCSEC_GSS or RPC-over-TLS
    ({{RFC9289}}) with mutual authentication on the
@@ -14770,7 +14770,7 @@ measurement:
 2. **Transmit cost** -- the end-to-end cost of a write or read
    on a real NFSv4.2 mount across three hosts on a LAN,
    including RPC round-trips, fsync commits, and network
-   serialisation.
+   serialization.
 
 The two-axis measurement makes explicit what the previous
 single-host measurement obscured: on a real network, encoder
@@ -14869,7 +14869,7 @@ algorithm-cost spread across encoders **collapses to
 approximately 1.15x wire spread** at the client-direct FFv2
 variant (variant c) at 1 MiB.  End-to-end throughput on this
 topology is dominated by RPC round-trips, fsync commits, and
-network serialisation; encoder algorithm cost is a rounding-error
+network serialization; encoder algorithm cost is a rounding-error
 contributor at these operating points.
 
 The approximately seven-fold variant d penalty (1.1-2.2 MB/s
