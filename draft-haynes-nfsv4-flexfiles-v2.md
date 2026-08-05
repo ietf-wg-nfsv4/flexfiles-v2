@@ -2273,12 +2273,48 @@ prevent collisions across concurrent writers.
 ~~~
 {: #fig-ffv2_file_info4 title="The ffv2_file_info4" }
 
-The ffv2_file_info4 is a new structure to help with the stateid
-issue discussed in Section 5.1 of {{RFC8435}}.  I.e., in version 1
-of the Flexible File Version 2 Layout Type, there was the singleton ffv2ds_stateid
-combined with the ffv2ds_fh_vers array.  I.e., each NFSv4 version
-has its own stateid.  In {{fig-ffv2_file_info4}}, each NFSv4
-filehandle has a one-to-one correspondence to a stateid.
+The ffv2_file_info4 is a new structure that resolves the
+stateid-vs-fh_vers pairing issue discussed in Section 5.1 of
+{{RFC8435}}.  In {{RFC8435}}'s flexible file v1 layout, a
+singleton ffv2ds_stateid was paired with an ffv2ds_fh_vers
+array, forcing every fh_vers on a data server to share one
+stateid.  In {{fig-ffv2_file_info4}} each fh_vers has its own
+stateid alongside it.
+
+The stateid value ffv2fi_stateid MUST carry depends on the
+coupling mode advertised for the corresponding
+(ffv2dv_version, ffv2dv_minorversion, ffv2dv_coupling) tuple
+(see {{sec-ff_device_addr4}}):
+
+- If ffv2dv_coupling for this entry equals
+  FFV2_COUPLING_SYNTHETIC_UIDS (loose coupling), ffv2fi_stateid
+  MUST be the anonymous stateid; the client authenticates to
+  the data server via the synthetic ffv2ds_user / ffv2ds_group
+  ({{sec-Fencing-Clients}}) rather than by presenting a
+  meaningful stateid.
+- If ffv2dv_coupling for this entry has the
+  FFV2_COUPLING_TRUSTED_STATEID flag set, ffv2fi_stateid MUST
+  be the layout stateid the metadata server issued in the
+  LAYOUTGET that produced this layout.  The data server
+  validates presented stateids against its per-file trust
+  table populated by TRUST_STATEID
+  ({{sec-tight-coupling-control}}).
+- If ffv2dv_coupling for this entry has only
+  FFV2_COUPLING_TIGHTLY_COUPLED set (a back-end control
+  protocol other than trusted-stateid, with no TRUST_STATEID
+  support advertised), ffv2fi_stateid carries whatever
+  stateid the deployment's back-end control protocol expects
+  the client to present; this document does not further
+  specify that value.
+
+Because ffv2ds_file_info<> has one element per
+(version, minorversion, coupling) tuple advertised on the
+data server (parallel to ffv2da_versions<>), a single data
+server that exposes both loose and tight combinations
+carries multiple ffv2_file_info4 entries with different
+stateid values.  The client selects one tuple to use for
+I/O; it presents that tuple's stateid on subsequent CHUNK
+operations.
 
 ## ffv2_ds_flags4 {#sec-ffv2_ds_flags4}
 
@@ -2421,6 +2457,37 @@ proxy-mediated.
 
 The ffv2_data_server4 (in {{fig-ffv2_data_server4}}) describes a data
 file and how to access it via the different NFS protocols.
+
+- ffv2ds_deviceid names the data server; see the flexible
+  file v1 layout ({{RFC8435}}) for the deviceid model this
+  layout inherits.
+- ffv2ds_efficiency is the metadata-server-assigned mirror
+  ranking used for read-mirror selection
+  ({{sec-select-mirror}}).
+- ffv2ds_file_info<> pairs a filehandle and a stateid for
+  each (version, minorversion, coupling) tuple the layout
+  advertises on this data server (see {{sec-ff_device_addr4}}
+  and the discussion at ffv2_file_info4 above for the
+  stateid-value rules per coupling mode).
+- ffv2ds_user and ffv2ds_group are the synthetic uid/gid the
+  client presents in the RPC credentials to the data server
+  under loose coupling (see {{sec-Fencing-Clients}}).  They
+  are present in every ffv2_data_server4 regardless of the
+  coupling advertised on this data server, because the
+  underlying file on the data server has a single uid/gid
+  irrespective of which NFS protocol combination the client
+  uses to reach it.  If ffv2dv_coupling for the tuple the
+  client selects has any tight-coupling flag set
+  (FFV2_COUPLING_TIGHTLY_COUPLED or
+  FFV2_COUPLING_TRUSTED_STATEID), the client MUST ignore
+  ffv2ds_user and ffv2ds_group; the data server authorizes
+  the write via the trusted-stateid table or the back-end
+  control protocol instead of via the synthetic uid.  If the
+  client selects a tuple with ffv2dv_coupling =
+  FFV2_COUPLING_SYNTHETIC_UIDS, the client MUST present
+  ffv2ds_user and ffv2ds_group in the RPC credentials.
+- ffv2ds_flags carries the ffv2_ds_flags4 state (ACTIVE,
+  PARITY, REPAIR, PROXY; see {{sec-ffv2_ds_flags4}}).
 
 ## ffv2_data_protection4
 
