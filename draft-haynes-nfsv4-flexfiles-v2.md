@@ -6791,9 +6791,12 @@ when issued by the metadata server:
    18.19, 18.21, 18.8): session and filehandle plumbing.
 -  LOOKUP ({{RFC8881}} Section 18.15): runway pool directory
    traversal.
--  GETATTR ({{RFC8881}} Section 18.7): reflected GETATTR after a
-   write layout is returned, and any other attribute queries the
-   metadata server needs to reconcile its cached view.
+-  GETATTR ({{RFC8881}} Section 18.7): the metadata server issues
+   GETATTR against the data file after a write layout is returned,
+   to pull the post-write size, mtime, and other attributes back
+   and reconcile its cached view.  Any other attribute queries
+   the metadata server needs for the same purpose use the same
+   operation.
 -  SETATTR ({{RFC8881}} Section 18.30): data file truncate for
    metadata-server-level SETATTR(size) fan-out, synthetic uid/gid rotation
    for fencing, and mode-bit initialisation on runway assignment.
@@ -6802,7 +6805,8 @@ when issued by the metadata server:
    unlink.
 -  OPEN, CLOSE ({{RFC8881}} Sections 18.16, 18.2): used by the
    metadata server when it acts as a client to the data server
-   for InBand or proxy I/O.
+   for I/O routed through the metadata server or through a
+   proxy server on the metadata server's behalf.
 -  EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION,
    BIND_CONN_TO_SESSION, DESTROY_CLIENTID ({{RFC8881}} Sections
    18.35, 18.36, 18.37, 18.34, 18.50): control-session
