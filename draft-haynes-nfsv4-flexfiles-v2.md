@@ -7760,11 +7760,25 @@ is also lost, or exhaustion of all FFV2_DS_FLAGS_REPAIR data
 servers available in the layout with no additional replacement
 reachable from the metadata server's out-of-band pool.
 
-On receipt, the metadata server MUST NOT retry the repair by
-selecting a different client -- the payload is damaged and the
-metadata server transitions the affected file or byte range into
-an implementation-defined damaged state.  Operator notification
-and restore-from-snapshot are out of scope for this specification.
+On receipt of NFS4ERR_PAYLOAD_LOST from a repair actor, the
+metadata server MUST NOT retry the repair by selecting a
+different client -- the payload is damaged.  Subsequent client
+access to the affected ranges MUST fail: a CHUNK_READ (or an
+NFSv4 READ against a damaged PASSTHROUGH range) returns
+NFS4ERR_PAYLOAD_LOST; a CHUNK_WRITE that overwrites a damaged
+range in its entirety MAY succeed and produce a new atomic
+generation for that range (the write does not depend on the
+damaged prior content), but a partial-range write that would
+require reading the damaged bytes returns NFS4ERR_PAYLOAD_LOST
+as well.  Client NFSv4 implementations MUST surface
+NFS4ERR_PAYLOAD_LOST to the calling application as the POSIX
+errno EIO; a client MAY additionally record a more specific
+diagnostic (e.g., Linux EMEDIUMTYPE) in an out-of-band log or
+attribute, but the application-visible errno is EIO for
+portability.  The metadata server MAY additionally reflect the
+damage in an attribute-level indicator or operator-facing
+notification, but those mechanisms are outside the scope of
+this specification.
 
 NFS4ERR_PAYLOAD_LOST is distinct from NFS4ERR_DELAY (transient;
 metadata server MAY extend the deadline or re-select) and from
