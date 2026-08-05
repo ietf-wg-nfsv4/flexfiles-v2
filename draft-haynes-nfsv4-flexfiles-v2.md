@@ -8597,9 +8597,9 @@ co_cohort_id values because co_client_id disambiguates them.
 ## escrow_id4 {#sec-escrow_id4}
 
 ~~~ xdr
-   /// typedef opaque   escrow_id4[16];
+   /// typedef opaque   escrow_id4[16];   /* 128 bits */
 ~~~
-{: #fig-escrow_id4 title="XDR for escrow_id4" }
+{: #fig-escrow_id4 title="XDR for escrow_id4 (128-bit opaque identifier)" }
 
 The escrow_id4 is a 128-bit opaque identifier the
 metadata server chooses for each metadata-server escrow lock
