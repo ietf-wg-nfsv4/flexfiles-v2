@@ -8177,20 +8177,12 @@ falls back to the other identification methods described in
 
 # New NFSv4.2 Common Data Structures
 
-## chunk_guard4 {#sec-chunk_guard4}
+## chunk_cohort_id4 {#sec-chunk_cohort_id4}
 
 ~~~ xdr
-   /// const CHUNK_GUARD_CLIENT_ID_NONE = 0x00000000;
-   /// const CHUNK_GUARD_CLIENT_ID_MDS  = 0xFFFFFFFF;
-   ///
    /// typedef uint64_t   chunk_cohort_id4;
-   ///
-   /// struct chunk_guard4 {
-   ///     uint32_t   cg_gen_id;
-   ///     uint32_t   cg_client_id;
-   /// };
 ~~~
-{: #fig-chunk_guard4 title="XDR for chunk_guard4 and chunk_cohort_id4" }
+{: #fig-chunk_cohort_id4 title="XDR for chunk_cohort_id4" }
 
 The chunk_cohort_id4 is a 64-bit writer-chosen opaque identifier
 that names a single write transaction (a "cohort" of chunks written
@@ -8264,13 +8256,26 @@ that repeats.
 ~~~
 {: #fig-chunk-wire-layout title="CHUNK_WRITE wire framing: cohort header + per-chunk chunks"}
 
+## chunk_guard4 {#sec-chunk_guard4}
+
+~~~ xdr
+   /// const CHUNK_GUARD_CLIENT_ID_NONE = 0x00000000;
+   /// const CHUNK_GUARD_CLIENT_ID_MDS  = 0xFFFFFFFF;
+   ///
+   /// struct chunk_guard4 {
+   ///     uint32_t   cg_gen_id;
+   ///     uint32_t   cg_client_id;
+   /// };
+~~~
+{: #fig-chunk_guard4 title="XDR for chunk_guard4" }
+
 The chunk_guard4 (see {{fig-chunk_guard4}}) is the per-chunk
 compare-and-swap (CAS) state used by CHUNK_WRITE
 ({{sec-CHUNK_WRITE}}) to detect concurrent updates.  It is state
 that the data server MAINTAINS per chunk; the writer transaction
 identity (the "cohort") is carried separately by
-chunk_cohort_id4 and is NOT part of chunk_guard4.  chunk_guard4
-has two fields:
+chunk_cohort_id4 ({{sec-chunk_cohort_id4}}) and is NOT part of
+chunk_guard4.  chunk_guard4 has two fields:
 
 cg_gen_id:
 :  A per-chunk monotonic generation counter, tracked by the data
@@ -8284,7 +8289,7 @@ cg_gen_id:
    chunk on a single file.  cg_gen_id is NOT a transaction
    identifier and MUST NOT be interpreted as naming or ordering
    write transactions: transaction identity is chunk_cohort_id4
-   (see above).
+   ({{sec-chunk_cohort_id4}}).
 
 cg_client_id:
 :  A 32-bit value established by the metadata server at the time
