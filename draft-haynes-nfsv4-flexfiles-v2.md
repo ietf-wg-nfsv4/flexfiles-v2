@@ -603,19 +603,23 @@ and stored on different data servers.
 escrow (lock escrow, metadata-server escrow):
 
 :  a state in which a chunk lock is held by the metadata server on
-behalf of an as-yet-unselected future owner.  When the metadata
-server revokes a client's stateid while the client still holds
-chunk locks, the locks are not dropped (which would expose the
-chunks to concurrent writers) but are transferred to the metadata
-server itself, marked by the reserved cg_client_id value
-CHUNK_GUARD_CLIENT_ID_MDS (see {{sec-chunk_guard_mds}}).  The
-metadata server holds the locks in escrow until a repair actor
-adopts them via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT (driven by
-CB_CHUNK_REPAIR).  A "metadata-server escrow owner" is the metadata server
-acting in this placeholder role; "in escrow" describes a lock in
-this state.  Escrow preserves the lock-continuity invariant
-across stateid revocation: at no point during the revocation
-sequence is a chunk simultaneously locked and unowned.
+behalf of an as-yet-unselected future owner.  Escrow preserves
+the lock-continuity invariant across two survivability
+scenarios: (a) client failure while holding chunk locks
+(client-revocation case: the locks are transferred to the
+metadata server rather than dropped), and (b)
+metadata-server-instance change (restart / HA failover: a new
+incarnation reclaims the escrows the departing incarnation
+installed).  The escrowed lock is marked on the wire by the
+reserved cg_client_id value CHUNK_GUARD_CLIENT_ID_MDS (see
+{{sec-chunk_guard_mds}}) and named by an escrow_id4
+({{sec-escrow_id4}}).  A repair actor adopts an escrow via
+CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT driven by
+CB_CHUNK_REPAIR; a new metadata-server incarnation reclaims
+outstanding escrows via CHUNK_ESCROW_TAKEOVER.  A
+"metadata-server escrow owner" is the metadata server acting
+in this placeholder role; "in escrow" describes a lock in this
+state.  The full model is {{sec-system-model-escrow}}.
 
 fencing:
 
@@ -6052,6 +6056,107 @@ Lease bound:
    {{sec-tight-coupling-lease}}).  An orphaned entry will
    eventually expire even if the metadata server never returns.
 
+##  Escrow Model {#sec-system-model-escrow}
+
+Chunk locks ({{sec-CHUNK_LOCK}}) provide the
+exclusion primitive that the chunk_guard4 CAS
+({{sec-chunk_guard4}}) cannot: a client that needs to hold a
+chunk against every other writer for the duration of a
+multi-step operation (repair, migration, delta-write
+coordination) acquires a CHUNK_LOCK.  Once acquired, the lock
+is held on the data server's state, not on the metadata
+server.  That creates two survivability problems the wire
+protocol has to answer:
+
+Client failure while holding locks:
+
+: a client whose stateid is revoked (lease expiry,
+  CB_LAYOUTRECALL timeout, explicit REVOKE_STATEID) is by
+  definition no longer authorized to speak to the data server.
+  If its outstanding chunk locks were simply dropped, the
+  locked chunks would become writable by any other client
+  immediately -- mid-way through the operation the lost client
+  was performing.  That would expose the chunk to concurrent
+  writers before the operation completes, defeating the point
+  of taking the lock.
+
+Metadata-server instance change:
+
+: in a highly-available deployment the metadata-server role
+  can move from one physical host to another (restart, planned
+  failover, unplanned failover).  If the departing incarnation
+  had installed placeholder locks on the data server (see
+  below), the arriving incarnation needs to reclaim them
+  safely -- reclaim by identity, not by client-connection
+  state, since the connection is gone -- and must
+  simultaneously fence the departing incarnation so that a
+  stale prior host resuming operation cannot double-manage the
+  same escrows.
+
+Both problems resolve to the same primitive: chunk locks CAN be
+held by an owner other than the client that acquired them, and
+OWNERSHIP CAN TRANSFER without releasing the lock.  The escrow
+mechanism has three components:
+
+Placeholder ownership:
+
+: when a client's stateid is revoked while it holds chunk
+  locks, the data server MUST NOT drop the locks.  Instead the
+  locks transfer to the metadata server as a placeholder
+  owner, identified on the wire by the reserved value
+  CHUNK_GUARD_CLIENT_ID_MDS in cg_client_id
+  ({{sec-chunk_guard_mds}}).  The chunk stays locked -- no
+  concurrent writer can win a CAS against the placeholder --
+  until a repair actor adopts the lock explicitly via
+  CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) driven by
+  CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).  This closes the
+  lock-continuity gap across client failure.
+
+Escrow identity:
+
+: every placeholder-owned lock the metadata server installs on
+  the data server carries an escrow_id4 ({{sec-escrow_id4}}),
+  a 128-bit opaque identifier the metadata server chooses.
+  escrow_id4 is what a repair actor names when adopting a
+  specific escrow, what CHUNK_ESCROW_ENUMERATE
+  ({{sec-CHUNK_ESCROW_ENUMERATE}}) returns to inventory
+  outstanding escrows, and what CHUNK_ESCROW_RELEASE
+  ({{sec-CHUNK_ESCROW_RELEASE}}) names when the metadata
+  server retires an escrow explicitly.  Without a stable
+  identity, cross-restart adoption and reclamation could not
+  name what they were operating on.
+
+Incarnation handoff:
+
+: when the metadata-server role moves to a new host (restart,
+  HA failover), the new incarnation reclaims escrows the old
+  incarnation installed via CHUNK_ESCROW_TAKEOVER
+  ({{sec-CHUNK_ESCROW_TAKEOVER}}).  The TAKEOVER carries an
+  incarnation-lease proof ({{sec-proof-profile}}) --
+  cryptographic evidence that the caller is now the
+  authoritative metadata-server incarnation -- which the data
+  server verifies.  On acceptance, subsequent escrow
+  operations from the prior incarnation are rejected with
+  NFS4ERR_STALE_MDS_EPOCH ({{sec-NFS4ERR_STALE_MDS_EPOCH}}),
+  fencing the departed instance.  Only one metadata-server
+  incarnation is authoritative on any given data server at a
+  time.
+
+This mechanism does not support concurrent
+multi-metadata-server management of the same file -- see the
+single-metadata-server-per-file position in
+{{sec-system-model-nongoals}}.  The escrow control plane
+handles the metadata-server role moving between physical hosts
+over time (via TAKEOVER), not multiple metadata servers acting
+on the same escrow simultaneously.
+
+Wire mechanics for the operations referenced here
+(CHUNK_ESCROW_INSTALL ({{sec-CHUNK_ESCROW_INSTALL}}),
+CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE,
+CHUNK_ESCROW_TAKEOVER, the incarnation-lease proof format, the
+escrow_id4 XDR) live in the New NFSv4.2 Common Data
+Structures and New NFSv4.2 Operations sections.
+
 ##  Chunk State Machine {#sec-system-model-chunk-state}
 
 Each chunk on a data server occupies exactly one of four states.
@@ -8595,6 +8700,11 @@ file); different clients MAY independently pick colliding
 co_cohort_id values because co_client_id disambiguates them.
 
 ## escrow_id4 {#sec-escrow_id4}
+
+For the design rationale of the escrow control plane -- what
+problem it solves and how the components compose -- see
+{{sec-system-model-escrow}}.  This section defines the
+identifier only.
 
 ~~~ xdr
    /// typedef opaque   escrow_id4[16];
