@@ -2161,7 +2161,8 @@ encoding types this document defines fall into two groups:
    application data; the wire and the storage device are the
    same in every case.  See the individual encoding sections
    for the mathematical constructions of each encoding and for
-   the wire-compatibility relationships among the GF(2^8) family.
+   the wire-compatibility relationships among the Galois Field
+   GF(2^8) family.
 
 The 32-bit ffv2_encoding_type4 value space is partitioned by
 intended scope -- Standards Track, Experimental, Vendor (open),
