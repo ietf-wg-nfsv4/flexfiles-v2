@@ -8773,7 +8773,8 @@ takeover names.
    /// /* Registered proof profile identifier.  Values
    ///  * are allocated from the flexible file v2 layout
    ///  * proof-profile registry (see IANA Considerations,
-   ///  * "Proof-Profile Registry"). */
+   ///  * "Proof-Profile Registry").
+   ///  */
    /// typedef uint32_t   proof_profile_id4;
    ///
    /// /* Reserved sentinel; MUST NOT appear on the wire. */
@@ -8781,11 +8782,13 @@ takeover names.
    ///
    /// /* Mandatory-to-implement profile:
    ///  * HA-authority-signed COSE_Sign1 lease token
-   ///  * (see "Mandatory-to-Implement Profile" below). */
+   ///  * (see "Mandatory-to-Implement Profile" below).
+   ///  */
    /// const PROOF_PROFILE_HA_AUTHORITY_ED25519  = 1;
    ///
    /// /* Upper bound (in bytes) on the proof payload
-   ///  * a metadata server MAY present. */
+   ///  * a metadata server MAY present.
+   ///  */
    /// const CETA_INCARNATION_PROOF_MAX4         = 4096;
 ~~~
 {: #fig-proof-profile-typedef title="XDR for proof_profile_id4" }
@@ -10066,7 +10069,8 @@ NFS4ERR_STALE:
    ///  * range width and response-array width together so
    ///  * that a caller cannot request an unbounded scan
    ///  * and a data server cannot construct an unbounded
-   ///  * response. */
+   ///  * response.
+   ///  */
    /// const CHUNK_HEADER_READ_MAX4 = 1024;
    ///
    /// struct retained_predecessor4 {
@@ -13112,7 +13116,8 @@ NFS4ERR_STALE_MDS_EPOCH.
 ~~~ xdr
    /// /* Upper bound on the ENUMERATE pagination
    ///  * cookie length, applied to both the request
-   ///  * ceea_cookie and the response ceer_cookie. */
+   ///  * ceea_cookie and the response ceer_cookie.
+   ///  */
    /// const CHUNK_ESCROW_ENUMERATE_COOKIE_MAX4 = 256;
    ///
    /// struct CHUNK_ESCROW_ENUMERATE4args {
@@ -13133,7 +13138,8 @@ NFS4ERR_STALE_MDS_EPOCH.
    /// /* Upper bound on the number of escrow_enum_entry4
    ///  * values returned in a single ENUMERATE call.
    ///  * Bounds ceer_entries; the caller may still page
-   ///  * via ceer_cookie for larger snapshots. */
+   ///  * via ceer_cookie for larger snapshots.
+   ///  */
    /// const CHUNK_ESCROW_ENUMERATE_MAX4 = 256;
    ///
    /// struct escrow_enum_entry4 {
@@ -13369,7 +13375,8 @@ for the new callback operation defined in this document.
    ///  * single CB_CHUNK_REPAIR (bounds both ccra_ranges
    ///  * and its co-indexed ccrr_range_status).  A repair
    ///  * batch that exceeds this bound is split across
-   ///  * multiple callbacks. */
+   ///  * multiple callbacks.
+   ///  */
    /// const CB_CHUNK_REPAIR_MAX_RANGES4 = 64;
    ///
    /// struct CB_CHUNK_REPAIR4args {
