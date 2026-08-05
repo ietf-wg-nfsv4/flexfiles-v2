@@ -2340,6 +2340,66 @@ authoritative and the fail-over is complete); the metadata
 server reflects the current flag set in the next layout it
 returns.
 
+The following paragraphs describe the mechanics of these
+transitions.  The client is not the driver in either
+direction; both are metadata-server-initiated changes that a
+client observes only by refreshing its layout.
+
+ACTIVE -> REPAIR:
+:  Triggered when a client (or the metadata server itself,
+   via scrub) reports a failure via LAYOUTERROR against a
+   particular shard.  The metadata server picks a target for
+   the reconstructed content -- typically an existing
+   FFV2_DS_FLAGS_REPAIR-flagged entry in the layout, else a
+   FFV2_DS_FLAGS_SPARE entry -- and initiates the
+   client-driven repair flow at {{sec-repair-selection}}.
+   Once the reconstructed shard is written and the
+   metadata server has accepted it (via CHUNK_REPAIRED),
+   the metadata server updates the affected layout to
+   remove the failed entry and mark the target entry as
+   FFV2_DS_FLAGS_REPAIR.  The metadata server SHOULD then
+   issue CB_LAYOUTRECALL against any client that holds an
+   outstanding layout for the affected file, so those
+   clients refresh via a subsequent LAYOUTGET and observe
+   the updated flag set.  Clients that never issued
+   LAYOUTGET during the incident window observe the new
+   layout on first fetch.
+
+REPAIR -> ACTIVE:
+:  Triggered when the metadata server confirms the
+   reconstructed content has been durably committed and
+   the replaced data server is not returning.  This is a
+   metadata-server-internal state change; no client-visible
+   operations are required for the transition itself.  The
+   flag update is reflected in the next layout the metadata
+   server hands out (either the layout returned to the next
+   LAYOUTGET, or the layout delivered after a CB_LAYOUTRECALL
+   that the metadata server MAY issue to accelerate the
+   transition).
+
+Both transitions preserve the mirror set's array indexing:
+the shard formerly held by the failed entry lives at the
+same array position in the layout, under the REPAIR-flagged
+entry.  A client reads by array position; the flag informs
+the client of the read's provenance (originally written vs
+reconstructed) but does not change the shard-index
+addressing.  A client MUST NOT infer that a REPAIR-flagged
+entry serves a different shard than the ACTIVE entry it
+replaced.
+
+If the same payload identifier appears at the same shard
+position across an ACTIVE entry (about to be retired) and a
+REPAIR entry (being promoted) during a transition window,
+the two entries are guaranteed to carry identical chunk
+contents (the reconstructed content matches the original by
+the erasure-coding correctness invariant, and the checksum
+verifies).  A SPARE entry never carries payload during
+steady state; if a client failed over to a SPARE mid-write
+before the SPARE was promoted, that write is a
+concurrent-writer race resolved by chunk_guard4
+({{sec-chunk_guard4}}) and by the metadata server's
+subsequent layout update.
+
 The FFV2_DS_FLAGS_PROXY flag identifies a data-server entry
 that names a Proxy Server rather than a real storage device.
 A client whose local encoding capabilities cannot cover the
@@ -3336,25 +3396,52 @@ now on, the metadata is simply referred to as the header and the
 transformed block as the chunk.  The payload of a data block is the
 set of generated headers and chunks for that data block.
 
-The guard is a per-chunk (cg_gen_id, cg_client_id) pair
-maintained by the data server to serialize concurrent writers
-(see {{sec-chunk_guard4}}); each accepted CHUNK_WRITE advances
-the target chunk's guard, and readers observe the accepted
-guard on the read path.  The chunk also carries a chunk_owner4
-(co_cohort_id, co_client_id, co_id) identifying the writer's
-cohort (see {{sec-chunk_owner4}}); the owner is the identity
-lifecycle operations (CHUNK_FINALIZE, CHUNK_COMMIT,
-CHUNK_ROLLBACK) address.  The payload_id describes the position
-within the payload.  Finally, the checksum carries a 32-bit CRC
-computed over the header and the chunk.  Because the checksum field is itself part of the header, the
-computation treats the bytes of that field as zero so that the
-result is independent of the field's wire value; the writer then
-stores the computed CRC into the checksum field for transmission.
-To validate on the read path, the receiver saves the received
-checksum, treats those bytes as zero, recomputes the CRC over the
-header and chunk, and compares against the saved value.  By
-combining the two parts of the payload in the CRC, integrity is
-ensured for both parts.
+The chunk header carries four conceptual fields, each stored
+on the data server with the chunk and carried on the wire by
+every op that reads or writes the chunk.  This document does
+not define a single XDR struct for the chunk header; instead
+each op names the four fields directly, and the fields
+appear on the wire under an op-specific prefix.
+
+Guard:
+:  an XDR chunk_guard4 (cg_gen_id, cg_client_id) pair
+   maintained by the data server to serialize concurrent
+   writers (see {{sec-chunk_guard4}}).  Each accepted
+   CHUNK_WRITE advances the target chunk's guard, and readers
+   observe the accepted guard on the read path.
+
+Owner:
+:  an XDR chunk_owner4 (co_cohort_id, co_client_id, co_id)
+   triple identifying the writer's cohort (see
+   {{sec-chunk_owner4}}).  The owner is the identity that
+   lifecycle operations (CHUNK_FINALIZE, CHUNK_COMMIT,
+   CHUNK_ROLLBACK) address.
+
+Payload identifier:
+:  a writer-chosen uint32_t naming the chunk's position
+   within the payload's shard array.  Unlike the guard and
+   owner, the payload identifier is not a sub-struct with
+   named fields; it is a bare scalar carried directly under
+   an op-specific prefix on each op's wire arguments:
+   cwa_payload_id on CHUNK_WRITE ({{sec-CHUNK_WRITE}}),
+   cr_payload_id in the CHUNK_READ result
+   ({{sec-CHUNK_READ}}), and cwra_payload_id on
+   CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}).  The
+   value the three carry names the same conceptual header
+   field; only the wire prefix differs across ops.
+
+Checksum:
+:  a 32-bit CRC computed over the header and the chunk.
+   Because the checksum field is itself part of the header,
+   the computation treats the bytes of that field as zero so
+   that the result is independent of the field's wire value;
+   the writer then stores the computed CRC into the checksum
+   field for transmission.  To validate on the read path, the
+   receiver saves the received checksum, treats those bytes
+   as zero, recomputes the CRC over the header and chunk, and
+   compares against the saved value.  By combining the two
+   parts of the payload in the CRC, integrity is ensured for
+   both parts.
 
 While the data block might have a length of 4kB, that does not
 necessarily mean that the length of the chunk is 4kB.  That length
