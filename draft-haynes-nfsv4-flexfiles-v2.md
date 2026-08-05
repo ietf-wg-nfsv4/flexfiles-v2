@@ -11318,7 +11318,7 @@ crr_chunk_status:
    triple and no concrete invalidation context -- the
    release-scope split is defined normatively at
    {{sec-NFS4ERR_NO_PREDECESSOR}}.  Other per-entry
-   failures use the appropriate NFS4ERR_* code; the
+   failures use the appropriate error code; the
    top-level operation status is NFS4_OK as long as the
    data server could evaluate each entry.
 
