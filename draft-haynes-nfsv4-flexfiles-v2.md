@@ -13591,15 +13591,14 @@ for the new callback operation defined in this document.
 
 ### DESCRIPTION
 
-CB_CHUNK_REPAIR is sent by the metadata server to a
-selected pNFS client to request that the client repair one
-or more non-atomic chunk ranges on the file's data
-servers.  CB_CHUNK_REPAIR is the back-channel companion to
-the chunk repair flow: the metadata server selects a
-repair actor per {{sec-repair-selection}} (those rules
-are normative for how the client MUST respond on receipt
-of this callback) and uses CB_CHUNK_REPAIR to deliver the
-work item.
+CB_CHUNK_REPAIR is the back-channel by which the metadata
+server delivers a repair work item to a repair actor it has
+selected per {{sec-repair-selection}}.  The work item names
+one or more non-atomic chunk ranges on the file's data
+servers for the repair actor to reconstruct or roll back.
+The selection rules in {{sec-repair-selection}} are
+normative for how a client MUST respond on receipt of this
+callback.
 
 CB_CHUNK_REPAIR has no analog in {{RFC8881}}.  {{RFC8881}}
 back-channel callbacks operate at the layout layer
