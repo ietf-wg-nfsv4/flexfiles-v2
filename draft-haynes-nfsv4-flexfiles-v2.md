@@ -341,7 +341,7 @@ When the per-chunk CAS detects that a stripe ended up
 non-atomic -- some shards under writer A's guard, others
 under writer B's, or a writer crashed mid-fan-out -- the
 metadata server selects a repair actor via
-CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}), and that actor
+CB_CHUNK_REPAIR, and that actor
 drives the repair: it acquires CHUNK_LOCK on the affected
 range, reads the surviving shards, decodes through the
 erasure transform, writes the reconstructed shards via
@@ -1350,9 +1350,7 @@ control protocol that:
 
 This specification defines one such control protocol, designated
 trusted stateid tight coupling, as three new NFSv4.2 operations:
-TRUST_STATEID ({{sec-TRUST_STATEID}}), REVOKE_STATEID
-({{sec-REVOKE_STATEID}}), and BULK_REVOKE_STATEID
-({{sec-BULK_REVOKE_STATEID}}).  These operations are sent by the
+TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID.  These operations are sent by the
 metadata server to each storage device over a dedicated control
 session (see {{sec-tight-coupling-control-session}}) and MUST NOT
 be sent by pNFS clients.
@@ -2158,8 +2156,7 @@ encoding types this document defines fall into two groups:
 -  Every other standards-track encoding (any FFV2_ENCODING_*
    value other than FFV2_ENCODING_PASSTHROUGH; see
    {{tbl-coding-types}}) uses the new operations defined here:
-   in particular CHUNK_WRITE ({{sec-CHUNK_WRITE}}) and CHUNK_READ
-   ({{sec-CHUNK_READ}}), which carry the per-chunk checksum this
+   in particular CHUNK_WRITE and CHUNK_READ, which carry the per-chunk checksum this
    version of the layout type relies on for end-to-end integrity.
    The encoding type selects how chunks are produced from
    application data; the wire and the storage device are the
@@ -3504,8 +3501,7 @@ provided the encoding is a k + m code and the client holds
 same stripe) at least k surviving shards.  A successful local
 reconstruction satisfies the read; the client MUST still record
 the ioerr and report it at LAYOUTRETURN so the metadata server
-can drive repair via CB_CHUNK_REPAIR
-({{sec-CB_CHUNK_REPAIR}}) and the repair-actor flow
+can drive repair via CB_CHUNK_REPAIR and the repair-actor flow
 ({{sec-repair-selection}}).
 
 For a CHUNK_WRITE error, or when a CHUNK_READ error cannot be
@@ -3760,10 +3756,10 @@ Payload identifier:
    owner, the payload identifier is not a sub-struct with
    named fields; it is a bare scalar carried directly under
    an op-specific prefix on each op's wire arguments:
-   cwa_payload_id on CHUNK_WRITE ({{sec-CHUNK_WRITE}}),
+   cwa_payload_id on CHUNK_WRITE,
    cr_payload_id in the CHUNK_READ result
    ({{sec-CHUNK_READ}}), and cwra_payload_id on
-   CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}).  The
+   CHUNK_WRITE_REPAIR.  The
    value the three carry names the same conceptual header
    field; only the wire prefix differs across ops.
 
@@ -4134,8 +4130,7 @@ payload has been detected, the client can use those chunks as a
 basis for read/modify/update.
 
 CHUNK_WRITE is a two-pass operation in cooperation with
-CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}) and CHUNK_ROLLBACK
-({{sec-CHUNK_ROLLBACK}}).  It writes new bytes into the chunk
+CHUNK_FINALIZE and CHUNK_ROLLBACK.  It writes new bytes into the chunk
 and transitions the chunk to the PENDING state; the data
 server is responsible for retaining the prior COMMITTED
 content until the chunk reaches its next stable state.  While
@@ -4148,8 +4143,7 @@ content).
 Concurrent CHUNK_WRITE against a PENDING or FINALIZED chunk is
 regulated by chunk_guard4 ({{sec-chunk_guard4}}), not by an
 implicit lock.  A racing writer whose guard check fails
-receives NFS4ERR_CHUNK_GUARDED; an explicit CHUNK_LOCK
-({{sec-CHUNK_LOCK}}) holder is signaled by NFS4ERR_CHUNK_LOCKED.
+receives NFS4ERR_CHUNK_GUARDED; an explicit CHUNK_LOCK holder is signaled by NFS4ERR_CHUNK_LOCKED.
 No implicit chunk-write lock is acquired by CHUNK_WRITE.
 A client that requires exclusive access to a chunk MUST
 invoke CHUNK_LOCK explicitly ({{sec-CHUNK_LOCK}}).
@@ -4288,14 +4282,13 @@ Lock before write:
 
 Clear the errored state:
 :  On the reconstruction path,
-   the repair actor MUST issue CHUNK_REPAIRED
-   ({{sec-CHUNK_REPAIRED}}) after CHUNK_COMMIT.  Without it,
+   the repair actor MUST issue CHUNK_REPAIRED after CHUNK_COMMIT.  Without it,
    readers continue to see holes regardless of on-disk state.
 
 Release locks explicitly:
 :  CHUNK_ROLLBACK does not
    release chunk locks.  On the rollback path the client MUST
-   issue CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) on each affected
+   issue CHUNK_UNLOCK on each affected
    chunk.  A client that walks away without either completing
    CHUNK_REPAIRED or issuing CHUNK_UNLOCK holds the locks
    until lease expiry, blocking progress for other writers.
@@ -4342,16 +4335,15 @@ With the normative framing above, the reconstruction path is:
 1.  CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT on each affected
     range ({{sec-CHUNK_LOCK}}).
 
-2.  CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) with the
+2.  CHUNK_WRITE_REPAIR with the
     reconstructed data for each non-atomic shard.  The
     client's chunk_owner4 on this and all subsequent operations
     is the one it presented in the CHUNK_LOCK ADOPT above;
     prior owners' generation ids are now historical.
 
-3.  CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}) and CHUNK_COMMIT
-    ({{sec-CHUNK_COMMIT}}) to persist the repaired shards.
+3.  CHUNK_FINALIZE and CHUNK_COMMIT to persist the repaired shards.
 
-4.  CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}) to clear the
+4.  CHUNK_REPAIRED to clear the
     errored state.
 
 The rollback path, when reconstruction is not possible:
@@ -4359,10 +4351,10 @@ The rollback path, when reconstruction is not possible:
 1.  CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT on each affected
     range.
 
-2.  CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}) on each affected
+2.  CHUNK_ROLLBACK on each affected
     shard to restore the previously committed content.
 
-3.  CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) on each shard.
+3.  CHUNK_UNLOCK on each shard.
 
 In both paths, the repair actor SHOULD target reconstructed
 shards according to the following fallback order: first, any
@@ -4420,7 +4412,7 @@ The repair sequence when the selected client is the original writer is:
    data using the erasure coding algorithm from the surviving atomic
    chunks (treating each chunk's payload as a shard of the stripe).
 
-3. The repair actor issues CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}})
+3. The repair actor issues CHUNK_WRITE_REPAIR
    to write the reconstructed data.  CHUNK_WRITE_REPAIR bypasses the guard
    check and applies different data server policies (e.g., allowing writes
    to blocks in the errored state).
@@ -4428,7 +4420,7 @@ The repair sequence when the selected client is the original writer is:
 4. The repair actor issues CHUNK_FINALIZE and CHUNK_COMMIT to persist the
    repaired blocks.
 
-5. The repair actor issues CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}) to
+5. The repair actor issues CHUNK_REPAIRED to
    clear the errored state and make the blocks available for normal reads.
 
 #### Transitioning from Single Writer Mode to Multiple Writer Mode {#sec-swm-to-mwm}
@@ -4475,9 +4467,8 @@ cwa_guard.cwg_check set to TRUE, supplying the expected prior
 chunk_guard4 in cwa_guard.cwg_guard so the data server can perform
 per-chunk CAS.  The client obtains the expected prior chunk_guard4
 by observing the chunk's current guard first: either cr_guard from
-CHUNK_READ ({{sec-CHUNK_READ}}) when the payload is also required,
-or the corresponding chrr_guards entry from CHUNK_HEADER_READ
-({{sec-CHUNK_HEADER_READ}}) when only the guard is needed.  The
+CHUNK_READ when the payload is also required,
+or the corresponding chrr_guards entry from CHUNK_HEADER_READ when only the guard is needed.  The
 write transaction is separately identified by the cohort pair
 `(cwa_cohort_id, cwa_client_id)` supplied on the same CHUNK_WRITE.
 
@@ -4521,7 +4512,7 @@ layout, identifies the target data server into which reconstructed
 shards should be written; it does not by itself identify the
 repair actor.  The repair sequence is:
 
-1. The repair actor issues CHUNK_LOCK ({{sec-CHUNK_LOCK}}) on the
+1. The repair actor issues CHUNK_LOCK on the
    affected block range of each data server.  If any lock attempt returns
    NFS4ERR_CHUNK_LOCKED, the repair actor records the existing lock
    holder's chunk_owner4 and proceeds; the lock holder's data is a
@@ -4617,7 +4608,7 @@ place.  In this case the metadata server MUST either:
 
 Implementations that do not support the proxy server mechanism can
 still perform recovery for cases where per-range repair suffices,
-using CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}) and the repair
+using CB_CHUNK_REPAIR and the repair
 client selection rules in {{sec-repair-selection}}.  Such
 implementations will surface NFS4ERR_PAYLOAD_LOST on any failure
 that exceeds per-range repair's reach, including the multi-data-server failure scenarios the proxy server mechanism is intended to
@@ -4678,8 +4669,7 @@ The active mirrors serve different access patterns concurrently:
   READ (Section 18.22 of {{RFC8881}}) calls to index 0 (the
   PASSTHROUGH mirror).
 
-- A client that speaks the chunked path issues CHUNK_READ
-  ({{sec-CHUNK_READ}}) calls to index 1 (the RS_VANDERMONDE
+- A client that speaks the chunked path issues CHUNK_READ calls to index 1 (the RS_VANDERMONDE
   mirror).
 
 - A proxy server fronting legacy clients chooses between the two
@@ -6109,7 +6099,7 @@ Placeholder ownership:
   concurrent writer can win a CAS against the placeholder --
   until a repair actor adopts the lock explicitly via
   CHUNK_LOCK_FLAGS_ADOPT ({{sec-CHUNK_LOCK}}) driven by
-  CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).  This closes the
+  CB_CHUNK_REPAIR.  This closes the
   lock-continuity gap across client failure.
 
 Escrow identity:
@@ -6118,10 +6108,8 @@ Escrow identity:
   the data server carries an escrow_id4 ({{sec-escrow_id4}}),
   a 128-bit opaque identifier the metadata server chooses.
   escrow_id4 is what a repair actor names when adopting a
-  specific escrow, what CHUNK_ESCROW_ENUMERATE
-  ({{sec-CHUNK_ESCROW_ENUMERATE}}) returns to inventory
-  outstanding escrows, and what CHUNK_ESCROW_RELEASE
-  ({{sec-CHUNK_ESCROW_RELEASE}}) names when the metadata
+  specific escrow, what CHUNK_ESCROW_ENUMERATE returns to inventory
+  outstanding escrows, and what CHUNK_ESCROW_RELEASE names when the metadata
   server retires an escrow explicitly.  Without a stable
   identity, cross-restart adoption and reclamation could not
   name what they were operating on.
@@ -6130,8 +6118,7 @@ Incarnation handoff:
 
 : when the metadata-server role moves to a new host (restart,
   HA failover), the new incarnation reclaims escrows the old
-  incarnation installed via CHUNK_ESCROW_TAKEOVER
-  ({{sec-CHUNK_ESCROW_TAKEOVER}}).  The TAKEOVER carries an
+  incarnation installed via CHUNK_ESCROW_TAKEOVER.  The TAKEOVER carries an
   incarnation-lease proof ({{sec-proof-profile}}) --
   cryptographic evidence that the caller is now the
   authoritative metadata-server incarnation -- which the data
@@ -6151,7 +6138,7 @@ over time (via TAKEOVER), not multiple metadata servers acting
 on the same escrow simultaneously.
 
 Wire mechanics for the operations referenced here
-(CHUNK_ESCROW_INSTALL ({{sec-CHUNK_ESCROW_INSTALL}}),
+(CHUNK_ESCROW_INSTALL,
 CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE,
 CHUNK_ESCROW_TAKEOVER, the incarnation-lease proof format, the
 escrow_id4 XDR) live in the New NFSv4.2 Common Data
@@ -6299,9 +6286,8 @@ Independent of the chunk lifecycle state
 ({{sec-CHUNK_LOCK}}), a data server distinguishes three
 read-time statuses for any generation the caller names or
 observes at a chunk index.  These are the higher-level
-categories the CHUNK_READ ({{sec-CHUNK_READ}}) per-chunk
-status codes and the CHUNK_HEADER_READ
-({{sec-CHUNK_HEADER_READ}}) discovery response classify
+categories the CHUNK_READ per-chunk
+status codes and the CHUNK_HEADER_READ discovery response classify
 into:
 
 AVAILABLE:
@@ -6321,8 +6307,7 @@ ERRORED:
    or guard check fails at read time
    ({{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}}), the underlying
    storage is unreachable, or the chunk carries the
-   errored bit set by an earlier CHUNK_ERROR
-   ({{sec-CHUNK_ERROR}}).  A CHUNK_READ returns
+   errored bit set by an earlier CHUNK_ERROR.  A CHUNK_READ returns
    NFS4ERR_PAYLOAD_NOT_ATOMIC (or another per-chunk
    status appropriate to the failure); the client
    reports the fault via LAYOUTERROR and the metadata
@@ -6528,10 +6513,7 @@ dropped or partitioned writers.
 
 ##  Owner-to-Index Persistence Coupling {#sec-system-model-owner-persistence}
 
-The wire lifecycle operations (CHUNK_COMMIT
-({{sec-CHUNK_COMMIT}}), CHUNK_FINALIZE
-({{sec-CHUNK_FINALIZE}}), CHUNK_ROLLBACK
-({{sec-CHUNK_ROLLBACK}})) name generations by full
+The wire lifecycle operations (CHUNK_COMMIT, CHUNK_FINALIZE, CHUNK_ROLLBACK) name generations by full
 owner triple
 ({{sec-chunk_owner4}}) and require the data server to
 locate the chunk-index each triple was written at.  For
@@ -6618,9 +6600,9 @@ MUST NOT retain payload without association:
 
 : A chunk payload whose owner-to-index association has
   been released is unaddressable by every lifecycle
-  operation (CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}),
-  CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}),
-  CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}})) because
+  operation (CHUNK_COMMIT,
+  CHUNK_FINALIZE,
+  CHUNK_ROLLBACK) because
   those operations name generations by full owner
   triple ({{sec-chunk_owner4}}).  A data server that
   cannot locate the recorded chunk index for a
@@ -6925,9 +6907,7 @@ when issued by the metadata server:
    metadata server's session by EXCHGID4_FLAG_USE_PNFS_MDS and
    accepts TRUST_STATEID, REVOKE_STATEID, and
    BULK_REVOKE_STATEID on that session.
--  TRUST_STATEID ({{sec-TRUST_STATEID}}), REVOKE_STATEID
-   ({{sec-REVOKE_STATEID}}), BULK_REVOKE_STATEID
-   ({{sec-BULK_REVOKE_STATEID}}): the metadata-server-to-data-server tight coupling
+-  TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID: the metadata-server-to-data-server tight coupling
    trust-table control operations.
 
 The metadata server MAY also use other NFSv4.2 operations on data
@@ -6964,7 +6944,7 @@ Live TRUST_STATEID entry for the file:
 
 : Under trusted-stateid tight coupling
   ({{sec-tight-coupling-control}}), a live trust entry for the
-  file registered via TRUST_STATEID ({{sec-TRUST_STATEID}})
+  file registered via TRUST_STATEID
   identifies the file as under FFv2 management.  This is a
   fallback for data servers that do not yet support
   fattr4_chunked_data_file, and it is per-client rather
@@ -7036,7 +7016,7 @@ Open and share-mode tracking:
 Byte-range lock tracking:
 :  Does not apply at the data server.  Locking on the data
    path is chunk-range rather than byte range, expressed
-   via CHUNK_LOCK ({{sec-CHUNK_LOCK}}), and the lock holder
+   via CHUNK_LOCK, and the lock holder
    is identified by chunk_owner4 (the (co_cohort_id,
    co_client_id, co_id) triple) rather than by a lock stateid.  A
    client wanting byte range locks on a file MUST acquire
@@ -7048,7 +7028,7 @@ I/O authorization on the data server:
    encodings that use CHUNK operations require tight coupling
    ({{sec-ff_device_addr4}}); the metadata server registers
    each issued layout stateid with the data server via
-   TRUST_STATEID ({{sec-TRUST_STATEID}}) together with the
+   TRUST_STATEID together with the
    ffv2m_client_id assigned to the writer, and the data
    server validates subsequent CHUNK operation stateids against
    the trust table and the presented cwa_client_id
@@ -7071,7 +7051,7 @@ chunk-range CHUNK_LOCK, not by stateid-owner sequencing.
 
 GETATTR MAY be issued by a client against a data file.  The
 primary use case is repair: a repair actor selected by
-CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}) may need to query the
+CB_CHUNK_REPAIR may need to query the
 per-server file size or allocation state when reconstructing a
 payload, and the proxy server described informally in
 {{sec-system-model-roles}} similarly benefits from attribute
@@ -7189,20 +7169,19 @@ operations to carry the per-chunk checksum and guard
 
 Required for all chunked clients:
 
--  CHUNK_WRITE ({{sec-CHUNK_WRITE}}).
--  CHUNK_READ ({{sec-CHUNK_READ}}).
--  CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}).
--  CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}).
--  CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}}).
--  CHUNK_LOCK ({{sec-CHUNK_LOCK}}) and CHUNK_UNLOCK
-   ({{sec-CHUNK_UNLOCK}}).
--  CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}).
+-  CHUNK_WRITE.
+-  CHUNK_READ.
+-  CHUNK_FINALIZE.
+-  CHUNK_COMMIT.
+-  CHUNK_HEADER_READ.
+-  CHUNK_LOCK and CHUNK_UNLOCK.
+-  CHUNK_ROLLBACK.
 
 Required for clients that participate in repair:
 
--  CHUNK_ERROR ({{sec-CHUNK_ERROR}}).
--  CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}).
--  CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}).
+-  CHUNK_ERROR.
+-  CHUNK_REPAIRED.
+-  CHUNK_WRITE_REPAIR.
 
 Clients MUST NOT send:
 
@@ -7271,7 +7250,7 @@ callbacks a client will observe that affect its data files are:
 -  CB_LAYOUTRECALL ({{RFC8881}} Section 20.3).
 -  CB_NOTIFY_DEVICEID ({{RFC8881}} Section 20.12).
 -  CB_RECALL_ANY ({{RFC8881}} Section 20.6).
--  CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).
+-  CB_CHUNK_REPAIR.
 
 A data server influences these callbacks only indirectly, via
 LAYOUTERROR reports the client issues to the metadata server or
@@ -7343,8 +7322,7 @@ FFV2_ENCODING_PASSTHROUGH ({{sec-encoding-passthrough}}) uses
 NFSv3 WRITE / READ or NFSv4 READ / WRITE directly and does not
 use the CHUNK operations.  Every other standards-track encoding
 (any FFV2_ENCODING_* value other than FFV2_ENCODING_PASSTHROUGH;
-see {{tbl-coding-types}}) is (chunked): it uses CHUNK_WRITE
-({{sec-CHUNK_WRITE}}) and CHUNK_READ ({{sec-CHUNK_READ}}) and
+see {{tbl-coding-types}}) is (chunked): it uses CHUNK_WRITE and CHUNK_READ and
 MUST NOT use the RFC 8881 READ / WRITE / COMMIT operations
 against the data server.  FFV2_ENCODING_REPLICATED replicates
 the payload verbatim across N shards but dispatches via the
@@ -7757,11 +7735,9 @@ Loosely coupled, untrusted stateid:
 
 Tightly coupled, trusted stateid:
 :  When the metadata server has registered a client's layout
-   stateid with the data servers via TRUST_STATEID
-   ({{sec-TRUST_STATEID}}), it can revoke per-client access
-   without rotating credentials by issuing REVOKE_STATEID
-   ({{sec-REVOKE_STATEID}}) to each affected data server, or
-   BULK_REVOKE_STATEID ({{sec-BULK_REVOKE_STATEID}}) when
+   stateid with the data servers via TRUST_STATEID, it can revoke per-client access
+   without rotating credentials by issuing REVOKE_STATEID to each affected data server, or
+   BULK_REVOKE_STATEID when
    revoking all stateids belonging to a single clientid4
    across a data server.  Subsequent I/O from the revoked
    client carrying the revoked stateid receives
@@ -7916,7 +7892,7 @@ layout for some other reason" and respond accordingly.
 
 ### NFS4ERR_NO_PREDECESSOR (Error Code 10103) {#sec-NFS4ERR_NO_PREDECESSOR}
 
-Returned on a CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}})
+Returned on a CHUNK_ROLLBACK
 against a COMMITTED chunk when the caller names a
 predecessor generation whose owner-to-index association
 is no longer recorded by the data server, and no other
@@ -8003,13 +7979,12 @@ not interchangeable: NFS4ERR_INVAL is a caller-side
 signal that the client MUST NOT retry the same
 identity, while NFS4ERR_NO_PREDECESSOR is a data-plane
 signal that the caller MAY fall back to
-best-effort reconstruction via CHUNK_WRITE_REPAIR
-({{sec-CHUNK_WRITE_REPAIR}}).
+best-effort reconstruction via CHUNK_WRITE_REPAIR.
 
 A client that receives NFS4ERR_NO_PREDECESSOR MAY fall
 back to reconstructing authoritative bytes from
 surviving shards and writing them via
-CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) under a
+CHUNK_WRITE_REPAIR under a
 new owner triple; that fallback is best-effort and
 MAY itself terminate at NFS4ERR_PAYLOAD_LOST if no
 authoritative source exists.  A client that requires
@@ -8027,7 +8002,7 @@ adopted from it remains in continuous custody (see
 
 ### NFS4ERR_NO_ADOPTABLE_LOCK (Error Code 10104) {#sec-NFS4ERR_NO_ADOPTABLE_LOCK}
 
-Returned by CHUNK_LOCK ({{sec-CHUNK_LOCK}}) when a
+Returned by CHUNK_LOCK when a
 repair actor attempts to adopt a metadata-server escrow lock
 ({{sec-chunk_guard_mds}}) and no such adoption is
 possible on the data server for the requested range.
@@ -8069,8 +8044,7 @@ clear, or abandoning the repair).
 
 ### NFS4ERR_STALE_ESCROW (Error Code 10105) {#sec-NFS4ERR_STALE_ESCROW}
 
-Returned by CHUNK_ESCROW_RELEASE
-({{sec-CHUNK_ESCROW_RELEASE}}) when the escrow_id4
+Returned by CHUNK_ESCROW_RELEASE when the escrow_id4
 the metadata server presents does not match any
 escrow currently installed on the data server for
 the referenced range.  Two causes lead to the same
@@ -8106,7 +8080,7 @@ Returned by any of the CHUNK_ESCROW operations
 metadata server presents an epoch value the data
 server no longer accepts because a newer metadata-server
 incarnation has completed a
-CHUNK_ESCROW_TAKEOVER ({{sec-CHUNK_ESCROW_TAKEOVER}}).
+CHUNK_ESCROW_TAKEOVER.
 The metadata server that receives NFS4ERR_STALE_MDS_EPOCH
 has been fenced from continued escrow operations on
 this data server; it MUST NOT retry the operation
@@ -8375,8 +8349,7 @@ that repeats.
 {: #fig-chunk_guard4 title="XDR for chunk_guard4" }
 
 The chunk_guard4 (see {{fig-chunk_guard4}}) is the per-chunk
-compare-and-swap (CAS) state used by CHUNK_WRITE
-({{sec-CHUNK_WRITE}}) to detect concurrent updates.  It is state
+compare-and-swap (CAS) state used by CHUNK_WRITE to detect concurrent updates.  It is state
 that the data server MAINTAINS per chunk; the writer transaction
 identity (the "cohort") is carried separately by
 chunk_cohort_id4 ({{sec-chunk_cohort_id4}}) and is NOT part of
@@ -8434,8 +8407,7 @@ Observability:
    chrr_guards<> array co-indexed with the other per-chunk
    arrays ({{sec-CHUNK_HEADER_READ}}).  A client places the
    observed pair into cwa_guard.cwg_guard and sets
-   cwa_guard.cwg_check = TRUE on the subsequent CHUNK_WRITE
-   ({{sec-CHUNK_WRITE}}); the data server compares against its
+   cwa_guard.cwg_check = TRUE on the subsequent CHUNK_WRITE; the data server compares against its
    currently-held chunk_guard4 and returns NFS4ERR_CHUNK_GUARDED
    on mismatch.
 
@@ -8470,8 +8442,7 @@ Deterministic contention resolution for concurrent writers:
 
    : a client that observes NFS4ERR_CHUNK_GUARDED on any
      chunk of an in-flight transaction MUST treat the entire
-     transaction as lost.  It MUST issue CHUNK_ROLLBACK
-     ({{sec-CHUNK_ROLLBACK}}) against every data server that
+     transaction as lost.  It MUST issue CHUNK_ROLLBACK against every data server that
      accepted a CHUNK_WRITE under this transaction's cohort
      pair, so that the data server can release the PENDING
      state and revert cg_gen_id to the value it held before
@@ -8581,8 +8552,7 @@ contract locally:
    recorded for the layout stateid under which the
    CAS operation is issued MUST be rejected with
    NFS4ERR_BAD_STATEID.  This (stateid, client_id) binding is
-   registered by the metadata server via TRUST_STATEID
-   ({{sec-TRUST_STATEID}}); an unmatched cg_client_id is
+   registered by the metadata server via TRUST_STATEID; an unmatched cg_client_id is
    treated as a stale-layout condition, see
    {{sec-tight-coupling-control}}.
 
@@ -8753,8 +8723,7 @@ interpret the internal structure.
 
 ## Incarnation-Lease Proof {#sec-proof-profile}
 
-CHUNK_ESCROW_TAKEOVER
-({{sec-CHUNK_ESCROW_TAKEOVER}}) accepts a bounded
+CHUNK_ESCROW_TAKEOVER accepts a bounded
 opaque proof payload identified by a proof profile
 identifier.  The proof is not the metadata server's
 own machine credential (which would only prove the
@@ -8843,8 +8812,7 @@ Payload map fields:
      the data server will observe.
    - 2 = epoch (CBOR uint): the metadata-server
      epoch value being claimed.  On presentation in
-     CHUNK_ESCROW_TAKEOVER
-     ({{sec-CHUNK_ESCROW_TAKEOVER}}) the data server
+     CHUNK_ESCROW_TAKEOVER the data server
      MUST verify that this field equals
      ceta_new_epoch in the operation arguments; any
      mismatch is a signature-and-payload check
@@ -8936,8 +8904,7 @@ had already completed.
 
 ### Uncertain-Completion Recovery for TAKEOVER {#sec-CHUNK_ESCROW_TAKEOVER-uncertain-completion}
 
-CHUNK_ESCROW_TAKEOVER
-({{sec-CHUNK_ESCROW_TAKEOVER}}) is the recovery
+CHUNK_ESCROW_TAKEOVER is the recovery
 path a metadata server uses after an incarnation
 change; the compare-and-advance semantics make the
 successful case observable to the data server, but
@@ -9499,7 +9466,7 @@ ccr_writeverf:
 :  a verifier identifying the data server's incarnation
    at the time the commit completed.  A client compares
    ccr_writeverf to the cwr_writeverf returned by the
-   prior CHUNK_WRITE ({{sec-CHUNK_WRITE}}) to detect a
+   prior CHUNK_WRITE to detect a
    data server restart that lost UNSTABLE4 writes
    between the write and the commit; on a mismatch the
    client MUST re-issue the CHUNK_WRITE before any
@@ -9521,8 +9488,7 @@ ccr_status:
    status returns a non-OK code only when the request
    could not be evaluated at all.
 
-Like CHUNK_READ ({{sec-CHUNK_READ}}) and CHUNK_WRITE
-({{sec-CHUNK_WRITE}}), CHUNK_COMMIT carries an explicit
+Like CHUNK_READ and CHUNK_WRITE, CHUNK_COMMIT carries an explicit
 layout stateid in cca_stateid.  The data server authorizes
 CHUNK_COMMIT by validating cca_stateid against the file
 identified by the current filehandle: cca_stateid MUST be
@@ -9738,8 +9704,8 @@ inconsistency in a chunk to report the condition to the data
 server, so that the data server can mark the affected chunks
 as errored.  Errored chunks are excluded from subsequent
 CHUNK_READ responses until they are repaired via
-CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) and the
-repair is confirmed via CHUNK_REPAIRED ({{sec-CHUNK_REPAIRED}}).
+CHUNK_WRITE_REPAIR and the
+repair is confirmed via CHUNK_REPAIRED.
 
 CHUNK_ERROR has no direct analog in {{RFC8881}}.  The closest
 parallel is LAYOUTERROR ({{RFC7862}} Section 15.6), which
@@ -9876,7 +9842,7 @@ by CHUNK_WRITE, see {{sec-CHUNK_WRITE}}) to the FINALIZED
 state in the chunk state machine ({{fig-chunk-state-machine}}).
 A FINALIZED chunk is visible on the owning stateid for reads
 ({{sec-system-model-consistency}}) and is eligible for
-CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}); the FINALIZED transition
+CHUNK_COMMIT; the FINALIZED transition
 is the writer's signal that it will issue no further
 CHUNK_WRITEs for the named owner triple
 generation of each chunk.
@@ -9936,8 +9902,7 @@ the same order as cfa_chunks:
 cfr_writeverf:
 :  a verifier identifying the data server's incarnation
    at the time the finalization completed.  Semantics
-   match cwr_writeverf in CHUNK_WRITE
-   ({{sec-CHUNK_WRITE}}): a client that observes a
+   match cwr_writeverf in CHUNK_WRITE: a client that observes a
    different writeverf on a subsequent CHUNK_COMMIT MUST
    re-issue the CHUNK_WRITE before treating any of the
    finalized chunks as durable.
@@ -9964,7 +9929,7 @@ cfr_status:
       {{sec-chunk_guard4}}.
 
    *  NFS4ERR_CHUNK_LOCKED -- the chunk is locked by a
-      CHUNK_LOCK ({{sec-CHUNK_LOCK}}) held by a different
+      CHUNK_LOCK held by a different
       stateid; the finalize is rejected.
 
    The top-level CHUNK_FINALIZE status is NFS4_OK as long
@@ -9986,11 +9951,11 @@ recovered by replay of the data server's local journal on
 restart.
 
 A chunk that has been FINALIZED but not yet COMMITTED MAY
-be rolled back via CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}),
+be rolled back via CHUNK_ROLLBACK,
 which returns the chunk to the EMPTY state (or to the
 prior COMMITTED generation, if one exists).
 
-Like CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}), CHUNK_FINALIZE
+Like CHUNK_COMMIT, CHUNK_FINALIZE
 carries an explicit layout stateid in cfa_stateid.  The
 data server authorizes CHUNK_FINALIZE by validating
 cfa_stateid against the file identified by the current
@@ -10143,7 +10108,7 @@ status) for a range of chunks in the target data file
 without returning the chunk payloads.  The operation enables clients and
 repair coordinators to inspect chunk lifecycle and
 ownership cheaply, without the data-transfer cost of
-CHUNK_READ ({{sec-CHUNK_READ}}).  CHUNK_HEADER_READ has
+CHUNK_READ.  CHUNK_HEADER_READ has
 no direct analog in {{RFC8881}}; it is the chunk-protocol
 counterpart of a stat-like fast probe and exists because
 chunks are first-class state-bearing objects whose
@@ -10178,8 +10143,7 @@ chunk-offset order from chra_offset:
 chrr_eof:
 :  TRUE if the requested range extended at or past the
    data server's last chunk for this file.  Same
-   per-data-server semantics as crr_eof in CHUNK_READ
-   ({{sec-CHUNK_READ}}).
+   per-data-server semantics as crr_eof in CHUNK_READ.
 
 chrr_status:
 :  per-chunk lifecycle state encoded as an nfsstat4
@@ -10187,7 +10151,7 @@ chrr_status:
 
 chrr_locked:
 :  per-chunk boolean.  TRUE if the chunk currently has a
-   CHUNK_LOCK ({{sec-CHUNK_LOCK}}) held by some
+   CHUNK_LOCK held by some
    chunk_owner4; FALSE otherwise.  Lock state is
    reported orthogonally to chrr_status so that a locked
    chunk still surfaces its lifecycle state and
@@ -10258,8 +10222,7 @@ chrr_predecessors:
      CHUNK_ROLLBACK.  A CHUNK_ROLLBACK naming this owner
      triple MUST return NFS4ERR_NO_PREDECESSOR
      ({{sec-NFS4ERR_NO_PREDECESSOR}}); the client falls back
-     to best-effort reconstruction via CHUNK_WRITE_REPAIR
-     ({{sec-CHUNK_WRITE_REPAIR}}) with an
+     to best-effort reconstruction via CHUNK_WRITE_REPAIR with an
      authoritative source of its own choosing.
      The owner triple is disclosed so a caller can
      coordinate reconstruction from surviving
@@ -10304,8 +10267,7 @@ Cardinality and short responses:
 The operation has several uses:
 
 Whole-file repair scan:
-:  A repair actor selected via CB_CHUNK_REPAIR
-   ({{sec-CB_CHUNK_REPAIR}}) walks the affected chunk
+:  A repair actor selected via CB_CHUNK_REPAIR walks the affected chunk
    range and uses the per-chunk chunk_owner4 returned by
    each mirror's data server to identify which chunks
    carry an atomic stripe (all k data shards share the
@@ -10366,7 +10328,7 @@ Predecessor-guided rollback discovery:
    : do NOT issue CHUNK_ROLLBACK against the disclosed owner
      triple.  The data server MUST return
      NFS4ERR_NO_PREDECESSOR for that owner; use
-     CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) directly
+     CHUNK_WRITE_REPAIR directly
      with a reconstructed authoritative source.  The
      disclosed owner triple lets the caller coordinate
      reconstruction from other sources.
@@ -10374,7 +10336,7 @@ Predecessor-guided rollback discovery:
    ABSENT:
 
    : no restorable predecessor exists.  Skip CHUNK_ROLLBACK;
-     use CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) if
+     use CHUNK_WRITE_REPAIR if
      reconstruction is possible, or defer to a
      guaranteed-pinning mechanism when the caller requires
      the original owner triple be preserved.
@@ -10389,8 +10351,7 @@ Predecessor-guided rollback discovery:
 Lock probe before write:
 :  A client MAY issue CHUNK_HEADER_READ and inspect the
    chrr_locked array to discover whether any chunk in
-   the target range is currently held by a CHUNK_LOCK
-   ({{sec-CHUNK_LOCK}}) before attempting CHUNK_WRITE,
+   the target range is currently held by a CHUNK_LOCK before attempting CHUNK_WRITE,
    avoiding the round-trip cost of receiving
    NFS4ERR_CHUNK_LOCKED.  As above, this is a hint; a
    lock MAY be acquired between the header read and the
@@ -10514,7 +10475,7 @@ CHUNK_LOCK acquires an exclusive chunk-range lock on the
 range specified by cla_offset and cla_count.  While the
 lock is held, CHUNK_WRITE, CHUNK_WRITE_REPAIR,
 CHUNK_FINALIZE, CHUNK_COMMIT, CHUNK_ROLLBACK, and
-CHUNK_UNLOCK ({{sec-CHUNK_UNLOCK}}) operations on any of
+CHUNK_UNLOCK operations on any of
 the locked chunks from any other chunk_owner4 receive
 NFS4ERR_CHUNK_LOCKED in the corresponding per-chunk
 status slot.  The lock is associated with the
@@ -10600,13 +10561,11 @@ clr_owner (NFS4ERR_CHUNK_LOCKED case only):
 :  the chunk_owner4 of the current lock holder, so the
    caller can identify the blocking writer.
 
-The lock is released by CHUNK_UNLOCK
-({{sec-CHUNK_UNLOCK}}) or implicitly when the holder's
+The lock is released by CHUNK_UNLOCK or implicitly when the holder's
 lease expires; on lease expiry without explicit
 release, the data server transitions the lock to the
 metadata-server escrow owner if the metadata server has revoked
-the holder's stateid via REVOKE_STATEID
-({{sec-REVOKE_STATEID}}), per the lock-continuity-across-revocation
+the holder's stateid via REVOKE_STATEID, per the lock-continuity-across-revocation
 invariant in
 {{sec-system-model-consistency}}.
 
@@ -10632,7 +10591,7 @@ detection to repair completion -- depends on it.
 
 CHUNK_LOCK_FLAGS_ADOPT is valid only when the caller has been
 selected as the repair actor for the range by the metadata server,
-typically via CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).  A data
+typically via CB_CHUNK_REPAIR.  A data
 server that receives CHUNK_LOCK with the ADOPT flag from a client
 that has not been so designated MAY reject the operation with
 NFS4ERR_ACCESS.  Because CHUNK_LOCK is a CHUNK operation and
@@ -10877,8 +10836,7 @@ cr_payload_id:
    correlate chunks across mirrors.
 
 cr_locked:
-:  TRUE if the chunk currently has a CHUNK_LOCK
-   ({{sec-CHUNK_LOCK}}) held against it; FALSE otherwise.
+:  TRUE if the chunk currently has a CHUNK_LOCK held against it; FALSE otherwise.
    Lock state does not block the read.
 
 cr_status:
@@ -11082,10 +11040,9 @@ NFS4ERR_STALE:
 CHUNK_REPAIRED signals that chunks previously marked as
 errored (via CHUNK_ERROR, see {{sec-CHUNK_ERROR}}) have been
 repaired and the errored state can be cleared.  The repair
-client writes replacement data via CHUNK_WRITE_REPAIR
-({{sec-CHUNK_WRITE_REPAIR}}), advances the new chunks
-through CHUNK_FINALIZE ({{sec-CHUNK_FINALIZE}}) and
-CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}), and only then issues
+client writes replacement data via CHUNK_WRITE_REPAIR, advances the new chunks
+through CHUNK_FINALIZE and
+CHUNK_COMMIT, and only then issues
 CHUNK_REPAIRED to make the repaired chunks visible to
 normal CHUNK_READ traffic again.
 
@@ -11142,7 +11099,7 @@ confirmation that:
 If either precondition fails, the data server returns
 NFS4ERR_INVAL and the errored state is left in place.  A
 repair actor that sees NFS4ERR_INVAL SHOULD verify the
-chunks via CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}})
+chunks via CHUNK_HEADER_READ
 before retrying.
 
 If the current filehandle is not an ordinary file, an
@@ -11217,9 +11174,8 @@ NFS4ERR_SERVERFAULT:
 
 CHUNK_ROLLBACK reverts chunks from the PENDING or
 FINALIZED state to their previous state, effectively
-undoing a CHUNK_WRITE ({{sec-CHUNK_WRITE}}) that has not
-yet reached COMMITTED via CHUNK_COMMIT
-({{sec-CHUNK_COMMIT}}).  The reversion target is the
+undoing a CHUNK_WRITE that has not
+yet reached COMMITTED via CHUNK_COMMIT.  The reversion target is the
 prior COMMITTED generation, if one exists for the
 affected chunk; otherwise the chunk returns to the EMPTY
 state ({{fig-chunk-state-machine}}).  CHUNK_ROLLBACK
@@ -11303,7 +11259,7 @@ CHUNK_ROLLBACK has two principal scenarios:
     cleanly.
 
 2.  A repair actor that wrote reconstructed data via
-    CHUNK_WRITE_REPAIR ({{sec-CHUNK_WRITE_REPAIR}}) and
+    CHUNK_WRITE_REPAIR and
     subsequently discovered the reconstruction was wrong
     (for example, a CRC mismatch detected during
     cross-mirror verification) needs to abandon the
@@ -11345,9 +11301,7 @@ is then INVALIDATED at that chunk index: it names no
 generation the data server holds, and no future CHUNK_WRITE
 recreates an association under the same triple.
 
-A subsequent lifecycle operation (CHUNK_COMMIT
-({{sec-CHUNK_COMMIT}}), CHUNK_FINALIZE
-({{sec-CHUNK_FINALIZE}}), CHUNK_ROLLBACK) that names an
+A subsequent lifecycle operation (CHUNK_COMMIT, CHUNK_FINALIZE, CHUNK_ROLLBACK) that names an
 invalidated triple MUST NOT be treated as resurrecting
 the deleted generation; the data server MUST NOT attempt
 to match the triple against any other record.  The error
@@ -11460,8 +11414,7 @@ session slot's replay-cache window (see
 them).  Either way, the caller consults whatever
 fallback the deployment provides -- a repair
 client MAY reconstruct authoritative bytes from
-surviving shards and issue CHUNK_WRITE_REPAIR
-({{sec-CHUNK_WRITE_REPAIR}}) to write a new
+surviving shards and issue CHUNK_WRITE_REPAIR to write a new
 generation carrying those bytes under a new owner
 triple.  That new generation is a distinct generation
 for lifecycle purposes; it is not the deleted
@@ -11483,7 +11436,7 @@ is rejected with NFS4ERR_INVAL regardless of case.
 
 #### Stateid and Authorization
 
-Like CHUNK_COMMIT ({{sec-CHUNK_COMMIT}}), CHUNK_ROLLBACK
+Like CHUNK_COMMIT, CHUNK_ROLLBACK
 carries an explicit layout stateid in cra_stateid.  The
 data server authorizes CHUNK_ROLLBACK by validating
 cra_stateid against the file identified by the current
@@ -11549,9 +11502,7 @@ for that slot:
 - the client INDEPENDENTLY verifies that the target
   postcondition holds.  For the delete case, this
   means observing that the named generation is absent
-  at the target chunk index (via CHUNK_HEADER_READ
-  ({{sec-CHUNK_HEADER_READ}}) or CHUNK_READ
-  ({{sec-CHUNK_READ}}) with the retention-scope rules
+  at the target chunk index (via CHUNK_HEADER_READ or CHUNK_READ with the retention-scope rules
   understood).  For the retained-predecessor restore
   case, this means observing that the predecessor's
   original triple is now the current COMMITTED
@@ -11568,9 +11519,7 @@ guarantee, which is unconditional and prohibits the
 data server from resurrecting any deleted generation
 ("Deletion Atomicity and Invalidated Triples" above).
 Similar reasoning applies
-to exact uncertain reissues of CHUNK_COMMIT
-({{sec-CHUNK_COMMIT}}) and CHUNK_FINALIZE
-({{sec-CHUNK_FINALIZE}}), which are also idempotent on
+to exact uncertain reissues of CHUNK_COMMIT and CHUNK_FINALIZE, which are also idempotent on
 their targets under the same three predicates.
 
 ### RESPONSE CODES
@@ -11639,7 +11588,7 @@ NFS4ERR_SERVERFAULT:
 ### DESCRIPTION
 
 CHUNK_UNLOCK releases the exclusive chunk-range lock
-previously acquired by CHUNK_LOCK ({{sec-CHUNK_LOCK}}).
+previously acquired by CHUNK_LOCK.
 CHUNK_UNLOCK is loosely analogous to LOCKU ({{RFC8881}}
 Section 18.12) in that it releases an exclusive guard,
 but it operates on chunk-range coordinates and is
@@ -11697,7 +11646,7 @@ completing the write, write-repair, or commit sequence
 that the lock guarded.  Locks not explicitly released
 are released implicitly when the holder's lease expires;
 if the metadata server has revoked the holder's stateid
-via REVOKE_STATEID ({{sec-REVOKE_STATEID}}) before the
+via REVOKE_STATEID before the
 lease lapses, the lock transitions to the metadata-server escrow
 owner per the lock-continuity invariant in
 {{sec-system-model-consistency}} rather than being
@@ -11806,9 +11755,7 @@ on the chunk coordinate system used by Flexible File
 Version 2 layouts rather than on the byte coordinate
 system.  Successful chunk writes initially enter the
 PENDING state in the chunk state machine
-({{fig-chunk-state-machine}}); a subsequent CHUNK_FINALIZE
-({{sec-CHUNK_FINALIZE}}) and CHUNK_COMMIT
-({{sec-CHUNK_COMMIT}}) (or the activation shortcut
+({{fig-chunk-state-machine}}); a subsequent CHUNK_FINALIZE and CHUNK_COMMIT (or the activation shortcut
 described below) progress them to COMMITTED.
 
 The client provides a cwa_offset of where the CHUNK_WRITE
@@ -11840,8 +11787,7 @@ layout-grant time; the client MUST NOT substitute any other
 value.  Because encodings that use CHUNK operations require tight coupling
 ({{sec-ff_device_addr4}}), the data server always has an
 authoritative binding for this identity: the metadata server
-registers it via tsa_client_id in TRUST_STATEID
-({{sec-TRUST_STATEID}}) alongside the layout stateid.  The
+registers it via tsa_client_id in TRUST_STATEID alongside the layout stateid.  The
 data server MUST compare cwa_client_id against the
 tsa_client_id recorded in its trust table for the presented
 layout stateid, and MUST reject a mismatch with
@@ -12248,8 +12194,7 @@ NFS4ERR_STALE:
 
 ### DESCRIPTION
 
-CHUNK_WRITE_REPAIR is the repair-path variant of CHUNK_WRITE
-({{sec-CHUNK_WRITE}}).  It writes reconstructed chunk data
+CHUNK_WRITE_REPAIR is the repair-path variant of CHUNK_WRITE.  It writes reconstructed chunk data
 to a data server whose chunks have been reported errored
 (via CHUNK_ERROR, see {{sec-CHUNK_ERROR}}) or to a
 replacement data server selected during whole-file repair.
@@ -12271,15 +12216,13 @@ The repair workflow that invokes CHUNK_WRITE_REPAIR is:
 
 1.  The repair actor (selected per
     {{sec-repair-selection}}) reads surviving chunks from
-    the remaining data servers via CHUNK_READ
-    ({{sec-CHUNK_READ}}).
+    the remaining data servers via CHUNK_READ.
 
 2.  The repair actor reconstructs the missing chunks
     using the erasure-coding algorithm of the file's
     layout.
 
-3.  The repair actor acquires a CHUNK_LOCK
-    ({{sec-CHUNK_LOCK}}) on the target data server to
+3.  The repair actor acquires a CHUNK_LOCK on the target data server to
     prevent concurrent writes during repair.  For repair
     that adopts a metadata-server escrow lock, the CHUNK_LOCK
     carries CHUNK_LOCK_FLAGS_ADOPT
@@ -12288,15 +12231,11 @@ The repair workflow that invokes CHUNK_WRITE_REPAIR is:
 4.  The repair actor writes the reconstructed data via
     CHUNK_WRITE_REPAIR.
 
-5.  The repair actor issues CHUNK_FINALIZE
-    ({{sec-CHUNK_FINALIZE}}) and CHUNK_COMMIT
-    ({{sec-CHUNK_COMMIT}}) to persist the repair.
+5.  The repair actor issues CHUNK_FINALIZE and CHUNK_COMMIT to persist the repair.
 
-6.  The repair actor issues CHUNK_REPAIRED
-    ({{sec-CHUNK_REPAIRED}}) to clear the errored state.
+6.  The repair actor issues CHUNK_REPAIRED to clear the errored state.
 
-7.  The repair actor releases the lock via CHUNK_UNLOCK
-    ({{sec-CHUNK_UNLOCK}}).
+7.  The repair actor releases the lock via CHUNK_UNLOCK.
 
 CHUNK_WRITE_REPAIR is also the fallback path used by a
 client that received NFS4ERR_NO_PREDECESSOR
@@ -12328,7 +12267,7 @@ CHUNK_WRITE_REPAIR's semantics only produce a new
 generation.  When no authoritative source exists for
 reconstruction, the fallback itself may terminate at
 NFS4ERR_PAYLOAD_LOST ({{sec-NFS4ERR_PAYLOAD_LOST}})
-via CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}).
+via CB_CHUNK_REPAIR.
 
 The arguments mirror CHUNK_WRITE except that
 CHUNK_WRITE_REPAIR has no cwa_flags field (the
@@ -12577,7 +12516,7 @@ tsa_client_id:
    tsa_layout_stateid in the trust-table entry and
    uses it as the authoritative writer identity for
    subsequent CHUNK operations: cwa_client_id on
-   CHUNK_WRITE ({{sec-CHUNK_WRITE}}) MUST equal the
+   CHUNK_WRITE MUST equal the
    trust-table's tsa_client_id, and cg_client_id in
    any chunk_guard4 CAS submitted with the same
    stateid MUST also match.  A mismatch MUST be
@@ -12624,8 +12563,8 @@ At registration time the data server tags the new trust
 entry with the identity of the metadata server, derived
 from the clientid of the owning client of the control
 session on which TRUST_STATEID arrived.  This tag is
-consulted by REVOKE_STATEID ({{sec-REVOKE_STATEID}}) and
-BULK_REVOKE_STATEID ({{sec-BULK_REVOKE_STATEID}}) so that
+consulted by REVOKE_STATEID and
+BULK_REVOKE_STATEID so that
 revocation only affects entries registered by the same
 metadata server.  In a multi-metadata-server deployment
 sharing a single data server, each metadata server
@@ -12710,7 +12649,7 @@ REVOKE_STATEID invalidates a single trust entry on the
 data server.  Subsequent CHUNK operations that present
 the revoked stateid MUST fail with NFS4ERR_BAD_STATEID.
 REVOKE_STATEID is the per-file revoke counterpart to
-TRUST_STATEID ({{sec-TRUST_STATEID}}) -- registration and
+TRUST_STATEID -- registration and
 revocation form the matched pair that drives the per-file
 trust table for a tightly coupled deployment.
 
@@ -12865,7 +12804,7 @@ NFS4ERR_SERVERFAULT:
 
 BULK_REVOKE_STATEID removes every trust entry on the data
 server that was registered on behalf of a single named
-client.  Unlike REVOKE_STATEID ({{sec-REVOKE_STATEID}}),
+client.  Unlike REVOKE_STATEID,
 which removes one entry identified by a (filehandle,
 stateid) pair, BULK_REVOKE_STATEID does not target a
 specific filehandle or stateid; it instructs the data
@@ -13012,8 +12951,8 @@ ceia_offset+ceia_count) on the file selected by
 CURRENT_FH.  The lock is created with the specified
 ceia_escrow_id, which the metadata server will later
 present to reference this specific installation on
-CHUNK_ESCROW_RELEASE ({{sec-CHUNK_ESCROW_RELEASE}}),
-in CB_CHUNK_REPAIR ({{sec-CB_CHUNK_REPAIR}}), and in
+CHUNK_ESCROW_RELEASE,
+in CB_CHUNK_REPAIR, and in
 the corresponding CHUNK_LOCK adoption
 ({{sec-CHUNK_LOCK}}).
 
@@ -13077,8 +13016,7 @@ NFS4ERR_STALE_MDS_EPOCH.
 
 CHUNK_ESCROW_RELEASE is sent by the metadata server
 to release a metadata-server escrow lock it previously
-installed with CHUNK_ESCROW_INSTALL
-({{sec-CHUNK_ESCROW_INSTALL}}).  The release is
+installed with CHUNK_ESCROW_INSTALL.  The release is
 compare-and-release: the operation succeeds only
 when an escrow lock covering the requested range
 exists on the data server AND its escrow_id4
@@ -13663,7 +13601,7 @@ The composed guarantee is against protocol-level
 garbage collection and owner-association release only,
 NOT against storage or integrity failures.  It applies
 only when three conditions all hold at the moment a
-CHUNK_ROLLBACK ({{sec-CHUNK_ROLLBACK}}) is issued
+CHUNK_ROLLBACK is issued
 against the named predecessor:
 
 1. **Present at acquisition.**  The predecessor
@@ -13696,8 +13634,7 @@ against the named predecessor:
    -- an ERRORED predecessor follows the best-effort
    reconstruction path
    ({{sec-CHUNK_WRITE_REPAIR}}) and MAY terminate
-   at NFS4ERR_PAYLOAD_LOST via CB_CHUNK_REPAIR
-   ({{sec-CB_CHUNK_REPAIR}}).
+   at NFS4ERR_PAYLOAD_LOST via CB_CHUNK_REPAIR.
 
 When all three conditions hold, a CHUNK_ROLLBACK
 that names the predecessor's original owner triple
@@ -13756,7 +13693,7 @@ CHUNK_LOCK -> NFS4ERR_ACCESS:
 : presenter authorization failure.  Report to the metadata
   server; do not retry.
 
-After successful CHUNK_LOCK / ADOPT -> CHUNK_HEADER_READ ({{sec-CHUNK_HEADER_READ}}):
+After successful CHUNK_LOCK / ADOPT -> CHUNK_HEADER_READ:
 
 : read the primary owner and chrr_predecessors array.  If the
   intended predecessor's triple appears in the list, proceed
@@ -13804,7 +13741,7 @@ Any CHUNK_ESCROW operation -> NFS4ERR_STALE_MDS_EPOCH ({{sec-NFS4ERR_STALE_MDS_E
 : the metadata server has been fenced by a superseding
   CHUNK_ESCROW_TAKEOVER.  The metadata server MUST obtain a
   fresh incarnation-lease token and reissue via
-  CHUNK_ESCROW_TAKEOVER ({{sec-CHUNK_ESCROW_TAKEOVER}});
+  CHUNK_ESCROW_TAKEOVER;
   TAKEOVER is exempt from this rejection.
 
 CB_CHUNK_REPAIR response -> NFS4ERR_PARTIAL ({{sec-NFS4ERR_PARTIAL}}):
@@ -13928,8 +13865,7 @@ transitions the lock through the revocation-transfer
 path (see {{sec-chunk_guard_mds}}): a new metadata-server escrow
 lock is installed on the same range with the same
 preserved escrow_id4 = E1.  On the next
-CHUNK_ESCROW_ENUMERATE
-({{sec-CHUNK_ESCROW_ENUMERATE}}) the metadata server
+CHUNK_ESCROW_ENUMERATE the metadata server
 observes the reappeared E1 and reissues repair
 under it.
 
@@ -13950,8 +13886,7 @@ sequence discovers no retained predecessor for
 index 5.  A subsequent CHUNK_ROLLBACK against the
 (41, 7, 100) triple returns NFS4ERR_NO_PREDECESSOR
 ({{sec-NFS4ERR_NO_PREDECESSOR}}).  The client
-falls back to CHUNK_WRITE_REPAIR
-({{sec-CHUNK_WRITE_REPAIR}}), reconstructing
+falls back to CHUNK_WRITE_REPAIR, reconstructing
 authoritative bytes from surviving data-server
 shards and writing them under a new owner triple
 of its own choosing -- for example (43, 7, 102).
@@ -14779,8 +14714,7 @@ supports; see {{sec-security-checksum-scope}}.
 This document introduces the "Flexible File Version 2
 Proof-Profile Registry".  Values in this registry name
 the proof_profile_id4 ({{sec-proof-profile}}) that a
-metadata server presents in CHUNK_ESCROW_TAKEOVER
-({{sec-CHUNK_ESCROW_TAKEOVER}}) to identify which
+metadata server presents in CHUNK_ESCROW_TAKEOVER to identify which
 incarnation-lease proof format the accompanying
 ceta_proof_data carries.
 
