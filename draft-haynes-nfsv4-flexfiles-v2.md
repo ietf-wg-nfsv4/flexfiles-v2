@@ -6648,6 +6648,13 @@ Orphaned PENDING scavenger:
    than the lease extends the retention budget without a
    commensurate benefit.
 
+   A late-arriving client op against a demoted PENDING sees
+   NFS4ERR_BAD_STATEID under trusted-stateid tight coupling
+   ({{sec-REVOKE_STATEID}}) or NFS4ERR_NO_PREDECESSOR under
+   loose coupling ({{sec-NFS4ERR_NO_PREDECESSOR}}); a
+   CHUNK_LOCK reclaim after the grace period fails per the
+   RFC 8881 grace-reclaim semantics.
+
 The protocol does NOT guarantee progress if the metadata server
 is unavailable for longer than its lease period -- this is the
 standard NFSv4 lease assumption and is inherited unchanged.
