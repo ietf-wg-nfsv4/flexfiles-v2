@@ -6836,8 +6836,53 @@ metadata server's use.
 
 A pNFS client with an active flexible file v2 layout MUST restrict
 the operations it issues against data files to the operations
-defined below.  A data server MUST reject any other operation on
-a data file with NFS4ERR_NOTSUPP.
+defined below.  A data server that has identified the file as a
+chunked data file (see {{sec-data-file-identification}}) MUST
+reject any other operation on that file with NFS4ERR_NOTSUPP.
+
+### Data-File Identification on the Data Server {#sec-data-file-identification}
+
+The "MUST reject" rules in this section apply on the data server
+side only to files the data server has identified as chunked data
+files.  A data server identifies a file by any of the following
+means, in decreasing order of authority:
+
+fattr4_ffv2_chunked_data_file = TRUE:
+
+: The metadata server has set this attribute
+  ({{sec-fattr4_ffv2_chunked_data_file}}) when it allocated the
+  file as a chunked data file.  This is the authoritative
+  per-file identification and is required for a data server that
+  supports the attribute.
+
+Live TRUST_STATEID entry for the file:
+
+: Under trusted-stateid tight coupling
+  ({{sec-tight-coupling-control}}), a live trust entry for the
+  file registered via TRUST_STATEID ({{sec-TRUST_STATEID}})
+  identifies the file as under FFv2 management.  This is a
+  fallback for data servers that do not yet support
+  fattr4_ffv2_chunked_data_file, and it is per-client rather
+  than per-file, but it is sufficient to trigger the "MUST
+  reject" rules for that client's operations against the file.
+
+Deployment namespace convention:
+
+: Deployments SHOULD export chunked data files in a namespace
+  scope not shared with client-accessible file access, as one
+  means of preventing a misconfigured or malicious client from
+  reaching data files through a normal NFS mount.  A data server
+  MAY apply the "MUST reject" rules to every file in a
+  namespace configured for FFv2 data-file service, without
+  per-file classification.  Note that a separate NFS export
+  does not close direct filesystem access on the data server
+  host itself; that is outside the scope of this specification.
+
+If none of the above identifies the file, the data server cannot
+reliably classify it and the client-side "MUST NOT" rules in this
+section remain the primary defense.  Client-side compliance is
+mandatory in all deployment modes regardless of what the data
+server can enforce.
 
 ### Session and Identity Plumbing
 
@@ -6940,7 +6985,9 @@ will observe inconsistencies.
 ### SETATTR on a Data File {#sec-setattr-on-data-file}
 
 Clients MUST NOT issue SETATTR against a data file.  A data server
-MUST reject a client SETATTR with NFS4ERR_NOTSUPP.
+that has identified the file as a chunked data file (see
+{{sec-data-file-identification}}) MUST reject a client SETATTR
+with NFS4ERR_NOTSUPP.
 
 Attribute changes on data files MUST be reconciled with the
 metadata server's view and cannot be applied unilaterally by a
@@ -7070,7 +7117,8 @@ Clients MUST NOT send:
 
 Clients MUST NOT send the following operations to a data server
 on a data file, regardless of protection mode.  A data server
-MUST return NFS4ERR_NOTSUPP:
+that has identified the file as a chunked data file (see
+{{sec-data-file-identification}}) MUST return NFS4ERR_NOTSUPP:
 
 -  OPEN, CLOSE, OPEN_DOWNGRADE, OPEN_CONFIRM ({{RFC8881}}
    Sections 18.16, 18.2, 18.18, 18.20).  Opens occur on the
@@ -8079,6 +8127,36 @@ which MUST be supported if the metadata server supports the Flexible
 File Version 2 Layout Type.  By querying it, the client can determine
 the data block size it is to use when coding the data blocks to
 chunks.
+
+## Attribute 90: fattr4_ffv2_chunked_data_file {#sec-fattr4_ffv2_chunked_data_file}
+
+~~~ xdr
+   /// typedef bool                      fattr4_ffv2_chunked_data_file;
+   ///
+   /// const FATTR4_FFV2_CHUNKED_DATA_FILE  = 90;
+   ///
+~~~
+{: #fig-fattr4_ffv2_chunked_data_file title="XDR for fattr4_ffv2_chunked_data_file" }
+
+The new attribute fattr4_ffv2_chunked_data_file (see
+{{fig-fattr4_ffv2_chunked_data_file}}) is an OPTIONAL to NFSv4.2
+attribute a data server uses to classify a data file as a
+chunked-encoding data file for the purpose of enforcing the client
+restrictions in {{sec-ops-client}}.  When set to TRUE, the file is
+under FFv2 chunked-encoding management by a metadata server; the
+data server MUST apply the "MUST reject" rules on client operations
+against such files (see {{sec-data-file-identification}}).  When
+FALSE or absent, no such enforcement is triggered by this attribute
+alone.
+
+Only the metadata server sets this attribute; the metadata server
+sets it as part of allocating a chunked-encoding data file on the
+data server and does not change it during the file's lifetime.
+Clients MUST NOT SETATTR this attribute; a data server MUST reject
+a client SETATTR of FATTR4_FFV2_CHUNKED_DATA_FILE with
+NFS4ERR_INVAL.  A data server that does not support this attribute
+falls back to the other identification methods described in
+{{sec-data-file-identification}}.
 
 # New NFSv4.2 Common Data Structures
 
@@ -14320,6 +14398,15 @@ assignment.
  |---
  | EXCHGID4_FLAG_USE_ERASURE_DS  | 0x00100000 | RFCTBD10 | {{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}, this doc  |
 {: #tbl_exchgid_flags title="EXCHGID4 Flag Assignments"}
+
+This document requests IANA to allocate two attribute numbers in
+the NFSv4 attribute-number registry (see Section 20 of {{RFC8881}}).
+
+ | Attribute Number | Attribute Name                  | RFC      | Reference                            |
+ |---
+ | 89               | FATTR4_CODING_BLOCK_SIZE        | RFCTBD10 | {{sec-fattr4_coding_block_size}}     |
+ | 90               | FATTR4_FFV2_CHUNKED_DATA_FILE   | RFCTBD10 | {{sec-fattr4_ffv2_chunked_data_file}} |
+{: #tbl_attribute_assignments title="NFSv4 Attribute Assignments"}
 
 This document introduces the 'Flexible File Version 2 Layout Type
 Erasure Encoding Type Registry'.  The registry uses a 32-bit value
