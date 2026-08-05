@@ -6330,8 +6330,7 @@ consistency story: the chunk_guard4 CAS evaluates at the chunk
 level, the PENDING / FINALIZED / COMMITTED state machine is per
 chunk, CHUNK_LOCK is per chunk, and repair via CB_CHUNK_REPAIR
 operates on chunks.  A different atomicity boundary would
-require redefining those primitives, which this revision does
-not.
+require redefining those primitives.
 
 Erasure-coded reads:
 :  A reader of an erasure-coded file reconstructs the plaintext
