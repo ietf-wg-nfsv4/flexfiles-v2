@@ -2284,7 +2284,6 @@ filehandle has a one-to-one correspondence to a stateid.
 
 ~~~ xdr
    /// const FFV2_DS_FLAGS_ACTIVE        = 0x00000001;
-   /// const FFV2_DS_FLAGS_SPARE         = 0x00000002;
    /// const FFV2_DS_FLAGS_PARITY        = 0x00000004;
    /// const FFV2_DS_FLAGS_REPAIR        = 0x00000008;
    /// const FFV2_DS_FLAGS_PROXY         = 0x00000010;
@@ -2292,38 +2291,30 @@ filehandle has a one-to-one correspondence to a stateid.
 ~~~
 {: #fig-ffv2_ds_flags4 title="The ffv2_ds_flags4" }
 
-The ffv2_ds_flags4 (in {{fig-ffv2_ds_flags4}}) flags details the
-state of the data servers.  With erasure coding algorithms, there
-are both Systematic and Non-Systematic approaches.  In the Systematic,
-the bits for integrity are placed amongst the resulting transformed
-chunk.  Such an implementation would typically see FFV2_DS_FLAGS_ACTIVE
-and FFV2_DS_FLAGS_SPARE data servers.  The FFV2_DS_FLAGS_SPARE ones
-allow the client to repair a payload without engaging the metadata
-server.  I.e., if one of the FFV2_DS_FLAGS_ACTIVE did not respond
-to a CHUNK_WRITE, the client could fail the chunk to the
-FFV2_DS_FLAGS_SPARE data server.
+The ffv2_ds_flags4 (in {{fig-ffv2_ds_flags4}}) flags detail the
+state of the data servers.  With erasure coding algorithms,
+there are both Systematic and Non-Systematic approaches.  In
+the Systematic approach, the bits for integrity are placed
+amongst the resulting transformed chunk.  Such an
+implementation would typically see FFV2_DS_FLAGS_ACTIVE data
+servers with FFV2_DS_FLAGS_REPAIR entries added by the
+metadata server when a failed ACTIVE has been replaced.
 
-With the Non-Systematic approach, the data and integrity live on
-different data servers.  Such an implementation would typically see
-FFV2_DS_FLAGS_ACTIVE and FFV2_DS_FLAGS_PARITY data servers.  If the
-implementation wanted to allow for local repair, it would also use
-FFV2_DS_FLAGS_SPARE.
+With the Non-Systematic approach, the data and integrity live
+on different data servers.  Such an implementation would
+typically see FFV2_DS_FLAGS_ACTIVE and FFV2_DS_FLAGS_PARITY
+data servers, again with FFV2_DS_FLAGS_REPAIR entries appearing
+as needed.
 
 The FFV2_DS_FLAGS_REPAIR flag informs the client that the
 indicated data server is a replacement for a previously failed
 ACTIVE data server, whose content has been (or is being)
-reconstructed from the surviving shards of the mirror set.  A
-REPAIR data server differs from a SPARE in two ways:
-
--  A SPARE is standing by with no payload; the client MAY fail
-   over to it at write time without metadata-server coordination.
--  A REPAIR has been promoted by the metadata server to replace a
-   failed ACTIVE, and its payload was placed there by a repair
-   client executing the flow in {{sec-repair-selection}} rather
-   than directly by the original writer.  The flag is the
-   client's indication that reads from this data server return
-   erasure-decoded content rather than content produced by the
-   original write.
+reconstructed from the surviving shards of the mirror set.
+Its payload was placed there by a repair actor executing the
+flow in {{sec-repair-selection}} rather than directly by the
+original writer.  The flag is the client's indication that
+reads from this data server return erasure-decoded content
+rather than content produced by the original write.
 
 Clients that rely on write-provenance information (for example,
 deployments that track which client wrote which generation)
@@ -2349,9 +2340,11 @@ ACTIVE -> REPAIR:
 :  Triggered when a client (or the metadata server itself,
    via scrub) reports a failure via LAYOUTERROR against a
    particular shard.  The metadata server picks a target for
-   the reconstructed content -- typically an existing
-   FFV2_DS_FLAGS_REPAIR-flagged entry in the layout, else a
-   FFV2_DS_FLAGS_SPARE entry -- and initiates the
+   the reconstructed content -- either an existing
+   FFV2_DS_FLAGS_REPAIR-flagged entry already in the layout,
+   or a fresh data server drawn from an out-of-band
+   deployment pool that the metadata server adds to the
+   layout with FFV2_DS_FLAGS_REPAIR set -- and initiates the
    client-driven repair flow at {{sec-repair-selection}}.
    Once the reconstructed shard is written and the
    metadata server has accepted it (via CHUNK_REPAIRED),
@@ -2393,12 +2386,11 @@ REPAIR entry (being promoted) during a transition window,
 the two entries are guaranteed to carry identical chunk
 contents (the reconstructed content matches the original by
 the erasure-coding correctness invariant, and the checksum
-verifies).  A SPARE entry never carries payload during
-steady state; if a client failed over to a SPARE mid-write
-before the SPARE was promoted, that write is a
-concurrent-writer race resolved by chunk_guard4
-({{sec-chunk_guard4}}) and by the metadata server's
-subsequent layout update.
+verifies).  There is no client-driven failover to a passive
+data server; a client that observes a CHUNK_WRITE failure
+against an ACTIVE MUST report the failure via LAYOUTERROR
+and rely on the metadata-server-initiated repair flow above
+to promote a replacement.
 
 The FFV2_DS_FLAGS_PROXY flag identifies a data-server entry
 that names a Proxy Server rather than a real storage device.
@@ -4001,10 +3993,11 @@ shards according to the following fallback order: first, any
 data server in the layout carrying FFV2_DS_FLAGS_REPAIR; then
 the data server that reported the failure (the one carrying the
 failing shard at the range identified by ccr_offset and ccr_count
-in the CB_CHUNK_REPAIR argument); then, if both of the above are
-unreachable, a data server carrying FFV2_DS_FLAGS_SPARE.  If
-none of the above are available, the client MUST return
-NFS4ERR_PAYLOAD_LOST on the CB_CHUNK_REPAIR response.
+in the CB_CHUNK_REPAIR argument).  If neither is available, the
+client MUST return NFS4ERR_PAYLOAD_LOST on the CB_CHUNK_REPAIR
+response; the metadata server is then responsible for adding a
+new REPAIR-flagged data server to the layout (drawn from its
+out-of-band pool) and re-driving the repair.
 
 #### Single Writer Mode
 
@@ -4288,8 +4281,8 @@ single file's mirror set addresses several use cases:
 Consider a layout that exposes a file in two encodings
 simultaneously: a PASSTHROUGH mirror over the original byte
 stream and a Reed-Solomon Vandermonde
-(FFV2_ENCODING_RS_VANDERMONDE) mirror with 8 active data shards
-(plus 2 parity and 2 spare data servers).  A layout for such a
+(FFV2_ENCODING_RS_VANDERMONDE) mirror with 4 active data shards
+plus 2 parity data servers.  A layout for such a
 file might appear as in {{fig-example_mixing}}.  Both
 representations are active and addressable through the layout
 simultaneously.  This is the transition-window pattern: a file
@@ -4338,10 +4331,6 @@ All three patterns coexist during the transition.
  |                 ffv2ds_flags: FFV2_DS_FLAGS_PARITY  |
  |             ffv2_data_server4[5]                    |
  |                 ffv2ds_flags: FFV2_DS_FLAGS_PARITY  |
- |             ffv2_data_server4[6]                    |
- |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
- |             ffv2_data_server4[7]                    |
- |                 ffv2ds_flags: FFV2_DS_FLAGS_SPARE   |
  |     ffv2m_coding: FFV2_ENCODING_RS_VANDERMONDE      |
  +-----------------------------------------------------+
 ~~~
@@ -5351,49 +5340,6 @@ count at a higher baseline read cost than systematic.  The choice
 among these is a deployment decision driven by workload
 characteristics and operational priorities.
 
-## First-Line Substitution to a Spare {#sec-spare-substitution}
-
-When a client's CHUNK_WRITE to an FFV2_DS_FLAGS_ACTIVE data server
-fails with a transport-level error, NFS4ERR_IO, NFS4ERR_NOSPC, or
-any other code that indicates the data server cannot accept the
-shard, and the layout includes a data server flagged
-FFV2_DS_FLAGS_SPARE ({{sec-ffv2_ds_flags4}}) that is not already
-holding a shard for the affected payload, the client MAY substitute
-the spare for the failing active data server for this write.
-
-Substitution avoids the full metadata-server repair flow.  The
-client issues CHUNK_WRITE to the spare in place of the failing
-ACTIVE and, if successful, proceeds with CHUNK_FINALIZE and
-CHUNK_COMMIT against the full set of data servers the payload
-now resides on (the k-1 healthy ACTIVE plus the substituted
-SPARE).  The spare becomes the i-th shard holder for the
-affected payload.
-
-The client MUST inform the metadata server of the substitution
-before returning the layout.  This is done via LAYOUTERROR on
-the failing ACTIVE (reporting the error code the client
-encountered) in the same compound as, or before, any
-LAYOUTSTATS reporting of the substitution.  The metadata server
-uses the LAYOUTERROR to decide whether to update the layout in
-place -- promoting the spare to ACTIVE and demoting the failing
-ACTIVE to a stale-or-unreachable state -- or to push new
-layouts via CB_RECALL_ANY to other clients so readers do not
-continue to consult the failing ACTIVE.
-
-Substitution is optional.  A client that does not implement it,
-or does not have a suitable spare in the layout, falls through
-to the normal write-hole handling below.  Substitution is also
-not available to clients writing with cwa_stable == FILE_SYNC
-unless the client is prepared to drive FILE_SYNC semantics on
-the spare as well; otherwise the substitution silently
-downgrades the durability contract.
-
-Substitution MUST NOT be used when the existing PENDING state
-on any shard of the affected payload carries a different cohort
-pair `(co_cohort_id, co_client_id)` than the current transaction
-(the range has been adopted by a repair actor already -- the
-normal repair flow applies and substitution would collide).
-
 ## Handling write holes
 
 A write hole occurs when a client begins writing a stripe but does not
@@ -5410,12 +5356,13 @@ atomic from the reader's perspective throughout, because PENDING
 blocks carry the new chunk_guard4 value and CHUNK_READ returns the last
 COMMITTED or FINALIZED block when a PENDING block exists.
 
-A single-shard CHUNK_WRITE failure MAY also be handled without
-CHUNK_ROLLBACK by substituting the failing data server with an
-FFV2_DS_FLAGS_SPARE, per {{sec-spare-substitution}}.  This
-avoids engaging the metadata server's repair flow and is the
-preferred path on transient single-data server failures when the layout
-exposes a suitable spare.
+A single-shard CHUNK_WRITE failure MAY alternatively be
+handled by reporting the failure to the metadata server via
+LAYOUTERROR and letting the metadata server initiate the
+repair flow at {{sec-repair-selection}}.  The metadata server
+adds a REPAIR-flagged replacement data server to the layout
+(from its out-of-band pool) and drives reconstruction of the
+missing shard.
 
 In the multiple writer model, a write hole can also arise when two clients
 are racing.  The chunk_guard4 value on each chunk identifies which
@@ -5424,11 +5371,11 @@ values detects the non-atomicity and either retries (if a concurrent write
 is still in progress) or reports NFS4ERR_PAYLOAD_NOT_ATOMIC to the
 metadata server to trigger repair.
 
-When substitution and CHUNK_ROLLBACK are both unavailable, and
-the payload cannot be reconstructed because too many shards have
-been lost (for example, a catastrophic multi-data server failure with no
-spares provisioned), the repair flow ultimately terminates with
-NFS4ERR_PAYLOAD_LOST; see
+When CHUNK_ROLLBACK and repair are both unavailable, and the
+payload cannot be reconstructed because too many shards have
+been lost (for example, a catastrophic multi-data server failure
+with no reachable replacement data servers), the repair flow
+ultimately terminates with NFS4ERR_PAYLOAD_LOST; see
 {{sec-NFS4ERR_PAYLOAD_LOST}}.
 
 #  System Model and Correctness {#sec-system-model}
@@ -5646,8 +5593,9 @@ Network partitions:
 :  The protocol is partition-tolerant at the cost of availability
    during the partition window.  A client partitioned from a
    data server recovers via LAYOUTERROR and may be issued a new
-   layout (possibly against a spare, see
-   {{sec-spare-substitution}}).  A metadata server partitioned from a data
+   layout (with a REPAIR-flagged replacement data server
+   added by the metadata server; see
+   {{sec-repair-selection}}).  A metadata server partitioned from a data
    server eventually renews trust entries on reconnection; in
    the interim, the data server returns NFS4ERR_DELAY for
    affected stateids (see {{sec-tight-coupling-mds-crash}}).
@@ -7305,8 +7253,9 @@ Causes include: too few surviving shards to meet the
 reconstruction threshold (Katz criterion for Mojette, any
 k-of-(k+m) subset for Reed-Solomon Vandermonde), inability to
 roll back to a previously committed payload because that payload
-is also lost, or exhaustion of all FFV2_DS_FLAGS_SPARE and
-FFV2_DS_FLAGS_REPAIR data servers available in the layout.
+is also lost, or exhaustion of all FFV2_DS_FLAGS_REPAIR data
+servers available in the layout with no additional replacement
+reachable from the metadata server's out-of-band pool.
 
 On receipt, the metadata server MUST NOT retry the repair by
 selecting a different client -- the payload is damaged and the
