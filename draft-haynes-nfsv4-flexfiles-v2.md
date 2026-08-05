@@ -13731,38 +13731,35 @@ ccrr_range_status per
 recovery.
 
 CB_CHUNK_REPAIR returns a top-level ccrr_status plus a
-co-indexed per-range status array ccrr_range_status:
+co-indexed per-range status array ccrr_range_status.
 
-Operation-wide errors (decode failure, authorization failure, session-stale, and other conditions that fail every range at once):
+When the entire callback fails at once -- decode failure,
+authorization failure, session-stale, and other conditions
+that fail every range -- the operation-wide error is placed
+in ccrr_status and ccrr_range_status MUST be empty (zero
+entries).
 
-: the
-  operation-wide error is placed in ccrr_status and
-  ccrr_range_status MUST be empty (zero entries).
-Per-range dispositions (the callback is otherwise well-formed and evaluated per range):
+When the callback is well-formed and evaluated per range,
+ccrr_range_status carries exactly one nfsstat4 per entry in
+ccra_ranges, co-indexed, and ccrr_status is one of:
 
-: ccrr_range_status carries exactly one nfsstat4 per
-  entry in ccra_ranges, co-indexed.  The top-level
-  ccrr_status in this case is one of:
+NFS4_OK:
 
-  NFS4_OK:
+: every range reached CHUNK_REPAIRED or CHUNK_UNLOCK per
+  the completion contract; every ccrr_range_status entry is
+  NFS4_OK.
 
-  : every range reached CHUNK_REPAIRED or CHUNK_UNLOCK per
-    the completion contract; every ccrr_range_status entry
-    is NFS4_OK.
+NFS4ERR_PARTIAL ({{sec-NFS4ERR_PARTIAL}}):
 
-  NFS4ERR_PARTIAL ({{sec-NFS4ERR_PARTIAL}}):
+: at least one range did not reach the completion state.
+  The metadata server MUST consume the ccrr_range_status
+  array to determine per-range outcome; the array is
+  authoritative.  An NFS4ERR_PARTIAL response with an empty
+  array is malformed and MUST be rejected.
 
-  : at least one range did not reach the completion state.
-    The metadata server MUST consume the ccrr_range_status
-    array to determine per-range outcome; the array is
-    authoritative.  An NFS4ERR_PARTIAL response with an
-    empty array is malformed and MUST be rejected.
-
-The precedence rule between top-level and per-range
-status is that a non-empty ccrr_range_status pairs
-only with NFS4_OK or NFS4ERR_PARTIAL at the top
-level; every other top-level nfsstat4 carries an
-empty ccrr_range_status.
+A non-empty ccrr_range_status pairs only with NFS4_OK or
+NFS4ERR_PARTIAL at the top level; every other top-level
+nfsstat4 carries an empty ccrr_range_status.
 
 See "RESPONSE CODES" below for the normative
 meanings the metadata server attaches to each
