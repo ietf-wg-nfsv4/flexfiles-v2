@@ -1231,8 +1231,8 @@ A deployment that does not need those finer-grained
 associations -- for example, an FFv2 deployment whose per-file
 access-control decisions live entirely on the metadata server
 and whose storage devices see only chunk-level CAS on layout
-stateids -- is conformant with the trusted stateid tight-
-coupling model using only the TRUST_STATEID family.  That
+stateids -- is conformant with the trusted stateid tight coupling
+model using only the TRUST_STATEID family.  That
 scope covers the layout stateid and, transitively via
 ffv2m_client_id, the writer identity carried on CHUNK
 operations.
@@ -1924,8 +1924,8 @@ tight coupling flags are orthogonal:
 - FFV2_COUPLING_TRUSTED_STATEID asserts that the storage
   device implements the TRUST_STATEID, REVOKE_STATEID, and
   BULK_REVOKE_STATEID operations defined in this document
-  ({{sec-tight-coupling-control}}).  This is the tight-
-  coupling mechanism this specification adds; a storage
+  ({{sec-tight-coupling-control}}).  This is the tight coupling
+  mechanism this specification adds; a storage
   device MUST NOT advertise this flag until the metadata
   server has confirmed the capability via the probe in
   {{sec-tight-coupling-probe}}.
@@ -2314,7 +2314,7 @@ coupling mode advertised for the corresponding
   ({{sec-tight-coupling-control}}).
 - If ffv2dv_coupling for this entry has only
   FFV2_COUPLING_TIGHTLY_COUPLED set (a back-end control
-  protocol other than trusted-stateid, with no TRUST_STATEID
+  protocol other than trusted stateid, with no TRUST_STATEID
   support advertised), ffv2fi_stateid carries whatever
   stateid the deployment's back-end control protocol expects
   the client to present; this document does not further
@@ -2490,11 +2490,11 @@ file and how to access it via the different NFS protocols.
   underlying file on the data server has a single uid/gid
   irrespective of which NFS protocol combination the client
   uses to reach it.  If ffv2dv_coupling for the tuple the
-  client selects has any tight-coupling flag set
+  client selects has any tight coupling flag set
   (FFV2_COUPLING_TIGHTLY_COUPLED or
   FFV2_COUPLING_TRUSTED_STATEID), the client MUST ignore
   ffv2ds_user and ffv2ds_group; the data server authorizes
-  the write via the trusted-stateid table or the back-end
+  the write via the trusted stateid table or the back-end
   control protocol instead of via the synthetic uid.  If the
   client selects a tuple with ffv2dv_coupling =
   FFV2_COUPLING_SYNTHETIC_UIDS, the client MUST present
@@ -2919,8 +2919,8 @@ FFV2_ENCODING_RS_VANDERMONDE and (fdp_data=4, fdp_parity=2).  A
 server without erasure coding might return FFV2_ENCODING_MIRRORED
 with (fdp_data=3, fdp_parity=0) for 3-way mirroring with
 per-chunk integrity, or FFV2_ENCODING_PASSTHROUGH with
-(fdp_data=1, fdp_parity=2) for 3-way flexible file v1 layout-
-compatible mirroring without per-chunk integrity.
+(fdp_data=1, fdp_parity=2) for 3-way flexible file v1 layout-compatible
+mirroring without per-chunk integrity.
 
 A server may also use ffv2lh_expected_file_size as a striping
 gate: a deployment that wants to avoid the runway and bookkeeping
@@ -2968,7 +2968,7 @@ Metadata-server selection for an existing file:
    existing file is a separate operation (see the
    heterogeneous mirror set primitive in
    {{sec-heterogeneous-mirrors}} and the migration paths in the
-   proxy-server draft
+   proxy server draft
    {{?I-D.haynes-nfsv4-flexfiles-v2-proxy-server}}), not a
    consequence of a LAYOUTGET hint.  In this case
    ffv2lh_supported_types is not a selection input; it is an
@@ -3110,8 +3110,8 @@ the layout; the storage device validates subsequent CHUNK operations
 against its trust table.
 
 For loose coupling and an NFSv4 storage device (necessarily a
-PASSTHROUGH mirror per {{sec-ff_device_addr4}}, since non-
-PASSTHROUGH encodings require tight coupling), the client MUST
+PASSTHROUGH mirror per {{sec-ff_device_addr4}}, since non-PASSTHROUGH
+encodings require tight coupling), the client MUST
 use the anonymous stateid to perform I/O on the storage device,
 because the metadata server stateid has no meaning to a storage
 device that is not participating in the control protocol.  In
@@ -6612,8 +6612,8 @@ identify a per-open or per-lock owner, a single client may
 present the same layout stateid on many CHUNK operations
 across many parallel writers within the client, without any
 of the open-owner ordering constraints {{RFC8881}}
-Section 8.2.2 imposes on regular NFSv4 stateids.  Chunk-
-level write ordering and contention are resolved by the
+Section 8.2.2 imposes on regular NFSv4 stateids.  Chunk-level
+write ordering and contention are resolved by the
 per-chunk chunk_guard4 CAS ({{sec-chunk_guard4}}) and the
 chunk-range CHUNK_LOCK, not by stateid-owner sequencing.
 
@@ -6853,8 +6853,8 @@ MUST NOT:
 MAY:
 :  The metadata server MAY use the operation as an
    implementation-defined control-plane action.  Not in
-   {{RFC8881}} Section 17; specific to the metadata-server-to-
-   data-server path in this document.
+   {{RFC8881}} Section 17; specific to the metadata-server-to-data-server
+   path in this document.
 
  | Operation                        | Client -> data server                | metadata server -> data server          |
  | ---
@@ -6881,8 +6881,8 @@ MAY:
  | CHUNK_ESCROW_INSTALL, CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE, CHUNK_ESCROW_TAKEOVER | MUST NOT | REQUIRED |
 {: #tbl-ops-allowed title="NFSv4.2 operations allowed on data files"}
 
-The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-
-server column select by the mirror's ffv2m_coding_type_data value.
+The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-server
+column select by the mirror's ffv2m_coding_type_data value.
 FFV2_ENCODING_PASSTHROUGH ({{sec-encoding-passthrough}}) uses
 NFSv3 WRITE / READ or NFSv4 READ / WRITE directly and does not
 use the CHUNK operations.  Every other standards-track encoding
@@ -7626,8 +7626,8 @@ Returned by any of the CHUNK_ESCROW operations
 {{sec-CHUNK_ESCROW_RELEASE}},
 {{sec-CHUNK_ESCROW_ENUMERATE}}) when the requesting
 metadata server presents an epoch value the data
-server no longer accepts because a newer metadata-
-server incarnation has completed a
+server no longer accepts because a newer metadata-server
+incarnation has completed a
 CHUNK_ESCROW_TAKEOVER ({{sec-CHUNK_ESCROW_TAKEOVER}}).
 The metadata server that receives NFS4ERR_STALE_MDS_EPOCH
 has been fenced from continued escrow operations on
@@ -8369,8 +8369,8 @@ prior check would have denied:
    returns the cached response;
 2. presenter authorization: RPCSEC_GSS presenter
    authentication and credential check
-   (NFS4ERR_ACCESS if the caller lacks metadata-
-   server role);
+   (NFS4ERR_ACCESS if the caller lacks metadata-server
+   role);
 3. profile support: unknown proof_profile_id4
    returns NFS4ERR_NOTSUPP;
 4. proof verification: the profile's signature and
@@ -8435,8 +8435,8 @@ To close that recovery gap, a data server MUST
 accept a byte-identical CHUNK_ESCROW_TAKEOVER
 reissue as postcondition-equivalent success when
 step 4's signature and payload checks succeed
-(signature verifies against the deployment-
-provisioned trust anchor; the signed principal,
+(signature verifies against the deployment-provisioned
+trust anchor; the signed principal,
 scope, and epoch match; the token is within its
 expires_at window; all per {{sec-proof-profile}}
 "Payload map fields"), with the ordinary step-4
@@ -8465,8 +8465,8 @@ server:
 - **Cache-miss form** (applies after eviction or
   non-persisted restart): the token_id is not
   present in the replay cache.  The data server
-  treats the presentation as a fresh byte-
-  identical proof under the two epoch predicates
+  treats the presentation as a fresh byte-identical
+  proof under the two epoch predicates
   above and does NOT execute step 5 (the epoch is
   already at the post-advance state).
 
@@ -9054,8 +9054,8 @@ race) leaves the client without an opportunity to react before
 a same-compound CHUNK_FINALIZE / CHUNK_COMMIT proceeds against
 whichever chunks happen to be PENDING.  The compound-level
 status is NFS4_OK in this case because per-block failures are
-reported in the per-op status array rather than as a compound-
-level error, so NFSv4 compound short-circuit (Section 2.10.6.4
+reported in the per-op status array rather than as a compound-level
+error, so NFSv4 compound short-circuit (Section 2.10.6.4
 of {{RFC8881}}) does not stop the trailing ops.  A client that
 wants atomic-or-none semantics across multiple chunks MUST
 examine the per-block status returned by each CHUNK_WRITE
@@ -9742,9 +9742,9 @@ chrr_predecessors:
   chra_count when the requested range extends past
   the data server's last chunk (chrr_eof = TRUE, N
   = the number of chunks the data server holds
-  within the requested range) or when the fully-
-  populated response would exceed the session-
-  negotiated ca_maxresponsesize (Section 18.36.3 of
+  within the requested range) or when the fully-populated
+  response would exceed the session-negotiated
+  ca_maxresponsesize (Section 18.36.3 of
   {{RFC8881}}).  In the response-size case the data
   server returns a short response with chrr_eof =
   FALSE containing as many entries N as fit under
@@ -9791,8 +9791,8 @@ Read-side atomicity check:
    multiple-writer mode, a client MAY issue
    CHUNK_HEADER_READ to verify that the chunks in the
    target range share a common `(co_cohort_id,
-   co_client_id)` pair in chrr_chunks (the cohort-
-   atomicity property in
+   co_client_id)` pair in chrr_chunks (the cohort-atomicity
+   property in
    {{sec-system-model-consistency}}) and MAY additionally
    inspect chrr_guards as a cheaper generation-level
    corroboration.  If the cohort pairs diverge, the
@@ -9813,8 +9813,8 @@ Predecessor-guided rollback discovery:
      in the cra_chunks entry of the subsequent
      CHUNK_ROLLBACK.  "Rollback of COMMITTED
      Chunks" case (a) will succeed subject to the
-     composed rollback guarantee's continuous-
-     custody condition
+     composed rollback guarantee's continuous-custody
+     condition
      ({{sec-composed-rollback}}).
    - **ERRORED**: do NOT issue CHUNK_ROLLBACK
      against the disclosed owner triple.  The
@@ -9865,8 +9865,8 @@ NFS4_OK:
    generation's owner.
 
 NFS4ERR_PAYLOAD_NOT_ATOMIC:
-:  the chunk is PENDING or FINALIZED (a non-globally-
-   visible generation is in progress).  The
+:  the chunk is PENDING or FINALIZED (a non-globally-visible
+   generation is in progress).  The
    chunk_owner4 in the corresponding chrr_chunks slot
    names the writer of that in-progress generation.
 
@@ -10058,8 +10058,8 @@ lease expires; on lease expiry without explicit
 release, the data server transitions the lock to the
 metadata-server escrow owner if the metadata server has revoked
 the holder's stateid via REVOKE_STATEID
-({{sec-REVOKE_STATEID}}), per the lock-continuity-
-across-revocation invariant in
+({{sec-REVOKE_STATEID}}), per the lock-continuity-across-revocation
+invariant in
 {{sec-system-model-consistency}}.
 
 If the current filehandle is not an ordinary file, an
@@ -10292,8 +10292,8 @@ cr_effective_len:
 cr_owner:
 :  the full (co_cohort_id, co_client_id, co_id) owner triple
    of the COMMITTED generation being returned (see
-   {{sec-chunk_owner4}}); co_id is the opaque writer-
-   supplied per-chunk identifier the client provided at
+   {{sec-chunk_owner4}}); co_id is the opaque writer-supplied
+   per-chunk identifier the client provided at
    CHUNK_WRITE or CHUNK_WRITE_REPAIR time, not a chunk
    index.  A client reading from multiple data servers in
    an erasure-coded layout MUST compare the pair
@@ -10989,8 +10989,8 @@ for that slot:
 
 - the reissue is byte-identical to the original op
   (same cra_offset, same cra_count, same cra_chunks
-  array entry) -- a fresh op with an accidentally-
-  matching triple does NOT qualify;
+  array entry) -- a fresh op with an accidentally-matching
+  triple does NOT qualify;
 - the prior completion is genuinely uncertain (the
   client never observed a per-entry response for that
   slot); AND
@@ -11349,8 +11349,8 @@ reference values.
 cwa_flags carries CHUNK_WRITE_FLAGS_ACTIVATE_IF_EMPTY (see
 "Stability and Activation" below).
 
-cwa_guard ({{fig-write_chunk_guard4}}) controls the chunk-
-guard CAS check (see "Guarding the Write" below).
+cwa_guard ({{fig-write_chunk_guard4}}) controls the chunk-guard
+CAS check (see "Guarding the Write" below).
 
 A cwa_offset of zero starts writing at the first chunk of
 the file.  Unlike READ in {{RFC8881}}, a CHUNK_WRITE whose
@@ -11766,8 +11766,8 @@ triple, NOT the released predecessor's triple.  The released
 predecessor is not resurrected by any operation defined
 in this document, including this fallback; a subsequent
 lifecycle operation naming the released predecessor's
-triple returns NFS4ERR_NO_PREDECESSOR under the release-
-scope split at {{sec-NFS4ERR_NO_PREDECESSOR}} -- the
+triple returns NFS4ERR_NO_PREDECESSOR under the release-scope
+split at {{sec-NFS4ERR_NO_PREDECESSOR}} -- the
 predecessor was released under the retention scope, not
 by an explicit CHUNK_ROLLBACK delete case within a live
 replay-cache window.  A client that requires the
@@ -13128,8 +13128,8 @@ against the named predecessor:
    ({{sec-system-model-read-time-status}}).  A
    predecessor whose payload has become ERRORED
    through media loss, unrecoverable corruption,
-   loss of all redundant data servers, or non-
-   conforming data-server behaviour is not covered
+   loss of all redundant data servers, or non-conforming
+   data-server behaviour is not covered
    -- an ERRORED predecessor follows the best-effort
    reconstruction path
    ({{sec-CHUNK_WRITE_REPAIR}}) and MAY terminate
@@ -13219,8 +13219,8 @@ recovery is attempted.
   Caller holds a stale reference; no operation
   defined in this document resurrects the deleted
   generation.  The data server returns
-  NFS4ERR_INVAL within the delete case's session-
-  slot replay-cache window and NFS4ERR_NO_PREDECESSOR
+  NFS4ERR_INVAL within the delete case's session-slot
+  replay-cache window and NFS4ERR_NO_PREDECESSOR
   after the window has elapsed or for any other
   terminal release (per the release-scope split at
   {{sec-NFS4ERR_NO_PREDECESSOR}}).  Compare either
@@ -13260,8 +13260,8 @@ NFS4ERR_NO_ADOPTABLE_LOCK and
 NFS4ERR_NO_PREDECESSOR both prevent the direct
 rollback path, but at different lifecycle stages
 and with different recovery authorities:
-NFS4ERR_NO_ADOPTABLE_LOCK is a custody / control-
-plane failure BEFORE the actor obtains usable
+NFS4ERR_NO_ADOPTABLE_LOCK is a custody / control-plane
+failure BEFORE the actor obtains usable
 custody (unrecoverable unilaterally), while
 NFS4ERR_NO_PREDECESSOR is a data-plane result
 AFTER successful adoption where the actor
@@ -13663,8 +13663,8 @@ cache without bound.  A data server SHOULD bound the cache
 size and expire entries no later than their token's
 expires_at; entries older than the longest admissible
 issued_at-to-expires_at window MAY be evicted.  Eviction
-does not sacrifice lost-response recovery: the byte-
-identical uncertain-completion recovery path
+does not sacrifice lost-response recovery: the byte-identical
+uncertain-completion recovery path
 ({{sec-CHUNK_ESCROW_TAKEOVER-uncertain-completion}})
 recognizes both the cache-hit and the cache-miss form of
 the same reissue, so a token whose replay entry has aged
@@ -13885,8 +13885,8 @@ Compromised data server:
    adversarial content ({{sec-security-checksum-scope}}).
    This is the same as the RAID-stripe trust model:
    each shard host can lie about its shard.  Deployment
-   defences are encryption at rest, an integrity-
-   protected transport (RPCSEC_GSS_KRB5I or TLS), and
+   defences are encryption at rest, an integrity-protected
+   transport (RPCSEC_GSS_KRB5I or TLS), and
    physical or logical isolation of data servers.
 
 Stateid leak from client to attacker:
@@ -13916,8 +13916,8 @@ Replay of revoked stateid:
    opening during revocation.
 
 Compromised control session:
-:  An attacker who controls the metadata-server-to-data-
-   server control session can register or revoke
+:  An attacker who controls the metadata-server-to-data-server
+   control session can register or revoke
    arbitrary trust entries.  The control session is the
    most security-sensitive surface introduced by tight
    coupling.  Deployment MUST protect it with RPCSEC_GSS
@@ -14340,8 +14340,8 @@ Coverage:
   happy-path data-plane operations) are implemented end-to-end
   and have been exercised against multiple encoding families.
 
-- CHUNK_WRITE_REPAIR and CHUNK_REPAIRED (client-driven single-
-  shard reconstruction with server-side layout-flag clearing)
+- CHUNK_WRITE_REPAIR and CHUNK_REPAIRED (client-driven single-shard
+  reconstruction with server-side layout-flag clearing)
   are implemented end-to-end and have been exercised across four
   file sizes, two encoding families, and one- and two-shard-loss
   patterns; end-to-end integrity verification passes on
@@ -14431,8 +14431,8 @@ Coverage:
 - NFSv3 and NFSv4.2 data-server dispatch are both implemented.
 
 - NFS4ERR_DELAY retry-with-backoff for concurrent writer
-  contention on CHUNK_WRITE is not yet implemented; multi-
-  writer workloads fall back to the metadata-server-inband
+  contention on CHUNK_WRITE is not yet implemented; multi-writer
+  workloads fall back to the metadata-server-inband
   write path.
 
 - Client-side single-shard repair write-back is not yet
@@ -14499,8 +14499,8 @@ of MB/s).
 Two hand-tuning passes on the Reed-Solomon Vandermonde encoder
 in this document, performed without any change to the wire
 format or test vectors, compounded to roughly 17x on aarch64
-NEON and roughly 39x on x86_64 SSSE3 -- a precomputed field-
-multiplication table pass followed by a SIMD byte-shuffle field
+NEON and roughly 39x on x86_64 SSSE3 -- a precomputed field-multiplication
+table pass followed by a SIMD byte-shuffle field
 arithmetic pass (`vqtbl1q_u8` / `pshufb`).  A similar
 implementation-only optimization pass on the Mojette encoder
 wrapper yielded roughly 4.85x on x86_64 AVX2, again with
@@ -14569,8 +14569,8 @@ algorithm-cost spread across encoders **collapses to
 approximately 1.15x wire spread** at the client-direct FFv2
 variant (variant c) at 1 MiB.  End-to-end throughput on this
 topology is dominated by RPC round-trips, fsync commits, and
-network serialisation; encoder algorithm cost is a rounding-
-error contributor at these operating points.
+network serialisation; encoder algorithm cost is a rounding-error
+contributor at these operating points.
 
 The approximately seven-fold variant d penalty (1.1-2.2 MB/s
 vs 10.0-13.5 MB/s) is the extra client to proxy server hop,
@@ -14596,8 +14596,8 @@ implementation measured.
 
 ### Cost of fault tolerance -- single-shard repair
 
-Client-driven single-shard reconstruction, using the wire-
-level `OP_CHUNK_WRITE_REPAIR` + `OP_CHUNK_REPAIRED` operations
+Client-driven single-shard reconstruction, using the wire-level
+`OP_CHUNK_WRITE_REPAIR` + `OP_CHUNK_REPAIRED` operations
 this document defines, was benchmarked on a colocated topology
 across the following axes:
 
@@ -14636,8 +14636,8 @@ other than raw algorithm speed at typical operating points:
   encoders at the same k and m without cross-encoding.
 - **Reconstruction cost**: systematic encodings
   (FFV2_ENCODING_RS_VANDERMONDE, FFV2_ENCODING_MOJETTE_SYSTEMATIC,
-  FFV2_ENCODING_XOR_PARITY, FFV2_ENCODING_LINUX_MD_RAID) short-
-  circuit no-loss reads at wire speed;
+  FFV2_ENCODING_XOR_PARITY, FFV2_ENCODING_LINUX_MD_RAID) short-circuit
+  no-loss reads at wire speed;
   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC transforms every shard on
   every read.
 - **Wide-geometry scaling**: at k >= 8, m >= 4, the Mojette
