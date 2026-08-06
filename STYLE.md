@@ -405,14 +405,16 @@ applying a rule mechanically:
 
 ### Known residue
 
+The textual residue in the base draft was cleared in `62406cdc` —
+British stragglers, two duplicated words from the `owner triple` sweep,
+one line broken mid-compound, and three body-prose `FFv2` uses.
+
+Outstanding:
+
 | Item | Where |
 |---|---|
-| `defences` (plural missed) | base, ~L14677 |
-| `serialising`, `optimising`, `minimise` | base, ~L281, ~L4265, ~L15485, ~L15915 |
-| `encoding-` / `negotiation` split across a line (§7) | base, ~L3342 |
-| `owner triple / triple` duplication | base, ~L3765, ~L12369 |
-| Body-prose `FFv2` | base, ~L6966, ~L6979, ~L8302 |
-| `ffv2_coding_type_data4`, `ffv2ctd_coding`, `ffv2m_coding_type_data` | base — enum/value mismatch of the kind `9258b9e7` fixed one level up |
+| `ffv2_coding_type_data4`, `ffv2ctd_coding`, `ffv2m_coding_type_data` | base — enum/value mismatch of the kind `9258b9e7` fixed one level up. These are XDR identifiers, so renaming them is a wire-facing naming change rather than an editorial fix; it needs a deliberate decision, not a sweep. |
+| The companion drafts have not been swept at all | see their `STYLE.md` |
 
 ---
 
