@@ -91,9 +91,32 @@ Confirmed conversions (`b05182aa`, `3bc64ae5`):
 `analysis` is **not** a British spelling — US and UK share it. Only
 `analyse` differs.
 
-**Match on the stem, not the word.** The first sweep matched `behaviour`
-and missed `behaviours`, requiring a second commit; the stragglers still
-in the tree are all inflected forms.
+Later conversions, all found by pattern rather than by being on a list
+(`1a6b2ce4`):
+
+| British | US |
+|---|---|
+| flavour(s) | flavor(s) |
+| summaris(e/ed) | summariz… |
+| synchronisation | synchronization |
+| materialising | materializing |
+| prioritise | prioritize |
+| uninitialised | uninitialized |
+| vectorised | vectorized |
+| localis(e/es/ed) | localiz… |
+
+**Match on the pattern, not the stem.** Two rounds of stem lists both
+under-caught. The first sweep matched `behaviour` and missed
+`behaviours` — an inflection problem, fixed by matching stems. The
+second failure was worse: `flavour` was never on the list at all, and
+neither were the eight above, so no stem could have found them. A word
+list only finds the words someone already thought of. §11 greps `-our`
+and `-ise` generically instead.
+
+Watch the leading `\b`. `\b(…|initialis|…)` does **not** match
+`uninitialised` — there is no word boundary between `un` and
+`initialis` — which is how two of those sat in the tree through every
+prior sweep.
 
 ---
 
@@ -534,7 +557,9 @@ Outstanding:
 ```sh
 D=draft-haynes-nfsv4-flexfiles-v2.md      # or the companion draft
 
-grep -nE '\b(behaviour|honour|favour|defence|serialis|organis|initialis|normalis|optimis|minimis|standardis|neighbour|analyse|licence|centre)[a-z]*' $D
+grep -nE '\b(defence|analyse|licence|centre)[a-z]*'            $D   # no shared pattern
+grep -onE '[A-Za-z]{4,}(ise|ised|ises|ising|isation|isations)\b|[a-z]{3,}our[a-z]*' $D \
+  | grep -viE ':(enterprise|comprise[sd]?|comprising|otherwise|bitwise|likewise|advertise[sd]?|compromise[sd]?|promise[sd]?|precise|concise|exercise[sd]?|revise[sd]?|devise[sd]?|advise[sd]?|surprise[sd]?)$'
 grep -nE '\b(MDS|DS|DSes|FFv1|FFv2)\b' $D          # expect only identifiers, tables, artwork
 grep -niE 'inband|CHUNK_\*|repair client'          $D
 grep -nE '\*\*[^*]+\*\*|(^|[^*])\*[^* ][^*]*\*'    $D   # emphasis

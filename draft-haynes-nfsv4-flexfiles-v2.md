@@ -286,7 +286,7 @@ strength -- storing and serving bytes.  Flexible file v1
 layout ({{RFC8435}}) already chose client-side compute by
 placing replication at the writer; this draft extends that
 choice to client-side erasure coding.  Benchmark
-measurements summarised in {{sec-implementation-status}}
+measurements summarized in {{sec-implementation-status}}
 confirm that the resulting overhead is competitive with
 server-side encoding on realistic workloads and that the
 encoding compute scales with the writer population rather
@@ -310,7 +310,7 @@ A natural-looking answer is to add a distributed-consensus
 protocol between the data servers and have them agree on
 which write committed.  That answer is rejected here.
 Distributed consensus is operationally expensive,
-introduces a synchronisation cost on every write, and
+introduces a synchronization cost on every write, and
 makes the data servers themselves stateful peers in a way
 that closes off the simpler implementations the protocol
 is designed to accommodate.  Instead, this draft uses two
@@ -401,7 +401,7 @@ registered checksum algorithm per file.  The
 authorization-outcome parity rule
 ({{sec-state-locking}}) lets data servers that do not
 expose a POSIX file namespace satisfy the tight coupling
-requirements without materialising POSIX uid/gid bits.
+requirements without materializing POSIX uid/gid bits.
 
 A protocol-level consequence of placing erasure coding at
 the client is that the layout is able to describe a
@@ -7024,7 +7024,7 @@ Required for all protection modes:
    18.35, 18.36, 18.37, 18.34, 18.50).
 -  RECLAIM_COMPLETE ({{Section 18.51 of RFC8881}}).
 -  SECINFO, SECINFO_NO_NAME ({{RFC8881}} Sections 18.29, 18.45):
-   discovery of acceptable security flavours on the data
+   discovery of acceptable security flavors on the data
    server.
 
 These operations are baseline NFSv4.2 session plumbing and are
@@ -13715,7 +13715,7 @@ ccra_reason:
       via LAYOUTERROR.  The metadata server is driving
       repair synchronously because the affected chunk is
       on the critical path of some I/O.  The recipient
-      SHOULD prioritise the callback over background
+      SHOULD prioritize the callback over background
       work.
 
    CB_REPAIR_REASON_SCRUB:
@@ -14831,7 +14831,7 @@ encoding type (see {{tbl-coding-ranges}}).
 
  | Range | Purpose | Allocation Policy |
  | ---
- | 0x0000                | Reserved (uninitialised) | -- |
+ | 0x0000                | Reserved (uninitialized) | -- |
  | 0x0001-0x00FF         | Standards Track | IETF Review |
  | 0x0100-0x0FFF         | Experimental | Expert Review |
  | 0x1000-0x7FFF         | Vendor (open) | First Come First Served |
@@ -14845,7 +14845,7 @@ The upper 16 bits of the 32-bit value space (0x00010000 through
 that observes an `ffv2_encoding_type4` value in the reserved
 region MUST treat it as an unsupported encoding type
 (NFS4ERR_ENCODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
-uninitialised-field sentinel and MUST NOT be allocated to an
+uninitialized-field sentinel and MUST NOT be allocated to an
 encoding.
 
 Standards Track (0x0000-0x00FF):
@@ -15192,7 +15192,7 @@ Coverage:
 
 Level of maturity:
 :  Research-quality prototype.  The implementation demonstrates
-   the protocol and has produced the benchmark data summarised
+   the protocol and has produced the benchmark data summarized
    below.  It is not production-ready.
 
 Contact:
@@ -15305,7 +15305,7 @@ on all encoders).
 
 Across these encoders and the four host classes, algorithm-cost
 spread on the same host reaches approximately two orders of
-magnitude at k=4, m=2 (the fastest SIMD-vectorised encoders
+magnitude at k=4, m=2 (the fastest SIMD-vectorized encoders
 approach the memory-bandwidth ceiling in the tens of GB/s; the
 slowest scalar encoders are compute-bound in the low hundreds
 of MB/s).
@@ -15772,7 +15772,7 @@ mapping table.  This was rejected because:
 
 The current design uses fixed per-file chunk placement decided
 at LAYOUTGET time plus chunk_guard4 CAS for writes, which
-localises consistency decisions to the chunks being written
+localizes consistency decisions to the chunks being written
 rather than to a global mapping table.
 
 # Working Group Concern: Encoding on Every Client {#sec-wg-concern-encoding-on-client}
@@ -15933,7 +15933,7 @@ Two coupled requirements:
     CB_LAYOUTRECALL round-trip.  A recall is global with respect
     to the layout: every client holding it must drain in-flight I/O
     and DELEGRETURN before the metadata server can mutate.  In an erasure-coded
-    workload with many concurrent clients, this turns a localised
+    workload with many concurrent clients, this turns a localized
     data server hiccup into a global stall.
 
 2.  The data servers must be smart enough to enforce per-client
