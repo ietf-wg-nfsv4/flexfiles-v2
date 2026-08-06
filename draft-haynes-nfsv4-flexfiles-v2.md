@@ -7696,8 +7696,6 @@ The layouthint4 type is defined in the {{RFC8881}} as in
 ~~~
 {: #fig-layouthint4-v1 title="layouthint4 v1"}
 
-                              {{fig-layouthint4-v1}}
-
 The layouthint4 structure is used by the client to pass a hint about
 the type of layout it would like created for a particular file.  If
 the loh_type layout type is LAYOUT4_FLEX_FILES, then the loh_body
