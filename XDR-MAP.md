@@ -87,10 +87,14 @@ them; follow the sibling attribute's shape.
 | `FFV2_FLAGS_*` (layout) | `NO_IO_THRU_MDS`, `NO_LAYOUTCOMMIT`, `NO_READ_IO`, `ONLY_ONE_WRITER`, … | base |
 | `FFV2_DS_FLAGS_*` | `ACTIVE`, `PARITY`, `PROXY`, `REPAIR`, … | base |
 | `EXCHGID4_FLAG_USE_ERASURE_DS` | `0x00100000` | base |
-| `EXCHGID4_FLAG_USE_PROXY_SERVER` | adjacent to the above | proxy |
+| `EXCHGID4_FLAG_USE_PROXY_SERVER` | `0x00200000` | proxy |
 
 `FFV2_DS_FLAGS_PROXY` is declared in base but is only meaningful to
 proxy — a deliberate split, since the layout XDR belongs to base.
+
+Both `EXCHGID4_FLAG_*` bits are IANA-assigned, not assigned by
+publication: each draft requests its bit in its own IANA
+Considerations, and IANA may place them elsewhere.
 
 ## Registries
 
