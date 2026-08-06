@@ -67,11 +67,8 @@ The 10108-10109 gap is deliberate: delta chose 10110 to sit clear of
 base's cluster, leaving room for further CHUNK error codes. A new base
 error SHOULD take 10108 or 10109 before extending past 10111.
 
-> **Open item.** The two delta error codes are declared in prose only —
-> a bullet list in that draft's IANA Considerations — with no XDR
-> declaration, unlike every base error code. The generator therefore
-> cannot see them in the XDR and reports them from the prose. Either
-> add them to an XDR block or accept that this row is hand-maintained.
+Every code above is declared in an XDR block, so the generator reads
+the whole table natively rather than scraping prose.
 
 ## Attributes
 
