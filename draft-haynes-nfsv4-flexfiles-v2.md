@@ -864,6 +864,24 @@ struct-initials plus underscore: `ffv2l_` for
 `ffv2_layout4`, `ffv2m_` for `ffv2_mirror4`, `ffv2ds_` for
 `ffv2_data_server4`, and so on.
 
+Every field prefix carries the full `ffv2` stem; a bare `f`
+plus struct initials is not used, so that a reader scanning
+an XDR block can tell at a glance which specification a field
+belongs to.
+
+Where two struct names would reduce to the same initials, the
+prefix takes one letter from each word of the struct name so
+that the prefixes stay distinct: `ffv2l_` for `ffv2_layout4`
+but `ffv2lu_` for `ffv2_layoutupdate4`, `ffv2lh_` for
+`ffv2_layouthint4`, and `ffv2lr_` for `ffv2_layoutreturn4`.
+This matters most for `ffv2_layout4` and `ffv2_layoutupdate4`,
+which both carry a field named for flags: `ffv2l_flags` is the
+`ffv2_flags4` bitmask on the layout, while `ffv2lu_flags` is
+the `ffv2_layoutstats_flags4` bitmask on a layout-statistics
+report.  The two are different types with different registries,
+and an implementation that conflates them will encode the wrong
+bitmask.
+
 Document title and file abbreviation: the front-matter title is
 "Parallel NFS (pNFS) Flexible File Layout Version 2" and the
 `abbrev` used in the running header is "Flex File Layout v2".
@@ -2597,20 +2615,20 @@ file and how to access it via the different NFS protocols.
 
 ~~~ xdr
    /// struct ffv2_data_protection4 {
-   ///     uint32_t fdp_data;    /* data shards (k) */
-   ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
+   ///     uint32_t ffv2dp_data;    /* data shards (k) */
+   ///     uint32_t ffv2dp_parity;  /* parity/redundancy shards (m) */
    /// };
 ~~~
 {: #fig-ffv2_data_protection4 title="The ffv2_data_protection4" }
 
 The ffv2_data_protection4 (in {{fig-ffv2_data_protection4}}) describes
 the data protection geometry as a pair of counts: the number of data
-shards (fdp_data, also known as k) and the number of parity or
-redundancy shards (fdp_parity, also known as m).  This structure is
+shards (ffv2dp_data, also known as k) and the number of parity or
+redundancy shards (ffv2dp_parity, also known as m).  This structure is
 used in both layout hints and layout responses, and applies
 uniformly to all encoding types:
 
-| Protection Mode | fdp_data | fdp_parity | Total Data Servers | Description |
+| Protection Mode | ffv2dp_data | ffv2dp_parity | Total Data Servers | Description |
 |---
 | Mirroring (3-way) | 1 | 2 | 3 | 3 copies, no encoding |
 | Striping (6-way) | 6 | 0 | 6 | Parallel I/O, no redundancy |
@@ -2618,27 +2636,27 @@ uniformly to all encoding types:
 | Mojette-sys 8+2 | 8 | 2 | 10 | Tolerates 2 data-server failures |
 {: #fig-protection-examples title="Example data protection configurations" }
 
-By expressing all protection modes as (fdp_data, fdp_parity) pairs,
+By expressing all protection modes as (ffv2dp_data, ffv2dp_parity) pairs,
 a single structure serves mirroring, striping, and all erasure
 encoding types.  The encoding type ({{fig-ffv2_encoding_type4}}) determines
 how the shards are encoded; the protection structure determines
 how many shards there are.
 
-The total number of data servers required is fdp_data + fdp_parity.
-The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
+The total number of data servers required is ffv2dp_data + ffv2dp_parity.
+The storage overhead is ffv2dp_parity / ffv2dp_data (e.g., 50% for 4+2,
 25% for 8+2).
 
 ## ffv2_coding_type_data4
 
 ~~~ xdr
    /// union ffv2_coding_type_data4 switch
-   ///         (ffv2_encoding_type4 fctd_coding) {
+   ///         (ffv2_encoding_type4 ffv2ctd_coding) {
    ///     case FFV2_ENCODING_PASSTHROUGH:
-   ///         ffv2_data_protection4   fctd_protection;
+   ///         ffv2_data_protection4   ffv2ctd_protection;
    ///     case FFV2_ENCODING_REPLICATED:
-   ///         ffv2_data_protection4   fctd_protection;
+   ///         ffv2_data_protection4   ffv2ctd_protection;
    ///     default:
-   ///         ffv2_data_protection4   fctd_protection;
+   ///         ffv2_data_protection4   ffv2ctd_protection;
    /// };
 ~~~
 {: #fig-ffv2_coding_type_data4 title="The ffv2_coding_type_data4" }
@@ -2659,15 +2677,15 @@ XDR at that time.
 The (data, parity) tuple is interpreted per encoding type:
 
 -  FFV2_ENCODING_PASSTHROUGH preserves the flexible file v1 layout-style notation
-   for backward compatibility: fdp_data is 1 and fdp_parity is
-   the number of additional copies (e.g., fdp_parity=2 for
+   for backward compatibility: ffv2dp_data is 1 and ffv2dp_parity is
+   the number of additional copies (e.g., ffv2dp_parity=2 for
    3-way mirroring).  The "1" data carrier is the file as
-   stored; the fdp_parity additional copies are the flexible file v1 layout
+   stored; the ffv2dp_parity additional copies are the flexible file v1 layout
    mirror replicas.
 
--  FFV2_ENCODING_REPLICATED uses the N + 0 notation: fdp_data is
-   the number of replicas (e.g., fdp_data=3 for 3-way
-   mirroring) and fdp_parity MUST be 0.  Every replica is a
+-  FFV2_ENCODING_REPLICATED uses the N + 0 notation: ffv2dp_data is
+   the number of replicas (e.g., ffv2dp_data=3 for 3-way
+   mirroring) and ffv2dp_parity MUST be 0.  Every replica is a
    full, independent data carrier; mirroring carries no
    parity reconstruction.
 
@@ -2675,7 +2693,7 @@ The (data, parity) tuple is interpreted per encoding type:
    FFV2_ENCODING_MOJETTE_SYSTEMATIC,
    FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, and any future types
    subsequently registered in the IANA registry established by
-   this document) use fdp_data >= 2 and fdp_parity >= 1.
+   this document) use ffv2dp_data >= 2 and ffv2dp_parity >= 1.
 
 ## ffv2_stripes4
 
@@ -2957,7 +2975,7 @@ with a different list to discover the overlapping set.
 ffv2lh_preferred_protection
 
 :  The client's preferred data protection geometry as a
-(fdp_data, fdp_parity) pair.  The server SHOULD honor this hint but
+(ffv2dp_data, ffv2dp_parity) pair.  The server SHOULD honor this hint but
 MAY override it based on server-side policy.  A server that manages
 data protection via administrative policy (e.g., per-directory or
 per-export objectives) will typically ignore this hint and return the
@@ -3004,18 +3022,18 @@ ffv2lh_supported_types = { FFV2_ENCODING_PASSTHROUGH,
                          FFV2_ENCODING_REPLICATED,
                          FFV2_ENCODING_MOJETTE_SYSTEMATIC,
                          FFV2_ENCODING_RS_VANDERMONDE }
-ffv2lh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
+ffv2lh_preferred_protection = { ffv2dp_data = 8, ffv2dp_parity = 2 }
 ffv2lh_stripe_unit          = 1048576
 ffv2lh_expected_file_size   = 17179869184
 ~~~
 
 A server with a policy of RS 4+2 for this directory would ignore
 both encoding hints and return a layout with
-FFV2_ENCODING_RS_VANDERMONDE and (fdp_data=4, fdp_parity=2).  A
+FFV2_ENCODING_RS_VANDERMONDE and (ffv2dp_data=4, ffv2dp_parity=2).  A
 server without erasure coding might return FFV2_ENCODING_REPLICATED
-with (fdp_data=3, fdp_parity=0) for 3-way mirroring with
+with (ffv2dp_data=3, ffv2dp_parity=0) for 3-way mirroring with
 per-chunk integrity, or FFV2_ENCODING_PASSTHROUGH with
-(fdp_data=1, fdp_parity=2) for 3-way flexible file v1 layout-compatible
+(ffv2dp_data=1, ffv2dp_parity=2) for 3-way flexible file v1 layout-compatible
 mirroring without per-chunk integrity.
 
 A server may also use ffv2lh_expected_file_size as a striping
@@ -3171,7 +3189,7 @@ ffv2m_striping and is detailed in {{sec-striping}}.
 Stripe unit size and stripe count MAY differ between mirrors in
 the same layout segment.  In particular, mirrors of different
 encoding types (see {{sec-heterogeneous-mirrors}}) have stripe
-counts determined by their respective (fdp_data, fdp_parity)
+counts determined by their respective (ffv2dp_data, ffv2dp_parity)
 protection structures, and there is no requirement that those
 structures match across mirrors.  Each mirror is self-consistent
 internally; cross-mirror coherence is at the byte level (every
@@ -7482,8 +7500,8 @@ Both operation counts and bytes transferred are kept in the
 ff_io_latency4 (see {{fig-ff_io_latency4}}).  As seen in ff_layoutupdate4
 (see {{sec-ff_layoutupdate4}}), READ and WRITE operations are
 aggregated separately.  READ operations are used for the ff_io_latency4
-ffv2l_read.  Both WRITE and COMMIT operations are used for the
-ff_io_latency4 ffv2l_write.  "Requested" counters track what the
+ffv2lu_read.  Both WRITE and COMMIT operations are used for the
+ff_io_latency4 ffv2lu_write.  "Requested" counters track what the
 client is attempting to do, and "completed" counters track what was
 done.  There is no requirement that the client only report completed
 results that have matching requested results from the reported
@@ -7517,23 +7535,23 @@ data.
    /// typedef uint32_t   ffv2_layoutstats_flags4;
    ///
    /// struct ffv2_layoutupdate4 {
-   ///         netaddr4                ffv2l_addr;
-   ///         nfs_fh4                 ffv2l_fhandle;
-   ///         ffv2_io_latency4        ffv2l_read;
-   ///         ffv2_io_latency4        ffv2l_write;
-   ///         nfstime4                ffv2l_duration;
-   ///         ffv2_layoutstats_flags4 ffv2l_flags;
+   ///         netaddr4                ffv2lu_addr;
+   ///         nfs_fh4                 ffv2lu_fhandle;
+   ///         ffv2_io_latency4        ffv2lu_read;
+   ///         ffv2_io_latency4        ffv2lu_write;
+   ///         nfstime4                ffv2lu_duration;
+   ///         ffv2_layoutstats_flags4 ffv2lu_flags;
    /// };
    ///
 ~~~
 {: #fig-ff_layoutupdate4 title="ff_layoutupdate4"}
 
-ffv2l_addr differentiates which network address the client is connected
-to on the storage device.  In the case of multipathing, ffv2l_fhandle
-indicates which read-only copy was selected. ffv2l_read and ffv2l_write
+ffv2lu_addr differentiates which network address the client is connected
+to on the storage device.  In the case of multipathing, ffv2lu_fhandle
+indicates which read-only copy was selected. ffv2lu_read and ffv2lu_write
 convey the latencies for both READ and WRITE operations, respectively.
-ffv2l_duration is used to indicate the time period over which the
-statistics were collected.  ffv2l_flags is a 32-bit bitmask
+ffv2lu_duration is used to indicate the time period over which the
+statistics were collected.  ffv2lu_flags is a 32-bit bitmask
 reporting per-report properties; when FFV2_LAYOUTSTATS_FLAGS_LOCAL
 is set, the I/O was serviced by the client's cache.  This flag
 allows the client to inform the metadata server about "hot" access
@@ -7593,9 +7611,9 @@ ffv2is_write.ii_bytes represent the number of contiguous READ and
 WRITE I/Os and the respective aggregate number of bytes transferred
 within the reported byte range.
 
-The combination of ffv2is_deviceid and ffv2l_addr uniquely identifies
+The combination of ffv2is_deviceid and ffv2lu_addr uniquely identifies
 both the storage path and the network route to it.  Finally,
-ffv2l_fhandle allows the metadata server to differentiate between
+ffv2lu_fhandle allows the metadata server to differentiate between
 multiple read-only copies of the file on the same storage device.
 
 ##  ffv2_layoutreturn4 {#sec-ffv2_layoutreturn4}
