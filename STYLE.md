@@ -131,8 +131,16 @@ in the tree are all inflected forms.
 > where the sentence genuinely means every value in a registry, e.g. "any
 > `FFV2_ENCODING_*` value other than `FFV2_ENCODING_PASSTHROUGH`".
 
-`surface` as a **verb** ("surfaces the error to the caller") is ordinary
-English and is kept, as is the idiom "attack surface".
+`surface` as a **transitive verb** ("surfaces the error to the caller",
+"MAY surface the distinction in operator telemetry") is ordinary English
+and is kept, as is the idiom "attack surface" and the adjective meaning
+superficial ("the surface complaint … the structural objection").
+
+The **noun** is not. "The fore-channel surface", "the security surface",
+"the proxy server surface" — each names a countable thing that a plainer
+word names better, and the plainer sentence is usually shorter. So is
+the intransitive ("does not surface on the wire" → "does not appear on
+the wire"). Sweep for it; see §11. (`f4ddd3a1`, `98c0aa57`)
 
 ### 3.2 Naming register
 
@@ -436,6 +444,7 @@ grep -nE '\\\[|\\\]'                               $D   # escaped brackets
 grep -nE '[a-z_] == '                              $D   # C-style equality
 grep -nE '[a-z]-$'                                 $D   # line ends mid-compound (ignore hits inside ~~~ artwork)
 grep -nE '^\s*[-*] \*\*'                           $D   # bullet-with-bold
+grep -niE 'surfac' $D | grep -viE 'attack surface'      # see below
 ```
 
 ### Unexpanded abbreviations
@@ -479,6 +488,39 @@ first **inline** use — a heading does not count — and cite the defining
 section or RFC where one exists. An abbreviation used only inside ASCII
 figures is fine if it is defined in Definitions; `PS` is the worked
 example of that split.
+
+### Overused `surface`
+
+Machine-drafted prose reaches for this word far past what English wants.
+A density comparison found it once — 9 uses in ~3,300 lines of the
+proxy-server draft against 13 in ~15,900 of the base, and all five bad
+ones were in the denser draft — but do not lean on that signal. After
+the fix the base is the denser of the two, on legitimate verbs alone. A
+high count is not a finding; triage every hit.
+
+Ask what the word is doing in each:
+
+| Use | Verdict | Example |
+|---|---|---|
+| Transitive verb, object present | keep | "MUST surface `NFS4ERR_PAYLOAD_LOST`" |
+| "surface as `NFS4ERR_…`" (manifest) | keep | "both surface as `NFS4ERR_BAD_STATEID`" |
+| "attack surface" | keep | idiom |
+| Adjective, = superficial | keep | "the surface complaint" |
+| **Noun** | **replace** | "the security surface added by this document" |
+| **Intransitive** | **replace** | "behavior that does not surface on the wire" |
+
+The noun rewrites that worked: *the fore-channel surface* → the
+fore-channel protocol; *the mechanism's sole client-facing surface* →
+the only part of the mechanism a client ever sees; *the security
+surface added by this document* → the security-relevant behavior this
+document adds; *the proxy server surface implemented in reffs* → what
+reffs implements. Intransitive → "appear on the wire", except where it
+governs a noun that is not a place ("does not surface as new wire
+protocol" does not parse; write "requires no new wire protocol").
+
+Watch for a noun sitting right after an identifier, where it first
+reads as a verb — "byte-identical output on the `…_SYSTEMATIC` and
+`…_NON_SYSTEMATIC` surfaces" meant *for* those two encoding types.
 
 ### Rendered width and leaked xrefs
 
