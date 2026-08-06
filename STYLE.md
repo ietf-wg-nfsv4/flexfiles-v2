@@ -204,6 +204,37 @@ this document's per-mirror encoding selection. Do **not** rewrite "erasure
 coding" (established literature term), quoted paper titles, or
 `fattr4_coding_block_size`. (`9258b9e7`, `c8f9a638`)
 
+**Operation names are nouns. Do not conjugate them.** A plural is a
+noun and is fine — "OPENs are dealt with by the metadata server",
+"subsequent client LAYOUTGETs receive L1", "CHUNK_WRITEs" — because it
+fills a noun slot. A finite verb is not: write *issues a fresh
+LAYOUTGET*, not "re-LAYOUTGETs"; *issues LAYOUTRETURN*, not
+"LAYOUTRETURNs as usual"; *has not yet issued `OPEN(CLAIM_PROXY)`*, not
+"has not yet OPEN'd". Naming the operation you mean is usually more
+precise than the contraction was. (`c4e53ddb`)
+
+The cost is not only register. "Reporting client LAYOUTERRORs the
+metadata server" shipped in a figure legend for want of a *to* — a
+missing preposition is invisible while the reader is still deciding
+whether the all-caps token is the verb. (`4f770bbd`)
+
+An operation name inflected as a verb inside ASCII artwork is fine, as
+is `XOR'd`: XOR is an ordinary English verb, not only a wire name.
+
+```sh
+grep -nE "re-[A-Z_]{3,}|[A-Z][A-Z_]{3,}'(d|ed)\b" $D   # conjugated ops
+```
+
+Two mechanical forms only: the `re-` prefix and the `'d` contraction.
+Do not add `'s` to that alternation — possessives swamp it (19 of 21
+hits were `CHUNK_ROLLBACK's`, `XOR_PARITY's`, and friends), and a check
+that reports mostly noise stops being read.
+
+The third form has no regex: a bare conjugated plural. "The client
+LAYOUTRETURNs as usual" and "subsequent client LAYOUTGETs receive L1"
+are the same characters, and only the sentence says which is the verb.
+Catch that one by reading.
+
 ---
 
 ## 5. Lists and structure
