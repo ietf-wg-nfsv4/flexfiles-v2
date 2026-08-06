@@ -2355,7 +2355,7 @@ discussion venue, latest rendering, and source location.<a href="#section-note.2
       <h2 id="name-introduction">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">In Parallel NFS (pNFS) (see Section 12 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), the metadata
+<p id="section-1-1">In Parallel NFS (pNFS) (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-12" class="relref">Section 12</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), the metadata
 server returns layout type structures that describe where file data is
 located.  There are different layout types for different storage systems
 and methods of arranging data on storage devices.  <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span> defined
@@ -2609,7 +2609,7 @@ up an encoded stripe, not POSIX write ordering across
 arbitrary application writes.  The protocol does not
 attempt to make overlapping application writes from
 different clients atomic; that is the province of file
-locking (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 12) and of application-level
+locking (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-12" class="relref">Section 12</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) and of application-level
 coordination.  What the protocol does guarantee is that
 the shards comprising a given stripe agree on which
 write produced them -- expressed on the wire as agreement
@@ -2844,7 +2844,7 @@ from processing I/O from a specific client to a specific file.<a href="#section-
 <dt id="section-5-4.25">file layout type:</dt>
         <dd style="margin-left: 1.5em" id="section-5-4.26">
           <p id="section-5-4.26.1">a layout type in which the storage devices are accessed via the NFS
-protocol (see Section 5.12.4 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-5-4.26.1" class="pilcrow">¶</a></p>
+protocol (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-5.12.4" class="relref">Section 5.12.4</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-5-4.26.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-5-4.27">gid:</dt>
@@ -2869,15 +2869,15 @@ and the identity of the storage devices to be used.<a href="#section-5-4.30.1" c
         <dd style="margin-left: 1.5em" id="section-5-4.34">
           <p id="section-5-4.34.1">a sub-division of a layout.  That sub-division might be by the layout
 iomode (see Sections 3.3.20 and 12.2.9 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), a striping pattern
-(see Section 13.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), or requested byte range.<a href="#section-5-4.34.1" class="pilcrow">¶</a></p>
+(see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.3" class="relref">Section 13.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), or requested byte range.<a href="#section-5-4.34.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-5-4.35">layout stateid:</dt>
         <dd style="margin-left: 1.5em" id="section-5-4.36">
           <p id="section-5-4.36.1">a 128-bit quantity returned by a server that uniquely defines the
 layout state provided by the server for a specific layout that describes
-a layout type and file (see Section 12.5.2 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  Further,
-Section 12.5.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> describes differences in handling between
+a layout type and file (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-12.5.2" class="relref">Section 12.5.2</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  Further,
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-12.5.3" class="relref">Section 12.5.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> describes differences in handling between
 layout stateids and other stateid types.<a href="#section-5-4.36.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
@@ -2983,7 +2983,7 @@ state related to open files, byte range locks, delegations, or layouts.<a href="
 <dt id="section-5-4.63">storage device:</dt>
         <dd style="margin-left: 1.5em" id="section-5-4.64">
           <p id="section-5-4.64.1">the target to which clients may direct I/O requests when they hold
-an appropriate layout.  See Section 2.1 of <span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span> for further
+an appropriate layout.  See <span><a href="https://rfc-editor.org/rfc/rfc8434#section-2.1" class="relref">Section 2.1</a> of [<a href="#RFC8434" class="cite xref">RFC8434</a>]</span> for further
 discussion of the difference between a data server and a storage device.<a href="#section-5-4.64.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
@@ -3155,20 +3155,18 @@ will be a version of NFS, with no ability to provide a global stateid
 model or to prevent clients from using layouts inappropriately.  To enable
 client use in that environment, this document specifies how security,
 state, and locking are managed.<a href="#section-6-3" class="pilcrow">¶</a></p>
-<p id="section-6-4">The loosely and tightly coupled locking models defined in Section 2.3
-of <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span> apply equally to this layout type, including the use of
-anonymous stateids with loosely coupled storage devices, the handling
-of lock and delegation stateids, and the mandatory byte range lock
-requirements for the tightly coupled model.<a href="#section-6-4" class="pilcrow">¶</a></p>
+<p id="section-6-4">The loosely and tightly coupled locking models defined in <span><a href="https://rfc-editor.org/rfc/rfc8435#section-2.3" class="relref">Section 2.3</a> of [<a href="#RFC8435" class="cite xref">RFC8435</a>]</span> apply equally to this layout type, including the use
+of anonymous stateids with loosely coupled storage devices, the
+handling of lock and delegation stateids, and the mandatory byte range
+lock requirements for the tightly coupled model.<a href="#section-6-4" class="pilcrow">¶</a></p>
 <div id="layoutcommit">
 <section id="section-6.1">
         <h3 id="name-layoutcommit">
 <a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-layoutcommit" class="section-name selfRef">LAYOUTCOMMIT</a>
         </h3>
 <p id="section-6.1-1">Regardless of the coupling model, the metadata server has the
-responsibility, upon receiving a LAYOUTCOMMIT (see Section 18.42 of
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) to ensure that the semantics of pNFS are respected (see
-Section 3.1 of <span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span>).  These do include a requirement that data
+responsibility, upon receiving a LAYOUTCOMMIT (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.42" class="relref">Section 18.42</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) to ensure that the semantics of pNFS are respected (see
+<span><a href="https://rfc-editor.org/rfc/rfc8434#section-3.1" class="relref">Section 3.1</a> of [<a href="#RFC8434" class="cite xref">RFC8434</a>]</span>).  These do include a requirement that data
 written to a data storage device be stable before the occurrence of
 the LAYOUTCOMMIT.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
 <p id="section-6.1-2">It is the responsibility of the client to make sure the data file is
@@ -3614,7 +3612,7 @@ order to enforce POSIX-conformant OPEN, byte range locking,
 and delegation semantics against per-client identity rather
 than against the loose coupling synthetic uid/gid.  These are
 inherited from the general tight coupling locking model in
-Section 2.3 of <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  Trusted-stateid tight coupling as
+<span><a href="https://rfc-editor.org/rfc/rfc8435#section-2.3" class="relref">Section 2.3</a> of [<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  Trusted-stateid tight coupling as
 defined by this document satisfies these associations only
 for the layout stateid; a deployment that requires mandatory
 byte range locking, delegation recall, or the finer-grained
@@ -4089,7 +4087,7 @@ recovery path as the trust gap described above.<a href="#section-6.4.6-4" class=
 <p id="section-6.4.7-1">A storage device <span class="bcp14">MAY</span> persist its trust table across restarts.  An
 implementation that does so <span class="bcp14">MUST</span> also persist its server-instance
 identity, returning the same eir_server_owner.so_minor_id on
-EXCHANGE_ID after the restart (per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> S18.35), so that
+EXCHANGE_ID after the restart (per <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.35" class="relref">Section 18.35</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), so that
 clients and the metadata server observe the device as
 continuously available and the persisted trust entries remain
 valid against the layout stateids that were issued before the
@@ -4118,7 +4116,7 @@ drain in-flight CHUNK operations before shutting down.<a href="#section-6.4.7-4"
 across restarts.  An implementation that does so <span class="bcp14">MUST</span> also
 persist its server-instance identity, returning the same
 eir_server_owner.so_minor_id on EXCHANGE_ID after the restart
-(per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> S18.35), so that storage devices observe the
+(per <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.35" class="relref">Section 18.35</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), so that storage devices observe the
 metadata server as continuously available and accept incoming
 TRUST_STATEID and REVOKE_STATEID operations against the existing
 trust entries without revalidation.  No grace period is required.<a href="#section-6.4.8-1" class="pilcrow">¶</a></p>
@@ -4227,7 +4225,7 @@ via the probe.<a href="#section-6.4.9-2" class="pilcrow">¶</a></p>
       </h2>
 <p id="section-7-1">Data operations to a storage device require the client to know the
 network address of the storage device.  The NFSv4.1+ GETDEVICEINFO
-operation (Section 18.40 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) is used by the client to
+operation (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.40" class="relref">Section 18.40</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) is used by the client to
 retrieve that information.<a href="#section-7-1" class="pilcrow">¶</a></p>
 <div id="sec-ff_device_addr4">
 <section id="section-7.1">
@@ -4422,7 +4420,7 @@ before sending a
 LAYOUTCOMMIT to the metadata server.  That is, the writes <span class="bcp14">MUST</span> be
 committed by the client to stable storage via issuing WRITEs with
 stable_how = FILE_SYNC or by issuing a COMMIT after WRITEs with
-stable_how != FILE_SYNC (see Section 3.3.7 of <span>[<a href="#RFC1813" class="cite xref">RFC1813</a>]</span>).<a href="#section-7.1-15" class="pilcrow">¶</a></p>
+stable_how != FILE_SYNC (see <span><a href="https://rfc-editor.org/rfc/rfc1813#section-3.3.7" class="relref">Section 3.3.7</a> of [<a href="#RFC1813" class="cite xref">RFC1813</a>]</span>).<a href="#section-7.1-15" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="storage-device-multipathing">
@@ -4834,7 +4832,7 @@ for its unset state.<a href="#section-8.2.1-3" class="pilcrow">¶</a></p>
             <dd style="margin-left: 1.5em" id="section-8.2.1-4.2">
               <p id="section-8.2.1-4.2.1">When set, the client <span class="bcp14">MAY</span> omit the LAYOUTCOMMIT to the
 metadata server.  When unset, the client <span class="bcp14">MUST</span> send LAYOUTCOMMIT
-per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.42.<a href="#section-8.2.1-4.2.1" class="pilcrow">¶</a></p>
+per <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.42." class="relref">Section 18.42.</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span><a href="#section-8.2.1-4.2.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
 <dt id="section-8.2.1-4.3">FFV2_FLAGS_NO_IO_THRU_MDS:</dt>
@@ -4911,12 +4909,10 @@ prevent collisions across concurrent writers.<a href="#section-8.2.1-4.10.1" cla
           </figcaption></figure>
 </div>
 <p id="section-8.3-2">The ffv2_file_info4 is a new structure that resolves the
-stateid-vs-fh_vers pairing issue discussed in Section 5.1 of
-<span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  In <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>'s flexible file v1 layout, a
-singleton ffv2ds_stateid was paired with an ffv2ds_fh_vers
-array, forcing every fh_vers on a data server to share one
-stateid.  In <a href="#fig-ffv2_file_info4" class="auto internal xref">Figure 11</a> each fh_vers has its own
-stateid alongside it.<a href="#section-8.3-2" class="pilcrow">¶</a></p>
+stateid-vs-fh_vers pairing issue discussed in <span><a href="https://rfc-editor.org/rfc/rfc8435#section-5.1" class="relref">Section 5.1</a> of [<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>.  In <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>'s flexible file v1 layout, a singleton
+ffv2ds_stateid was paired with an ffv2ds_fh_vers array, forcing every
+fh_vers on a data server to share one stateid.  In
+<a href="#fig-ffv2_file_info4" class="auto internal xref">Figure 11</a> each fh_vers has its own stateid alongside it.<a href="#section-8.3-2" class="pilcrow">¶</a></p>
 <p id="section-8.3-3">The stateid value ffv2fi_stateid <span class="bcp14">MUST</span> carry depends on the
 coupling mode advertised for the corresponding
 (ffv2dv_version, ffv2dv_minorversion, ffv2dv_coupling) tuple
@@ -5346,8 +5342,8 @@ multiple stripe groups, and pushes the striping-mode metadata
 (see <a href="#sec-ffv2-mirror4" class="auto internal xref">Section 8.9</a>) rather than onto the layout as
 <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span> does with the layout-level ffl_stripe_unit.  The
 ffv2_striping4 enum (FFV2_STRIPING_NONE / _SPARSE / _DENSE)
-inherits its meaning from Section 13.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and
-Section 5.1 of <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>; the flexible file v2 layout
+inherits its meaning from <span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.3" class="relref">Section 13.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and
+<span><a href="https://rfc-editor.org/rfc/rfc8435#section-5.1" class="relref">Section 5.1</a> of [<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>; the flexible file v2 layout
 evolution is that the striping mode is a per-mirror decision
 rather than a per-layout one.<a href="#section-8.8-3" class="pilcrow">¶</a></p>
 </section>
@@ -5613,7 +5609,7 @@ stripe.<a href="#section-8.10-7" class="pilcrow">¶</a></p>
           </figcaption></figure>
 </div>
 <p id="section-8.11-2">The ffv2_layouthint4 (in <a href="#fig-ffv2_layouthint4" class="auto internal xref">Figure 20</a>) describes the
-layout_hint (see Section 5.12.4 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) that the client can
+layout_hint (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-5.12.4" class="relref">Section 5.12.4</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) that the client can
 provide to the metadata server.<a href="#section-8.11-2" class="pilcrow">¶</a></p>
 <p id="section-8.11-3">The client provides four hints.  All four are advisory; the
 metadata server <span class="bcp14">MAY</span> honor any subset and <span class="bcp14">MAY</span> override any of
@@ -5846,7 +5842,7 @@ of that portion of the data file.  When mirroring is in effect, it
 protects against loss of data in layout segments.<a href="#section-8.11.1-5" class="pilcrow">¶</a></p>
 <p id="section-8.11.1-6">While not explicitly shown in <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 18</a>, each layout4
 element returned in the logr_layout array of LAYOUTGET4res (see
-Section 18.43.2 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) describes a layout segment.  Hence,
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.43.2" class="relref">Section 18.43.2</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) describes a layout segment.  Hence,
 each ffv2_layout4 also describes a layout segment.  It is possible
 that the file is concatenated from more than one layout segment.
 Each layout segment <span class="bcp14">MAY</span> represent different striping parameters.<a href="#section-8.11.1-6" class="pilcrow">¶</a></p>
@@ -5950,7 +5946,7 @@ is, if ffv2dv_coupling has any tight coupling flag set (see
 <a href="#sec-ff_device_addr4" class="auto internal xref">Section 7.1</a>), then the client <span class="bcp14">MUST</span> ignore both
 ffv2ds_user and ffv2ds_group.<a href="#section-8.11.1-20" class="pilcrow">¶</a></p>
 <p id="section-8.11.1-21">The allowed values for both ffv2ds_user and ffv2ds_group are specified
-as owner and owner_group, respectively, in Section 5.9 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.
+as owner and owner_group, respectively, in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-5.9" class="relref">Section 5.9</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.
 For NFSv3 compatibility, user and group strings that consist of
 decimal numeric values with no leading zeros can be given a special
 interpretation by clients and servers that choose to provide such
@@ -6037,7 +6033,7 @@ a set NO_IO_THRU_MDS flag as advisory or bypass it.<a href="#section-8.11.3-2" c
 <p id="section-8.12-1">The flexible file v2 layout does not use lou_body inside the
 loca_layoutupdate argument to LAYOUTCOMMIT.  If lou_type is
 LAYOUT4_FLEX_FILES_V2, the lou_body field <span class="bcp14">MUST</span> have a zero length (see
-Section 18.42.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-8.12-1" class="pilcrow">¶</a></p>
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.42.1" class="relref">Section 18.42.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-8.12-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="interactions-between-devices-and-layouts">
@@ -6047,7 +6043,7 @@ Section 18.42.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</spa
         </h3>
 <p id="section-8.13-1">The file layout type is defined such that the relationship between
 multipathing and filehandles can result in either 0, 1, or N
-filehandles (see Section 13.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  Some rationales for
+filehandles (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.3" class="relref">Section 13.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  Some rationales for
 this are clustered servers that share the same filehandle or allow
 for multiple read-only copies of the file on the same storage device.
 In the flexible file v2 layout, while there is an array of
@@ -6074,8 +6070,8 @@ reporting errors in GETDEVICEINFO (see Section 18.40 in <span>[<a href="#RFC8881
 the client is not able to specify which specific device it cannot
 communicate with over one of the provided ffv2dv_version and
 ffv2dv_minorversion combinations.  Using ffv2_ioerr4 (<a href="#sec-ffv2_ioerr4" class="auto internal xref">Section 14.1.1</a>)
-inside either the LAYOUTRETURN (see Section 18.44 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>)
-or the LAYOUTERROR (see Section 15.6 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> and <a href="#sec-LAYOUTERROR" class="auto internal xref">Section 15</a>
+inside either the LAYOUTRETURN (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.44" class="relref">Section 18.44</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>)
+or the LAYOUTERROR (see <span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.6" class="relref">Section 15.6</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> and <a href="#sec-LAYOUTERROR" class="auto internal xref">Section 15</a>
 of this document), the client can isolate the problematic storage
 device.<a href="#section-8.14-1" class="pilcrow">¶</a></p>
 <p id="section-8.14-2">The error code to return for LAYOUTRETURN and/or LAYOUTERROR is
@@ -6097,11 +6093,10 @@ back to doing the I/O through the metadata server.<a href="#section-8.14-2" clas
 <a href="#section-9" class="section-number selfRef">9. </a><a href="#name-striping" class="section-name selfRef">Striping</a>
       </h2>
 <p id="section-9-1">The flexible file v2 layout inherits the dense and sparse striping
-dispositions defined by the file layout type in Section 13.4 of
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.  The disposition for a given
-mirror is selected by the ffv2m_striping field (see
-<a href="#sec-ffv2-mirror4" class="auto internal xref">Section 8.9</a>) and applies to every data server in that
-mirror's ffv2s_data_servers list.  Three values are permitted:<a href="#section-9-1" class="pilcrow">¶</a></p>
+dispositions defined by the file layout type in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.4" class="relref">Section 13.4</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.  The disposition for a given mirror is selected by the
+ffv2m_striping field (see <a href="#sec-ffv2-mirror4" class="auto internal xref">Section 8.9</a>) and applies to every
+data server in that mirror's ffv2s_data_servers list.  Three values
+are permitted:<a href="#section-9-1" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-9-2">
         <dt id="section-9-2.1">FFV2_STRIPING_NONE:</dt>
         <dd style="margin-left: 1.5em" id="section-9-2.2">
@@ -6129,7 +6124,7 @@ contiguously on that data server, with no holes.  The
 logical offset is transformed into a compact physical offset
 on the target data server.  This matches pre-existing
 deployments that follow the dense layout convention of
-Section 13.4.4 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.<a href="#section-9-2.6.1" class="pilcrow">¶</a></p>
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.4.4" class="relref">Section 13.4.4</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.<a href="#section-9-2.6.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -7375,12 +7370,12 @@ and a chunk_guard4 on every CHUNK_WRITE.<a href="#section-11.2.6.3-2.4.1" class=
 </li>
             </ol>
 <p id="section-11.2.6.3-3">The transition uses standard NFSv4.1 layout recall semantics
-(Section 12.5.5 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  Drained single writer I/O does
+(<span><a href="https://rfc-editor.org/rfc/rfc8881#section-12.5.5" class="relref">Section 12.5.5</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  Drained single writer I/O does
 not need to be re-issued under multiple writer rules; it
 completed under the layout that authorized it.  If the
 single writer client fails to return the layout within the
 recall window, the metadata server escalates to layout
-revocation (Section 12.5.5.2.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>); any single writer
+revocation (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-12.5.5.2.1" class="relref">Section 12.5.5.2.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>); any single writer
 writes that did not complete before revocation are repaired via
 the multiple-writer repair path on subsequent access.<a href="#section-11.2.6.3-3" class="pilcrow">¶</a></p>
 </section>
@@ -7637,7 +7632,7 @@ protocol must accommodate.<a href="#section-11.3-3" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-11.3-5.1">
             <p id="section-11.3-5.1.1">A client that speaks only the file-layout READ path issues
-READ (Section 18.22 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) calls to index 0 (the
+READ (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.22" class="relref">Section 18.22</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) calls to index 0 (the
 PASSTHROUGH mirror).<a href="#section-11.3-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-11.3-5.2">
@@ -10922,12 +10917,12 @@ when issued by the metadata server:<a href="#section-13.1-1" class="pilcrow">¶<
 18.19, 18.21, 18.8): session and filehandle plumbing.<a href="#section-13.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.1-2.2">
-            <p id="section-13.1-2.2.1">LOOKUP (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.15): directory traversal
+            <p id="section-13.1-2.2.1">LOOKUP (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.15" class="relref">Section 18.15</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>): directory traversal
 the metadata server issues when locating data files it has
 allocated for its use.<a href="#section-13.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.1-2.3">
-            <p id="section-13.1-2.3.1">GETATTR (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.7): the metadata server issues
+            <p id="section-13.1-2.3.1">GETATTR (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.7" class="relref">Section 18.7</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>): the metadata server issues
 GETATTR against the data file after a write layout is returned,
 to pull the post-write size, mtime, and other attributes back
 and reconcile its cached view.  Any other attribute queries
@@ -10935,17 +10930,17 @@ the metadata server needs for the same purpose use the same
 operation.<a href="#section-13.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.1-2.4">
-            <p id="section-13.1-2.4.1">SETATTR (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.30): data file truncate for
+            <p id="section-13.1-2.4.1">SETATTR (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.30" class="relref">Section 18.30</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>): data file truncate for
 metadata-server-level SETATTR(size) fan-out, synthetic uid/gid rotation
 for fencing, and mode-bit initialization when the metadata
 server binds a data file to a new metadata-level file.<a href="#section-13.1-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.1-2.5">
-            <p id="section-13.1-2.5.1">CREATE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.4): the metadata server's own
+            <p id="section-13.1-2.5.1">CREATE (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.4" class="relref">Section 18.4</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>): the metadata server's own
 allocation of data files on the data server.<a href="#section-13.1-2.5.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.1-2.6">
-            <p id="section-13.1-2.6.1">REMOVE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.25): cleanup on metadata server file
+            <p id="section-13.1-2.6.1">REMOVE (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.25" class="relref">Section 18.25</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>): cleanup on metadata server file
 unlink.<a href="#section-13.1-2.6.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.1-2.7">
@@ -11060,7 +11055,7 @@ BIND_CONN_TO_SESSION, DESTROY_CLIENTID (<span>[<a href="#RFC8881" class="cite xr
 18.35, 18.36, 18.37, 18.34, 18.50).<a href="#section-13.2.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-13.2.2-2.3">
-              <p id="section-13.2.2-2.3.1">RECLAIM_COMPLETE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.51).<a href="#section-13.2.2-2.3.1" class="pilcrow">¶</a></p>
+              <p id="section-13.2.2-2.3.1">RECLAIM_COMPLETE (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.51" class="relref">Section 18.51</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-13.2.2-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-13.2.2-2.4">
               <p id="section-13.2.2-2.4.1">SECINFO, SECINFO_NO_NAME (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections 18.29, 18.45):
@@ -11079,11 +11074,11 @@ supported on data files as on any NFSv4.2 file.<a href="#section-13.2.2-3" class
           </h4>
 <p id="section-13.2.3-1">The stateid presented on a CHUNK operation is a <strong>layout
 stateid</strong> returned by a prior LAYOUTGET against the metadata
-server (see Section 18.43 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), NOT an open
+server (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.43" class="relref">Section 18.43</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), NOT an open
 stateid, byte range lock stateid, or delegation stateid.  A
 pNFS client does NOT issue OPEN against the data server.
 This is a meaningful departure from the stateid model in
-Section 18.32 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> (which states that the WRITE
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.32" class="relref">Section 18.32</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> (which states that the WRITE
 stateid "represents a value returned from a previous
 byte range LOCK or OPEN request or the stateid associated
 with a delegation"), and clients implementing
@@ -11096,7 +11091,7 @@ data-server model:<a href="#section-13.2.3-2" class="pilcrow">¶</a></p>
             <dt id="section-13.2.3-3.1">Open and share-mode tracking:</dt>
             <dd style="margin-left: 1.5em" id="section-13.2.3-3.2">
               <p id="section-13.2.3-3.2.1">Lives at the metadata server, established by OPEN
-(<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.16) on the metadata-server
+(<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.16" class="relref">Section 18.16</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) on the metadata-server
 filehandle.  The metadata server's open stateid is NOT
 exposed to data servers; share-mode conflicts are
 resolved at the metadata server before LAYOUTGET grants
@@ -11112,7 +11107,7 @@ is identified by chunk_owner4 (the (co_cohort_id,
 co_client_id, co_id) triple) rather than by a lock stateid.  A
 client wanting byte range locks on a file <span class="bcp14">MUST</span> acquire
 them on the metadata-server filehandle, where standard
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 12 byte range locking applies.<a href="#section-13.2.3-3.4.1" class="pilcrow">¶</a></p>
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-12" class="relref">Section 12</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> byte range locking applies.<a href="#section-13.2.3-3.4.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
 <dt id="section-13.2.3-3.5">I/O authorization on the data server:</dt>
@@ -11136,11 +11131,11 @@ carries (see <a href="#sec-Fencing-Clients" class="auto internal xref">Section 6
 identify a per-open or per-lock owner, a single client may
 present the same layout stateid on many CHUNK operations
 across many parallel writers within the client, without any
-of the open-owner ordering constraints <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>
-Section 8.2.2 imposes on regular NFSv4 stateids.  Chunk-level
-write ordering and contention are resolved by the
-per-chunk chunk_guard4 CAS (<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.2</a>) and the
-chunk-range CHUNK_LOCK, not by stateid-owner sequencing.<a href="#section-13.2.3-4" class="pilcrow">¶</a></p>
+of the open-owner ordering constraints <span><a href="https://rfc-editor.org/rfc/rfc8881#section-8.2.2" class="relref">Section 8.2.2</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>
+imposes on regular NFSv4 stateids.  Chunk-level write ordering and
+contention are resolved by the per-chunk chunk_guard4 CAS
+(<a href="#sec-chunk_guard4" class="auto internal xref">Section 24.2</a>) and the chunk-range CHUNK_LOCK, not by
+stateid-owner sequencing.<a href="#section-13.2.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="getattr-on-a-data-file">
@@ -11246,36 +11241,36 @@ geometry knowledge only.<a href="#section-13.2.6-3" class="pilcrow">¶</a></p>
 <p id="section-13.2.7-1">For a mirror whose ffv2m_encoding_type_data is
 FFV2_ENCODING_PASSTHROUGH (see <a href="#sec-encoding-passthrough" class="auto internal xref">Section 11.4</a>),
 client operations on the data file follow the same pattern as
-the File Layout Type in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 13.6 and the
+the File Layout Type in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.6" class="relref">Section 13.6</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and the
 Flexible File Version 1 Layout Type in <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>:<a href="#section-13.2.7-1" class="pilcrow">¶</a></p>
 <p id="section-13.2.7-2">Required:<a href="#section-13.2.7-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-13.2.7-3.1">
-              <p id="section-13.2.7-3.1.1">READ (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.22).<a href="#section-13.2.7-3.1.1" class="pilcrow">¶</a></p>
+              <p id="section-13.2.7-3.1.1">READ (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.22" class="relref">Section 18.22</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-13.2.7-3.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-13.2.7-3.2">
-              <p id="section-13.2.7-3.2.1">WRITE (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.32).<a href="#section-13.2.7-3.2.1" class="pilcrow">¶</a></p>
+              <p id="section-13.2.7-3.2.1">WRITE (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.32" class="relref">Section 18.32</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-13.2.7-3.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-13.2.7-3.3">
-              <p id="section-13.2.7-3.3.1">COMMIT (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.3).<a href="#section-13.2.7-3.3.1" class="pilcrow">¶</a></p>
+              <p id="section-13.2.7-3.3.1">COMMIT (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.3" class="relref">Section 18.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-13.2.7-3.3.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 <p id="section-13.2.7-4">Optional (the client <span class="bcp14">MAY</span> send, and the data server <span class="bcp14">MAY</span> support):<a href="#section-13.2.7-4" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-13.2.7-5.1">
-              <p id="section-13.2.7-5.1.1">READ_PLUS (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.10): hole-aware reads.<a href="#section-13.2.7-5.1.1" class="pilcrow">¶</a></p>
+              <p id="section-13.2.7-5.1.1">READ_PLUS (<span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.10" class="relref">Section 15.10</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>): hole-aware reads.<a href="#section-13.2.7-5.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-13.2.7-5.2">
-              <p id="section-13.2.7-5.2.1">SEEK (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.11): hole and data detection.<a href="#section-13.2.7-5.2.1" class="pilcrow">¶</a></p>
+              <p id="section-13.2.7-5.2.1">SEEK (<span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.11" class="relref">Section 15.11</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>): hole and data detection.<a href="#section-13.2.7-5.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-13.2.7-5.3">
-              <p id="section-13.2.7-5.3.1">ALLOCATE (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.1): space reservation hint.<a href="#section-13.2.7-5.3.1" class="pilcrow">¶</a></p>
+              <p id="section-13.2.7-5.3.1">ALLOCATE (<span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.1" class="relref">Section 15.1</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>): space reservation hint.<a href="#section-13.2.7-5.3.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 <p id="section-13.2.7-6">The client <span class="bcp14">MUST NOT</span> send:<a href="#section-13.2.7-6" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-13.2.7-7.1">
-              <p id="section-13.2.7-7.1.1">DEALLOCATE (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.4): hole punching is a
+              <p id="section-13.2.7-7.1.1">DEALLOCATE (<span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.4" class="relref">Section 15.4</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>): hole punching is a
 metadata-server responsibility; the client issues DEALLOCATE
 on the metadata-server filehandle, and the metadata server
 fans out to the data servers as a control-plane operation.<a href="#section-13.2.7-7.1.1" class="pilcrow">¶</a></p>
@@ -11380,7 +11375,7 @@ PASSTHROUGH files rely on metadata-server coordination.<a href="#section-13.2.9-
 </li>
             <li class="normal" id="section-13.2.9-2.3">
               <p id="section-13.2.9-2.3.1">DELEGPURGE, DELEGRETURN, WANT_DELEGATION (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections
-18.5, 18.6 and <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.3).  Delegations are
+18.5, 18.6 and <span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.3" class="relref">Section 15.3</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>).  Delegations are
 issued by the metadata server.<a href="#section-13.2.9-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-13.2.9-2.4">
@@ -11454,7 +11449,7 @@ under any of the paths in <a href="#sec-data-file-identification" class="auto in
 relies on the client-side "<span class="bcp14">MUST NOT</span>" as the primary defense; a
 client with an active layout will not present a chunked-layout
 stateid against a non-chunked file, so standard stateid
-validation (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 8.2) catches the misdirected
+validation (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-8.2" class="relref">Section 8.2</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) catches the misdirected
 CHUNK operation with NFS4ERR_BAD_STATEID before the chunk-layer
 rules apply.<a href="#section-13.2.10-1" class="pilcrow">¶</a></p>
 </section>
@@ -11472,13 +11467,13 @@ metadata server's backchannel session with the client.  The
 callbacks a client will observe that affect its data files are:<a href="#section-13.3-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-13.3-2.1">
-            <p id="section-13.3-2.1.1">CB_LAYOUTRECALL (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 20.3).<a href="#section-13.3-2.1.1" class="pilcrow">¶</a></p>
+            <p id="section-13.3-2.1.1">CB_LAYOUTRECALL (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-20.3" class="relref">Section 20.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-13.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.3-2.2">
-            <p id="section-13.3-2.2.1">CB_NOTIFY_DEVICEID (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 20.12).<a href="#section-13.3-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-13.3-2.2.1">CB_NOTIFY_DEVICEID (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-20.12" class="relref">Section 20.12</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-13.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.3-2.3">
-            <p id="section-13.3-2.3.1">CB_RECALL_ANY (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 20.6).<a href="#section-13.3-2.3.1" class="pilcrow">¶</a></p>
+            <p id="section-13.3-2.3.1">CB_RECALL_ANY (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-20.6" class="relref">Section 20.6</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-13.3-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.3-2.4">
             <p id="section-13.3-2.4.1">CB_CHUNK_REPAIR.<a href="#section-13.3-2.4.1" class="pilcrow">¶</a></p>
@@ -11497,7 +11492,7 @@ directly.<a href="#section-13.3-3" class="pilcrow">¶</a></p>
 <a href="#section-13.4" class="section-number selfRef">13.4. </a><a href="#name-summary-table" class="section-name selfRef">Summary Table</a>
         </h3>
 <p id="section-13.4-1">The classification below adapts the operation taxonomy of
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 17 (<span class="bcp14">REQUIRED</span> / <span class="bcp14">RECOMMENDED</span> / <span class="bcp14">OPTIONAL</span> /
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-17" class="relref">Section 17</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> (<span class="bcp14">REQUIRED</span> / <span class="bcp14">RECOMMENDED</span> / <span class="bcp14">OPTIONAL</span> /
 <span class="bcp14">MUST NOT</span> IMPLEMENT) to the two-direction per-operation view a
 Flexible File Version 2 data server requires.  Two of the four
 labels in the table below match <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> usage; the other
@@ -11507,7 +11502,7 @@ two are extensions specific to this document.<a href="#section-13.4-1" class="pi
 <span class="bcp14">REQUIRED</span>:</dt>
           <dd style="margin-left: 1.5em" id="section-13.4-2.2">
             <p id="section-13.4-2.2.1">The data server <span class="bcp14">MUST</span> support the operation on this path.
-Matches <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 17 REQ.<a href="#section-13.4-2.2.1" class="pilcrow">¶</a></p>
+Matches <span><a href="https://rfc-editor.org/rfc/rfc8881#section-17" class="relref">Section 17</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> REQ.<a href="#section-13.4-2.2.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 <dt id="section-13.4-2.3">
@@ -11515,7 +11510,7 @@ Matches <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 
           <dd style="margin-left: 1.5em" id="section-13.4-2.4">
             <p id="section-13.4-2.4.1">The data server <span class="bcp14">MAY</span> support the operation; if it does, the
 actor in this column <span class="bcp14">MUST</span> tolerate the absence of support.
-Matches <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 17 OPT.<a href="#section-13.4-2.4.1" class="pilcrow">¶</a></p>
+Matches <span><a href="https://rfc-editor.org/rfc/rfc8881#section-17" class="relref">Section 17</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> OPT.<a href="#section-13.4-2.4.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 <dt id="section-13.4-2.5">
@@ -11523,7 +11518,7 @@ Matches <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 
           <dd style="margin-left: 1.5em" id="section-13.4-2.6">
             <p id="section-13.4-2.6.1">The actor in this column <span class="bcp14">MUST NOT</span> send the operation, and
 the data server <span class="bcp14">MUST</span> reject it with NFS4ERR_NOTSUPP.  This
-per-direction prohibition extends <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 17's
+per-direction prohibition extends <span><a href="https://rfc-editor.org/rfc/rfc8881#section-17" class="relref">Section 17</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>'s
 single-axis <span class="bcp14">MUST NOT</span> IMPLEMENT classification: an operation
 may be forbidden on one path (client to data server) while
 required on another (metadata server to data server).
@@ -11535,7 +11530,7 @@ SETATTR is the canonical example.<a href="#section-13.4-2.6.1" class="pilcrow">�
           <dd style="margin-left: 1.5em" id="section-13.4-2.8">
             <p id="section-13.4-2.8.1">The metadata server <span class="bcp14">MAY</span> use the operation as an
 implementation-defined control-plane action.  Not in
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 17; specific to the metadata-server-to-data-server
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-17" class="relref">Section 17</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>; specific to the metadata-server-to-data-server
 path in this document.<a href="#section-13.4-2.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
@@ -11758,7 +11753,7 @@ integrity (<a href="#sec-encoding-replicated" class="auto internal xref">Section
       </h2>
 <p id="section-14-1">layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
 layout type specific information to the server.  It is defined in
-Section 18.44.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> (also shown in <a href="#fig-LAYOUTRETURN" class="auto internal xref">Figure 34</a>).<a href="#section-14-1" class="pilcrow">¶</a></p>
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.44.1" class="relref">Section 18.44.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> (also shown in <a href="#fig-LAYOUTRETURN" class="auto internal xref">Figure 34</a>).<a href="#section-14-1" class="pilcrow">¶</a></p>
 <span id="name-layout-return-xdr"></span><div id="fig-LAYOUTRETURN">
 <figure id="figure-34">
         <div class="lang-xdr sourcecode" id="section-14-2.1">
@@ -11860,8 +11855,7 @@ hints to the metadata server that there are problems with that file.
 For each error, ffv2ie_errors.de_deviceid, ffv2ie_offset, and ffv2ie_length
 represent the storage device and byte range within the file in which
 the error occurred; ffv2ie_errors represents the operation and type
-of error.  The use of device_error4 is described in Section 15.6
-of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-14.1.1-4" class="pilcrow">¶</a></p>
+of error.  The use of device_error4 is described in <span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.6" class="relref">Section 15.6</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-14.1.1-4" class="pilcrow">¶</a></p>
 <p id="section-14.1.1-5">Even though the storage device might be accessed via NFSv3 and
 reports back NFSv3 errors to the client, the client is responsible
 for mapping these to appropriate NFSv4 status codes as de_status.
@@ -11916,7 +11910,7 @@ bytes requested but not fulfilled due to error conditions.
 ffv2il_total_busy_time is the aggregate time spent with outstanding
 RPC calls. ffv2il_aggregate_completion_time is the sum of all round-trip
 times for completed RPC calls.<a href="#section-14.2.1-3" class="pilcrow">¶</a></p>
-<p id="section-14.2.1-4">In Section 3.3.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>, the nfstime4 is defined as the
+<p id="section-14.2.1-4">In <span><a href="https://rfc-editor.org/rfc/rfc8881#section-3.3.1" class="relref">Section 3.3.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>, the nfstime4 is defined as the
 number of seconds and nanoseconds since midnight or zero hour January
 1, 1970 Coordinated Universal Time (UTC).  The use of nfstime4 in
 ff_io_latency4 is to store time since the start of the first I/O
@@ -12085,7 +12079,7 @@ disjoint and <span class="bcp14">MAY</span> repeat or intersect.<a href="#sectio
 <p id="section-15-1">If the client is using NFSv4.2 to communicate with the metadata
 server, then instead of waiting for a LAYOUTRETURN to send error
 information to the metadata server (see <a href="#sec-io-error" class="auto internal xref">Section 14.1</a>), it <span class="bcp14">MAY</span>
-use LAYOUTERROR (see Section 15.6 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>) to communicate
+use LAYOUTERROR (see <span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.6" class="relref">Section 15.6</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>) to communicate
 that information.  For the flexible file v2 layout, this means
 that LAYOUTERROR4args is treated the same as ffv2_ioerr4.<a href="#section-15-1" class="pilcrow">¶</a></p>
 </section>
@@ -12098,7 +12092,7 @@ that LAYOUTERROR4args is treated the same as ffv2_ioerr4.<a href="#section-15-1"
 <p id="section-16-1">If the client is using NFSv4.2 to communicate with the metadata
 server, then instead of waiting for a LAYOUTRETURN to send I/O
 statistics to the metadata server (see <a href="#sec-layout-stats" class="auto internal xref">Section 14.2</a>), it
-<span class="bcp14">MAY</span> use LAYOUTSTATS (see Section 15.7 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>) to communicate
+<span class="bcp14">MAY</span> use LAYOUTSTATS (see <span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.7" class="relref">Section 15.7</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>) to communicate
 that information.  For the flexible file v2 layout, this means
 that LAYOUTSTATS4args.lsa_layoutupdate is overloaded with the same
 contents as in ffv2is_layoutupdate.<a href="#section-16-1" class="pilcrow">¶</a></p>
@@ -12176,7 +12170,7 @@ hints via ffv2_data_protection4 (<a href="#fig-ffv2_data_protection4" class="aut
       <h2 id="name-recalling-a-layout">
 <a href="#section-19" class="section-number selfRef">19. </a><a href="#name-recalling-a-layout" class="section-name selfRef">Recalling a Layout</a>
       </h2>
-<p id="section-19-1">While Section 12.5.5 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> discusses reasons independent
+<p id="section-19-1">While <span><a href="https://rfc-editor.org/rfc/rfc8881#section-12.5.5" class="relref">Section 12.5.5</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> discusses reasons independent
 of layout type for recalling a layout, the flexible file v2 layout
 type metadata server should recall outstanding layouts in the
 following cases:<a href="#section-19-1" class="pilcrow">¶</a></p>
@@ -12204,8 +12198,7 @@ regarding resilvering as described in <a href="#sec-mds-resilvering" class="auto
 <a href="#section-19.1" class="section-number selfRef">19.1. </a><a href="#name-cb_recall_any" class="section-name selfRef">CB_RECALL_ANY</a>
         </h3>
 <p id="section-19.1-1">The metadata server can use the CB_RECALL_ANY callback operation
-to notify the client to return some or all of its layouts.  Section
-22.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> defines the allowed types of the "NFSv4 Recallable
+to notify the client to return some or all of its layouts.  <span><a href="https://rfc-editor.org/rfc/rfc8881#section-22.3" class="relref">Section 22.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> defines the allowed types of the "NFSv4 Recallable
 Object Types Registry".<a href="#section-19.1-1" class="pilcrow">¶</a></p>
 <span id="name-rca4-masks-for-v2"></span><div id="fig-new-rca4">
 <figure id="figure-44">
@@ -12276,12 +12269,10 @@ client is notified to return layouts of either iomode.<a href="#section-19.1-7" 
 <p id="section-20-1">In cases where clients are uncommunicative and their lease has
 expired, or when clients fail to return recalled layouts within
 a lease period, the metadata server <span class="bcp14">MAY</span> revoke client layouts
-and reassign these resources to other clients (see Section
-12.5.5 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  To avoid data corruption from a
-revoked client continuing to issue I/O, the metadata server
-<span class="bcp14">MUST</span> fence the revoked client from the affected data files.
-The mechanism varies by coupling model and by whether the
-client's layout stateid has been registered with the data
+and reassign these resources to other clients (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-12.5.5" class="relref">Section 12.5.5</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  To avoid data corruption from a revoked client continuing
+to issue I/O, the metadata server <span class="bcp14">MUST</span> fence the revoked client from
+the affected data files. The mechanism varies by coupling model and by
+whether the client's layout stateid has been registered with the data
 servers via TRUST_STATEID:<a href="#section-20-1" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-20-2">
         <dt id="section-20-2.1">Loosely coupled, untrusted stateid:</dt>
@@ -12853,7 +12844,7 @@ of NFS4_OK and per-range failure codes.<a href="#section-21.1.11-2" class="pilcr
         </h3>
 <p id="section-21.2-1">The operations and their valid errors are presented in
 <a href="#tbl-ops-and-errors" class="auto internal xref">Table 14</a>.  All error codes not defined in this document
-are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 11 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.2-1" class="pilcrow">¶</a></p>
+are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-15" class="relref">Section 15</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and <span><a href="https://rfc-editor.org/rfc/rfc7862#section-11" class="relref">Section 11</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.2-1" class="pilcrow">¶</a></p>
 <span id="name-operations-and-their-valid-e"></span><div id="tbl-ops-and-errors">
 <table class="center" id="table-14">
           <caption>
@@ -12951,7 +12942,7 @@ are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881
         </h3>
 <p id="section-21.3-1">The callback operations and their valid errors are presented in
 <a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 15</a>.  All error codes not defined in this document
-are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 11 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.3-1" class="pilcrow">¶</a></p>
+are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-15" class="relref">Section 15</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and <span><a href="https://rfc-editor.org/rfc/rfc7862#section-11" class="relref">Section 11</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.3-1" class="pilcrow">¶</a></p>
 <span id="name-callback-operations-and-thei"></span><div id="tbl-cb-ops-and-errors">
 <table class="center" id="table-15">
           <caption>
@@ -12981,7 +12972,7 @@ are defined in Section 15 of <span>[<a href="#RFC8881" class="cite xref">RFC8881
         </h3>
 <p id="section-21.4-1">The operations and their valid errors are presented in
 <a href="#tbl-errors-and-ops" class="auto internal xref">Table 16</a>.  All operations not defined in this document
-are defined in Section 18 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and Section 15 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.4-1" class="pilcrow">¶</a></p>
+are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18" class="relref">Section 18</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and <span><a href="https://rfc-editor.org/rfc/rfc7862#section-15" class="relref">Section 15</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.4-1" class="pilcrow">¶</a></p>
 <span id="name-errors-and-the-operations-th"></span><div id="tbl-errors-and-ops">
 <table class="center" id="table-16">
           <caption>
@@ -13063,12 +13054,11 @@ are defined in Section 18 of <span>[<a href="#RFC8881" class="cite xref">RFC8881
         </figcaption></figure>
 </div>
 <p id="section-22-2">When a data server connects to a metadata server it can via
-EXCHANGE_ID (see Section 18.35 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) state its pNFS role.
+EXCHANGE_ID (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.35" class="relref">Section 18.35</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) state its pNFS role.
 The data server can use EXCHGID4_FLAG_USE_ERASURE_DS (see
 <a href="#fig-EXCHGID4_FLAG_USE_ERASURE_DS" class="auto internal xref">Figure 48</a>) to indicate that it supports the
-new NFSv4.2 operations introduced in this document.  Section 13.1
-of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> describes the interaction of the various pNFS roles
-masked by EXCHGID4_FLAG_MASK_PNFS.  However, that does not mask out
+new NFSv4.2 operations introduced in this document.  <span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.1" class="relref">Section 13.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> describes the interaction of the various pNFS roles masked
+by EXCHGID4_FLAG_MASK_PNFS.  However, that does not mask out
 EXCHGID4_FLAG_USE_ERASURE_DS.  I.e., EXCHGID4_FLAG_USE_ERASURE_DS can
 be used in combination with all of the pNFS flags.<a href="#section-22-2" class="pilcrow">¶</a></p>
 <p id="section-22-3">If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
@@ -14383,7 +14373,7 @@ issues CHUNK operations without an active chunked-encoding
 layout has no chunked-layout stateid to present; whatever
 stateid it does send (anonymous, open, lock, forged, expired)
 is rejected by the data server's normal stateid validation
-per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 8.2, typically with NFS4ERR_BAD_STATEID
+per <span><a href="https://rfc-editor.org/rfc/rfc8881#section-8.2" class="relref">Section 8.2</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>, typically with NFS4ERR_BAD_STATEID
 (or NFS4ERR_STALE_STATEID or NFS4ERR_OLD_STATEID as
 appropriate).  See <a href="#sec-system-model-chunk-not-block" class="auto internal xref">Section 12.2</a> for the
 distinction between the CHUNK operations and a generic block I/O
@@ -14598,13 +14588,12 @@ failures for positional correlation.<a href="#section-25.1-3" class="pilcrow">¶
 any of these maxima with NFS4ERR_INVAL before performing any
 mutation.  A data server <span class="bcp14">MUST</span> also verify, before performing
 any mutation, that the response it will construct fits within
-the session's negotiated <code>ca_maxresponsesize</code> (Section 18.36 of
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>); if the mandatory response arrays (per-chunk
-status, per-chunk owner, per-chunk checksum, and payload where
-applicable) would exceed <code>ca_maxresponsesize</code>, the data server
-<span class="bcp14">MUST</span> reject with NFS4ERR_TOOSMALL and <span class="bcp14">MUST NOT</span> partially
-process the request.  The client is expected to split the
-request across multiple compounds when either bound is reached.<a href="#section-25.1-4" class="pilcrow">¶</a></p>
+the session's negotiated <code>ca_maxresponsesize</code> (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.36" class="relref">Section 18.36</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>); if the mandatory response arrays (per-chunk status,
+per-chunk owner, per-chunk checksum, and payload where applicable)
+would exceed <code>ca_maxresponsesize</code>, the data server <span class="bcp14">MUST</span> reject with
+NFS4ERR_TOOSMALL and <span class="bcp14">MUST NOT</span> partially process the request.  The
+client is expected to split the request across multiple compounds when
+either bound is reached.<a href="#section-25.1-4" class="pilcrow">¶</a></p>
 <p id="section-25.1-5">Short processing (a data server returning fewer chunks than
 requested at its discretion) is NOT permitted for the
 lifecycle operations because the co-indexed result arrays would
@@ -14615,7 +14604,7 @@ already defined for the two capacity-limit paths above --
 NFS4ERR_INVAL when the request array length exceeds a
 CHUNK_MAX_* bound, NFS4ERR_TOOSMALL when the response would
 exceed the session-negotiated ca_maxresponsesize
-(<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.36), or NFS4ERR_DELAY when the data
+(<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.36" class="relref">Section 18.36</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), or NFS4ERR_DELAY when the data
 server is out of transient resources to process the requested
 batch -- and the entire request is a no-op with respect to
 mutation.<a href="#section-25.1-5" class="pilcrow">¶</a></p>
@@ -14699,7 +14688,7 @@ batch to a single chunk and continues to see the rejection
 <a href="#section-25.2.3" class="section-number selfRef">25.2.3. </a><a href="#name-description" class="section-name selfRef">DESCRIPTION</a>
           </h4>
 <p id="section-25.2.3-1">The CHUNK_COMMIT operation is based upon the NFSv4.1 COMMIT
-operation (see Section 18.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) and similarly
+operation (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.3" class="relref">Section 18.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) and similarly
 commits previously written data to stable storage on the
 regular file identified by the current filehandle, with the
 difference that CHUNK_COMMIT operates on the chunk
@@ -14884,7 +14873,7 @@ this has lost a race and <span class="bcp14">SHOULD</span> re-read the chunk (se
             </h5>
 <p id="section-25.2.3.2-1">The three-step CHUNK_WRITE -&gt; CHUNK_FINALIZE -&gt; CHUNK_COMMIT
 sequence <span class="bcp14">MAY</span> be pipelined within a single NFSv4.2 compound
-(see Section 12.8 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) in single writer mode, where
+(see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-12.8" class="relref">Section 12.8</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) in single writer mode, where
 no other writer can race the client's per-chunk transitions
 and the CHUNK_WRITE per-block status array reports only
 local-failure cases (NFS4ERR_NOSPC, NFS4ERR_IO, and so on).<a href="#section-25.2.3.2-1" class="pilcrow">¶</a></p>
@@ -14897,11 +14886,10 @@ a same-compound CHUNK_FINALIZE / CHUNK_COMMIT proceeds against
 whichever chunks happen to be PENDING.  The compound-level
 status is NFS4_OK in this case because per-block failures are
 reported in the per-op status array rather than as a compound-level
-error, so NFSv4 compound short-circuit (Section 2.10.6.4
-of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) does not stop the trailing ops.  A client that
-wants atomic-or-none semantics across multiple chunks <span class="bcp14">MUST</span>
-examine the per-block status returned by each CHUNK_WRITE
-before issuing the corresponding CHUNK_FINALIZE.<a href="#section-25.2.3.2-2" class="pilcrow">¶</a></p>
+error, so NFSv4 compound short-circuit (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-2.10.6.4" class="relref">Section 2.10.6.4</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) does not stop the trailing ops.  A client that wants
+atomic-or-none semantics across multiple chunks <span class="bcp14">MUST</span> examine the
+per-block status returned by each CHUNK_WRITE before issuing the
+corresponding CHUNK_FINALIZE.<a href="#section-25.2.3.2-2" class="pilcrow">¶</a></p>
 <p id="section-25.2.3.2-3">For multi-chunk pipelines in multiple-writer mode, the
 recommended pattern is to stagger the three steps across
 compounds so each trailing operation acts only on chunks whose
@@ -15111,7 +15099,7 @@ CHUNK_READ responses until they are repaired via
 CHUNK_WRITE_REPAIR and the
 repair is confirmed via CHUNK_REPAIRED.<a href="#section-25.3.3-1" class="pilcrow">¶</a></p>
 <p id="section-25.3.3-2">CHUNK_ERROR has no direct analog in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.  The closest
-parallel is LAYOUTERROR (<span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span> Section 15.6), which
+parallel is LAYOUTERROR (<span><a href="https://rfc-editor.org/rfc/rfc7862#section-15.6" class="relref">Section 15.6</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>), which
 reports layout-level errors to the metadata server.
 CHUNK_ERROR is the data-path counterpart: it reports a
 chunk-level integrity finding directly to the data server so
@@ -15319,7 +15307,7 @@ is the writer's signal that it will issue no further
 CHUNK_WRITEs for the named owner triple
 generation of each chunk.<a href="#section-25.4.3-1" class="pilcrow">¶</a></p>
 <p id="section-25.4.3-2">CHUNK_FINALIZE has no direct analog in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>: the COMMIT
-operation in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.3 combines the "no more
+operation in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.3" class="relref">Section 18.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> combines the "no more
 writes" signal and the "make durable and globally visible"
 step into one operation; the Flexible File Version 2 chunk
 lifecycle separates them so a writer in multiple-writer mode
@@ -15820,7 +15808,7 @@ when the requested range extends past the data server's last
 chunk (chrr_eof = TRUE, N = the number of chunks the data
 server holds within the requested range) or when the
 fully-populated response would exceed the session-negotiated
-ca_maxresponsesize (Section 18.36.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  In the
+ca_maxresponsesize (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.36.3" class="relref">Section 18.36.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  In the
 response-size case the data server returns a short response
 with chrr_eof = FALSE containing as many entries N as fit
 under ca_maxresponsesize minus COMPOUND/RPC overhead; the
@@ -16132,17 +16120,15 @@ the locked chunks from any other chunk_owner4 receive
 NFS4ERR_CHUNK_LOCKED in the corresponding per-chunk
 status slot.  The lock is associated with the
 chunk_owner4 in cla_owner.<a href="#section-25.6.3-1" class="pilcrow">¶</a></p>
-<p id="section-25.6.3-2">CHUNK_LOCK is loosely analogous to LOCK (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>
-Section 18.10) in that it acquires an exclusive
-guard against concurrent modification, but the two
-operate on different coordinate systems and use
-different naming: LOCK is byte range and stateid-based;
-CHUNK_LOCK is chunk-range and chunk_owner4-based.
-CHUNK_LOCK is used in multiple-writer mode
-(<a href="#sec-multi-writer" class="auto internal xref">Section 11.2.6.4</a>) to serialize racing writers on a
-common chunk range, and in the repair flow
-(<a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a>) to transfer lock ownership
-to a repair actor via CHUNK_LOCK_FLAGS_ADOPT.<a href="#section-25.6.3-2" class="pilcrow">¶</a></p>
+<p id="section-25.6.3-2">CHUNK_LOCK is loosely analogous to LOCK (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.10" class="relref">Section 18.10</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>)
+in that it acquires an exclusive guard against concurrent
+modification, but the two operate on different coordinate systems and
+use different naming: LOCK is byte range and stateid-based; CHUNK_LOCK
+is chunk-range and chunk_owner4-based. CHUNK_LOCK is used in
+multiple-writer mode (<a href="#sec-multi-writer" class="auto internal xref">Section 11.2.6.4</a>) to serialize racing
+writers on a common chunk range, and in the repair flow
+(<a href="#sec-repair-selection" class="auto internal xref">Section 11.2.4</a>) to transfer lock ownership to a repair
+actor via CHUNK_LOCK_FLAGS_ADOPT.<a href="#section-25.6.3-2" class="pilcrow">¶</a></p>
 <p id="section-25.6.3-3">The client provides:<a href="#section-25.6.3-3" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-25.6.3-4">
             <dt id="section-25.6.3-4.1">cla_stateid:</dt>
@@ -16477,7 +16463,7 @@ the request.<a href="#section-25.6.4-1.16.1" class="pilcrow">¶</a></p>
 <a href="#section-25.7.3" class="section-number selfRef">25.7.3. </a><a href="#name-description-6" class="section-name selfRef">DESCRIPTION</a>
           </h4>
 <p id="section-25.7.3-1">The CHUNK_READ operation is based upon the NFSv4.1 READ
-operation (see Section 18.22 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) and similarly
+operation (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.22" class="relref">Section 18.22</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) and similarly
 reads data from the regular file identified by the current
 filehandle, with the difference that CHUNK_READ operates on
 the chunk coordinate system used by Flexible File Version 2
@@ -16636,15 +16622,12 @@ client <span class="bcp14">MUST NOT</span> derive positional information from th
 chunk_owner4 values themselves.<a href="#section-25.7.3-8" class="pilcrow">¶</a></p>
 <p id="section-25.7.3-9">Except when special stateids are used, the cra_stateid
 value represents a layout stateid returned by a prior
-LAYOUTGET against the metadata server (see Section 18.43
-of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  The data server uses cra_stateid to
-verify that the client holds a valid layout that
-authorizes reading this file.  Under trusted stateid tight
-coupling (<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 25.13</a>), the data server
-additionally checks that the metadata server has
-registered the stateid via TRUST_STATEID; an unregistered
-stateid (other than a special stateid) returns
-NFS4ERR_BAD_STATEID.<a href="#section-25.7.3-9" class="pilcrow">¶</a></p>
+LAYOUTGET against the metadata server (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.43" class="relref">Section 18.43</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  The data server uses cra_stateid to verify that the
+client holds a valid layout that authorizes reading this file.  Under
+trusted stateid tight coupling (<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 25.13</a>), the data
+server additionally checks that the metadata server has registered the
+stateid via TRUST_STATEID; an unregistered stateid (other than a
+special stateid) returns NFS4ERR_BAD_STATEID.<a href="#section-25.7.3-9" class="pilcrow">¶</a></p>
 <p id="section-25.7.3-10">For a CHUNK_READ with a cra_stateid value of all bits
 equal to zero, the data server <span class="bcp14">MAY</span> allow the CHUNK_READ
 to be serviced subject to the chunk-lock state recorded in
@@ -16654,7 +16637,7 @@ to bypass lock-state reporting at the data server.  These
 special-stateid behaviors mirror the corresponding READ
 semantics in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> adapted to the chunk-locking
 model (<a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.6</a>) rather than the byte range
-locking model of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 12.<a href="#section-25.7.3-10" class="pilcrow">¶</a></p>
+locking model of <span><a href="https://rfc-editor.org/rfc/rfc8881#section-12." class="relref">Section 12.</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span><a href="#section-25.7.3-10" class="pilcrow">¶</a></p>
 <p id="section-25.7.3-11">If the current filehandle is not an ordinary file, an
 error <span class="bcp14">MUST</span> be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
 NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
@@ -17591,11 +17574,9 @@ the request.<a href="#section-25.9.4-1.16.1" class="pilcrow">¶</a></p>
           </h4>
 <p id="section-25.10.3-1">CHUNK_UNLOCK releases the exclusive chunk-range lock
 previously acquired by CHUNK_LOCK.
-CHUNK_UNLOCK is loosely analogous to LOCKU (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>
-Section 18.12) in that it releases an exclusive guard,
-but it operates on chunk-range coordinates and is
-matched against the chunk_owner4 that acquired the
-lock rather than against an open / lock stateid.<a href="#section-25.10.3-1" class="pilcrow">¶</a></p>
+CHUNK_UNLOCK is loosely analogous to LOCKU (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.12" class="relref">Section 18.12</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) in that it releases an exclusive guard, but it operates on
+chunk-range coordinates and is matched against the chunk_owner4 that
+acquired the lock rather than against an open / lock stateid.<a href="#section-25.10.3-1" class="pilcrow">¶</a></p>
 <p id="section-25.10.3-2">The client provides:<a href="#section-25.10.3-2" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-25.10.3-3">
             <dt id="section-25.10.3-3.1">cua_stateid:</dt>
@@ -17821,7 +17802,7 @@ the request.<a href="#section-25.10.4-1.14.1" class="pilcrow">¶</a></p>
 <a href="#section-25.11.3" class="section-number selfRef">25.11.3. </a><a href="#name-description-10" class="section-name selfRef">DESCRIPTION</a>
           </h4>
 <p id="section-25.11.3-1">The CHUNK_WRITE operation is based upon the NFSv4.1 WRITE
-operation (see Section 18.32 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) and similarly
+operation (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.32" class="relref">Section 18.32</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) and similarly
 writes data to the regular file identified by the current
 filehandle, with the difference that CHUNK_WRITE operates
 on the chunk coordinate system used by Flexible File
@@ -17996,13 +17977,12 @@ entirely by the co_id.<a href="#section-25.11.3-13.12.1" class="pilcrow">¶</a><
 </dl>
 <p id="section-25.11.3-14">Except when special stateids are used, cwa_stateid
 represents a layout stateid returned by a prior LAYOUTGET
-against the metadata server (see Section 18.43 of
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) that authorizes write access to this file.
-Under trusted stateid tight coupling
-(<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 25.13</a>), the data server additionally
-checks that the metadata server has registered the
-stateid via TRUST_STATEID; an unregistered stateid (other
-than a special stateid) returns NFS4ERR_BAD_STATEID.<a href="#section-25.11.3-14" class="pilcrow">¶</a></p>
+against the metadata server (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.43" class="relref">Section 18.43</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) that
+authorizes write access to this file. Under trusted stateid tight
+coupling (<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 25.13</a>), the data server additionally checks
+that the metadata server has registered the stateid via TRUST_STATEID;
+an unregistered stateid (other than a special stateid) returns
+NFS4ERR_BAD_STATEID.<a href="#section-25.11.3-14" class="pilcrow">¶</a></p>
 <p id="section-25.11.3-15">For a CHUNK_WRITE with a cwa_stateid value of all bits
 equal to zero, the data server <span class="bcp14">MAY</span> allow the CHUNK_WRITE
 to be serviced subject to any CHUNK_LOCK currently held
@@ -18013,7 +17993,7 @@ checking at the data server.  These special-stateid
 behaviors mirror the corresponding WRITE semantics in
 <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> adapted to the chunk-locking model
 (<a href="#sec-CHUNK_LOCK" class="auto internal xref">Section 25.6</a>) rather than the byte range locking
-model of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 12.<a href="#section-25.11.3-15" class="pilcrow">¶</a></p>
+model of <span><a href="https://rfc-editor.org/rfc/rfc8881#section-12." class="relref">Section 12.</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span><a href="#section-25.11.3-15" class="pilcrow">¶</a></p>
 <p id="section-25.11.3-16">If the current filehandle is not an ordinary file, an
 error <span class="bcp14">MUST</span> be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
 NFS4ERR_WRONG_TYPE for non-regular; NFS4ERR_NOTSUPP if
@@ -19745,7 +19725,7 @@ and ceer_eof = TRUE when it implements the
 operation, regardless of any escrows present.
 A data server that does not implement the
 operation returns NFS4ERR_OP_ILLEGAL at COMPOUND
-decode time per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 16.2, which is
+decode time per <span><a href="https://rfc-editor.org/rfc/rfc8881#section-16.2" class="relref">Section 16.2</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>, which is
 distinct from NFS4ERR_NOTSUPP).<a href="#section-25.18.3-2" class="pilcrow">¶</a></p>
 <p id="section-25.18.3-3">Pagination uses ceea_cookie: on the first call the
 caller supplies an empty cookie; the data server
@@ -20209,7 +20189,7 @@ operation on the ranges.<a href="#section-26.1.3-4.4.1" class="pilcrow">¶</a></
 <dt id="section-26.1.3-4.5">ccra_deadline:</dt>
             <dd style="margin-left: 1.5em" id="section-26.1.3-4.6">
               <p id="section-26.1.3-4.6.1">an absolute nfstime4 (seconds and nanoseconds since
-the epoch, as defined in Section 3.3.1 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>)
+the epoch, as defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-3.3.1" class="relref">Section 3.3.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>)
 by which the client is expected to have driven every
 range to completion (CHUNK_REPAIRED on the
 reconstruction path, or CHUNK_UNLOCK on the rollback
@@ -20306,7 +20286,7 @@ it across multiple callbacks.<a href="#section-26.1.3-4.12.1" class="pilcrow">¶
 <p id="section-26.1.3-5">The metadata server <span class="bcp14">SHOULD</span> keep each CB_CHUNK_REPAIR
 compound within the back-channel maximum
 (ca_maxrequestsize) negotiated in CREATE_SESSION (see
-Section 18.36.3 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  If the set of affected
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.36.3" class="relref">Section 18.36.3</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  If the set of affected
 ranges would exceed that maximum, the metadata server <span class="bcp14">MAY</span>
 issue multiple CB_CHUNK_REPAIR callbacks to the same
 client.  Each callback is independent; the client drives
@@ -21248,8 +21228,7 @@ that would allow it to be used to authorize the client to the storage
 device on behalf of the metadata server.  Doing so would require
 that each of the metadata server, storage device, and client would
 need to implement RPCSEC_GSSv3 using an RPC-application-defined
-structured privilege assertion in a manner described in Section
-4.9.1 of <span>[<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.  The specifics necessary to do so are not
+structured privilege assertion in a manner described in <span><a href="https://rfc-editor.org/rfc/rfc7862#section-4.9.1" class="relref">Section 4.9.1</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.  The specifics necessary to do so are not
 described in this document.  This is principally because any such
 specification would require extensive implementation work on a wide
 range of storage devices, which would be unlikely to result in a
@@ -21559,7 +21538,7 @@ RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
 </div>
 <p id="section-29-5">This document also requests IANA to register a new bit in the
 "EXCHGID4<em>FLAG</em>*" flag space for the ExchangeID operation from
-<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 18.35.3.  The requested value is
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.35.3." class="relref">Section 18.35.3.</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>  The requested value is
 <code>0x00100000</code>, outside the existing MASK_PNFS block (0x00070000);
 IANA <span class="bcp14">MAY</span> assign a different value at its discretion, in which
 case the numeric value in <a href="#fig-EXCHGID4_FLAG_USE_ERASURE_DS" class="auto internal xref">Figure 48</a>
@@ -21591,7 +21570,7 @@ assignment.<a href="#section-29-5" class="pilcrow">¶</a></p>
       </table>
 </div>
 <p id="section-29-7">This document requests IANA to allocate two attribute numbers in
-the NFSv4 attribute-number registry (see Section 20 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-29-7" class="pilcrow">¶</a></p>
+the NFSv4 attribute-number registry (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-20" class="relref">Section 20</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-29-7" class="pilcrow">¶</a></p>
 <span id="name-nfsv4-attribute-assignments"></span><div id="tbl_attribute_assignments">
 <table class="center" id="table-21">
         <caption>
@@ -21929,16 +21908,14 @@ wire-transmission order).  Deployments <span class="bcp14">SHOULD</span> prefer
 CHECKSUM_ALG_CRC32C for new files since CRC32C is
 hardware-accelerated on every modern CPU.<a href="#section-29.1-7" class="pilcrow">¶</a></p>
 <p id="section-29.1-8">CHECKSUM_ALG_CRC32C (value 2) is the CRC-32 with the
-Castagnoli polynomial specified in <span>[<a href="#RFC3720" class="cite xref">RFC3720</a>]</span> Section
-12.1 and adopted by <span>[<a href="#RFC4960" class="cite xref">RFC4960</a>]</span> Section 6.4 (SCTP), and
-also as the SSE4.2 / ARMv8 / RISC-V CRC-32C
-hardware-acceleration instructions.  Concrete parameters:
-generator polynomial <code>0x1EDC6F41</code> (equivalently, the
-reflected form <code>0x82F63B78</code>); initial register value
-<code>0xFFFFFFFF</code>; final XOR value <code>0xFFFFFFFF</code>; input
-reflected; output reflected.  The 4-byte <code>cs_value</code>
-carries the CRC as a big-endian integer.  Covered bytes
-follow the uniform coverage rule in <a href="#sec-checksum4" class="auto internal xref">Section 24.7</a>.<a href="#section-29.1-8" class="pilcrow">¶</a></p>
+Castagnoli polynomial specified in <span><a href="https://rfc-editor.org/rfc/rfc3720#section-12.1" class="relref">Section 12.1</a> of [<a href="#RFC3720" class="cite xref">RFC3720</a>]</span> and
+adopted by <span><a href="https://rfc-editor.org/rfc/rfc4960#section-6.4" class="relref">Section 6.4</a> of [<a href="#RFC4960" class="cite xref">RFC4960</a>]</span> (SCTP), and also as the SSE4.2 /
+ARMv8 / RISC-V CRC-32C hardware-acceleration instructions.  Concrete
+parameters: generator polynomial <code>0x1EDC6F41</code> (equivalently, the
+reflected form <code>0x82F63B78</code>); initial register value <code>0xFFFFFFFF</code>;
+final XOR value <code>0xFFFFFFFF</code>; input reflected; output reflected.  The
+4-byte <code>cs_value</code> carries the CRC as a big-endian integer.  Covered
+bytes follow the uniform coverage rule in <a href="#sec-checksum4" class="auto internal xref">Section 24.7</a>.<a href="#section-29.1-8" class="pilcrow">¶</a></p>
 <p id="section-29.1-9">CHECKSUM_ALG_FLETCHER4 (value 3) is the ZFS Fletcher4
 variant as documented in the OpenZFS on-disk format
 specification <span>[<a href="#OPENZFS-FLETCHER4" class="cite xref">OPENZFS-FLETCHER4</a>]</span>.  Covered bytes
@@ -22060,13 +22037,10 @@ defined in this document or its cited references
 RSASSA-PSS-SHA256 alg -37) <span class="bcp14">MAY</span> be added later per
 the Specification Required policy above.<a href="#section-29.2-6" class="pilcrow">¶</a></p>
 <p id="section-29.2-7">The value range 0xC0000000 to 0xFFFFFFFF is
-reserved for Private Use per <span>[<a href="#RFC8126" class="cite xref">RFC8126</a>]</span> Section
-4.1; deployments <span class="bcp14">MAY</span> assign values from this range
-for experimental, vendor-specific, or private
-profiles without IANA registration, but such
-values <span class="bcp14">MUST NOT</span> be presented on interoperability
-boundaries and this specification makes no
-compatibility guarantees for them.<a href="#section-29.2-7" class="pilcrow">¶</a></p>
+reserved for Private Use per <span><a href="https://rfc-editor.org/rfc/rfc8126#section-4.1" class="relref">Section 4.1</a> of [<a href="#RFC8126" class="cite xref">RFC8126</a>]</span>; deployments
+<span class="bcp14">MAY</span> assign values from this range for experimental, vendor-specific,
+or private profiles without IANA registration, but such values <span class="bcp14">MUST NOT</span> be presented on interoperability boundaries and this specification
+makes no compatibility guarantees for them.<a href="#section-29.2-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
