@@ -1052,7 +1052,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Haynes</td>
-<td class="center">Expires 6 February 2027</td>
+<td class="center">Expires 7 February 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,12 +1065,12 @@ svg {
 <dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-08-05" class="published">5 August 2026</time>
+<time datetime="2026-08-06" class="published">6 August 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-02-06">6 February 2027</time></dd>
+<dd class="expires"><time datetime="2027-02-07">7 February 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1135,7 +1135,7 @@ discussion venue, latest rendering, and source location.<a href="#section-note.2
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 6 February 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 7 February 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -3104,12 +3104,28 @@ per-struct field prefix follows the RFC 8435 pattern of
 struct-initials plus underscore: <code>ffv2l_</code> for
 <code>ffv2_layout4</code>, <code>ffv2m_</code> for <code>ffv2_mirror4</code>, <code>ffv2ds_</code> for
 <code>ffv2_data_server4</code>, and so on.<a href="#section-5.1-7" class="pilcrow">¶</a></p>
-<p id="section-5.1-8">Document title and file abbreviation: the front-matter title is
+<p id="section-5.1-8">Every field prefix carries the full <code>ffv2</code> stem; a bare <code>f</code>
+plus struct initials is not used, so that a reader scanning
+an XDR block can tell at a glance which specification a field
+belongs to.<a href="#section-5.1-8" class="pilcrow">¶</a></p>
+<p id="section-5.1-9">Where two struct names would reduce to the same initials, the
+prefix takes one letter from each word of the struct name so
+that the prefixes stay distinct: <code>ffv2l_</code> for <code>ffv2_layout4</code>
+but <code>ffv2lu_</code> for <code>ffv2_layoutupdate4</code>, <code>ffv2lh_</code> for
+<code>ffv2_layouthint4</code>, and <code>ffv2lr_</code> for <code>ffv2_layoutreturn4</code>.
+This matters most for <code>ffv2_layout4</code> and <code>ffv2_layoutupdate4</code>,
+which both carry a field named for flags: <code>ffv2l_flags</code> is the
+<code>ffv2_flags4</code> bitmask on the layout, while <code>ffv2lu_flags</code> is
+the <code>ffv2_layoutstats_flags4</code> bitmask on a layout-statistics
+report.  The two are different types with different registries,
+and an implementation that conflates them will encode the wrong
+bitmask.<a href="#section-5.1-9" class="pilcrow">¶</a></p>
+<p id="section-5.1-10">Document title and file abbreviation: the front-matter title is
 "Parallel NFS (pNFS) Flexible File Layout Version 2" and the
 <code>abbrev</code> used in the running header is "Flex File Layout v2".
 These are document-metadata conventions and do not participate
 in the body-prose vocabulary; the running text follows the
-forms above, not the front-matter forms.<a href="#section-5.1-8" class="pilcrow">¶</a></p>
+forms above, not the front-matter forms.<a href="#section-5.1-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -5154,8 +5170,8 @@ PARITY, REPAIR, PROXY; see <a href="#sec-ffv2_ds_flags4" class="auto internal xr
           <div class="lang-xdr sourcecode" id="section-8.6-1.1">
 <pre>
    /// struct ffv2_data_protection4 {
-   ///     uint32_t fdp_data;    /* data shards (k) */
-   ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
+   ///     uint32_t ffv2dp_data;    /* data shards (k) */
+   ///     uint32_t ffv2dp_parity;  /* parity/redundancy shards (m) */
    /// };
 </pre>
 </div>
@@ -5165,8 +5181,8 @@ PARITY, REPAIR, PROXY; see <a href="#sec-ffv2_ds_flags4" class="auto internal xr
 </div>
 <p id="section-8.6-2">The ffv2_data_protection4 (in <a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 14</a>) describes
 the data protection geometry as a pair of counts: the number of data
-shards (fdp_data, also known as k) and the number of parity or
-redundancy shards (fdp_parity, also known as m).  This structure is
+shards (ffv2dp_data, also known as k) and the number of parity or
+redundancy shards (ffv2dp_parity, also known as m).  This structure is
 used in both layout hints and layout responses, and applies
 uniformly to all encoding types:<a href="#section-8.6-2" class="pilcrow">¶</a></p>
 <span id="name-example-data-protection-con"></span><div id="fig-protection-examples">
@@ -5178,8 +5194,8 @@ uniformly to all encoding types:<a href="#section-8.6-2" class="pilcrow">¶</a><
 <thead>
             <tr>
               <th class="text-left" rowspan="1" colspan="1">Protection Mode</th>
-              <th class="text-left" rowspan="1" colspan="1">fdp_data</th>
-              <th class="text-left" rowspan="1" colspan="1">fdp_parity</th>
+              <th class="text-left" rowspan="1" colspan="1">ffv2dp_data</th>
+              <th class="text-left" rowspan="1" colspan="1">ffv2dp_parity</th>
               <th class="text-left" rowspan="1" colspan="1">Total Data Servers</th>
               <th class="text-left" rowspan="1" colspan="1">Description</th>
             </tr>
@@ -5216,13 +5232,13 @@ uniformly to all encoding types:<a href="#section-8.6-2" class="pilcrow">¶</a><
           </tbody>
         </table>
 </div>
-<p id="section-8.6-4">By expressing all protection modes as (fdp_data, fdp_parity) pairs,
+<p id="section-8.6-4">By expressing all protection modes as (ffv2dp_data, ffv2dp_parity) pairs,
 a single structure serves mirroring, striping, and all erasure
 encoding types.  The encoding type (<a href="#fig-ffv2_encoding_type4" class="auto internal xref">Figure 9</a>) determines
 how the shards are encoded; the protection structure determines
 how many shards there are.<a href="#section-8.6-4" class="pilcrow">¶</a></p>
-<p id="section-8.6-5">The total number of data servers required is fdp_data + fdp_parity.
-The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
+<p id="section-8.6-5">The total number of data servers required is ffv2dp_data + ffv2dp_parity.
+The storage overhead is ffv2dp_parity / ffv2dp_data (e.g., 50% for 4+2,
 25% for 8+2).<a href="#section-8.6-5" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -5236,13 +5252,13 @@ The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2,
           <div class="lang-xdr sourcecode" id="section-8.7-1.1">
 <pre>
    /// union ffv2_coding_type_data4 switch
-   ///         (ffv2_encoding_type4 fctd_coding) {
+   ///         (ffv2_encoding_type4 ffv2ctd_coding) {
    ///     case FFV2_ENCODING_PASSTHROUGH:
-   ///         ffv2_data_protection4   fctd_protection;
+   ///         ffv2_data_protection4   ffv2ctd_protection;
    ///     case FFV2_ENCODING_REPLICATED:
-   ///         ffv2_data_protection4   fctd_protection;
+   ///         ffv2_data_protection4   ffv2ctd_protection;
    ///     default:
-   ///         ffv2_data_protection4   fctd_protection;
+   ///         ffv2_data_protection4   ffv2ctd_protection;
    /// };
 </pre>
 </div>
@@ -5265,16 +5281,16 @@ XDR at that time.<a href="#section-8.7-3" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-8.7-5.1">
             <p id="section-8.7-5.1.1">FFV2_ENCODING_PASSTHROUGH preserves the flexible file v1 layout-style notation
-for backward compatibility: fdp_data is 1 and fdp_parity is
-the number of additional copies (e.g., fdp_parity=2 for
+for backward compatibility: ffv2dp_data is 1 and ffv2dp_parity is
+the number of additional copies (e.g., ffv2dp_parity=2 for
 3-way mirroring).  The "1" data carrier is the file as
-stored; the fdp_parity additional copies are the flexible file v1 layout
+stored; the ffv2dp_parity additional copies are the flexible file v1 layout
 mirror replicas.<a href="#section-8.7-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.7-5.2">
-            <p id="section-8.7-5.2.1">FFV2_ENCODING_REPLICATED uses the N + 0 notation: fdp_data is
-the number of replicas (e.g., fdp_data=3 for 3-way
-mirroring) and fdp_parity <span class="bcp14">MUST</span> be 0.  Every replica is a
+            <p id="section-8.7-5.2.1">FFV2_ENCODING_REPLICATED uses the N + 0 notation: ffv2dp_data is
+the number of replicas (e.g., ffv2dp_data=3 for 3-way
+mirroring) and ffv2dp_parity <span class="bcp14">MUST</span> be 0.  Every replica is a
 full, independent data carrier; mirroring carries no
 parity reconstruction.<a href="#section-8.7-5.2.1" class="pilcrow">¶</a></p>
 </li>
@@ -5283,7 +5299,7 @@ parity reconstruction.<a href="#section-8.7-5.2.1" class="pilcrow">¶</a></p>
 FFV2_ENCODING_MOJETTE_SYSTEMATIC,
 FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, and any future types
 subsequently registered in the IANA registry established by
-this document) use fdp_data &gt;= 2 and fdp_parity &gt;= 1.<a href="#section-8.7-5.3.1" class="pilcrow">¶</a></p>
+this document) use ffv2dp_data &gt;= 2 and ffv2dp_parity &gt;= 1.<a href="#section-8.7-5.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -5615,7 +5631,7 @@ with a different list to discover the overlapping set.<a href="#section-8.11-4.2
 <dt id="section-8.11-4.3">ffv2lh_preferred_protection</dt>
           <dd style="margin-left: 1.5em" id="section-8.11-4.4">
             <p id="section-8.11-4.4.1">The client's preferred data protection geometry as a
-(fdp_data, fdp_parity) pair.  The server <span class="bcp14">SHOULD</span> honor this hint but
+(ffv2dp_data, ffv2dp_parity) pair.  The server <span class="bcp14">SHOULD</span> honor this hint but
 <span class="bcp14">MAY</span> override it based on server-side policy.  A server that manages
 data protection via administrative policy (e.g., per-directory or
 per-export objectives) will typically ignore this hint and return the
@@ -5665,18 +5681,18 @@ ffv2lh_supported_types = { FFV2_ENCODING_PASSTHROUGH,
                          FFV2_ENCODING_REPLICATED,
                          FFV2_ENCODING_MOJETTE_SYSTEMATIC,
                          FFV2_ENCODING_RS_VANDERMONDE }
-ffv2lh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
+ffv2lh_preferred_protection = { ffv2dp_data = 8, ffv2dp_parity = 2 }
 ffv2lh_stripe_unit          = 1048576
 ffv2lh_expected_file_size   = 17179869184
 </pre><a href="#section-8.11-7" class="pilcrow">¶</a>
 </div>
 <p id="section-8.11-8">A server with a policy of RS 4+2 for this directory would ignore
 both encoding hints and return a layout with
-FFV2_ENCODING_RS_VANDERMONDE and (fdp_data=4, fdp_parity=2).  A
+FFV2_ENCODING_RS_VANDERMONDE and (ffv2dp_data=4, ffv2dp_parity=2).  A
 server without erasure coding might return FFV2_ENCODING_REPLICATED
-with (fdp_data=3, fdp_parity=0) for 3-way mirroring with
+with (ffv2dp_data=3, ffv2dp_parity=0) for 3-way mirroring with
 per-chunk integrity, or FFV2_ENCODING_PASSTHROUGH with
-(fdp_data=1, fdp_parity=2) for 3-way flexible file v1 layout-compatible
+(ffv2dp_data=1, ffv2dp_parity=2) for 3-way flexible file v1 layout-compatible
 mirroring without per-chunk integrity.<a href="#section-8.11-8" class="pilcrow">¶</a></p>
 <p id="section-8.11-9">A server may also use ffv2lh_expected_file_size as a striping
 gate: a deployment that wants to avoid the runway and bookkeeping
@@ -5848,7 +5864,7 @@ ffv2m_striping and is detailed in <a href="#sec-striping" class="auto internal x
 <p id="section-8.11.1-8">Stripe unit size and stripe count <span class="bcp14">MAY</span> differ between mirrors in
 the same layout segment.  In particular, mirrors of different
 encoding types (see <a href="#sec-heterogeneous-mirrors" class="auto internal xref">Section 8.1.1</a>) have stripe
-counts determined by their respective (fdp_data, fdp_parity)
+counts determined by their respective (ffv2dp_data, ffv2dp_parity)
 protection structures, and there is no requirement that those
 structures match across mirrors.  Each mirror is self-consistent
 internally; cross-mirror coherence is at the byte level (every
@@ -11886,8 +11902,8 @@ operations.<a href="#section-14.1.1-5" class="pilcrow">¶</a></p>
 ff_io_latency4 (see <a href="#fig-ff_io_latency4" class="auto internal xref">Figure 37</a>).  As seen in ff_layoutupdate4
 (see <a href="#sec-ff_layoutupdate4" class="auto internal xref">Section 14.2.2</a>), READ and WRITE operations are
 aggregated separately.  READ operations are used for the ff_io_latency4
-ffv2l_read.  Both WRITE and COMMIT operations are used for the
-ff_io_latency4 ffv2l_write.  "Requested" counters track what the
+ffv2lu_read.  Both WRITE and COMMIT operations are used for the
+ff_io_latency4 ffv2lu_write.  "Requested" counters track what the
 client is attempting to do, and "completed" counters track what was
 done.  There is no requirement that the client only report completed
 results that have matching requested results from the reported
@@ -11925,12 +11941,12 @@ data.<a href="#section-14.2.1-5" class="pilcrow">¶</a></p>
    /// typedef uint32_t   ffv2_layoutstats_flags4;
    ///
    /// struct ffv2_layoutupdate4 {
-   ///         netaddr4                ffv2l_addr;
-   ///         nfs_fh4                 ffv2l_fhandle;
-   ///         ffv2_io_latency4        ffv2l_read;
-   ///         ffv2_io_latency4        ffv2l_write;
-   ///         nfstime4                ffv2l_duration;
-   ///         ffv2_layoutstats_flags4 ffv2l_flags;
+   ///         netaddr4                ffv2lu_addr;
+   ///         nfs_fh4                 ffv2lu_fhandle;
+   ///         ffv2_io_latency4        ffv2lu_read;
+   ///         ffv2_io_latency4        ffv2lu_write;
+   ///         nfstime4                ffv2lu_duration;
+   ///         ffv2_layoutstats_flags4 ffv2lu_flags;
    /// };
    ///
 </pre>
@@ -11939,12 +11955,12 @@ data.<a href="#section-14.2.1-5" class="pilcrow">¶</a></p>
 <a href="#name-ff_layoutupdate4-2" class="selfRef">ff_layoutupdate4</a>
             </figcaption></figure>
 </div>
-<p id="section-14.2.2-2">ffv2l_addr differentiates which network address the client is connected
-to on the storage device.  In the case of multipathing, ffv2l_fhandle
-indicates which read-only copy was selected. ffv2l_read and ffv2l_write
+<p id="section-14.2.2-2">ffv2lu_addr differentiates which network address the client is connected
+to on the storage device.  In the case of multipathing, ffv2lu_fhandle
+indicates which read-only copy was selected. ffv2lu_read and ffv2lu_write
 convey the latencies for both READ and WRITE operations, respectively.
-ffv2l_duration is used to indicate the time period over which the
-statistics were collected.  ffv2l_flags is a 32-bit bitmask
+ffv2lu_duration is used to indicate the time period over which the
+statistics were collected.  ffv2lu_flags is a 32-bit bitmask
 reporting per-report properties; when FFV2_LAYOUTSTATS_FLAGS_LOCAL
 is set, the I/O was serviced by the client's cache.  This flag
 allows the client to inform the metadata server about "hot" access
@@ -12016,9 +12032,9 @@ ffv2is_read.ii_count, ffv2is_read.ii_bytes, ffv2is_write.ii_count, and
 ffv2is_write.ii_bytes represent the number of contiguous READ and
 WRITE I/Os and the respective aggregate number of bytes transferred
 within the reported byte range.<a href="#section-14.2.3-6" class="pilcrow">¶</a></p>
-<p id="section-14.2.3-7">The combination of ffv2is_deviceid and ffv2l_addr uniquely identifies
+<p id="section-14.2.3-7">The combination of ffv2is_deviceid and ffv2lu_addr uniquely identifies
 both the storage path and the network route to it.  Finally,
-ffv2l_fhandle allows the metadata server to differentiate between
+ffv2lu_fhandle allows the metadata server to differentiate between
 multiple read-only copies of the file on the same storage device.<a href="#section-14.2.3-7" class="pilcrow">¶</a></p>
 </section>
 </div>

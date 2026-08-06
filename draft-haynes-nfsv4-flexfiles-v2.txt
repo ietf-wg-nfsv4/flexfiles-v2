@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                           5 August 2026
-Expires: 6 February 2027
+Intended status: Standards Track                           6 August 2026
+Expires: 7 February 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 February 2027.
+   This Internet-Draft will expire on 7 February 2027.
 
 Copyright Notice
 
@@ -1051,6 +1051,22 @@ Table of Contents
    the RFC 8435 pattern of struct-initials plus underscore: ffv2l_ for
    ffv2_layout4, ffv2m_ for ffv2_mirror4, ffv2ds_ for ffv2_data_server4,
    and so on.
+
+   Every field prefix carries the full ffv2 stem; a bare f plus struct
+   initials is not used, so that a reader scanning an XDR block can tell
+   at a glance which specification a field belongs to.
+
+   Where two struct names would reduce to the same initials, the prefix
+   takes one letter from each word of the struct name so that the
+   prefixes stay distinct: ffv2l_ for ffv2_layout4 but ffv2lu_ for
+   ffv2_layoutupdate4, ffv2lh_ for ffv2_layouthint4, and ffv2lr_ for
+   ffv2_layoutreturn4.  This matters most for ffv2_layout4 and
+   ffv2_layoutupdate4, which both carry a field named for flags:
+   ffv2l_flags is the ffv2_flags4 bitmask on the layout, while
+   ffv2lu_flags is the ffv2_layoutstats_flags4 bitmask on a layout-
+   statistics report.  The two are different types with different
+   registries, and an implementation that conflates them will encode the
+   wrong bitmask.
 
    Document title and file abbreviation: the front-matter title is
    "Parallel NFS (pNFS) Flexible File Layout Version 2" and the abbrev
@@ -2726,60 +2742,62 @@ Table of Contents
 8.6.  ffv2_data_protection4
 
       /// struct ffv2_data_protection4 {
-      ///     uint32_t fdp_data;    /* data shards (k) */
-      ///     uint32_t fdp_parity;  /* parity/redundancy shards (m) */
+      ///     uint32_t ffv2dp_data;    /* data shards (k) */
+      ///     uint32_t ffv2dp_parity;  /* parity/redundancy shards (m) */
       /// };
 
                     Figure 14: The ffv2_data_protection4
 
    The ffv2_data_protection4 (in Figure 14) describes the data
    protection geometry as a pair of counts: the number of data shards
-   (fdp_data, also known as k) and the number of parity or redundancy
-   shards (fdp_parity, also known as m).  This structure is used in both
-   layout hints and layout responses, and applies uniformly to all
+   (ffv2dp_data, also known as k) and the number of parity or redundancy
+   shards (ffv2dp_parity, also known as m).  This structure is used in
+   both layout hints and layout responses, and applies uniformly to all
    encoding types:
 
-   +=============+==========+============+============+===============+
-   | Protection  | fdp_data | fdp_parity | Total Data | Description   |
-   | Mode        |          |            | Servers    |               |
-   +=============+==========+============+============+===============+
-   | Mirroring   | 1        | 2          | 3          | 3 copies, no  |
-   | (3-way)     |          |            |            | encoding      |
-   +-------------+----------+------------+------------+---------------+
-   | Striping    | 6        | 0          | 6          | Parallel I/O, |
-   | (6-way)     |          |            |            | no redundancy |
-   +-------------+----------+------------+------------+---------------+
-   | RS          | 4        | 2          | 6          | Tolerates 2   |
-   | Vandermonde |          |            |            | data-server   |
-   | 4+2         |          |            |            | failures      |
-   +-------------+----------+------------+------------+---------------+
-   | Mojette-sys | 8        | 2          | 10         | Tolerates 2   |
-   | 8+2         |          |            |            | data-server   |
-   |             |          |            |            | failures      |
-   +-------------+----------+------------+------------+---------------+
+    +=============+=============+===============+=======+=============+
+    | Protection  | ffv2dp_data | ffv2dp_parity |Total  | Description |
+    | Mode        |             |               |Data   |             |
+    |             |             |               |Servers|             |
+    +=============+=============+===============+=======+=============+
+    | Mirroring   | 1           | 2             |3      | 3 copies,   |
+    | (3-way)     |             |               |       | no encoding |
+    +-------------+-------------+---------------+-------+-------------+
+    | Striping    | 6           | 0             |6      | Parallel I/ |
+    | (6-way)     |             |               |       | O, no       |
+    |             |             |               |       | redundancy  |
+    +-------------+-------------+---------------+-------+-------------+
+    | RS          | 4           | 2             |6      | Tolerates 2 |
+    | Vandermonde |             |               |       | data-server |
+    | 4+2         |             |               |       | failures    |
+    +-------------+-------------+---------------+-------+-------------+
+    | Mojette-sys | 8           | 2             |10     | Tolerates 2 |
+    | 8+2         |             |               |       | data-server |
+    |             |             |               |       | failures    |
+    +-------------+-------------+---------------+-------+-------------+
 
-             Table 2: Example data protection configurations
+              Table 2: Example data protection configurations
 
-   By expressing all protection modes as (fdp_data, fdp_parity) pairs, a
-   single structure serves mirroring, striping, and all erasure encoding
-   types.  The encoding type (Figure 9) determines how the shards are
-   encoded; the protection structure determines how many shards there
-   are.
+   By expressing all protection modes as (ffv2dp_data, ffv2dp_parity)
+   pairs, a single structure serves mirroring, striping, and all erasure
+   encoding types.  The encoding type (Figure 9) determines how the
+   shards are encoded; the protection structure determines how many
+   shards there are.
 
-   The total number of data servers required is fdp_data + fdp_parity.
-   The storage overhead is fdp_parity / fdp_data (e.g., 50% for 4+2, 25%
-   for 8+2).
+   The total number of data servers required is ffv2dp_data +
+   ffv2dp_parity.  The storage overhead is ffv2dp_parity / ffv2dp_data
+   (e.g., 50% for 4+2, 25% for 8+2).
 
 8.7.  ffv2_coding_type_data4
 
       /// union ffv2_coding_type_data4 switch
-      ///         (ffv2_encoding_type4 fctd_coding) {
+      ///         (ffv2_encoding_type4 ffv2ctd_coding) {
       ///     case FFV2_ENCODING_PASSTHROUGH:
-      ///         ffv2_data_protection4   fctd_protection;
+      ///         ffv2_data_protection4   ffv2ctd_protection;
       ///     case FFV2_ENCODING_REPLICATED:
-      ///         ffv2_data_protection4   fctd_protection;
+      ///         ffv2_data_protection4   ffv2ctd_protection;
       ///     default:
-      ///         ffv2_data_protection4   fctd_protection;
+      ///         ffv2_data_protection4   ffv2ctd_protection;
       /// };
 
                    Figure 15: The ffv2_coding_type_data4
@@ -2799,22 +2817,22 @@ Table of Contents
    The (data, parity) tuple is interpreted per encoding type:
 
    *  FFV2_ENCODING_PASSTHROUGH preserves the flexible file v1 layout-
-      style notation for backward compatibility: fdp_data is 1 and
-      fdp_parity is the number of additional copies (e.g., fdp_parity=2
-      for 3-way mirroring).  The "1" data carrier is the file as stored;
-      the fdp_parity additional copies are the flexible file v1 layout
-      mirror replicas.
+      style notation for backward compatibility: ffv2dp_data is 1 and
+      ffv2dp_parity is the number of additional copies (e.g.,
+      ffv2dp_parity=2 for 3-way mirroring).  The "1" data carrier is the
+      file as stored; the ffv2dp_parity additional copies are the
+      flexible file v1 layout mirror replicas.
 
-   *  FFV2_ENCODING_REPLICATED uses the N + 0 notation: fdp_data is the
-      number of replicas (e.g., fdp_data=3 for 3-way mirroring) and
-      fdp_parity MUST be 0.  Every replica is a full, independent data
-      carrier; mirroring carries no parity reconstruction.
+   *  FFV2_ENCODING_REPLICATED uses the N + 0 notation: ffv2dp_data is
+      the number of replicas (e.g., ffv2dp_data=3 for 3-way mirroring)
+      and ffv2dp_parity MUST be 0.  Every replica is a full, independent
+      data carrier; mirroring carries no parity reconstruction.
 
    *  Erasure encoding types (FFV2_ENCODING_RS_VANDERMONDE,
       FFV2_ENCODING_MOJETTE_SYSTEMATIC,
       FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC, and any future types
       subsequently registered in the IANA registry established by this
-      document) use fdp_data >= 2 and fdp_parity >= 1.
+      document) use ffv2dp_data >= 2 and ffv2dp_parity >= 1.
 
 8.8.  ffv2_stripes4
 
@@ -3078,11 +3096,12 @@ Table of Contents
       different list to discover the overlapping set.
 
    ffv2lh_preferred_protection  The client's preferred data protection
-      geometry as a (fdp_data, fdp_parity) pair.  The server SHOULD
-      honor this hint but MAY override it based on server-side policy.
-      A server that manages data protection via administrative policy
-      (e.g., per-directory or per-export objectives) will typically
-      ignore this hint and return the geometry dictated by policy.
+      geometry as a (ffv2dp_data, ffv2dp_parity) pair.  The server
+      SHOULD honor this hint but MAY override it based on server-side
+      policy.  A server that manages data protection via administrative
+      policy (e.g., per-directory or per-export objectives) will
+      typically ignore this hint and return the geometry dictated by
+      policy.
 
    ffv2lh_stripe_unit  The client's preferred stripe unit size in bytes.
       A value of zero means "no hint" -- the metadata server selects a
@@ -3120,17 +3139,17 @@ Table of Contents
                             FFV2_ENCODING_REPLICATED,
                             FFV2_ENCODING_MOJETTE_SYSTEMATIC,
                             FFV2_ENCODING_RS_VANDERMONDE }
-   ffv2lh_preferred_protection = { fdp_data = 8, fdp_parity = 2 }
+   ffv2lh_preferred_protection = { ffv2dp_data = 8, ffv2dp_parity = 2 }
    ffv2lh_stripe_unit          = 1048576
    ffv2lh_expected_file_size   = 17179869184
 
    A server with a policy of RS 4+2 for this directory would ignore both
    encoding hints and return a layout with FFV2_ENCODING_RS_VANDERMONDE
-   and (fdp_data=4, fdp_parity=2).  A server without erasure coding
-   might return FFV2_ENCODING_REPLICATED with (fdp_data=3, fdp_parity=0)
-   for 3-way mirroring with per-chunk integrity, or
-   FFV2_ENCODING_PASSTHROUGH with (fdp_data=1, fdp_parity=2) for 3-way
-   flexible file v1 layout-compatible mirroring without per-chunk
+   and (ffv2dp_data=4, ffv2dp_parity=2).  A server without erasure
+   coding might return FFV2_ENCODING_REPLICATED with (ffv2dp_data=3,
+   ffv2dp_parity=0) for 3-way mirroring with per-chunk integrity, or
+   FFV2_ENCODING_PASSTHROUGH with (ffv2dp_data=1, ffv2dp_parity=2) for
+   3-way flexible file v1 layout-compatible mirroring without per-chunk
    integrity.
 
    A server may also use ffv2lh_expected_file_size as a striping gate: a
@@ -3276,11 +3295,11 @@ Table of Contents
    Stripe unit size and stripe count MAY differ between mirrors in the
    same layout segment.  In particular, mirrors of different encoding
    types (see Section 8.1.1) have stripe counts determined by their
-   respective (fdp_data, fdp_parity) protection structures, and there is
-   no requirement that those structures match across mirrors.  Each
-   mirror is self-consistent internally; cross-mirror coherence is at
-   the byte level (every mirror represents the same file bytes), not at
-   the stripe-geometry level.
+   respective (ffv2dp_data, ffv2dp_parity) protection structures, and
+   there is no requirement that those structures match across mirrors.
+   Each mirror is self-consistent internally; cross-mirror coherence is
+   at the byte level (every mirror represents the same file bytes), not
+   at the stripe-geometry level.
 
    The ffv2l_mirrors field represents an array of state information for
    each mirrored copy of the current layout segment.  Each element is
@@ -7413,9 +7432,9 @@ Table of Contents
    Both operation counts and bytes transferred are kept in the
    ff_io_latency4 (see Figure 37).  As seen in ff_layoutupdate4 (see
    Section 14.2.2), READ and WRITE operations are aggregated separately.
-   READ operations are used for the ff_io_latency4 ffv2l_read.  Both
+   READ operations are used for the ff_io_latency4 ffv2lu_read.  Both
    WRITE and COMMIT operations are used for the ff_io_latency4
-   ffv2l_write.  "Requested" counters track what the client is
+   ffv2lu_write.  "Requested" counters track what the client is
    attempting to do, and "completed" counters track what was done.
    There is no requirement that the client only report completed results
    that have matching requested results from the reported period.
@@ -7447,25 +7466,25 @@ Table of Contents
       /// typedef uint32_t   ffv2_layoutstats_flags4;
       ///
       /// struct ffv2_layoutupdate4 {
-      ///         netaddr4                ffv2l_addr;
-      ///         nfs_fh4                 ffv2l_fhandle;
-      ///         ffv2_io_latency4        ffv2l_read;
-      ///         ffv2_io_latency4        ffv2l_write;
-      ///         nfstime4                ffv2l_duration;
-      ///         ffv2_layoutstats_flags4 ffv2l_flags;
+      ///         netaddr4                ffv2lu_addr;
+      ///         nfs_fh4                 ffv2lu_fhandle;
+      ///         ffv2_io_latency4        ffv2lu_read;
+      ///         ffv2_io_latency4        ffv2lu_write;
+      ///         nfstime4                ffv2lu_duration;
+      ///         ffv2_layoutstats_flags4 ffv2lu_flags;
       /// };
       ///
 
                         Figure 38: ff_layoutupdate4
 
-   ffv2l_addr differentiates which network address the client is
+   ffv2lu_addr differentiates which network address the client is
    connected to on the storage device.  In the case of multipathing,
-   ffv2l_fhandle indicates which read-only copy was selected. ffv2l_read
-   and ffv2l_write convey the latencies for both READ and WRITE
-   operations, respectively. ffv2l_duration is used to indicate the time
-   period over which the statistics were collected.  ffv2l_flags is a
-   32-bit bitmask reporting per-report properties; when
-   FFV2_LAYOUTSTATS_FLAGS_LOCAL is set, the I/O was serviced by the
+   ffv2lu_fhandle indicates which read-only copy was selected.
+   ffv2lu_read and ffv2lu_write convey the latencies for both READ and
+   WRITE operations, respectively. ffv2lu_duration is used to indicate
+   the time period over which the statistics were collected.
+   ffv2lu_flags is a 32-bit bitmask reporting per-report properties;
+   when FFV2_LAYOUTSTATS_FLAGS_LOCAL is set, the I/O was serviced by the
    client's cache.  This flag allows the client to inform the metadata
    server about "hot" access to a file it would not normally be allowed
    to report on.  Unassigned bits are reserved for future revisions;
@@ -7521,10 +7540,11 @@ Table of Contents
    WRITE I/Os and the respective aggregate number of bytes transferred
    within the reported byte range.
 
-   The combination of ffv2is_deviceid and ffv2l_addr uniquely identifies
-   both the storage path and the network route to it.  Finally,
-   ffv2l_fhandle allows the metadata server to differentiate between
-   multiple read-only copies of the file on the same storage device.
+   The combination of ffv2is_deviceid and ffv2lu_addr uniquely
+   identifies both the storage path and the network route to it.
+   Finally, ffv2lu_fhandle allows the metadata server to differentiate
+   between multiple read-only copies of the file on the same storage
+   device.
 
 14.3.  ffv2_layoutreturn4
 
