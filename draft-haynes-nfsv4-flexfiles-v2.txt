@@ -2065,7 +2065,7 @@ Table of Contents
        * synthetic-uid model of RFC 8435: the client presents an
        * anonymous stateid and a synthetic uid issued by the
        * metadata server, and the storage device validates access
-       * via that synthetic uid (see {{sec-Fencing-Clients}}).  The constant
+       * via that synthetic uid.  The constant
        * FFV2_COUPLING_SYNTHETIC_UIDS is provided as a
        * documentation aid.
        *
@@ -2078,13 +2078,13 @@ Table of Contents
        *
        * FFV2_COUPLING_TRUSTED_STATEID indicates that the storage
        * device implements the TRUST_STATEID, REVOKE_STATEID, and
-       * BULK_REVOKE_STATEID operations defined in
-       * {{sec-tight-coupling-control}}.
+       * BULK_REVOKE_STATEID operations defined in the Tight
+       * Coupling Control Protocol section.
        *
        * The two tight coupling flags are orthogonal: a storage
-       * device MAY set either, both, or neither.  See
-       * {{sec-tight-coupling-control}} for the semantics of each
-       * combination.
+       * device MAY set either, both, or neither.  See the Tight
+       * Coupling Control Protocol section for the semantics of
+       * each combination.
        */
       const FFV2_COUPLING_SYNTHETIC_UIDS  = 0x00000000;
       const FFV2_COUPLING_TIGHTLY_COUPLED = 0x00000001;
@@ -2768,7 +2768,7 @@ Table of Contents
 
       /// struct ffv2_data_protection4 {
       ///     uint32_t ffv2dp_data;    /* data shards (k) */
-      ///     uint32_t ffv2dp_parity;  /* parity/redundancy shards (m) */
+      ///     uint32_t ffv2dp_parity;  /* parity shards (m) */
       /// };
 
                     Figure 14: The ffv2_data_protection4
@@ -6266,40 +6266,40 @@ Table of Contents
    that may be held on it.  The lock has its own state machine, shown in
    Figure 33.
 
-                          CHUNK_LOCK
-                       (writer acquires)
-        +----------+ ----------------> +-------------------+
-        | UNLOCKED |                   | LOCKED by writer  |
-        +----------+ <---------------- +-------------------+
-             ^           CHUNK_UNLOCK            |
-             |          (writer releases)        |
-             |                                   | REVOKE_STATEID
-             |                                   |  (metadata server
-             |                                   |   invalidates writer
-             |                                   |   stateid; lock
-             |                                   |   transfers to
-             |                                   |   metadata-server
-             |                                   |   escrow)
-             |                                   v
-             |        CHUNK_UNLOCK     +-------------------+
-             |       or CHUNK_REPAIRED |     LOCKED by     |
-             |      (repair actor     |  metadata-server  |
-             |       releases after    |      escrow       |
-             |       repair completes) +-------------------+
-             |                                   |
-             |                                   | CHUNK_LOCK with
-             |                                   | CHUNK_LOCK_FLAGS_ADOPT
-             |                                   |  (repair actor
-             |                                   |   adopts metadata-
-             |                                   |   server escrow
-             |                                   |   ownership per
-             |                                   |   CB_CHUNK_REPAIR)
-             |                                   v
-             |                         +-------------------+
-             +------------------------ | LOCKED by repair  |
-                                       +-------------------+
+                         CHUNK_LOCK
+                      (writer acquires)
+       +----------+ ----------------> +-------------------+
+       | UNLOCKED |                   | LOCKED by writer  |
+       +----------+ <---------------- +-------------------+
+            ^           CHUNK_UNLOCK            |
+            |          (writer releases)        |
+            |                                   | REVOKE_STATEID
+            |                                   |  (metadata server
+            |                                   |   invalidates writer
+            |                                   |   stateid; lock
+            |                                   |   transfers to
+            |                                   |   metadata-server
+            |                                   |   escrow)
+            |                                   v
+            |        CHUNK_UNLOCK     +-------------------+
+            |       or CHUNK_REPAIRED |     LOCKED by     |
+            |      (repair actor     |  metadata-server  |
+            |       releases after    |      escrow       |
+            |       repair completes) +-------------------+
+            |                                   |
+            |                                   | CHUNK_LOCK with
+            |                                   | CHUNK_LOCK_FLAGS_ADOPT
+            |                                   |  (repair actor
+            |                                   |   adopts metadata-
+            |                                   |   server escrow
+            |                                   |   ownership per
+            |                                   |   CB_CHUNK_REPAIR)
+            |                                   v
+            |                         +-------------------+
+            +------------------------ | LOCKED by repair  |
+                                      +-------------------+
 
-          Figure 33: Chunk lock ownership on the data server
+           Figure 33: Chunk lock ownership on the data server
 
    The lock state machine is orthogonal to the chunk lifecycle in
    Figure 32: a chunk in any of EMPTY, PENDING, FINALIZED, or COMMITTED
@@ -7624,8 +7624,6 @@ Table of Contents
 
                          Figure 42: layouthint4 v1
 
-                             {{fig-layouthint4-v1}}
-
    The layouthint4 structure is used by the client to pass a hint about
    the type of layout it would like created for a particular file.  If
    the loh_type layout type is LAYOUT4_FLEX_FILES, then the loh_body
@@ -8417,7 +8415,7 @@ Table of Contents
                                     per chunk)
 
      The checksum block (cs_algorithm + cs_value_len + cs_value)
-     is the XDR encoding of one checksum4 ({{fig-checksum4}}).
+     is the XDR encoding of one checksum4.
      For CHECKSUM_ALG_NONE the cs_value_len is zero and the
      payload follows immediately after byte 19.  The per-chunk
      framing (bytes 12 onward) repeats for each chunk in the
@@ -9121,7 +9119,9 @@ Table of Contents
       ///  OP_CHUNK_WRITE         = 87,
       ///  OP_CHUNK_WRITE_REPAIR  = 88,
       ///
-      /// /* metadata-server-to-data-server control-plane operations for tight coupling */
+      /// /* metadata-server-to-data-server control-plane
+      ///  * operations for tight coupling
+      ///  */
       ///
       ///  OP_TRUST_STATEID       = 89,
       ///  OP_REVOKE_STATEID      = 90,
@@ -12642,7 +12642,8 @@ Table of Contents
       ///     uint64_t             ceta_expected_prior_epoch;
       ///     uint64_t             ceta_new_epoch;
       ///     proof_profile_id4    ceta_proof_profile;
-      ///     opaque               ceta_proof_data<CETA_INCARNATION_PROOF_MAX4>;
+      ///     opaque
+      ///         ceta_proof_data<CETA_INCARNATION_PROOF_MAX4>;
       /// };
 
                Figure 109: XDR for CHUNK_ESCROW_TAKEOVER4args
@@ -14467,8 +14468,8 @@ Interoperability and Benchmarks
    has been demonstrated against the reffs metadata server.  In
    addition, the Mojette encoders in this document have been cross-
    verified against an independent Mojette implementation with byte-
-   identical output on the FFV2_ENCODING_MOJETTE_SYSTEMATIC and
-   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC surfaces.
+   identical output for FFV2_ENCODING_MOJETTE_SYSTEMATIC and
+   FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC.
 
    The benchmark suite is now organized to distinguish two costs that
    were previously conflated in a single-host Docker measurement:
