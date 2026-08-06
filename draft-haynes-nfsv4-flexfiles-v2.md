@@ -899,7 +899,7 @@ these issues.  To implement the tightly coupled model, a control protocol
 has to be defined.  As the flexible file v2 layout imposes no special
 requirements on the client, the control protocol will need to provide:
 
-1. management of both security and LAYOUTCOMMITs and
+1. management of both security and LAYOUTCOMMITs; and
 
 2. a global stateid model and management of these stateids.
 

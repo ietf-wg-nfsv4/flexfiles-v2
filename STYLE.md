@@ -136,11 +136,14 @@ in the tree are all inflected forms.
 and is kept, as is the idiom "attack surface" and the adjective meaning
 superficial ("the surface complaint … the structural objection").
 
-The **noun** is not. "The fore-channel surface", "the security surface",
-"the proxy server surface" — each names a countable thing that a plainer
-word names better, and the plainer sentence is usually shorter. So is
-the intransitive ("does not surface on the wire" → "does not appear on
-the wire"). Sweep for it; see §11. (`f4ddd3a1`, `98c0aa57`)
+The **noun** is banned by the table above, and so is the intransitive
+("does not surface on the wire" → "does not appear on the wire").
+
+`d0ab1060` retired 17 noun sites and the rule has been in the table ever
+since — yet six more had accumulated by the next audit: the fore-channel
+surface, the client-facing surface, the security surface, the proxy
+server surface, and a plural reading as a verb. A banned word with no
+sweep behind it comes back. §11 has the sweep. (`f4ddd3a1`, `98c0aa57`)
 
 ### 3.2 Naming register
 
@@ -290,6 +293,47 @@ property rather than a registry category ("systematic encodings").
 Replace `(a)`/`(b)`/`(c)` letter labels with named sub-cases — sibling
 entries each having an "(a)" makes cross-references ambiguous. Fix the
 referring prose too. (`37540dfc`)
+
+### 5.5 Terminal punctuation in ordered lists
+
+Punctuate by grammar, not by taste. Read the lead-in and the first item
+together and ask whether they form one sentence.
+
+**Stem-completing** — the lead-in ends in a colon and each item is a
+predicate or phrase that finishes it, so the whole list is one sentence.
+Lowercase each item, semicolon after each, `and` before the last,
+period on the last:
+
+```
+For each new or refreshed layout segment, the metadata server:
+
+1. chooses the layout stateid (as it would without tight coupling);
+2. identifies the trusted stateid capable storage devices …; and
+3. fans out TRUST_STATEID to each such storage device ….
+```
+
+**Independent** — each item has its own subject, or runs to more than
+one sentence. Capitalize and end every item with a period. The
+five-step abort sequence in the proxy-server draft is the worked
+example: each step opens with a title sentence and continues with
+`MUST` prose.
+
+Two tells that you have the wrong one:
+
+- An item that already contains a semicolon cannot be semicolon-joined
+  — the reader cannot see which one separates items. Make the list
+  independent instead. (`b5c36333`)
+- A stem-completing item whose tail is a parenthetical aside about
+  another document is not a step. Lift it to a paragraph after the
+  list, then punctuate what remains.
+
+Capitalized items with no terminal punctuation are neither, and are the
+state a list drifts into. Nine such items sat in one proxy-server
+section, and nine more across two delta-writes algorithm lists;
+everything else in the family already followed the rule above.
+
+The check: an ordered item should end with `;`, `; and`, or `.`
+A bare `and` at the end of an item wants `; and`.
 
 ### 5.4 Unnumbered sections
 
@@ -446,6 +490,45 @@ grep -nE '[a-z]-$'                                 $D   # line ends mid-compound
 grep -nE '^\s*[-*] \*\*'                           $D   # bullet-with-bold
 grep -niE 'surfac' $D | grep -viE 'attack surface'      # see below
 ```
+
+### Unterminated ordered-list items
+
+Per §5.5, every ordered item ends with `;`, `; and`, or `.` — this
+walks the items and prints the ones that do not (skipping fences):
+
+```sh
+python3 - "$D" <<'EOF'
+import re, sys
+lines = open(sys.argv[1]).read().split('\n')
+fence = False; items = []; cur = None
+for n, l in enumerate(lines, 1):
+    if l.startswith('~~~'):
+        fence = not fence; continue
+    if fence:
+        continue
+    m = re.match(r'^\d+\.\s+(\S.*)$', l)
+    if m:
+        if cur: items.append(cur)
+        cur = [n, m.group(1)]
+    elif cur is not None:
+        if not l.strip():
+            continue                       # blank line inside an item
+        if re.match(r'^\s+\S', l): cur[1] += ' ' + l.strip()
+        else: items.append(cur); cur = None
+if cur: items.append(cur)
+for n, t in items:
+    if not t.rstrip().endswith(('.', '.)', ';', '; and')):
+        print(f"L{n}: {t[:70]}")
+EOF
+```
+
+Two false positives to expect. A multi-paragraph item must not be closed
+by its own blank line — hence the `continue` above; without it every
+item with a nested fence or a second paragraph reports as unterminated.
+And a wrapped decimal opening a line ("… 250 >\n100.  Because …") matches
+the item pattern. kramdown does not mis-render that one — a continuation
+line inside a paragraph never starts a list — so it needs no fix; ignore
+it, or rewrap the prose to stop it recurring.
 
 ### Unexpanded abbreviations
 
