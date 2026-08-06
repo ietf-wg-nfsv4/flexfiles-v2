@@ -434,6 +434,48 @@ grep -nE '[a-z]-$'                                 $D   # line ends mid-compound
 grep -nE '^\s*[-*] \*\*'                           $D   # bullet-with-bold
 ```
 
+### Unexpanded abbreviations
+
+The greps above catch the *known* banned short forms. New ones keep
+arriving from adjacent contexts — `CSM` leaked out of a section anchor,
+`SB` and `WG` out of implementation and meeting-room vocabulary — so
+sweep for all-caps tokens in prose rather than waiting to read one:
+
+```sh
+python3 - "$D" <<'EOF'
+import re, sys
+from collections import Counter
+lines = open(sys.argv[1]).read().split('\n')
+fence = False; count = Counter(); first = {}
+for n, l in enumerate(lines, 1):
+    if l.startswith('~~~'):
+        fence = not fence; continue
+    if fence or l.lstrip().startswith(('|', '///')):
+        continue                      # artwork, tables, XDR
+    s = re.sub(r'`[^`]*`', '', l)     # drop code spans
+    s = re.sub(r'\{\{[^}]*\}\}', '', s)  # drop xrefs and citations
+    for m in re.finditer(r'(?<![A-Za-z_/0-9])[A-Z]{2,6}(?:es|s)?(?![A-Za-z_0-9])', s):
+        count[m.group(0)] += 1
+        first.setdefault(m.group(0), n)
+for t, k in count.most_common():
+    print(f"{t:10} {k:4}  first@{first[t]}")
+EOF
+```
+
+Triage the output; most hits are expected:
+
+- BCP 14 keywords: `MUST`, `MAY`, `SHOULD`, `NOT`.
+- Operation, enum, and flag names: `OPEN`, `MOVE`, `CHUNK`, `PUTFH`,
+  `COMMIT`, `DONE`, …
+- Terms RFCs do not expand: `NFS`, `RPC`, `XDR`, `RFC`, `IANA`, `IETF`,
+  `TCP`, `DNS`, `POSIX`, `ACL`, `SSD`, `HDD`, `SHA`.
+
+Anything else is a real abbreviation and needs §3.4 treatment: expand at
+first **inline** use — a heading does not count — and cite the defining
+section or RFC where one exists. An abbreviation used only inside ASCII
+figures is fine if it is defined in Definitions; `PS` is the worked
+example of that split.
+
 Then build — the rendering check is part of the convention, not
 incidental. Every commit in this series records a green run:
 
