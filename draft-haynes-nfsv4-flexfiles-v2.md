@@ -164,7 +164,7 @@ discussion venue, latest rendering, and source location.
 
 # Introduction
 
-In Parallel NFS (pNFS) (see Section 12 of {{RFC8881}}), the metadata
+In Parallel NFS (pNFS) (see {{Section 12 of RFC8881}}), the metadata
 server returns layout type structures that describe where file data is
 located.  There are different layout types for different storage systems
 and methods of arranging data on storage devices.  {{RFC8435}} defined
@@ -425,7 +425,7 @@ up an encoded stripe, not POSIX write ordering across
 arbitrary application writes.  The protocol does not
 attempt to make overlapping application writes from
 different clients atomic; that is the province of file
-locking ({{RFC8881}} Section 12) and of application-level
+locking ({{Section 12 of RFC8881}}) and of application-level
 coordination.  What the protocol does guarantee is that
 the shards comprising a given stripe agree on which
 write produced them -- expressed on the wire as agreement
@@ -629,7 +629,7 @@ from processing I/O from a specific client to a specific file.
 file layout type:
 
 :  a layout type in which the storage devices are accessed via the NFS
-protocol (see Section 5.12.4 of {{RFC8881}}).
+protocol (see {{Section 5.12.4 of RFC8881}}).
 
 gid:
 
@@ -650,14 +650,14 @@ layout segment:
 
 :  a sub-division of a layout.  That sub-division might be by the layout
 iomode (see Sections 3.3.20 and 12.2.9 of {{RFC8881}}), a striping pattern
-(see Section 13.3 of {{RFC8881}}), or requested byte range.
+(see {{Section 13.3 of RFC8881}}), or requested byte range.
 
 layout stateid:
 
 :  a 128-bit quantity returned by a server that uniquely defines the
 layout state provided by the server for a specific layout that describes
-a layout type and file (see Section 12.5.2 of {{RFC8881}}).  Further,
-Section 12.5.3 of {{RFC8881}} describes differences in handling between
+a layout type and file (see {{Section 12.5.2 of RFC8881}}).  Further,
+{{Section 12.5.3 of RFC8881}} describes differences in handling between
 layout stateids and other stateid types.
 
 layout type:
@@ -749,7 +749,7 @@ state related to open files, byte range locks, delegations, or layouts.
 storage device:
 
 :  the target to which clients may direct I/O requests when they hold
-an appropriate layout.  See Section 2.1 of {{RFC8434}} for further
+an appropriate layout.  See {{Section 2.1 of RFC8434}} for further
 discussion of the difference between a data server and a storage device.
 
 storage protocol:
@@ -909,18 +909,18 @@ model or to prevent clients from using layouts inappropriately.  To enable
 client use in that environment, this document specifies how security,
 state, and locking are managed.
 
-The loosely and tightly coupled locking models defined in Section 2.3
-of {{RFC8435}} apply equally to this layout type, including the use of
-anonymous stateids with loosely coupled storage devices, the handling
-of lock and delegation stateids, and the mandatory byte range lock
-requirements for the tightly coupled model.
+The loosely and tightly coupled locking models defined in {{Section
+2.3 of RFC8435}} apply equally to this layout type, including the use
+of anonymous stateids with loosely coupled storage devices, the
+handling of lock and delegation stateids, and the mandatory byte range
+lock requirements for the tightly coupled model.
 
 ##  LAYOUTCOMMIT
 
 Regardless of the coupling model, the metadata server has the
-responsibility, upon receiving a LAYOUTCOMMIT (see Section 18.42 of
-{{RFC8881}}) to ensure that the semantics of pNFS are respected (see
-Section 3.1 of {{RFC8434}}).  These do include a requirement that data
+responsibility, upon receiving a LAYOUTCOMMIT (see {{Section 18.42 of
+RFC8881}}) to ensure that the semantics of pNFS are respected (see
+{{Section 3.1 of RFC8434}}).  These do include a requirement that data
 written to a data storage device be stable before the occurrence of
 the LAYOUTCOMMIT.
 
@@ -1319,7 +1319,7 @@ order to enforce POSIX-conformant OPEN, byte range locking,
 and delegation semantics against per-client identity rather
 than against the loose coupling synthetic uid/gid.  These are
 inherited from the general tight coupling locking model in
-Section 2.3 of {{RFC8435}}.  Trusted-stateid tight coupling as
+{{Section 2.3 of RFC8435}}.  Trusted-stateid tight coupling as
 defined by this document satisfies these associations only
 for the layout stateid; a deployment that requires mandatory
 byte range locking, delegation recall, or the finer-grained
@@ -1748,7 +1748,7 @@ recovery path as the trust gap described above.
 A storage device MAY persist its trust table across restarts.  An
 implementation that does so MUST also persist its server-instance
 identity, returning the same eir_server_owner.so_minor_id on
-EXCHANGE_ID after the restart (per {{RFC8881}} S18.35), so that
+EXCHANGE_ID after the restart (per {{Section 18.35 of RFC8881}}), so that
 clients and the metadata server observe the device as
 continuously available and the persisted trust entries remain
 valid against the layout stateids that were issued before the
@@ -1776,7 +1776,7 @@ A metadata server MAY persist all its trust-management state
 across restarts.  An implementation that does so MUST also
 persist its server-instance identity, returning the same
 eir_server_owner.so_minor_id on EXCHANGE_ID after the restart
-(per {{RFC8881}} S18.35), so that storage devices observe the
+(per {{Section 18.35 of RFC8881}}), so that storage devices observe the
 metadata server as continuously available and accept incoming
 TRUST_STATEID and REVOKE_STATEID operations against the existing
 trust entries without revalidation.  No grace period is required.
@@ -1863,7 +1863,7 @@ via the probe.
 
 Data operations to a storage device require the client to know the
 network address of the storage device.  The NFSv4.1+ GETDEVICEINFO
-operation (Section 18.40 of {{RFC8881}}) is used by the client to
+operation ({{Section 18.40 of RFC8881}}) is used by the client to
 retrieve that information.
 
 ##  ffv2_device_addr4 {#sec-ff_device_addr4}
@@ -2045,7 +2045,7 @@ before sending a
 LAYOUTCOMMIT to the metadata server.  That is, the writes MUST be
 committed by the client to stable storage via issuing WRITEs with
 stable_how = FILE_SYNC or by issuing a COMMIT after WRITEs with
-stable_how != FILE_SYNC (see Section 3.3.7 of {{RFC1813}}).
+stable_how != FILE_SYNC (see {{Section 3.3.7 of RFC1813}}).
 
 ##  Storage Device Multipathing
 
@@ -2338,7 +2338,7 @@ FFV2_FLAGS_NO_LAYOUTCOMMIT:
 
 :  When set, the client MAY omit the LAYOUTCOMMIT to the
 metadata server.  When unset, the client MUST send LAYOUTCOMMIT
-per {{RFC8881}} Section 18.42.
+per {{Section 18.42. of RFC8881}}
 
 FFV2_FLAGS_NO_IO_THRU_MDS:
 
@@ -2397,12 +2397,11 @@ prevent collisions across concurrent writers.
 {: #fig-ffv2_file_info4 title="The ffv2_file_info4" }
 
 The ffv2_file_info4 is a new structure that resolves the
-stateid-vs-fh_vers pairing issue discussed in Section 5.1 of
-{{RFC8435}}.  In {{RFC8435}}'s flexible file v1 layout, a
-singleton ffv2ds_stateid was paired with an ffv2ds_fh_vers
-array, forcing every fh_vers on a data server to share one
-stateid.  In {{fig-ffv2_file_info4}} each fh_vers has its own
-stateid alongside it.
+stateid-vs-fh_vers pairing issue discussed in {{Section 5.1 of
+RFC8435}}.  In {{RFC8435}}'s flexible file v1 layout, a singleton
+ffv2ds_stateid was paired with an ffv2ds_fh_vers array, forcing every
+fh_vers on a data server to share one stateid.  In
+{{fig-ffv2_file_info4}} each fh_vers has its own stateid alongside it.
 
 The stateid value ffv2fi_stateid MUST carry depends on the
 coupling mode advertised for the corresponding
@@ -2729,8 +2728,8 @@ multiple stripe groups, and pushes the striping-mode metadata
 (see {{sec-ffv2-mirror4}}) rather than onto the layout as
 {{RFC8435}} does with the layout-level ffl_stripe_unit.  The
 ffv2_striping4 enum (FFV2_STRIPING_NONE / _SPARSE / _DENSE)
-inherits its meaning from Section 13.3 of {{RFC8881}} and
-Section 5.1 of {{RFC8435}}; the flexible file v2 layout
+inherits its meaning from {{Section 13.3 of RFC8881}} and
+{{Section 5.1 of RFC8435}}; the flexible file v2 layout
 evolution is that the striping mode is a per-mirror decision
 rather than a per-layout one.
 
@@ -2957,7 +2956,7 @@ stripe.
 {: #fig-ffv2_layouthint4 title="The ffv2_layouthint4" }
 
 The ffv2_layouthint4 (in {{fig-ffv2_layouthint4}}) describes the
-layout_hint (see Section 5.12.4 of {{RFC8881}}) that the client can
+layout_hint (see {{Section 5.12.4 of RFC8881}}) that the client can
 provide to the metadata server.
 
 The client provides four hints.  All four are advisory; the
@@ -3169,7 +3168,7 @@ protects against loss of data in layout segments.
 
 While not explicitly shown in {{fig-ffv2_layout4}}, each layout4
 element returned in the logr_layout array of LAYOUTGET4res (see
-Section 18.43.2 of {{RFC8881}}) describes a layout segment.  Hence,
+{{Section 18.43.2 of RFC8881}}) describes a layout segment.  Hence,
 each ffv2_layout4 also describes a layout segment.  It is possible
 that the file is concatenated from more than one layout segment.
 Each layout segment MAY represent different striping parameters.
@@ -3284,7 +3283,7 @@ is, if ffv2dv_coupling has any tight coupling flag set (see
 ffv2ds_user and ffv2ds_group.
 
 The allowed values for both ffv2ds_user and ffv2ds_group are specified
-as owner and owner_group, respectively, in Section 5.9 of {{RFC8881}}.
+as owner and owner_group, respectively, in {{Section 5.9 of RFC8881}}.
 For NFSv3 compatibility, user and group strings that consist of
 decimal numeric values with no leading zeros can be given a special
 interpretation by clients and servers that choose to provide such
@@ -3351,13 +3350,13 @@ a set NO_IO_THRU_MDS flag as advisory or bypass it.
 The flexible file v2 layout does not use lou_body inside the
 loca_layoutupdate argument to LAYOUTCOMMIT.  If lou_type is
 LAYOUT4_FLEX_FILES_V2, the lou_body field MUST have a zero length (see
-Section 18.42.1 of {{RFC8881}}).
+{{Section 18.42.1 of RFC8881}}).
 
 ##  Interactions between Devices and Layouts
 
 The file layout type is defined such that the relationship between
 multipathing and filehandles can result in either 0, 1, or N
-filehandles (see Section 13.3 of {{RFC8881}}).  Some rationales for
+filehandles (see {{Section 13.3 of RFC8881}}).  Some rationales for
 this are clustered servers that share the same filehandle or allow
 for multiple read-only copies of the file on the same storage device.
 In the flexible file v2 layout, while there is an array of
@@ -3380,8 +3379,8 @@ reporting errors in GETDEVICEINFO (see Section 18.40 in {{RFC8881}}),
 the client is not able to specify which specific device it cannot
 communicate with over one of the provided ffv2dv_version and
 ffv2dv_minorversion combinations.  Using ffv2_ioerr4 ({{sec-ffv2_ioerr4}})
-inside either the LAYOUTRETURN (see Section 18.44 of {{RFC8881}})
-or the LAYOUTERROR (see Section 15.6 of {{RFC7862}} and {{sec-LAYOUTERROR}}
+inside either the LAYOUTRETURN (see {{Section 18.44 of RFC8881}})
+or the LAYOUTERROR (see {{Section 15.6 of RFC7862}} and {{sec-LAYOUTERROR}}
 of this document), the client can isolate the problematic storage
 device.
 
@@ -3398,11 +3397,11 @@ back to doing the I/O through the metadata server.
 #  Striping {#sec-striping}
 
 The flexible file v2 layout inherits the dense and sparse striping
-dispositions defined by the file layout type in Section 13.4 of
-{{RFC8881}}.  The disposition for a given
-mirror is selected by the ffv2m_striping field (see
-{{sec-ffv2-mirror4}}) and applies to every data server in that
-mirror's ffv2s_data_servers list.  Three values are permitted:
+dispositions defined by the file layout type in {{Section 13.4 of
+RFC8881}}.  The disposition for a given mirror is selected by the
+ffv2m_striping field (see {{sec-ffv2-mirror4}}) and applies to every
+data server in that mirror's ffv2s_data_servers list.  Three values
+are permitted:
 
 FFV2_STRIPING_NONE:
 :  The mirror is not striped.  ffv2m_striping_unit_size MUST be 1
@@ -3425,7 +3424,7 @@ FFV2_STRIPING_DENSE:
    logical offset is transformed into a compact physical offset
    on the target data server.  This matches pre-existing
    deployments that follow the dense layout convention of
-   Section 13.4.4 of {{RFC8881}}.
+   {{Section 13.4.4 of RFC8881}}.
 
 The mapping math for sparse and dense is given in
 {{fig-striping-math}}.  Common definitions apply to both.
@@ -4468,12 +4467,12 @@ the new request.  The sequence is:
    and a chunk_guard4 on every CHUNK_WRITE.
 
 The transition uses standard NFSv4.1 layout recall semantics
-(Section 12.5.5 of {{RFC8881}}).  Drained single writer I/O does
+({{Section 12.5.5 of RFC8881}}).  Drained single writer I/O does
 not need to be re-issued under multiple writer rules; it
 completed under the layout that authorized it.  If the
 single writer client fails to return the layout within the
 recall window, the metadata server escalates to layout
-revocation (Section 12.5.5.2.1 of {{RFC8881}}); any single writer
+revocation ({{Section 12.5.5.2.1 of RFC8881}}); any single writer
 writes that did not complete before revocation are repaired via
 the multiple-writer repair path on subsequent access.
 
@@ -4685,7 +4684,7 @@ protocol must accommodate.
 The active mirrors serve different access patterns concurrently:
 
 - A client that speaks only the file-layout READ path issues
-  READ (Section 18.22 of {{RFC8881}}) calls to index 0 (the
+  READ ({{Section 18.22 of RFC8881}}) calls to index 0 (the
   PASSTHROUGH mirror).
 
 - A client that speaks the chunked path issues CHUNK_READ calls to index 1 (the RS_VANDERMONDE
@@ -6895,22 +6894,22 @@ when issued by the metadata server:
 
 -  SEQUENCE, PUTFH, PUTROOTFH, GETFH ({{RFC8881}} Sections 18.46,
    18.19, 18.21, 18.8): session and filehandle plumbing.
--  LOOKUP ({{RFC8881}} Section 18.15): directory traversal
+-  LOOKUP ({{Section 18.15 of RFC8881}}): directory traversal
    the metadata server issues when locating data files it has
    allocated for its use.
--  GETATTR ({{RFC8881}} Section 18.7): the metadata server issues
+-  GETATTR ({{Section 18.7 of RFC8881}}): the metadata server issues
    GETATTR against the data file after a write layout is returned,
    to pull the post-write size, mtime, and other attributes back
    and reconcile its cached view.  Any other attribute queries
    the metadata server needs for the same purpose use the same
    operation.
--  SETATTR ({{RFC8881}} Section 18.30): data file truncate for
+-  SETATTR ({{Section 18.30 of RFC8881}}): data file truncate for
    metadata-server-level SETATTR(size) fan-out, synthetic uid/gid rotation
    for fencing, and mode-bit initialization when the metadata
    server binds a data file to a new metadata-level file.
--  CREATE ({{RFC8881}} Section 18.4): the metadata server's own
+-  CREATE ({{Section 18.4 of RFC8881}}): the metadata server's own
    allocation of data files on the data server.
--  REMOVE ({{RFC8881}} Section 18.25): cleanup on metadata server file
+-  REMOVE ({{Section 18.25 of RFC8881}}): cleanup on metadata server file
    unlink.
 -  OPEN, CLOSE ({{RFC8881}} Sections 18.16, 18.2): used by the
    metadata server when it acts as a client to the data server
@@ -6999,7 +6998,7 @@ Required for all protection modes:
 -  EXCHANGE_ID, CREATE_SESSION, DESTROY_SESSION,
    BIND_CONN_TO_SESSION, DESTROY_CLIENTID ({{RFC8881}} Sections
    18.35, 18.36, 18.37, 18.34, 18.50).
--  RECLAIM_COMPLETE ({{RFC8881}} Section 18.51).
+-  RECLAIM_COMPLETE ({{Section 18.51 of RFC8881}}).
 -  SECINFO, SECINFO_NO_NAME ({{RFC8881}} Sections 18.29, 18.45):
    discovery of acceptable security flavours on the data
    server.
@@ -7011,11 +7010,11 @@ supported on data files as on any NFSv4.2 file.
 
 The stateid presented on a CHUNK operation is a **layout
 stateid** returned by a prior LAYOUTGET against the metadata
-server (see Section 18.43 of {{RFC8881}}), NOT an open
+server (see {{Section 18.43 of RFC8881}}), NOT an open
 stateid, byte range lock stateid, or delegation stateid.  A
 pNFS client does NOT issue OPEN against the data server.
 This is a meaningful departure from the stateid model in
-Section 18.32 of {{RFC8881}} (which states that the WRITE
+{{Section 18.32 of RFC8881}} (which states that the WRITE
 stateid "represents a value returned from a previous
 byte range LOCK or OPEN request or the stateid associated
 with a delegation"), and clients implementing
@@ -7028,7 +7027,7 @@ data-server model:
 
 Open and share-mode tracking:
 :  Lives at the metadata server, established by OPEN
-   ({{RFC8881}} Section 18.16) on the metadata-server
+   ({{Section 18.16 of RFC8881}}) on the metadata-server
    filehandle.  The metadata server's open stateid is NOT
    exposed to data servers; share-mode conflicts are
    resolved at the metadata server before LAYOUTGET grants
@@ -7042,7 +7041,7 @@ Byte-range lock tracking:
    co_client_id, co_id) triple) rather than by a lock stateid.  A
    client wanting byte range locks on a file MUST acquire
    them on the metadata-server filehandle, where standard
-   {{RFC8881}} Section 12 byte range locking applies.
+   {{Section 12 of RFC8881}} byte range locking applies.
 
 I/O authorization on the data server:
 :  The layout stateid carried on CHUNK operations.
@@ -7062,11 +7061,11 @@ Because the layout stateid does authorization but does not
 identify a per-open or per-lock owner, a single client may
 present the same layout stateid on many CHUNK operations
 across many parallel writers within the client, without any
-of the open-owner ordering constraints {{RFC8881}}
-Section 8.2.2 imposes on regular NFSv4 stateids.  Chunk-level
-write ordering and contention are resolved by the
-per-chunk chunk_guard4 CAS ({{sec-chunk_guard4}}) and the
-chunk-range CHUNK_LOCK, not by stateid-owner sequencing.
+of the open-owner ordering constraints {{Section 8.2.2 of RFC8881}}
+imposes on regular NFSv4 stateids.  Chunk-level write ordering and
+contention are resolved by the per-chunk chunk_guard4 CAS
+({{sec-chunk_guard4}}) and the chunk-range CHUNK_LOCK, not by
+stateid-owner sequencing.
 
 ### GETATTR on a Data File
 
@@ -7154,24 +7153,24 @@ geometry knowledge only.
 For a mirror whose ffv2m_encoding_type_data is
 FFV2_ENCODING_PASSTHROUGH (see {{sec-encoding-passthrough}}),
 client operations on the data file follow the same pattern as
-the File Layout Type in {{RFC8881}} Section 13.6 and the
+the File Layout Type in {{Section 13.6 of RFC8881}} and the
 Flexible File Version 1 Layout Type in {{RFC8435}}:
 
 Required:
 
--  READ ({{RFC8881}} Section 18.22).
--  WRITE ({{RFC8881}} Section 18.32).
--  COMMIT ({{RFC8881}} Section 18.3).
+-  READ ({{Section 18.22 of RFC8881}}).
+-  WRITE ({{Section 18.32 of RFC8881}}).
+-  COMMIT ({{Section 18.3 of RFC8881}}).
 
 Optional (the client MAY send, and the data server MAY support):
 
--  READ_PLUS ({{RFC7862}} Section 15.10): hole-aware reads.
--  SEEK ({{RFC7862}} Section 15.11): hole and data detection.
--  ALLOCATE ({{RFC7862}} Section 15.1): space reservation hint.
+-  READ_PLUS ({{Section 15.10 of RFC7862}}): hole-aware reads.
+-  SEEK ({{Section 15.11 of RFC7862}}): hole and data detection.
+-  ALLOCATE ({{Section 15.1 of RFC7862}}): space reservation hint.
 
 The client MUST NOT send:
 
--  DEALLOCATE ({{RFC7862}} Section 15.4): hole punching is a
+-  DEALLOCATE ({{Section 15.4 of RFC7862}}): hole punching is a
    metadata-server responsibility; the client issues DEALLOCATE
    on the metadata-server filehandle, and the metadata server
    fans out to the data servers as a control-plane operation.
@@ -7235,7 +7234,7 @@ that has identified the file as a chunked data file (see
    are not supported; chunked files use CHUNK_LOCK, and
    PASSTHROUGH files rely on metadata-server coordination.
 -  DELEGPURGE, DELEGRETURN, WANT_DELEGATION ({{RFC8881}} Sections
-   18.5, 18.6 and {{RFC7862}} Section 15.3).  Delegations are
+   18.5, 18.6 and {{Section 15.3 of RFC7862}}).  Delegations are
    issued by the metadata server.
 -  Any operation whose purpose is to manipulate the file's
    namespace: RENAME, LINK, SYMLINK, CREATE (at the client's
@@ -7292,7 +7291,7 @@ under any of the paths in {{sec-data-file-identification}}
 relies on the client-side "MUST NOT" as the primary defense; a
 client with an active layout will not present a chunked-layout
 stateid against a non-chunked file, so standard stateid
-validation ({{RFC8881}} Section 8.2) catches the misdirected
+validation ({{Section 8.2 of RFC8881}}) catches the misdirected
 CHUNK operation with NFS4ERR_BAD_STATEID before the chunk-layer
 rules apply.
 
@@ -7303,9 +7302,9 @@ Recall notifications and repair coordination flow through the
 metadata server's backchannel session with the client.  The
 callbacks a client will observe that affect its data files are:
 
--  CB_LAYOUTRECALL ({{RFC8881}} Section 20.3).
--  CB_NOTIFY_DEVICEID ({{RFC8881}} Section 20.12).
--  CB_RECALL_ANY ({{RFC8881}} Section 20.6).
+-  CB_LAYOUTRECALL ({{Section 20.3 of RFC8881}}).
+-  CB_NOTIFY_DEVICEID ({{Section 20.12 of RFC8881}}).
+-  CB_RECALL_ANY ({{Section 20.6 of RFC8881}}).
 -  CB_CHUNK_REPAIR.
 
 A data server influences these callbacks only indirectly, via
@@ -7317,7 +7316,7 @@ directly.
 ##  Summary Table
 
 The classification below adapts the operation taxonomy of
-{{RFC8881}} Section 17 (REQUIRED / RECOMMENDED / OPTIONAL /
+{{Section 17 of RFC8881}} (REQUIRED / RECOMMENDED / OPTIONAL /
 MUST NOT IMPLEMENT) to the two-direction per-operation view a
 Flexible File Version 2 data server requires.  Two of the four
 labels in the table below match {{RFC8881}} usage; the other
@@ -7325,17 +7324,17 @@ two are extensions specific to this document.
 
 REQUIRED:
 :  The data server MUST support the operation on this path.
-   Matches {{RFC8881}} Section 17 REQ.
+   Matches {{Section 17 of RFC8881}} REQ.
 
 OPTIONAL:
 :  The data server MAY support the operation; if it does, the
    actor in this column MUST tolerate the absence of support.
-   Matches {{RFC8881}} Section 17 OPT.
+   Matches {{Section 17 of RFC8881}} OPT.
 
 MUST NOT:
 :  The actor in this column MUST NOT send the operation, and
    the data server MUST reject it with NFS4ERR_NOTSUPP.  This
-   per-direction prohibition extends {{RFC8881}} Section 17's
+   per-direction prohibition extends {{Section 17 of RFC8881}}'s
    single-axis MUST NOT IMPLEMENT classification: an operation
    may be forbidden on one path (client to data server) while
    required on another (metadata server to data server).
@@ -7344,7 +7343,7 @@ MUST NOT:
 MAY:
 :  The metadata server MAY use the operation as an
    implementation-defined control-plane action.  Not in
-   {{RFC8881}} Section 17; specific to the metadata-server-to-data-server
+   {{Section 17 of RFC8881}}; specific to the metadata-server-to-data-server
    path in this document.
 
  | Operation                        | Client -> data server                | metadata server -> data server          |
@@ -7391,7 +7390,7 @@ integrity ({{sec-encoding-replicated}}).
 
 layoutreturn_file4 is used in the LAYOUTRETURN operation to convey
 layout type specific information to the server.  It is defined in
-Section 18.44.1 of {{RFC8881}} (also shown in {{fig-LAYOUTRETURN}}).
+{{Section 18.44.1 of RFC8881}} (also shown in {{fig-LAYOUTRETURN}}).
 
 ~~~ xdr
       /* Constants used for LAYOUTRETURN and CB_LAYOUTRECALL */
@@ -7472,8 +7471,8 @@ hints to the metadata server that there are problems with that file.
 For each error, ffv2ie_errors.de_deviceid, ffv2ie_offset, and ffv2ie_length
 represent the storage device and byte range within the file in which
 the error occurred; ffv2ie_errors represents the operation and type
-of error.  The use of device_error4 is described in Section 15.6
-of {{RFC7862}}.
+of error.  The use of device_error4 is described in {{Section 15.6 of
+RFC7862}}.
 
 Even though the storage device might be accessed via NFSv3 and
 reports back NFSv3 errors to the client, the client is responsible
@@ -7516,7 +7515,7 @@ ffv2il_total_busy_time is the aggregate time spent with outstanding
 RPC calls. ffv2il_aggregate_completion_time is the sum of all round-trip
 times for completed RPC calls.
 
-In Section 3.3.1 of {{RFC8881}}, the nfstime4 is defined as the
+In {{Section 3.3.1 of RFC8881}}, the nfstime4 is defined as the
 number of seconds and nanoseconds since midnight or zero hour January
 1, 1970 Coordinated Universal Time (UTC).  The use of nfstime4 in
 ff_io_latency4 is to store time since the start of the first I/O
@@ -7646,7 +7645,7 @@ disjoint and MAY repeat or intersect.
 If the client is using NFSv4.2 to communicate with the metadata
 server, then instead of waiting for a LAYOUTRETURN to send error
 information to the metadata server (see {{sec-io-error}}), it MAY
-use LAYOUTERROR (see Section 15.6 of {{RFC7862}}) to communicate
+use LAYOUTERROR (see {{Section 15.6 of RFC7862}}) to communicate
 that information.  For the flexible file v2 layout, this means
 that LAYOUTERROR4args is treated the same as ffv2_ioerr4.
 
@@ -7655,7 +7654,7 @@ that LAYOUTERROR4args is treated the same as ffv2_ioerr4.
 If the client is using NFSv4.2 to communicate with the metadata
 server, then instead of waiting for a LAYOUTRETURN to send I/O
 statistics to the metadata server (see {{sec-layout-stats}}), it
-MAY use LAYOUTSTATS (see Section 15.7 of {{RFC7862}}) to communicate
+MAY use LAYOUTSTATS (see {{Section 15.7 of RFC7862}}) to communicate
 that information.  For the flexible file v2 layout, this means
 that LAYOUTSTATS4args.lsa_layoutupdate is overloaded with the same
 contents as in ffv2is_layoutupdate.
@@ -7707,7 +7706,7 @@ hints via ffv2_data_protection4 ({{fig-ffv2_data_protection4}}).
 
 #  Recalling a Layout
 
-While Section 12.5.5 of {{RFC8881}} discusses reasons independent
+While {{Section 12.5.5 of RFC8881}} discusses reasons independent
 of layout type for recalling a layout, the flexible file v2 layout
 type metadata server should recall outstanding layouts in the
 following cases:
@@ -7727,8 +7726,8 @@ following cases:
 ##  CB_RECALL_ANY
 
 The metadata server can use the CB_RECALL_ANY callback operation
-to notify the client to return some or all of its layouts.  Section
-22.3 of {{RFC8881}} defines the allowed types of the "NFSv4 Recallable
+to notify the client to return some or all of its layouts.  {{Section
+22.3 of RFC8881}} defines the allowed types of the "NFSv4 Recallable
 Object Types Registry".
 
 ~~~ xdr
@@ -7778,12 +7777,11 @@ client is notified to return layouts of either iomode.
 In cases where clients are uncommunicative and their lease has
 expired, or when clients fail to return recalled layouts within
 a lease period, the metadata server MAY revoke client layouts
-and reassign these resources to other clients (see Section
-12.5.5 of {{RFC8881}}).  To avoid data corruption from a
-revoked client continuing to issue I/O, the metadata server
-MUST fence the revoked client from the affected data files.
-The mechanism varies by coupling model and by whether the
-client's layout stateid has been registered with the data
+and reassign these resources to other clients (see {{Section 12.5.5 of
+RFC8881}}).  To avoid data corruption from a revoked client continuing
+to issue I/O, the metadata server MUST fence the revoked client from
+the affected data files. The mechanism varies by coupling model and by
+whether the client's layout stateid has been registered with the data
 servers via TRUST_STATEID:
 
 Loosely coupled, untrusted stateid:
@@ -8189,7 +8187,7 @@ of NFS4_OK and per-range failure codes.
 
 The operations and their valid errors are presented in
 {{tbl-ops-and-errors}}.  All error codes not defined in this document
-are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
+are defined in {{Section 15 of RFC8881}} and {{Section 11 of RFC7862}}.
 
  | Operation          | Errors |
  | ---
@@ -8217,7 +8215,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
 
 The callback operations and their valid errors are presented in
 {{tbl-cb-ops-and-errors}}.  All error codes not defined in this document
-are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
+are defined in {{Section 15 of RFC8881}} and {{Section 11 of RFC7862}}.
 
  | Callback Operation| Errors                                       |
  | ---
@@ -8228,7 +8226,7 @@ are defined in Section 15 of {{RFC8881}} and Section 11 of {{RFC7862}}.
 
 The operations and their valid errors are presented in
 {{tbl-errors-and-ops}}.  All operations not defined in this document
-are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
+are defined in {{Section 18 of RFC8881}} and {{Section 15 of RFC7862}}.
 
  | Error                            | Operations                  |
  | ---
@@ -8253,12 +8251,12 @@ are defined in Section 18 of {{RFC8881}} and Section 15 of {{RFC7862}}.
 {: #fig-EXCHGID4_FLAG_USE_ERASURE_DS title="The EXCHGID4_FLAG_USE_ERASURE_DS" }
 
 When a data server connects to a metadata server it can via
-EXCHANGE_ID (see Section 18.35 of {{RFC8881}}) state its pNFS role.
+EXCHANGE_ID (see {{Section 18.35 of RFC8881}}) state its pNFS role.
 The data server can use EXCHGID4_FLAG_USE_ERASURE_DS (see
 {{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}) to indicate that it supports the
-new NFSv4.2 operations introduced in this document.  Section 13.1
-of {{RFC8881}} describes the interaction of the various pNFS roles
-masked by EXCHGID4_FLAG_MASK_PNFS.  However, that does not mask out
+new NFSv4.2 operations introduced in this document.  {{Section 13.1 of
+RFC8881}} describes the interaction of the various pNFS roles masked
+by EXCHGID4_FLAG_MASK_PNFS.  However, that does not mask out
 EXCHGID4_FLAG_USE_ERASURE_DS.  I.e., EXCHGID4_FLAG_USE_ERASURE_DS can
 be used in combination with all of the pNFS flags.
 
@@ -9364,7 +9362,7 @@ issues CHUNK operations without an active chunked-encoding
 layout has no chunked-layout stateid to present; whatever
 stateid it does send (anonymous, open, lock, forged, expired)
 is rejected by the data server's normal stateid validation
-per {{RFC8881}} Section 8.2, typically with NFS4ERR_BAD_STATEID
+per {{Section 8.2 of RFC8881}}, typically with NFS4ERR_BAD_STATEID
 (or NFS4ERR_STALE_STATEID or NFS4ERR_OLD_STATEID as
 appropriate).  See {{sec-system-model-chunk-not-block}} for the
 distinction between the CHUNK operations and a generic block I/O
@@ -9433,13 +9431,13 @@ A data server MUST reject a request whose array length exceeds
 any of these maxima with NFS4ERR_INVAL before performing any
 mutation.  A data server MUST also verify, before performing
 any mutation, that the response it will construct fits within
-the session's negotiated `ca_maxresponsesize` (Section 18.36 of
-{{RFC8881}}); if the mandatory response arrays (per-chunk
-status, per-chunk owner, per-chunk checksum, and payload where
-applicable) would exceed `ca_maxresponsesize`, the data server
-MUST reject with NFS4ERR_TOOSMALL and MUST NOT partially
-process the request.  The client is expected to split the
-request across multiple compounds when either bound is reached.
+the session's negotiated `ca_maxresponsesize` ({{Section 18.36 of
+RFC8881}}); if the mandatory response arrays (per-chunk status,
+per-chunk owner, per-chunk checksum, and payload where applicable)
+would exceed `ca_maxresponsesize`, the data server MUST reject with
+NFS4ERR_TOOSMALL and MUST NOT partially process the request.  The
+client is expected to split the request across multiple compounds when
+either bound is reached.
 
 Short processing (a data server returning fewer chunks than
 requested at its discretion) is NOT permitted for the
@@ -9451,7 +9449,7 @@ already defined for the two capacity-limit paths above --
 NFS4ERR_INVAL when the request array length exceeds a
 CHUNK_MAX_* bound, NFS4ERR_TOOSMALL when the response would
 exceed the session-negotiated ca_maxresponsesize
-({{RFC8881}} Section 18.36), or NFS4ERR_DELAY when the data
+({{Section 18.36 of RFC8881}}), or NFS4ERR_DELAY when the data
 server is out of transient resources to process the requested
 batch -- and the entire request is a no-op with respect to
 mutation.
@@ -9501,7 +9499,7 @@ MUST escalate via LAYOUTERROR rather than retry unbounded.
 ### DESCRIPTION
 
 The CHUNK_COMMIT operation is based upon the NFSv4.1 COMMIT
-operation (see Section 18.3 of {{RFC8881}}) and similarly
+operation (see {{Section 18.3 of RFC8881}}) and similarly
 commits previously written data to stable storage on the
 regular file identified by the current filehandle, with the
 difference that CHUNK_COMMIT operates on the chunk
@@ -9664,7 +9662,7 @@ reconcile from there.
 
 The three-step CHUNK_WRITE -> CHUNK_FINALIZE -> CHUNK_COMMIT
 sequence MAY be pipelined within a single NFSv4.2 compound
-(see Section 12.8 of {{RFC8881}}) in single writer mode, where
+(see {{Section 12.8 of RFC8881}}) in single writer mode, where
 no other writer can race the client's per-chunk transitions
 and the CHUNK_WRITE per-block status array reports only
 local-failure cases (NFS4ERR_NOSPC, NFS4ERR_IO, and so on).
@@ -9678,11 +9676,11 @@ a same-compound CHUNK_FINALIZE / CHUNK_COMMIT proceeds against
 whichever chunks happen to be PENDING.  The compound-level
 status is NFS4_OK in this case because per-block failures are
 reported in the per-op status array rather than as a compound-level
-error, so NFSv4 compound short-circuit (Section 2.10.6.4
-of {{RFC8881}}) does not stop the trailing ops.  A client that
-wants atomic-or-none semantics across multiple chunks MUST
-examine the per-block status returned by each CHUNK_WRITE
-before issuing the corresponding CHUNK_FINALIZE.
+error, so NFSv4 compound short-circuit ({{Section 2.10.6.4 of
+RFC8881}}) does not stop the trailing ops.  A client that wants
+atomic-or-none semantics across multiple chunks MUST examine the
+per-block status returned by each CHUNK_WRITE before issuing the
+corresponding CHUNK_FINALIZE.
 
 For multi-chunk pipelines in multiple-writer mode, the
 recommended pattern is to stagger the three steps across
@@ -9820,7 +9818,7 @@ CHUNK_WRITE_REPAIR and the
 repair is confirmed via CHUNK_REPAIRED.
 
 CHUNK_ERROR has no direct analog in {{RFC8881}}.  The closest
-parallel is LAYOUTERROR ({{RFC7862}} Section 15.6), which
+parallel is LAYOUTERROR ({{Section 15.6 of RFC7862}}), which
 reports layout-level errors to the metadata server.
 CHUNK_ERROR is the data-path counterpart: it reports a
 chunk-level integrity finding directly to the data server so
@@ -9962,7 +9960,7 @@ CHUNK_WRITEs for the named owner triple
 generation of each chunk.
 
 CHUNK_FINALIZE has no direct analog in {{RFC8881}}: the COMMIT
-operation in {{RFC8881}} Section 18.3 combines the "no more
+operation in {{Section 18.3 of RFC8881}} combines the "no more
 writes" signal and the "make durable and globally visible"
 step into one operation; the Flexible File Version 2 chunk
 lifecycle separates them so a writer in multiple-writer mode
@@ -10364,7 +10362,7 @@ Cardinality and short responses:
   chunk (chrr_eof = TRUE, N = the number of chunks the data
   server holds within the requested range) or when the
   fully-populated response would exceed the session-negotiated
-  ca_maxresponsesize (Section 18.36.3 of {{RFC8881}}).  In the
+  ca_maxresponsesize ({{Section 18.36.3 of RFC8881}}).  In the
   response-size case the data server returns a short response
   with chrr_eof = FALSE containing as many entries N as fit
   under ca_maxresponsesize minus COMPOUND/RPC overhead; the
@@ -10593,17 +10591,15 @@ NFS4ERR_CHUNK_LOCKED in the corresponding per-chunk
 status slot.  The lock is associated with the
 chunk_owner4 in cla_owner.
 
-CHUNK_LOCK is loosely analogous to LOCK ({{RFC8881}}
-Section 18.10) in that it acquires an exclusive
-guard against concurrent modification, but the two
-operate on different coordinate systems and use
-different naming: LOCK is byte range and stateid-based;
-CHUNK_LOCK is chunk-range and chunk_owner4-based.
-CHUNK_LOCK is used in multiple-writer mode
-({{sec-multi-writer}}) to serialize racing writers on a
-common chunk range, and in the repair flow
-({{sec-repair-selection}}) to transfer lock ownership
-to a repair actor via CHUNK_LOCK_FLAGS_ADOPT.
+CHUNK_LOCK is loosely analogous to LOCK ({{Section 18.10 of RFC8881}})
+in that it acquires an exclusive guard against concurrent
+modification, but the two operate on different coordinate systems and
+use different naming: LOCK is byte range and stateid-based; CHUNK_LOCK
+is chunk-range and chunk_owner4-based. CHUNK_LOCK is used in
+multiple-writer mode ({{sec-multi-writer}}) to serialize racing
+writers on a common chunk range, and in the repair flow
+({{sec-repair-selection}}) to transfer lock ownership to a repair
+actor via CHUNK_LOCK_FLAGS_ADOPT.
 
 The client provides:
 
@@ -10850,7 +10846,7 @@ NFS4ERR_SERVERFAULT:
 ### DESCRIPTION
 
 The CHUNK_READ operation is based upon the NFSv4.1 READ
-operation (see Section 18.22 of {{RFC8881}}) and similarly
+operation (see {{Section 18.22 of RFC8881}}) and similarly
 reads data from the regular file identified by the current
 filehandle, with the difference that CHUNK_READ operates on
 the chunk coordinate system used by Flexible File Version 2
@@ -10998,15 +10994,13 @@ chunk_owner4 values themselves.
 
 Except when special stateids are used, the cra_stateid
 value represents a layout stateid returned by a prior
-LAYOUTGET against the metadata server (see Section 18.43
-of {{RFC8881}}).  The data server uses cra_stateid to
-verify that the client holds a valid layout that
-authorizes reading this file.  Under trusted stateid tight
-coupling ({{sec-TRUST_STATEID}}), the data server
-additionally checks that the metadata server has
-registered the stateid via TRUST_STATEID; an unregistered
-stateid (other than a special stateid) returns
-NFS4ERR_BAD_STATEID.
+LAYOUTGET against the metadata server (see {{Section 18.43 of
+RFC8881}}).  The data server uses cra_stateid to verify that the
+client holds a valid layout that authorizes reading this file.  Under
+trusted stateid tight coupling ({{sec-TRUST_STATEID}}), the data
+server additionally checks that the metadata server has registered the
+stateid via TRUST_STATEID; an unregistered stateid (other than a
+special stateid) returns NFS4ERR_BAD_STATEID.
 
 For a CHUNK_READ with a cra_stateid value of all bits
 equal to zero, the data server MAY allow the CHUNK_READ
@@ -11017,7 +11011,7 @@ to bypass lock-state reporting at the data server.  These
 special-stateid behaviors mirror the corresponding READ
 semantics in {{RFC8881}} adapted to the chunk-locking
 model ({{sec-CHUNK_LOCK}}) rather than the byte range
-locking model of {{RFC8881}} Section 12.
+locking model of {{Section 12. of RFC8881}}
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
@@ -11709,11 +11703,10 @@ NFS4ERR_SERVERFAULT:
 
 CHUNK_UNLOCK releases the exclusive chunk-range lock
 previously acquired by CHUNK_LOCK.
-CHUNK_UNLOCK is loosely analogous to LOCKU ({{RFC8881}}
-Section 18.12) in that it releases an exclusive guard,
-but it operates on chunk-range coordinates and is
-matched against the chunk_owner4 that acquired the
-lock rather than against an open / lock stateid.
+CHUNK_UNLOCK is loosely analogous to LOCKU ({{Section 18.12 of
+RFC8881}}) in that it releases an exclusive guard, but it operates on
+chunk-range coordinates and is matched against the chunk_owner4 that
+acquired the lock rather than against an open / lock stateid.
 
 The client provides:
 
@@ -11870,7 +11863,7 @@ NFS4ERR_SERVERFAULT:
 ### DESCRIPTION
 
 The CHUNK_WRITE operation is based upon the NFSv4.1 WRITE
-operation (see Section 18.32 of {{RFC8881}}) and similarly
+operation (see {{Section 18.32 of RFC8881}}) and similarly
 writes data to the regular file identified by the current
 filehandle, with the difference that CHUNK_WRITE operates
 on the chunk coordinate system used by Flexible File
@@ -12044,13 +12037,12 @@ cwr_owners:
 
 Except when special stateids are used, cwa_stateid
 represents a layout stateid returned by a prior LAYOUTGET
-against the metadata server (see Section 18.43 of
-{{RFC8881}}) that authorizes write access to this file.
-Under trusted stateid tight coupling
-({{sec-TRUST_STATEID}}), the data server additionally
-checks that the metadata server has registered the
-stateid via TRUST_STATEID; an unregistered stateid (other
-than a special stateid) returns NFS4ERR_BAD_STATEID.
+against the metadata server (see {{Section 18.43 of RFC8881}}) that
+authorizes write access to this file. Under trusted stateid tight
+coupling ({{sec-TRUST_STATEID}}), the data server additionally checks
+that the metadata server has registered the stateid via TRUST_STATEID;
+an unregistered stateid (other than a special stateid) returns
+NFS4ERR_BAD_STATEID.
 
 For a CHUNK_WRITE with a cwa_stateid value of all bits
 equal to zero, the data server MAY allow the CHUNK_WRITE
@@ -12062,7 +12054,7 @@ checking at the data server.  These special-stateid
 behaviors mirror the corresponding WRITE semantics in
 {{RFC8881}} adapted to the chunk-locking model
 ({{sec-CHUNK_LOCK}}) rather than the byte range locking
-model of {{RFC8881}} Section 12.
+model of {{Section 12. of RFC8881}}
 
 If the current filehandle is not an ordinary file, an
 error MUST be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
@@ -13334,7 +13326,7 @@ and ceer_eof = TRUE when it implements the
 operation, regardless of any escrows present.
 A data server that does not implement the
 operation returns NFS4ERR_OP_ILLEGAL at COMPOUND
-decode time per {{RFC8881}} Section 16.2, which is
+decode time per {{Section 16.2 of RFC8881}}, which is
 distinct from NFS4ERR_NOTSUPP).
 
 Pagination uses ceea_cookie: on the first call the
@@ -13664,7 +13656,7 @@ ccra_layout_stateid:
 
 ccra_deadline:
 :  an absolute nfstime4 (seconds and nanoseconds since
-   the epoch, as defined in Section 3.3.1 of {{RFC8881}})
+   the epoch, as defined in {{Section 3.3.1 of RFC8881}})
    by which the client is expected to have driven every
    range to completion (CHUNK_REPAIRED on the
    reconstruction path, or CHUNK_UNLOCK on the rollback
@@ -13748,7 +13740,7 @@ ccra_ranges:
 The metadata server SHOULD keep each CB_CHUNK_REPAIR
 compound within the back-channel maximum
 (ca_maxrequestsize) negotiated in CREATE_SESSION (see
-Section 18.36.3 of {{RFC8881}}).  If the set of affected
+{{Section 18.36.3 of RFC8881}}).  If the set of affected
 ranges would exceed that maximum, the metadata server MAY
 issue multiple CB_CHUNK_REPAIR callbacks to the same
 client.  Each callback is independent; the client drives
@@ -14564,8 +14556,8 @@ that would allow it to be used to authorize the client to the storage
 device on behalf of the metadata server.  Doing so would require
 that each of the metadata server, storage device, and client would
 need to implement RPCSEC_GSSv3 using an RPC-application-defined
-structured privilege assertion in a manner described in Section
-4.9.1 of {{RFC7862}}.  The specifics necessary to do so are not
+structured privilege assertion in a manner described in {{Section
+4.9.1 of RFC7862}}.  The specifics necessary to do so are not
 described in this document.  This is principally because any such
 specification would require extensive implementation work on a wide
 range of storage devices, which would be unlikely to result in a
@@ -14786,7 +14778,7 @@ RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
 
 This document also requests IANA to register a new bit in the
 "EXCHGID4_FLAG_*" flag space for the ExchangeID operation from
-{{RFC8881}} Section 18.35.3.  The requested value is
+{{Section 18.35.3. of RFC8881}}  The requested value is
 `0x00100000`, outside the existing MASK_PNFS block (0x00070000);
 IANA MAY assign a different value at its discretion, in which
 case the numeric value in {{fig-EXCHGID4_FLAG_USE_ERASURE_DS}}
@@ -14799,7 +14791,7 @@ assignment.
 {: #tbl_exchgid_flags title="EXCHGID4 Flag Assignments"}
 
 This document requests IANA to allocate two attribute numbers in
-the NFSv4 attribute-number registry (see Section 20 of {{RFC8881}}).
+the NFSv4 attribute-number registry (see {{Section 20 of RFC8881}}).
 
  | Attribute Number | Attribute Name                  | RFC      | Reference                            |
  |---
@@ -14946,16 +14938,14 @@ CHECKSUM_ALG_CRC32C for new files since CRC32C is
 hardware-accelerated on every modern CPU.
 
 CHECKSUM_ALG_CRC32C (value 2) is the CRC-32 with the
-Castagnoli polynomial specified in {{RFC3720}} Section
-12.1 and adopted by {{RFC4960}} Section 6.4 (SCTP), and
-also as the SSE4.2 / ARMv8 / RISC-V CRC-32C
-hardware-acceleration instructions.  Concrete parameters:
-generator polynomial `0x1EDC6F41` (equivalently, the
-reflected form `0x82F63B78`); initial register value
-`0xFFFFFFFF`; final XOR value `0xFFFFFFFF`; input
-reflected; output reflected.  The 4-byte `cs_value`
-carries the CRC as a big-endian integer.  Covered bytes
-follow the uniform coverage rule in {{sec-checksum4}}.
+Castagnoli polynomial specified in {{Section 12.1 of RFC3720}} and
+adopted by {{Section 6.4 of RFC4960}} (SCTP), and also as the SSE4.2 /
+ARMv8 / RISC-V CRC-32C hardware-acceleration instructions.  Concrete
+parameters: generator polynomial `0x1EDC6F41` (equivalently, the
+reflected form `0x82F63B78`); initial register value `0xFFFFFFFF`;
+final XOR value `0xFFFFFFFF`; input reflected; output reflected.  The
+4-byte `cs_value` carries the CRC as a big-endian integer.  Covered
+bytes follow the uniform coverage rule in {{sec-checksum4}}.
 
 CHECKSUM_ALG_FLETCHER4 (value 3) is the ZFS Fletcher4
 variant as documented in the OpenZFS on-disk format
@@ -15054,13 +15044,11 @@ RSASSA-PSS-SHA256 alg -37) MAY be added later per
 the Specification Required policy above.
 
 The value range 0xC0000000 to 0xFFFFFFFF is
-reserved for Private Use per {{RFC8126}} Section
-4.1; deployments MAY assign values from this range
-for experimental, vendor-specific, or private
-profiles without IANA registration, but such
-values MUST NOT be presented on interoperability
-boundaries and this specification makes no
-compatibility guarantees for them.
+reserved for Private Use per {{Section 4.1 of RFC8126}}; deployments
+MAY assign values from this range for experimental, vendor-specific,
+or private profiles without IANA registration, but such values MUST
+NOT be presented on interoperability boundaries and this specification
+makes no compatibility guarantees for them.
 
 #  XDR Description of the Flexible File Version 2 Layout Type
 
