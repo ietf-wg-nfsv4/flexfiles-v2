@@ -480,6 +480,29 @@ section or RFC where one exists. An abbreviation used only inside ASCII
 figures is fine if it is defined in Definitions; `PS` is the worked
 example of that split.
 
+### Rendered width and leaked xrefs
+
+Two things only the built `.txt` can tell you. Check it, not the source
+— artwork indent differs by block, so a source-length guess both misses
+real hits and invents fake ones (a source sweep once reported 32
+over-wide lines where the render had 9):
+
+```sh
+T=${D%.md}.txt
+awk 'length>72 {printf "%d [%d] %s\n", NR, length, $0}' $T
+grep -n '{{' $T          # xrefs that leaked instead of resolving
+```
+
+RFC text is 72 columns. Long artwork usually needs the fix applied to
+the whole block, not the one line: wrap an XDR comment (§9), move an
+array bound to a continuation line, or shed a couple of columns from a
+figure's indent uniformly. A long URI in a reference is the one
+acceptable overflow — it cannot be wrapped.
+
+`{{…}}` inside a `~~~` fence is **not** processed by kramdown, so it
+reaches the published text as literal braces. Name the target in words
+instead; the base draft had four of these shipping in its XDR comments.
+
 Then build — the rendering check is part of the convention, not
 incidental. Every commit in this series records a green run:
 

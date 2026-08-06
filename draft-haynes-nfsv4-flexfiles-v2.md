@@ -1916,7 +1916,7 @@ distinctly to avoid confusion with the RFC 8435 originals.
     * synthetic-uid model of RFC 8435: the client presents an
     * anonymous stateid and a synthetic uid issued by the
     * metadata server, and the storage device validates access
-    * via that synthetic uid (see {{sec-Fencing-Clients}}).  The constant
+    * via that synthetic uid.  The constant
     * FFV2_COUPLING_SYNTHETIC_UIDS is provided as a
     * documentation aid.
     *
@@ -1929,13 +1929,13 @@ distinctly to avoid confusion with the RFC 8435 originals.
     *
     * FFV2_COUPLING_TRUSTED_STATEID indicates that the storage
     * device implements the TRUST_STATEID, REVOKE_STATEID, and
-    * BULK_REVOKE_STATEID operations defined in
-    * {{sec-tight-coupling-control}}.
+    * BULK_REVOKE_STATEID operations defined in the Tight
+    * Coupling Control Protocol section.
     *
     * The two tight coupling flags are orthogonal: a storage
-    * device MAY set either, both, or neither.  See
-    * {{sec-tight-coupling-control}} for the semantics of each
-    * combination.
+    * device MAY set either, both, or neither.  See the Tight
+    * Coupling Control Protocol section for the semantics of
+    * each combination.
     */
    const FFV2_COUPLING_SYNTHETIC_UIDS  = 0x00000000;
    const FFV2_COUPLING_TIGHTLY_COUPLED = 0x00000001;
@@ -2639,7 +2639,7 @@ file and how to access it via the different NFS protocols.
 ~~~ xdr
    /// struct ffv2_data_protection4 {
    ///     uint32_t ffv2dp_data;    /* data shards (k) */
-   ///     uint32_t ffv2dp_parity;  /* parity/redundancy shards (m) */
+   ///     uint32_t ffv2dp_parity;  /* parity shards (m) */
    /// };
 ~~~
 {: #fig-ffv2_data_protection4 title="The ffv2_data_protection4" }
@@ -6275,38 +6275,38 @@ payload but not the lock that may be held on it.  The lock has
 its own state machine, shown in {{fig-chunk-lock-machine}}.
 
 ~~~
-                          CHUNK_LOCK
-                       (writer acquires)
-        +----------+ ----------------> +-------------------+
-        | UNLOCKED |                   | LOCKED by writer  |
-        +----------+ <---------------- +-------------------+
-             ^           CHUNK_UNLOCK            |
-             |          (writer releases)        |
-             |                                   | REVOKE_STATEID
-             |                                   |  (metadata server
-             |                                   |   invalidates writer
-             |                                   |   stateid; lock
-             |                                   |   transfers to
-             |                                   |   metadata-server
-             |                                   |   escrow)
-             |                                   v
-             |        CHUNK_UNLOCK     +-------------------+
-             |       or CHUNK_REPAIRED |     LOCKED by     |
-             |      (repair actor     |  metadata-server  |
-             |       releases after    |      escrow       |
-             |       repair completes) +-------------------+
-             |                                   |
-             |                                   | CHUNK_LOCK with
-             |                                   | CHUNK_LOCK_FLAGS_ADOPT
-             |                                   |  (repair actor
-             |                                   |   adopts metadata-
-             |                                   |   server escrow
-             |                                   |   ownership per
-             |                                   |   CB_CHUNK_REPAIR)
-             |                                   v
-             |                         +-------------------+
-             +------------------------ | LOCKED by repair  |
-                                       +-------------------+
+                        CHUNK_LOCK
+                     (writer acquires)
+      +----------+ ----------------> +-------------------+
+      | UNLOCKED |                   | LOCKED by writer  |
+      +----------+ <---------------- +-------------------+
+           ^           CHUNK_UNLOCK            |
+           |          (writer releases)        |
+           |                                   | REVOKE_STATEID
+           |                                   |  (metadata server
+           |                                   |   invalidates writer
+           |                                   |   stateid; lock
+           |                                   |   transfers to
+           |                                   |   metadata-server
+           |                                   |   escrow)
+           |                                   v
+           |        CHUNK_UNLOCK     +-------------------+
+           |       or CHUNK_REPAIRED |     LOCKED by     |
+           |      (repair actor     |  metadata-server  |
+           |       releases after    |      escrow       |
+           |       repair completes) +-------------------+
+           |                                   |
+           |                                   | CHUNK_LOCK with
+           |                                   | CHUNK_LOCK_FLAGS_ADOPT
+           |                                   |  (repair actor
+           |                                   |   adopts metadata-
+           |                                   |   server escrow
+           |                                   |   ownership per
+           |                                   |   CB_CHUNK_REPAIR)
+           |                                   v
+           |                         +-------------------+
+           +------------------------ | LOCKED by repair  |
+                                     +-------------------+
 ~~~
 {: #fig-chunk-lock-machine title="Chunk lock ownership on the data server"}
 
@@ -8428,7 +8428,7 @@ that repeats.
                                   per chunk)
 
    The checksum block (cs_algorithm + cs_value_len + cs_value)
-   is the XDR encoding of one checksum4 ({{fig-checksum4}}).
+   is the XDR encoding of one checksum4.
    For CHECKSUM_ALG_NONE the cs_value_len is zero and the
    payload follows immediately after byte 19.  The per-chunk
    framing (bytes 12 onward) repeats for each chunk in the
@@ -9267,7 +9267,9 @@ different algorithm.
    ///  OP_CHUNK_WRITE         = 87,
    ///  OP_CHUNK_WRITE_REPAIR  = 88,
    ///
-   /// /* metadata-server-to-data-server control-plane operations for tight coupling */
+   /// /* metadata-server-to-data-server control-plane
+   ///  * operations for tight coupling
+   ///  */
    ///
    ///  OP_TRUST_STATEID       = 89,
    ///  OP_REVOKE_STATEID      = 90,
@@ -13429,7 +13431,8 @@ NFS4ERR_STALE_MDS_EPOCH:
    ///     uint64_t             ceta_expected_prior_epoch;
    ///     uint64_t             ceta_new_epoch;
    ///     proof_profile_id4    ceta_proof_profile;
-   ///     opaque               ceta_proof_data<CETA_INCARNATION_PROOF_MAX4>;
+   ///     opaque
+   ///         ceta_proof_data<CETA_INCARNATION_PROOF_MAX4>;
    /// };
 ~~~
 {: #fig-CHUNK_ESCROW_TAKEOVER4args title="XDR for CHUNK_ESCROW_TAKEOVER4args" }
