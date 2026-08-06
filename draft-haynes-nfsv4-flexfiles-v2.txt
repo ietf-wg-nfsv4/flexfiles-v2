@@ -8299,11 +8299,30 @@ Table of Contents
 
    Only the metadata server sets this attribute; the metadata server
    sets it as part of allocating a chunked-encoding data file on the
-   data server and does not change it during the file's lifetime.
-   Clients MUST NOT SETATTR this attribute; a data server MUST reject a
-   client SETATTR of FATTR4_CHUNKED_DATA_FILE with NFS4ERR_INVAL.  A
-   data server that does not support this attribute falls back to the
-   other identification methods described in Section 13.2.1.
+   data server.  Clients MUST NOT SETATTR this attribute; a data server
+   MUST reject a client SETATTR of FATTR4_CHUNKED_DATA_FILE with
+   NFS4ERR_INVAL.  A data server that does not support this attribute
+   falls back to the other identification methods described in
+   Section 13.2.1.
+
+   The attribute describes the format of the file's content rather than
+   a property that can be applied to content already written: when TRUE,
+   the file holds chunks; when FALSE, it holds the data as the writer
+   supplied it.  Changing the attribute on a file that is not empty
+   would reinterpret existing content under a format it was not written
+   in, in either direction, and the resulting misinterpretation is not
+   detectable from the attribute alone.
+
+   The value is therefore fixed once the file holds data.  The metadata
+   server MUST NOT change the attribute on a file that is not empty, and
+   a data server MUST reject a SETATTR of FATTR4_CHUNKED_DATA_FILE
+   against a file that is not empty with NFS4ERR_INVAL, whether the
+   request arrives from a client or over the metadata server's control
+   session.  A metadata server that allocates a data file before it has
+   selected the encoding for that file MAY set the attribute to its
+   final value at any point while the file remains empty.  How a data
+   server determines that a file is not empty is an implementation
+   matter.
 
 24.  New NFSv4.2 Common Data Structures
 
