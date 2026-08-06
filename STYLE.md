@@ -85,6 +85,8 @@ Confirmed conversions (`b05182aa`, `3bc64ae5`):
 | normalis(e) | normaliz(e) |
 | optimis(e/ing) | optimiz… |
 | minimis(e) | minimiz(e) |
+| standardis(e/ed/ation) | standardiz… |
+| neighbour(s) | neighbor(s) |
 
 `analysis` is **not** a British spelling — US and UK share it. Only
 `analyse` differs.
@@ -422,7 +424,7 @@ Outstanding:
 ```sh
 D=draft-haynes-nfsv4-flexfiles-v2.md      # or the companion draft
 
-grep -nE '\b(behaviour|honour|favour|defence|serialis|organis|initialis|normalis|optimis|minimis|analyse|licence|centre)[a-z]*' $D
+grep -nE '\b(behaviour|honour|favour|defence|serialis|organis|initialis|normalis|optimis|minimis|standardis|neighbour|analyse|licence|centre)[a-z]*' $D
 grep -nE '\b(MDS|DS|DSes|FFv1|FFv2)\b' $D          # expect only identifiers, tables, artwork
 grep -niE 'inband|CHUNK_\*|repair client'          $D
 grep -nE '\*\*[^*]+\*\*|(^|[^*])\*[^* ][^*]*\*'    $D   # emphasis
