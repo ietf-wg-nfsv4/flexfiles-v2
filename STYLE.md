@@ -153,10 +153,33 @@ Pick by role, not taste (`26cd8e05`):
 |---|---|
 | Headings, IANA registrations, abstract | Flexible File Version 2 Layout Type |
 | Body prose | flexible file v2 layout |
+| Body prose, the v1 layout | flexible file v1 layout |
+| Body prose, true of either version | flexible file layout |
 | When the sentence is about the wire value | `LAYOUT4_FLEX_FILES_V2` |
 
 Never "flexible file v2 layout version 2" — the `v2` already carries the
 version.
+
+**"Flex Files" is not a form.** Neither is `flex-files`, `Flex File`, or
+`flex files`. The base draft writes "flexible file v1 layout" 27 times
+and never once writes "Flex Files"; four sites in the proxy-server draft
+had drifted to four different spellings of it. (`1760f672`)
+
+Reach for the version-agnostic row only when the statement is true of
+both versions — a source layout that is not pNFS at all, client-side
+mirroring as the family's availability mitigation. Dropping the version
+because you are unsure which one applies is how "expose itself as a
+flex-files data server" got written; a reader then cannot tell whether
+the slot is a v1 or a v2 layout position.
+
+```sh
+grep -nE 'Flex[ -]Files?|flex[ -]files?' $D          # expect front matter only
+```
+
+Front matter is exempt and is the only expected hit: `title:` and
+`abbrev:` carry "Flexible File Layout Version 2" and "Flex File Layout
+v2", and the base draft says so in body prose — document-metadata
+conventions do not participate in the body-prose vocabulary.
 
 ### 3.3 Role nouns are lowercase
 
