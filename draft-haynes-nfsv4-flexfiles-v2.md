@@ -2364,7 +2364,7 @@ the client MUST update all mirrors.
 
    The metadata server MUST NOT set FFV2_FLAGS_WRITE_ONE_MIRROR
    on a layout whose ffv2l_mirrors carry more than one distinct
-   ffv2m_coding_type_data value unless a propagation actor is
+   ffv2m_encoding_type_data value unless a propagation actor is
    available that speaks every encoding present in the layout.
    Cross-encoding propagation requires the actor to decode
    through the source mirror's encoding transform and re-encode
@@ -2646,27 +2646,28 @@ The total number of data servers required is ffv2dp_data + ffv2dp_parity.
 The storage overhead is ffv2dp_parity / ffv2dp_data (e.g., 50% for 4+2,
 25% for 8+2).
 
-## ffv2_coding_type_data4
+## ffv2_encoding_type_data4
 
 ~~~ xdr
-   /// union ffv2_coding_type_data4 switch
-   ///         (ffv2_encoding_type4 ffv2ctd_coding) {
+   /// union ffv2_encoding_type_data4 switch
+   ///         (ffv2_encoding_type4 ffv2etd_encoding) {
    ///     case FFV2_ENCODING_PASSTHROUGH:
-   ///         ffv2_data_protection4   ffv2ctd_protection;
+   ///         ffv2_data_protection4   ffv2etd_protection;
    ///     case FFV2_ENCODING_REPLICATED:
-   ///         ffv2_data_protection4   ffv2ctd_protection;
+   ///         ffv2_data_protection4   ffv2etd_protection;
    ///     default:
-   ///         ffv2_data_protection4   ffv2ctd_protection;
+   ///         ffv2_data_protection4   ffv2etd_protection;
    /// };
 ~~~
-{: #fig-ffv2_coding_type_data4 title="The ffv2_coding_type_data4" }
+{: #fig-ffv2_coding_type_data4 title="The ffv2_encoding_type_data4" }
 
-The ffv2_coding_type_data4 (in {{fig-ffv2_coding_type_data4}}) describes
-the data protection geometry for the layout.  All encoding types carry an
-ffv2_data_protection4 ({{fig-ffv2_data_protection4}}) specifying the
-number of data and parity shards.  The encoding type enum determines how
-the shards are encoded; the protection structure determines how many
-shards there are.
+The ffv2_encoding_type_data4 (in {{fig-ffv2_coding_type_data4}})
+describes the data protection geometry for the layout.  All
+encoding types carry an ffv2_data_protection4
+({{fig-ffv2_data_protection4}}) specifying the number of data and
+parity shards.  The encoding type enum determines how the shards
+are encoded; the protection structure determines how many shards
+there are.
 
 Although every arm of the union currently carries the same
 type, the union form is intentional.  Future revisions of this
@@ -2711,7 +2712,7 @@ The (data, parity) tuple is interpreted per encoding type:
 {: #fig-ffv2_stripes4 title="The ffv2_stripes4 structure"}
 
 Each stripe contains a set of data servers in ffv2s_data_servers.
-If the stripe is part of a ffv2_coding_type_data4 of
+If the stripe is part of a ffv2_encoding_type_data4 of
 FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_REPLICATED, then the
 length of ffv2s_data_servers MUST be 1: under both encoding
 types each stripe's data lives on a single data server, with
@@ -2737,12 +2738,12 @@ rather than a per-layout one.
 
 ~~~ xdr
    /// struct ffv2_mirror4 {
-   ///         ffv2_coding_type_data4  ffv2m_coding_type_data;
-   ///         ffv2_striping4           ffv2m_striping;
-   ///         uint32_t                ffv2m_striping_unit_size;
-   ///         uint32_t                ffv2m_client_id;
-   ///         checksum_algorithm4     ffv2m_checksum_algorithm;
-   ///         ffv2_stripes4           ffv2m_stripes<>;
+   ///         ffv2_encoding_type_data4  ffv2m_encoding_type_data;
+   ///         ffv2_striping4            ffv2m_striping;
+   ///         uint32_t                  ffv2m_striping_unit_size;
+   ///         uint32_t                  ffv2m_client_id;
+   ///         checksum_algorithm4       ffv2m_checksum_algorithm;
+   ///         ffv2_stripes4             ffv2m_stripes<>;
    /// };
 ~~~
 {: #fig-ffv2_mirror4 title="The ffv2_mirror4" }
@@ -2752,19 +2753,19 @@ file v2 layout counterpart to ff_mirror4 in {{RFC8435}}.  The
 flexible file v2 layout is a semantic superset of the flexible
 file v1 layout: any ff_mirror4 can be re-expressed as an
 ffv2_mirror4 by setting
-ffv2m_coding_type_data = FFV2_ENCODING_PASSTHROUGH,
+ffv2m_encoding_type_data = FFV2_ENCODING_PASSTHROUGH,
 ffv2m_striping and ffv2m_striping_unit_size to the flexible
 file v1 layout's layout-level values, ffv2m_checksum_algorithm
 to CHECKSUM_ALG_NONE, and wrapping the flexible file v1
 layout's ffm_data_servers<> in a single-element
 ffv2m_stripes<>.  The reverse does not hold: ffv2_mirror4
-instances whose ffv2m_coding_type_data is anything other than
+instances whose ffv2m_encoding_type_data is anything other than
 FFV2_ENCODING_PASSTHROUGH have no ff_mirror4 representation.
 
 Relative to ff_mirror4, ffv2_mirror4 adds the following
 per-mirror fields:
 
-- ffv2m_coding_type_data: per-mirror encoding type choice
+- ffv2m_encoding_type_data: per-mirror encoding type choice
   (see {{fig-ffv2_encoding_type4}}).  This enables a single
   layout to carry mirrors under different encodings
   (e.g., a PASSTHROUGH mirror alongside a Reed-Solomon
@@ -2852,7 +2853,7 @@ ffv2m_client_id does NOT survive a metadata server restart: the
 metadata server reassigns values as clients reclaim layouts
 during the grace period.
 
-The ffv2m_coding_type_data is which encoding type is used
+The ffv2m_encoding_type_data is which encoding type is used
 by the mirror.
 
 The ffv2m_striping selects the striping method used by the
@@ -2870,7 +2871,7 @@ of ffv2m_striping_unit_size MUST be 1.
 
 The ffv2m_stripes is the array of stripes for the mirror; the
 length of the array is the stripe count.  If there is no
-striping or the ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
+striping or the ffv2m_encoding_type_data is FFV2_ENCODING_PASSTHROUGH,
 then the length of ffv2m_stripes MUST be 1.  Under
 FFV2_ENCODING_REPLICATED the file MAY be striped within each
 replica; the constraint that ffv2s_data_servers length is 1
@@ -2929,7 +2930,7 @@ The time is in seconds.
 ~~~
 {: #fig-parallel-filesystem title="The Relationship between Metadata Server and Data Servers"}
 
-As shown in {{fig-parallel-filesystem}} if the ffv2m_coding_type_data
+As shown in {{fig-parallel-filesystem}} if the ffv2m_encoding_type_data
 is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_REPLICATED, then each
 of the stripes MUST only have 1 storage device.  I.e., the length
 of ffv2s_data_servers MUST be 1.  The erasure-coding encoding types
@@ -3155,7 +3156,7 @@ upgrades without additional value, because a client that
 genuinely upgrades its encoding set at runtime can simply update
 the ffv2lh_supported_types on its next LAYOUTGET.
 
-Note: In {{fig-ffv2_layout4}} ffv2_coding_type_data4 is an enumerated
+Note: In {{fig-ffv2_layout4}} ffv2_encoding_type_data4 is an enumerated
 union with the payload of each arm being defined by the protection
 type. ffv2m_client_id tells the client which id to use when interacting
 with the data servers.
@@ -3552,7 +3553,7 @@ mirroring of the file data constrained by a layout segment.  Each
 mirror in ffv2l_mirrors is an independent representation of the
 file's contents for that segment: the XDR (see {{fig-ffv2_mirror4}})
 lets each mirror carry its own encoding
-(ffv2m_coding_type_data), its own striping pattern
+(ffv2m_encoding_type_data), its own striping pattern
 (ffv2m_striping and ffv2m_stripes), and its own set of data
 servers.  A single layout MAY combine dissimilar mirrors -- for
 example, one FFV2_ENCODING_REPLICATED mirror and one
@@ -7150,7 +7151,7 @@ geometry knowledge only.
 
 ### PASSTHROUGH Data Files (FFV2_ENCODING_PASSTHROUGH)
 
-For a mirror whose ffv2m_coding_type_data is
+For a mirror whose ffv2m_encoding_type_data is
 FFV2_ENCODING_PASSTHROUGH (see {{sec-encoding-passthrough}}),
 client operations on the data file follow the same pattern as
 the File Layout Type in {{RFC8881}} Section 13.6 and the
@@ -7177,7 +7178,7 @@ The client MUST NOT send:
 
 ### Chunked Data Files
 
-For a mirror whose ffv2m_coding_type_data is any of the chunked
+For a mirror whose ffv2m_encoding_type_data is any of the chunked
 encoding types defined in this document -- i.e., every
 FFV2_ENCODING_* value except FFV2_ENCODING_PASSTHROUGH (see
 {{sec-encoding-passthrough}}) -- client operations use the
@@ -7209,7 +7210,7 @@ Clients MUST NOT send:
    data server MUST reject these with NFS4ERR_NOTSUPP and MAY
    log the client for operator attention; this case is almost
    always a client bug in which the client did not inspect the
-   mirror's ffv2m_coding_type_data before issuing I/O.
+   mirror's ffv2m_encoding_type_data before issuing I/O.
 -  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against a chunked
    data file.  Chunk-level allocation is a metadata-server
    responsibility.
@@ -7372,7 +7373,7 @@ MAY:
 {: #tbl-ops-allowed title="NFSv4.2 operations allowed on data files"}
 
 The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-server
-column select by the mirror's ffv2m_coding_type_data value.
+column select by the mirror's ffv2m_encoding_type_data value.
 FFV2_ENCODING_PASSTHROUGH ({{sec-encoding-passthrough}}) uses
 NFSv3 WRITE / READ or NFSv4 READ / WRITE directly and does not
 use the CHUNK operations.  Every other standards-track encoding
