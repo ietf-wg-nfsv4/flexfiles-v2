@@ -367,7 +367,11 @@ tables, URLs, and artwork are exempt.
   `8+2`. The operative test is *a letter on either side gets spaces*.
   Never touch content inside `~~~` fences or backticks. (`d4dcf4c7`)
 - **Prose is not C**: write `stable_how = FILE_SYNC`, not `==`.
-  (`d4dcf4c7`)
+  (`d4dcf4c7`) This holds **inside backticks too** — a backticked
+  condition in running text is still prose, not code. Only a `~~~`
+  fence or a `///` XDR line keeps `==`. The base draft has zero `==`
+  outside its XDR; treat any other hit as a finding rather than
+  assuming the backticks make it code.
 - **Never backslash-escape brackets.** `\[` / `\]` leak into the `.txt`
   render. Put display equations in `~~~` fences and inline math in
   backticks — brackets are literal inside both. (`2e056276`)
