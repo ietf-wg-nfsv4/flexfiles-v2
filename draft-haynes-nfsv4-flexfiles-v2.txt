@@ -573,7 +573,7 @@ Table of Contents
    to their strength -- storing and serving bytes.  Flexible file v1
    layout ([RFC8435]) already chose client-side compute by placing
    replication at the writer; this draft extends that choice to client-
-   side erasure coding.  Benchmark measurements summarised in
+   side erasure coding.  Benchmark measurements summarized in
    Appendix "Implementation Status" confirm that the resulting overhead
    is competitive with server-side encoding on realistic workloads and
    that the encoding compute scales with the writer population rather
@@ -594,7 +594,7 @@ Table of Contents
    A natural-looking answer is to add a distributed-consensus protocol
    between the data servers and have them agree on which write
    committed.  That answer is rejected here.  Distributed consensus is
-   operationally expensive, introduces a synchronisation cost on every
+   operationally expensive, introduces a synchronization cost on every
    write, and makes the data servers themselves stateful peers in a way
    that closes off the simpler implementations the protocol is designed
    to accommodate.  Instead, this draft uses two narrowly-scoped
@@ -669,7 +669,7 @@ Table of Contents
    algorithm per file.  The authorization-outcome parity rule
    (Section 6.3) lets data servers that do not expose a POSIX file
    namespace satisfy the tight coupling requirements without
-   materialising POSIX uid/gid bits.
+   materializing POSIX uid/gid bits.
 
    A protocol-level consequence of placing erasure coding at the client
    is that the layout is able to describe a file's storage shape over
@@ -6919,7 +6919,7 @@ Table of Contents
    *  RECLAIM_COMPLETE (Section 18.51 of [RFC8881]).
 
    *  SECINFO, SECINFO_NO_NAME ([RFC8881] Sections 18.29, 18.45):
-      discovery of acceptable security flavours on the data server.
+      discovery of acceptable security flavors on the data server.
 
    These operations are baseline NFSv4.2 session plumbing and are
    supported on data files as on any NFSv4.2 file.
@@ -12877,7 +12877,7 @@ Table of Contents
          level non-atomicity at write or read time and reported it via
          LAYOUTERROR.  The metadata server is driving repair
          synchronously because the affected chunk is on the critical
-         path of some I/O.  The recipient SHOULD prioritise the callback
+         path of some I/O.  The recipient SHOULD prioritize the callback
          over background work.
 
       CB_REPAIR_REASON_SCRUB:  A background scrub.  The metadata server
@@ -13848,7 +13848,7 @@ Table of Contents
       | Range                 | Purpose         | Allocation Policy |
       +=======================+=================+===================+
       | 0x0000                | Reserved        | --                |
-      |                       | (uninitialised) |                   |
+      |                       | (uninitialized) |                   |
       +-----------------------+-----------------+-------------------+
       | 0x0001-0x00FF         | Standards Track | IETF Review       |
       +-----------------------+-----------------+-------------------+
@@ -13873,7 +13873,7 @@ Table of Contents
    that observes an ffv2_encoding_type4 value in the reserved region
    MUST treat it as an unsupported encoding type
    (NFS4ERR_ENCODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
-   uninitialised-field sentinel and MUST NOT be allocated to an
+   uninitialized-field sentinel and MUST NOT be allocated to an
    encoding.
 
    Standards Track (0x0000-0x00FF):  Enencoding types intended for broad
@@ -14404,7 +14404,7 @@ reffs (metadata server, data server, and ec_demo client)
 
    Level of maturity:  Research-quality prototype.  The implementation
       demonstrates the protocol and has produced the benchmark data
-      summarised below.  It is not production-ready.
+      summarized below.  It is not production-ready.
 
    Contact:  loghyr@gmail.com.
 
@@ -14497,7 +14497,7 @@ Algorithm cost
 
    Across these encoders and the four host classes, algorithm-cost
    spread on the same host reaches approximately two orders of magnitude
-   at k=4, m=2 (the fastest SIMD-vectorised encoders approach the
+   at k=4, m=2 (the fastest SIMD-vectorized encoders approach the
    memory-bandwidth ceiling in the tens of GB/s; the slowest scalar
    encoders are compute-bound in the low hundreds of MB/s).
 
@@ -14945,7 +14945,7 @@ Declustered RAID with Dynamic Parity Mapping
       deliberately does not require (see Section 12.13).
 
    The current design uses fixed per-file chunk placement decided at
-   LAYOUTGET time plus chunk_guard4 CAS for writes, which localises
+   LAYOUTGET time plus chunk_guard4 CAS for writes, which localizes
    consistency decisions to the chunks being written rather than to a
    global mapping table.
 
@@ -15108,7 +15108,7 @@ What We Believe Is Being Asked
        the layout: every client holding it must drain in-flight I/O and
        DELEGRETURN before the metadata server can mutate.  In an
        erasure-coded workload with many concurrent clients, this turns a
-       localised data server hiccup into a global stall.
+       localized data server hiccup into a global stall.
 
    2.  The data servers must be smart enough to enforce per-client
        access on a finer grain than "the file is reachable from the

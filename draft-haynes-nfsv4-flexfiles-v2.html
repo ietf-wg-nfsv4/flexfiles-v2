@@ -2479,7 +2479,7 @@ strength -- storing and serving bytes.  Flexible file v1
 layout (<span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span>) already chose client-side compute by
 placing replication at the writer; this draft extends that
 choice to client-side erasure coding.  Benchmark
-measurements summarised in <a href="#sec-implementation-status" class="auto internal xref">Appendix "Implementation Status"</a>
+measurements summarized in <a href="#sec-implementation-status" class="auto internal xref">Appendix "Implementation Status"</a>
 confirm that the resulting overhead is competitive with
 server-side encoding on realistic workloads and that the
 encoding compute scales with the writer population rather
@@ -2501,7 +2501,7 @@ of the design.<a href="#section-3-3" class="pilcrow">¶</a></p>
 protocol between the data servers and have them agree on
 which write committed.  That answer is rejected here.
 Distributed consensus is operationally expensive,
-introduces a synchronisation cost on every write, and
+introduces a synchronization cost on every write, and
 makes the data servers themselves stateful peers in a way
 that closes off the simpler implementations the protocol
 is designed to accommodate.  Instead, this draft uses two
@@ -2587,7 +2587,7 @@ registered checksum algorithm per file.  The
 authorization-outcome parity rule
 (<a href="#sec-state-locking" class="auto internal xref">Section 6.3</a>) lets data servers that do not
 expose a POSIX file namespace satisfy the tight coupling
-requirements without materialising POSIX uid/gid bits.<a href="#section-3-9" class="pilcrow">¶</a></p>
+requirements without materializing POSIX uid/gid bits.<a href="#section-3-9" class="pilcrow">¶</a></p>
 <p id="section-3-10">A protocol-level consequence of placing erasure coding at
 the client is that the layout is able to describe a
 file's storage shape over its full lifetime -- including
@@ -11081,7 +11081,7 @@ BIND_CONN_TO_SESSION, DESTROY_CLIENTID (<span>[<a href="#RFC8881" class="cite xr
 </li>
             <li class="normal" id="section-13.2.2-2.4">
               <p id="section-13.2.2-2.4.1">SECINFO, SECINFO_NO_NAME (<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Sections 18.29, 18.45):
-discovery of acceptable security flavours on the data
+discovery of acceptable security flavors on the data
 server.<a href="#section-13.2.2-2.4.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
@@ -20246,7 +20246,7 @@ non-atomicity at write or read time and reported it
 via LAYOUTERROR.  The metadata server is driving
 repair synchronously because the affected chunk is
 on the critical path of some I/O.  The recipient
-<span class="bcp14">SHOULD</span> prioritise the callback over background
+<span class="bcp14">SHOULD</span> prioritize the callback over background
 work.<a href="#section-26.1.3-4.8.2.2.1" class="pilcrow">¶</a></p>
 </dd>
                 <dd class="break"></dd>
@@ -21645,7 +21645,7 @@ encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table
         <tbody>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">0x0000</td>
-            <td class="text-left" rowspan="1" colspan="1">Reserved (uninitialised)</td>
+            <td class="text-left" rowspan="1" colspan="1">Reserved (uninitialized)</td>
             <td class="text-left" rowspan="1" colspan="1">--</td>
           </tr>
           <tr>
@@ -21686,7 +21686,7 @@ encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table
 that observes an <code>ffv2_encoding_type4</code> value in the reserved
 region <span class="bcp14">MUST</span> treat it as an unsupported encoding type
 (NFS4ERR_ENCODING_NOT_SUPPORTED).  Value 0x0000 is reserved as the
-uninitialised-field sentinel and <span class="bcp14">MUST NOT</span> be allocated to an
+uninitialized-field sentinel and <span class="bcp14">MUST NOT</span> be allocated to an
 encoding.<a href="#section-29-11" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-29-12">
         <dt id="section-29-12.1">Standards Track (0x0000-0x00FF):</dt>
@@ -22405,7 +22405,7 @@ currently client-driven via <code>ec_demo</code>.<a href="#appendix-A.1-3.8.1" c
           <dt id="appendix-A.1-4.1">Level of maturity:</dt>
           <dd style="margin-left: 1.5em" id="appendix-A.1-4.2">
             <p id="appendix-A.1-4.2.1">Research-quality prototype.  The implementation demonstrates
-the protocol and has produced the benchmark data summarised
+the protocol and has produced the benchmark data summarized
 below.  It is not production-ready.<a href="#appendix-A.1-4.2.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
@@ -22560,7 +22560,7 @@ AMD Zen 3 virtual machines (variance across the fleet under 5%
 on all encoders).<a href="#appendix-A.3.1-1" class="pilcrow">¶</a></p>
 <p id="appendix-A.3.1-2">Across these encoders and the four host classes, algorithm-cost
 spread on the same host reaches approximately two orders of
-magnitude at k=4, m=2 (the fastest SIMD-vectorised encoders
+magnitude at k=4, m=2 (the fastest SIMD-vectorized encoders
 approach the memory-bandwidth ceiling in the tens of GB/s; the
 slowest scalar encoders are compute-bound in the low hundreds
 of MB/s).<a href="#appendix-A.3.1-2" class="pilcrow">¶</a></p>
@@ -23176,7 +23176,7 @@ deliberately does not require (see <a href="#sec-system-model-consensus" class="
         </ul>
 <p id="appendix-B.8-3">The current design uses fixed per-file chunk placement decided
 at LAYOUTGET time plus chunk_guard4 CAS for writes, which
-localises consistency decisions to the chunks being written
+localizes consistency decisions to the chunks being written
 rather than to a global mapping table.<a href="#appendix-B.8-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -23380,7 +23380,7 @@ without serializing every layout-holding client through a
 CB_LAYOUTRECALL round-trip.  A recall is global with respect
 to the layout: every client holding it must drain in-flight I/O
 and DELEGRETURN before the metadata server can mutate.  In an erasure-coded
-workload with many concurrent clients, this turns a localised
+workload with many concurrent clients, this turns a localized
 data server hiccup into a global stall.<a href="#appendix-D.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="appendix-D.3-2.2">
