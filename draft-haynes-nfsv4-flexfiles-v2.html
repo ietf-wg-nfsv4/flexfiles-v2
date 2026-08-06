@@ -1292,7 +1292,7 @@ discussion venue, latest rendering, and source location.<a href="#section-note.2
                 <p id="section-toc.1-1.8.2.6.1"><a href="#section-8.6" class="auto internal xref">8.6</a>.  <a href="#name-ffv2_data_protection4" class="internal xref">ffv2_data_protection4</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.7">
-                <p id="section-toc.1-1.8.2.7.1"><a href="#section-8.7" class="auto internal xref">8.7</a>.  <a href="#name-ffv2_coding_type_data4" class="internal xref">ffv2_coding_type_data4</a></p>
+                <p id="section-toc.1-1.8.2.7.1"><a href="#section-8.7" class="auto internal xref">8.7</a>.  <a href="#name-ffv2_encoding_type_data4" class="internal xref">ffv2_encoding_type_data4</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.8">
                 <p id="section-toc.1-1.8.2.8.1"><a href="#section-8.8" class="auto internal xref">8.8</a>.  <a href="#name-ffv2_stripes4" class="internal xref">ffv2_stripes4</a></p>
@@ -2471,7 +2471,7 @@ the bottleneck in the write-heavy parallel case.
 Server-side erasure coding makes each data server compute
 its share of the parity transform on every write,
 multiplying the per-write CPU cost by (k + m) across the
-storage tier and serialising on the data server's limited
+storage tier and serializing on the data server's limited
 compute.  Client-side erasure coding shifts that compute
 to the writers, which scale horizontally with the
 workload, and lets the data servers stay close to their
@@ -4862,7 +4862,7 @@ to propagate the update to the remaining mirrors.  When unset,
 the client <span class="bcp14">MUST</span> update all mirrors.<a href="#section-8.2.1-4.8.1" class="pilcrow">¶</a></p>
 <p id="section-8.2.1-4.8.2">The metadata server <span class="bcp14">MUST NOT</span> set FFV2_FLAGS_WRITE_ONE_MIRROR
 on a layout whose ffv2l_mirrors carry more than one distinct
-ffv2m_coding_type_data value unless a propagation actor is
+ffv2m_encoding_type_data value unless a propagation actor is
 available that speaks every encoding present in the layout.
 Cross-encoding propagation requires the actor to decode
 through the source mirror's encoding transform and re-encode
@@ -5242,36 +5242,37 @@ The storage overhead is ffv2dp_parity / ffv2dp_data (e.g., 50% for 4+2,
 25% for 8+2).<a href="#section-8.6-5" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="ffv2codingtypedata4">
+<div id="ffv2encodingtypedata4">
 <section id="section-8.7">
-        <h3 id="name-ffv2_coding_type_data4">
-<a href="#section-8.7" class="section-number selfRef">8.7. </a><a href="#name-ffv2_coding_type_data4" class="section-name selfRef">ffv2_coding_type_data4</a>
+        <h3 id="name-ffv2_encoding_type_data4">
+<a href="#section-8.7" class="section-number selfRef">8.7. </a><a href="#name-ffv2_encoding_type_data4" class="section-name selfRef">ffv2_encoding_type_data4</a>
         </h3>
-<span id="name-the-ffv2_coding_type_data4"></span><div id="fig-ffv2_coding_type_data4">
+<span id="name-the-ffv2_encoding_type_data"></span><div id="fig-ffv2_coding_type_data4">
 <figure id="figure-15">
           <div class="lang-xdr sourcecode" id="section-8.7-1.1">
 <pre>
-   /// union ffv2_coding_type_data4 switch
-   ///         (ffv2_encoding_type4 ffv2ctd_coding) {
+   /// union ffv2_encoding_type_data4 switch
+   ///         (ffv2_encoding_type4 ffv2etd_encoding) {
    ///     case FFV2_ENCODING_PASSTHROUGH:
-   ///         ffv2_data_protection4   ffv2ctd_protection;
+   ///         ffv2_data_protection4   ffv2etd_protection;
    ///     case FFV2_ENCODING_REPLICATED:
-   ///         ffv2_data_protection4   ffv2ctd_protection;
+   ///         ffv2_data_protection4   ffv2etd_protection;
    ///     default:
-   ///         ffv2_data_protection4   ffv2ctd_protection;
+   ///         ffv2_data_protection4   ffv2etd_protection;
    /// };
 </pre>
 </div>
 <figcaption><a href="#figure-15" class="selfRef">Figure 15</a>:
-<a href="#name-the-ffv2_coding_type_data4" class="selfRef">The ffv2_coding_type_data4</a>
+<a href="#name-the-ffv2_encoding_type_data" class="selfRef">The ffv2_encoding_type_data4</a>
           </figcaption></figure>
 </div>
-<p id="section-8.7-2">The ffv2_coding_type_data4 (in <a href="#fig-ffv2_coding_type_data4" class="auto internal xref">Figure 15</a>) describes
-the data protection geometry for the layout.  All encoding types carry an
-ffv2_data_protection4 (<a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 14</a>) specifying the
-number of data and parity shards.  The encoding type enum determines how
-the shards are encoded; the protection structure determines how many
-shards there are.<a href="#section-8.7-2" class="pilcrow">¶</a></p>
+<p id="section-8.7-2">The ffv2_encoding_type_data4 (in <a href="#fig-ffv2_coding_type_data4" class="auto internal xref">Figure 15</a>)
+describes the data protection geometry for the layout.  All
+encoding types carry an ffv2_data_protection4
+(<a href="#fig-ffv2_data_protection4" class="auto internal xref">Figure 14</a>) specifying the number of data and
+parity shards.  The encoding type enum determines how the shards
+are encoded; the protection structure determines how many shards
+there are.<a href="#section-8.7-2" class="pilcrow">¶</a></p>
 <p id="section-8.7-3">Although every arm of the union currently carries the same
 type, the union form is intentional.  Future revisions of this
 specification may assign distinct arm types to specific coding
@@ -5329,7 +5330,7 @@ this document) use ffv2dp_data &gt;= 2 and ffv2dp_parity &gt;= 1.<a href="#secti
           </figcaption></figure>
 </div>
 <p id="section-8.8-2">Each stripe contains a set of data servers in ffv2s_data_servers.
-If the stripe is part of a ffv2_coding_type_data4 of
+If the stripe is part of a ffv2_encoding_type_data4 of
 FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_REPLICATED, then the
 length of ffv2s_data_servers <span class="bcp14">MUST</span> be 1: under both encoding
 types each stripe's data lives on a single data server, with
@@ -5361,12 +5362,12 @@ rather than a per-layout one.<a href="#section-8.8-3" class="pilcrow">¶</a></p>
           <div class="lang-xdr sourcecode" id="section-8.9-1.1">
 <pre>
    /// struct ffv2_mirror4 {
-   ///         ffv2_coding_type_data4  ffv2m_coding_type_data;
-   ///         ffv2_striping4           ffv2m_striping;
-   ///         uint32_t                ffv2m_striping_unit_size;
-   ///         uint32_t                ffv2m_client_id;
-   ///         checksum_algorithm4     ffv2m_checksum_algorithm;
-   ///         ffv2_stripes4           ffv2m_stripes&lt;&gt;;
+   ///         ffv2_encoding_type_data4  ffv2m_encoding_type_data;
+   ///         ffv2_striping4            ffv2m_striping;
+   ///         uint32_t                  ffv2m_striping_unit_size;
+   ///         uint32_t                  ffv2m_client_id;
+   ///         checksum_algorithm4       ffv2m_checksum_algorithm;
+   ///         ffv2_stripes4             ffv2m_stripes&lt;&gt;;
    /// };
 </pre>
 </div>
@@ -5379,19 +5380,19 @@ file v2 layout counterpart to ff_mirror4 in <span>[<a href="#RFC8435" class="cit
 flexible file v2 layout is a semantic superset of the flexible
 file v1 layout: any ff_mirror4 can be re-expressed as an
 ffv2_mirror4 by setting
-ffv2m_coding_type_data = FFV2_ENCODING_PASSTHROUGH,
+ffv2m_encoding_type_data = FFV2_ENCODING_PASSTHROUGH,
 ffv2m_striping and ffv2m_striping_unit_size to the flexible
 file v1 layout's layout-level values, ffv2m_checksum_algorithm
 to CHECKSUM_ALG_NONE, and wrapping the flexible file v1
 layout's ffm_data_servers&lt;&gt; in a single-element
 ffv2m_stripes&lt;&gt;.  The reverse does not hold: ffv2_mirror4
-instances whose ffv2m_coding_type_data is anything other than
+instances whose ffv2m_encoding_type_data is anything other than
 FFV2_ENCODING_PASSTHROUGH have no ff_mirror4 representation.<a href="#section-8.9-2" class="pilcrow">¶</a></p>
 <p id="section-8.9-3">Relative to ff_mirror4, ffv2_mirror4 adds the following
 per-mirror fields:<a href="#section-8.9-3" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-8.9-4.1">
-            <p id="section-8.9-4.1.1">ffv2m_coding_type_data: per-mirror encoding type choice
+            <p id="section-8.9-4.1.1">ffv2m_encoding_type_data: per-mirror encoding type choice
 (see <a href="#fig-ffv2_encoding_type4" class="auto internal xref">Figure 9</a>).  This enables a single
 layout to carry mirrors under different encodings
 (e.g., a PASSTHROUGH mirror alongside a Reed-Solomon
@@ -5489,7 +5490,7 @@ layout on a given file <span class="bcp14">MAY</span> be assigned a different ff
 ffv2m_client_id does NOT survive a metadata server restart: the
 metadata server reassigns values as clients reclaim layouts
 during the grace period.<a href="#section-8.9-9" class="pilcrow">¶</a></p>
-<p id="section-8.9-10">The ffv2m_coding_type_data is which encoding type is used
+<p id="section-8.9-10">The ffv2m_encoding_type_data is which encoding type is used
 by the mirror.<a href="#section-8.9-10" class="pilcrow">¶</a></p>
 <p id="section-8.9-11">The ffv2m_striping selects the striping method used by the
 mirror.  The three permissible values are FFV2_STRIPING_NONE
@@ -5504,7 +5505,7 @@ the value of ffv2m_striping is FFV2_STRIPING_NONE, then the value
 of ffv2m_striping_unit_size <span class="bcp14">MUST</span> be 1.<a href="#section-8.9-12" class="pilcrow">¶</a></p>
 <p id="section-8.9-13">The ffv2m_stripes is the array of stripes for the mirror; the
 length of the array is the stripe count.  If there is no
-striping or the ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH,
+striping or the ffv2m_encoding_type_data is FFV2_ENCODING_PASSTHROUGH,
 then the length of ffv2m_stripes <span class="bcp14">MUST</span> be 1.  Under
 FFV2_ENCODING_REPLICATED the file <span class="bcp14">MAY</span> be striped within each
 replica; the constraint that ffv2s_data_servers length is 1
@@ -5576,7 +5577,7 @@ The time is in seconds.<a href="#section-8.10-4" class="pilcrow">¶</a></p>
 <a href="#name-the-relationship-between-me" class="selfRef">The Relationship between Metadata Server and Data Servers</a>
           </figcaption></figure>
 </div>
-<p id="section-8.10-6">As shown in <a href="#fig-parallel-filesystem" class="auto internal xref">Figure 19</a> if the ffv2m_coding_type_data
+<p id="section-8.10-6">As shown in <a href="#fig-parallel-filesystem" class="auto internal xref">Figure 19</a> if the ffv2m_encoding_type_data
 is FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_REPLICATED, then each
 of the stripes <span class="bcp14">MUST</span> only have 1 storage device.  I.e., the length
 of ffv2s_data_servers <span class="bcp14">MUST</span> be 1.  The erasure-coding encoding types
@@ -5834,7 +5835,7 @@ capability set would duplicate it and would complicate encoding
 upgrades without additional value, because a client that
 genuinely upgrades its encoding set at runtime can simply update
 the ffv2lh_supported_types on its next LAYOUTGET.<a href="#section-8.11.1-3" class="pilcrow">¶</a></p>
-<p id="section-8.11.1-4">Note: In <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 18</a> ffv2_coding_type_data4 is an enumerated
+<p id="section-8.11.1-4">Note: In <a href="#fig-ffv2_layout4" class="auto internal xref">Figure 18</a> ffv2_encoding_type_data4 is an enumerated
 union with the payload of each arm being defined by the protection
 type. ffv2m_client_id tells the client which id to use when interacting
 with the data servers.<a href="#section-8.11.1-4" class="pilcrow">¶</a></p>
@@ -6019,8 +6020,8 @@ via the encoding-negotiation path
 (<a href="#sec-encoding-negotiation" class="auto internal xref">Section 8.11.1</a>) with the flag cleared.<a href="#section-8.11.3-1" class="pilcrow">¶</a></p>
 <p id="section-8.11.3-2">The NO_IO_THRU_MDS flag is not advisory; it is an
 instruction the client <span class="bcp14">MUST</span> honor.  When I/O through the
-metadata server is required (for example, via the encoding-
-negotiation fallback path in <a href="#sec-encoding-negotiation" class="auto internal xref">Section 8.11.1</a>),
+metadata server is required (for example, via the
+encoding-negotiation fallback path in <a href="#sec-encoding-negotiation" class="auto internal xref">Section 8.11.1</a>),
 the metadata server <span class="bcp14">MUST</span> clear NO_IO_THRU_MDS on the
 fallback layout it issues.  A client <span class="bcp14">MUST NOT</span> interpret
 a set NO_IO_THRU_MDS flag as advisory or bypass it.<a href="#section-8.11.3-2" class="pilcrow">¶</a></p>
@@ -6276,7 +6277,7 @@ mirroring of the file data constrained by a layout segment.  Each
 mirror in ffv2l_mirrors is an independent representation of the
 file's contents for that segment: the XDR (see <a href="#fig-ffv2_mirror4" class="auto internal xref">Figure 17</a>)
 lets each mirror carry its own encoding
-(ffv2m_coding_type_data), its own striping pattern
+(ffv2m_encoding_type_data), its own striping pattern
 (ffv2m_striping and ffv2m_stripes), and its own set of data
 servers.  A single layout <span class="bcp14">MAY</span> combine dissimilar mirrors -- for
 example, one FFV2_ENCODING_REPLICATED mirror and one
@@ -6516,7 +6517,7 @@ observe the accepted guard on the read path.<a href="#section-11.2-3.2.1" class=
 <dt id="section-11.2-3.3">Owner:</dt>
           <dd style="margin-left: 1.5em" id="section-11.2-3.4">
             <p id="section-11.2-3.4.1">an XDR chunk_owner4 owner triple
-triple identifying the writer's cohort (see
+identifying the writer's cohort (see
 <a href="#sec-chunk_owner4" class="auto internal xref">Section 24.3</a>).  The owner is the identity that
 lifecycle operations (CHUNK_FINALIZE, CHUNK_COMMIT,
 CHUNK_ROLLBACK) address.<a href="#section-11.2-3.4.1" class="pilcrow">¶</a></p>
@@ -7105,7 +7106,7 @@ steady-state operation and its frequency is a function of
 racing-writer and data-server-failure rates in the deployment
 rather than of normal client workload.  Implementations <span class="bcp14">SHOULD</span>
 treat the CB_CHUNK_REPAIR handler as rare-path code and avoid
-over-optimising it.  Implementations <span class="bcp14">SHOULD</span>, however, provision
+over-optimizing it.  Implementations <span class="bcp14">SHOULD</span>, however, provision
 enough client-side compute to handle a repair transaction
 without stalling their foreground I/O, because foreground
 throughput during repair is the externally observable cost of
@@ -11012,7 +11013,8 @@ supports the attribute.<a href="#section-13.2.1-2.2.1" class="pilcrow">¶</a></p
               <p id="section-13.2.1-2.4.1">Under trusted-stateid tight coupling
 (<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>), a live trust entry for the
 file registered via TRUST_STATEID
-identifies the file as under FFv2 management.  This is a
+identifies the file as under flexible file v2 layout
+management.  This is a
 fallback for data servers that do not yet support
 fattr4_chunked_data_file, and it is per-client rather
 than per-file, but it is sufficient to trigger the "<span class="bcp14">MUST</span>
@@ -11026,7 +11028,8 @@ scope not shared with client-accessible file access, as one
 means of preventing a misconfigured or malicious client from
 reaching data files through a normal NFS mount.  A data server
 <span class="bcp14">MAY</span> apply the "<span class="bcp14">MUST</span> reject" rules to every file in a
-namespace configured for FFv2 data-file service, without
+namespace configured for flexible file v2 layout data-file
+service, without
 per-file classification.  Note that a separate NFS export
 does not close direct filesystem access on the data server
 host itself; that is outside the scope of this specification.<a href="#section-13.2.1-2.6.1" class="pilcrow">¶</a></p>
@@ -11240,7 +11243,7 @@ geometry knowledge only.<a href="#section-13.2.6-3" class="pilcrow">¶</a></p>
           <h4 id="name-passthrough-data-files-ffv2">
 <a href="#section-13.2.7" class="section-number selfRef">13.2.7. </a><a href="#name-passthrough-data-files-ffv2" class="section-name selfRef">PASSTHROUGH Data Files (FFV2_ENCODING_PASSTHROUGH)</a>
           </h4>
-<p id="section-13.2.7-1">For a mirror whose ffv2m_coding_type_data is
+<p id="section-13.2.7-1">For a mirror whose ffv2m_encoding_type_data is
 FFV2_ENCODING_PASSTHROUGH (see <a href="#sec-encoding-passthrough" class="auto internal xref">Section 11.4</a>),
 client operations on the data file follow the same pattern as
 the File Layout Type in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> Section 13.6 and the
@@ -11285,7 +11288,7 @@ fans out to the data servers as a control-plane operation.<a href="#section-13.2
           <h4 id="name-chunked-data-files">
 <a href="#section-13.2.8" class="section-number selfRef">13.2.8. </a><a href="#name-chunked-data-files" class="section-name selfRef">Chunked Data Files</a>
           </h4>
-<p id="section-13.2.8-1">For a mirror whose ffv2m_coding_type_data is any of the chunked
+<p id="section-13.2.8-1">For a mirror whose ffv2m_encoding_type_data is any of the chunked
 encoding types defined in this document -- i.e., every
 FFV2<em>ENCODING</em>* value except FFV2_ENCODING_PASSTHROUGH (see
 <a href="#sec-encoding-passthrough" class="auto internal xref">Section 11.4</a>) -- client operations use the
@@ -11337,7 +11340,7 @@ operations to carry the per-chunk checksum and guard
 data server <span class="bcp14">MUST</span> reject these with NFS4ERR_NOTSUPP and <span class="bcp14">MAY</span>
 log the client for operator attention; this case is almost
 always a client bug in which the client did not inspect the
-mirror's ffv2m_coding_type_data before issuing I/O.<a href="#section-13.2.8-7.1.1" class="pilcrow">¶</a></p>
+mirror's ffv2m_encoding_type_data before issuing I/O.<a href="#section-13.2.8-7.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-13.2.8-7.2">
               <p id="section-13.2.8-7.2.1">READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against a chunked
@@ -11732,7 +11735,7 @@ path in this document.<a href="#section-13.4-2.8.1" class="pilcrow">¶</a></p>
         </table>
 </div>
 <p id="section-13.4-4">The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-server
-column select by the mirror's ffv2m_coding_type_data value.
+column select by the mirror's ffv2m_encoding_type_data value.
 FFV2<em>ENCODING_PASSTHROUGH (<a href="#sec-encoding-passthrough" class="auto internal xref">Section 11.4</a>) uses
 NFSv3 WRITE / READ or NFSv4 READ / WRITE directly and does not
 use the CHUNK operations.  Every other standards-track encoding
@@ -13131,7 +13134,8 @@ chunks.<a href="#section-23.1-2" class="pilcrow">¶</a></p>
 attribute a data server uses to classify a data file as a
 chunked-encoding data file for the purpose of enforcing the client
 restrictions in <a href="#sec-ops-client" class="auto internal xref">Section 13.2</a>.  When set to TRUE, the file is
-under FFv2 chunked-encoding management by a metadata server; the
+under flexible file v2 layout chunked-encoding management by a
+metadata server; the
 data server <span class="bcp14">MUST</span> apply the "<span class="bcp14">MUST</span> reject" rules on client operations
 against such files (see <a href="#sec-data-file-identification" class="auto internal xref">Section 13.2.1</a>).  When
 FALSE or absent, no such enforcement is triggered by this attribute
@@ -18418,8 +18422,8 @@ reconstructs authoritative bytes from surviving shards
 writes them via CHUNK_WRITE_REPAIR under a new owner
 triple of its own choosing.  The result is a distinct
 generation for lifecycle purposes: it carries the
-repair actor's own owner triple
-triple, NOT the released predecessor's triple.  The released
+repair actor's own owner triple,
+NOT the released predecessor's triple.  The released
 predecessor is not resurrected by any operation defined
 in this document, including this fallback; a subsequent
 lifecycle operation naming the released predecessor's
@@ -21381,7 +21385,7 @@ checksum protects against transport corruption, not
 adversarial content (<a href="#sec-security-checksum-scope" class="auto internal xref">Section 28.1</a>).
 This is the same as the RAID-stripe trust model:
 each shard host can lie about its shard.  Deployment
-defences are encryption at rest, an integrity-protected
+defenses are encryption at rest, an integrity-protected
 transport (RPCSEC_GSS_KRB5I or TLS), and
 physical or logical isolation of data servers.<a href="#section-28.7.2-1.4.1" class="pilcrow">¶</a></p>
 </dd>
@@ -22851,7 +22855,7 @@ noise of healthy operation.  Mojette systematic at 8+2 holds at
 approximately +4%.<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
 <p id="appendix-A.4-2">This shifts the deployment conversation away from "is erasure
 coding cheap enough to enable" and toward "which encoding and
-geometry minimise the compromise."  The compromise that remains is
+geometry minimize the compromise."  The compromise that remains is
 not the cost of fault tolerance; it is the cost of write-time
 encoding, which is bounded (under 60% at 1 MB, under 25% at 64 KB),
 and the cost of crash-safe durability via the chunk state machine
@@ -23378,7 +23382,7 @@ existing layout."<a href="#appendix-D.2-2" class="pilcrow">¶</a></p>
 <li id="appendix-D.3-2.1">
             <p id="appendix-D.3-2.1.1">The metadata server must be able to mutate where data lives -- replace a
 failing data server, redirect to a spare, rebalance, repair --
-without serialising every layout-holding client through a
+without serializing every layout-holding client through a
 CB_LAYOUTRECALL round-trip.  A recall is global with respect
 to the layout: every client holding it must drain in-flight I/O
 and DELEGRETURN before the metadata server can mutate.  In an erasure-coded

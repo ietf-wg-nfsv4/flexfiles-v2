@@ -115,7 +115,7 @@ Table of Contents
      8.4.  ffv2_ds_flags4
      8.5.  ffv2_data_server4
      8.6.  ffv2_data_protection4
-     8.7.  ffv2_coding_type_data4
+     8.7.  ffv2_encoding_type_data4
      8.8.  ffv2_stripes4
      8.9.  ffv2_mirror4
      8.10. ffv2_layout4
@@ -567,7 +567,7 @@ Table of Contents
    write-heavy parallel case.  Server-side erasure coding makes each
    data server compute its share of the parity transform on every write,
    multiplying the per-write CPU cost by (k + m) across the storage tier
-   and serialising on the data server's limited compute.  Client-side
+   and serializing on the data server's limited compute.  Client-side
    erasure coding shifts that compute to the writers, which scale
    horizontally with the workload, and lets the data servers stay close
    to their strength -- storing and serving bytes.  Flexible file v1
@@ -2518,7 +2518,7 @@ Table of Contents
 
       The metadata server MUST NOT set FFV2_FLAGS_WRITE_ONE_MIRROR on a
       layout whose ffv2l_mirrors carry more than one distinct
-      ffv2m_coding_type_data value unless a propagation actor is
+      ffv2m_encoding_type_data value unless a propagation actor is
       available that speaks every encoding present in the layout.
       Cross-encoding propagation requires the actor to decode through
       the source mirror's encoding transform and re-encode for each
@@ -2788,21 +2788,21 @@ Table of Contents
    ffv2dp_parity.  The storage overhead is ffv2dp_parity / ffv2dp_data
    (e.g., 50% for 4+2, 25% for 8+2).
 
-8.7.  ffv2_coding_type_data4
+8.7.  ffv2_encoding_type_data4
 
-      /// union ffv2_coding_type_data4 switch
-      ///         (ffv2_encoding_type4 ffv2ctd_coding) {
+      /// union ffv2_encoding_type_data4 switch
+      ///         (ffv2_encoding_type4 ffv2etd_encoding) {
       ///     case FFV2_ENCODING_PASSTHROUGH:
-      ///         ffv2_data_protection4   ffv2ctd_protection;
+      ///         ffv2_data_protection4   ffv2etd_protection;
       ///     case FFV2_ENCODING_REPLICATED:
-      ///         ffv2_data_protection4   ffv2ctd_protection;
+      ///         ffv2_data_protection4   ffv2etd_protection;
       ///     default:
-      ///         ffv2_data_protection4   ffv2ctd_protection;
+      ///         ffv2_data_protection4   ffv2etd_protection;
       /// };
 
-                   Figure 15: The ffv2_coding_type_data4
+                  Figure 15: The ffv2_encoding_type_data4
 
-   The ffv2_coding_type_data4 (in Figure 15) describes the data
+   The ffv2_encoding_type_data4 (in Figure 15) describes the data
    protection geometry for the layout.  All encoding types carry an
    ffv2_data_protection4 (Figure 14) specifying the number of data and
    parity shards.  The encoding type enum determines how the shards are
@@ -2849,7 +2849,7 @@ Table of Contents
                    Figure 16: The ffv2_stripes4 structure
 
    Each stripe contains a set of data servers in ffv2s_data_servers.  If
-   the stripe is part of a ffv2_coding_type_data4 of
+   the stripe is part of a ffv2_encoding_type_data4 of
    FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_REPLICATED, then the
    length of ffv2s_data_servers MUST be 1: under both encoding types
    each stripe's data lives on a single data server, with replica
@@ -2872,12 +2872,12 @@ Table of Contents
 8.9.  ffv2_mirror4
 
       /// struct ffv2_mirror4 {
-      ///         ffv2_coding_type_data4  ffv2m_coding_type_data;
-      ///         ffv2_striping4           ffv2m_striping;
-      ///         uint32_t                ffv2m_striping_unit_size;
-      ///         uint32_t                ffv2m_client_id;
-      ///         checksum_algorithm4     ffv2m_checksum_algorithm;
-      ///         ffv2_stripes4           ffv2m_stripes<>;
+      ///         ffv2_encoding_type_data4  ffv2m_encoding_type_data;
+      ///         ffv2_striping4            ffv2m_striping;
+      ///         uint32_t                  ffv2m_striping_unit_size;
+      ///         uint32_t                  ffv2m_client_id;
+      ///         checksum_algorithm4       ffv2m_checksum_algorithm;
+      ///         ffv2_stripes4             ffv2m_stripes<>;
       /// };
 
                         Figure 17: The ffv2_mirror4
@@ -2886,18 +2886,19 @@ Table of Contents
    counterpart to ff_mirror4 in [RFC8435].  The flexible file v2 layout
    is a semantic superset of the flexible file v1 layout: any ff_mirror4
    can be re-expressed as an ffv2_mirror4 by setting
-   ffv2m_coding_type_data = FFV2_ENCODING_PASSTHROUGH, ffv2m_striping
+   ffv2m_encoding_type_data = FFV2_ENCODING_PASSTHROUGH, ffv2m_striping
    and ffv2m_striping_unit_size to the flexible file v1 layout's layout-
    level values, ffv2m_checksum_algorithm to CHECKSUM_ALG_NONE, and
    wrapping the flexible file v1 layout's ffm_data_servers<> in a
    single-element ffv2m_stripes<>.  The reverse does not hold:
-   ffv2_mirror4 instances whose ffv2m_coding_type_data is anything other
-   than FFV2_ENCODING_PASSTHROUGH have no ff_mirror4 representation.
+   ffv2_mirror4 instances whose ffv2m_encoding_type_data is anything
+   other than FFV2_ENCODING_PASSTHROUGH have no ff_mirror4
+   representation.
 
    Relative to ff_mirror4, ffv2_mirror4 adds the following per-mirror
    fields:
 
-   *  ffv2m_coding_type_data: per-mirror encoding type choice (see
+   *  ffv2m_encoding_type_data: per-mirror encoding type choice (see
       Figure 9).  This enables a single layout to carry mirrors under
       different encodings (e.g., a PASSTHROUGH mirror alongside a Reed-
       Solomon mirror over the same file; see Figure 31) -- the
@@ -2980,7 +2981,7 @@ Table of Contents
    metadata server reassigns values as clients reclaim layouts during
    the grace period.
 
-   The ffv2m_coding_type_data is which encoding type is used by the
+   The ffv2m_encoding_type_data is which encoding type is used by the
    mirror.
 
    The ffv2m_striping selects the striping method used by the mirror.
@@ -2998,9 +2999,9 @@ Table of Contents
 
    The ffv2m_stripes is the array of stripes for the mirror; the length
    of the array is the stripe count.  If there is no striping or the
-   ffv2m_coding_type_data is FFV2_ENCODING_PASSTHROUGH, then the length
-   of ffv2m_stripes MUST be 1.  Under FFV2_ENCODING_REPLICATED the file
-   MAY be striped within each replica; the constraint that
+   ffv2m_encoding_type_data is FFV2_ENCODING_PASSTHROUGH, then the
+   length of ffv2m_stripes MUST be 1.  Under FFV2_ENCODING_REPLICATED
+   the file MAY be striped within each replica; the constraint that
    ffv2s_data_servers length is 1 still applies, but ffv2m_stripes can
    carry multiple stripes.
 
@@ -3055,7 +3056,7 @@ Table of Contents
 
     Figure 19: The Relationship between Metadata Server and Data Servers
 
-   As shown in Figure 19 if the ffv2m_coding_type_data is
+   As shown in Figure 19 if the ffv2m_encoding_type_data is
    FFV2_ENCODING_PASSTHROUGH or FFV2_ENCODING_REPLICATED, then each of
    the stripes MUST only have 1 storage device.  I.e., the length of
    ffv2s_data_servers MUST be 1.  The erasure-coding encoding types
@@ -3262,8 +3263,8 @@ Table of Contents
    encoding set at runtime can simply update the ffv2lh_supported_types
    on its next LAYOUTGET.
 
-   Note: In Figure 18 ffv2_coding_type_data4 is an enumerated union with
-   the payload of each arm being defined by the protection type.
+   Note: In Figure 18 ffv2_encoding_type_data4 is an enumerated union
+   with the payload of each arm being defined by the protection type.
    ffv2m_client_id tells the client which id to use when interacting
    with the data servers.
 
@@ -3434,7 +3435,7 @@ Table of Contents
 
    The NO_IO_THRU_MDS flag is not advisory; it is an instruction the
    client MUST honor.  When I/O through the metadata server is required
-   (for example, via the encoding- negotiation fallback path in
+   (for example, via the encoding-negotiation fallback path in
    Section 8.11.1), the metadata server MUST clear NO_IO_THRU_MDS on the
    fallback layout it issues.  A client MUST NOT interpret a set
    NO_IO_THRU_MDS flag as advisory or bypass it.
@@ -3636,7 +3637,7 @@ Table of Contents
    mirroring of the file data constrained by a layout segment.  Each
    mirror in ffv2l_mirrors is an independent representation of the
    file's contents for that segment: the XDR (see Figure 17) lets each
-   mirror carry its own encoding (ffv2m_coding_type_data), its own
+   mirror carry its own encoding (ffv2m_encoding_type_data), its own
    striping pattern (ffv2m_striping and ffv2m_stripes), and its own set
    of data servers.  A single layout MAY combine dissimilar mirrors --
    for example, one FFV2_ENCODING_REPLICATED mirror and one
@@ -3839,9 +3840,9 @@ Table of Contents
       chunk's guard, and readers observe the accepted guard on the read
       path.
 
-   Owner:  an XDR chunk_owner4 owner triple triple identifying the
-      writer's cohort (see Section 24.3).  The owner is the identity
-      that lifecycle operations (CHUNK_FINALIZE, CHUNK_COMMIT,
+   Owner:  an XDR chunk_owner4 owner triple identifying the writer's
+      cohort (see Section 24.3).  The owner is the identity that
+      lifecycle operations (CHUNK_FINALIZE, CHUNK_COMMIT,
       CHUNK_ROLLBACK) address.
 
    Payload identifier:  a writer-chosen uint32_t naming the chunk's
@@ -4306,7 +4307,7 @@ Table of Contents
    frequency is a function of racing-writer and data-server-failure
    rates in the deployment rather than of normal client workload.
    Implementations SHOULD treat the CB_CHUNK_REPAIR handler as rare-path
-   code and avoid over-optimising it.  Implementations SHOULD, however,
+   code and avoid over-optimizing it.  Implementations SHOULD, however,
    provision enough client-side compute to handle a repair transaction
    without stalling their foreground I/O, because foreground throughput
    during repair is the externally observable cost of this callback.
@@ -6856,21 +6857,22 @@ Table of Contents
 
    Live TRUST_STATEID entry for the file:  Under trusted-stateid tight
       coupling (Section 6.4), a live trust entry for the file registered
-      via TRUST_STATEID identifies the file as under FFv2 management.
-      This is a fallback for data servers that do not yet support
-      fattr4_chunked_data_file, and it is per-client rather than per-
-      file, but it is sufficient to trigger the "MUST reject" rules for
-      that client's operations against the file.
+      via TRUST_STATEID identifies the file as under flexible file v2
+      layout management.  This is a fallback for data servers that do
+      not yet support fattr4_chunked_data_file, and it is per-client
+      rather than per-file, but it is sufficient to trigger the "MUST
+      reject" rules for that client's operations against the file.
 
    Deployment namespace convention:  Deployments SHOULD export chunked
       data files in a namespace scope not shared with client-accessible
       file access, as one means of preventing a misconfigured or
       malicious client from reaching data files through a normal NFS
       mount.  A data server MAY apply the "MUST reject" rules to every
-      file in a namespace configured for FFv2 data-file service, without
-      per-file classification.  Note that a separate NFS export does not
-      close direct filesystem access on the data server host itself;
-      that is outside the scope of this specification.
+      file in a namespace configured for flexible file v2 layout data-
+      file service, without per-file classification.  Note that a
+      separate NFS export does not close direct filesystem access on the
+      data server host itself; that is outside the scope of this
+      specification.
 
    If none of the above identifies the file, the data server cannot
    reliably classify it and the client-side "MUST NOT" rules in this
@@ -7022,7 +7024,7 @@ Table of Contents
 
 13.2.7.  PASSTHROUGH Data Files (FFV2_ENCODING_PASSTHROUGH)
 
-   For a mirror whose ffv2m_coding_type_data is
+   For a mirror whose ffv2m_encoding_type_data is
    FFV2_ENCODING_PASSTHROUGH (see Section 11.4), client operations on
    the data file follow the same pattern as the File Layout Type in
    [RFC8881] Section 13.6 and the Flexible File Version 1 Layout Type in
@@ -7053,7 +7055,7 @@ Table of Contents
 
 13.2.8.  Chunked Data Files
 
-   For a mirror whose ffv2m_coding_type_data is any of the chunked
+   For a mirror whose ffv2m_encoding_type_data is any of the chunked
    encoding types defined in this document -- i.e., every
    FFV2_ENCODING_* value except FFV2_ENCODING_PASSTHROUGH (see
    Section 11.4) -- client operations use the CHUNK operations rather
@@ -7092,7 +7094,7 @@ Table of Contents
       MUST reject these with NFS4ERR_NOTSUPP and MAY log the client for
       operator attention; this case is almost always a client bug in
       which the client did not inspect the mirror's
-      ffv2m_coding_type_data before issuing I/O.
+      ffv2m_encoding_type_data before issuing I/O.
 
    *  READ_PLUS, SEEK, ALLOCATE, DEALLOCATE against a chunked data file.
       Chunk-level allocation is a metadata-server responsibility.
@@ -7309,7 +7311,7 @@ Table of Contents
              Table 12: NFSv4.2 operations allowed on data files
 
    The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-
-   server column select by the mirror's ffv2m_coding_type_data value.
+   server column select by the mirror's ffv2m_encoding_type_data value.
    FFV2_ENCODING_PASSTHROUGH (Section 11.4) uses NFSv3 WRITE / READ or
    NFSv4 READ / WRITE directly and does not use the CHUNK operations.
    Every other standards-track encoding (any FFV2_ENCODING_* value other
@@ -8292,10 +8294,11 @@ Table of Contents
    OPTIONAL to NFSv4.2 attribute a data server uses to classify a data
    file as a chunked-encoding data file for the purpose of enforcing the
    client restrictions in Section 13.2.  When set to TRUE, the file is
-   under FFv2 chunked-encoding management by a metadata server; the data
-   server MUST apply the "MUST reject" rules on client operations
-   against such files (see Section 13.2.1).  When FALSE or absent, no
-   such enforcement is triggered by this attribute alone.
+   under flexible file v2 layout chunked-encoding management by a
+   metadata server; the data server MUST apply the "MUST reject" rules
+   on client operations against such files (see Section 13.2.1).  When
+   FALSE or absent, no such enforcement is triggered by this attribute
+   alone.
 
    Only the metadata server sets this attribute; the metadata server
    sets it as part of allocating a chunked-encoding data file on the
@@ -11766,8 +11769,8 @@ Table of Contents
    surviving shards (or from any other authoritative source it holds)
    and writes them via CHUNK_WRITE_REPAIR under a new owner triple of
    its own choosing.  The result is a distinct generation for lifecycle
-   purposes: it carries the repair actor's own owner triple triple, NOT
-   the released predecessor's triple.  The released predecessor is not
+   purposes: it carries the repair actor's own owner triple, NOT the
+   released predecessor's triple.  The released predecessor is not
    resurrected by any operation defined in this document, including this
    fallback; a subsequent lifecycle operation naming the released
    predecessor's triple returns NFS4ERR_NO_PREDECESSOR under the
@@ -13675,7 +13678,7 @@ Table of Contents
       computed checksum; the checksum protects against transport
       corruption, not adversarial content (Section 28.1).  This is the
       same as the RAID-stripe trust model: each shard host can lie about
-      its shard.  Deployment defences are encryption at rest, an
+      its shard.  Deployment defenses are encryption at rest, an
       integrity-protected transport (RPCSEC_GSS_KRB5I or TLS), and
       physical or logical isolation of data servers.
 
@@ -14665,7 +14668,7 @@ Architectural Implication: Cost of Fault Tolerance
 
    This shifts the deployment conversation away from "is erasure coding
    cheap enough to enable" and toward "which encoding and geometry
-   minimise the compromise."  The compromise that remains is not the
+   minimize the compromise."  The compromise that remains is not the
    cost of fault tolerance; it is the cost of write-time encoding, which
    is bounded (under 60% at 1 MB, under 25% at 64 KB), and the cost of
    crash-safe durability via the chunk state machine (see Section 12.8),
@@ -15073,7 +15076,7 @@ What We Believe Is Being Asked
 
    1.  The metadata server must be able to mutate where data lives --
        replace a failing data server, redirect to a spare, rebalance,
-       repair -- without serialising every layout-holding client through
+       repair -- without serializing every layout-holding client through
        a CB_LAYOUTRECALL round-trip.  A recall is global with respect to
        the layout: every client holding it must drain in-flight I/O and
        DELEGRETURN before the metadata server can mutate.  In an
