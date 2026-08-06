@@ -10,7 +10,10 @@ This file is the single source of truth; the companion repositories point
 here rather than keeping their own copy.
 
 Every rule below was derived from an editorial pass actually applied to
-this draft, and cites the commit that established it. Where a sweep is
+one of the three drafts, and cites the commit that established it.
+Hashes resolve in whichever repository the pass ran in — most in this
+one, but the proxy-server draft established several (`f4ddd3a1`,
+`b5c36333`, `c4e53ddb`, `1760f672`). Where a sweep is
 known to be incomplete, that is recorded rather than hidden — see
 [Sweep hygiene](#sweep-hygiene).
 
@@ -92,7 +95,7 @@ Confirmed conversions (`b05182aa`, `3bc64ae5`):
 `analyse` differs.
 
 Later conversions, all found by pattern rather than by being on a list
-(`1a6b2ce4`):
+(`c3b67d1d`):
 
 | British | US |
 |---|---|
