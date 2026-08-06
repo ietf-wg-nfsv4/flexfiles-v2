@@ -278,7 +278,7 @@ the bottleneck in the write-heavy parallel case.
 Server-side erasure coding makes each data server compute
 its share of the parity transform on every write,
 multiplying the per-write CPU cost by (k + m) across the
-storage tier and serialising on the data server's limited
+storage tier and serializing on the data server's limited
 compute.  Client-side erasure coding shifts that compute
 to the writers, which scale horizontally with the
 workload, and lets the data servers stay close to their
@@ -3339,8 +3339,8 @@ via the encoding-negotiation path
 
 The NO_IO_THRU_MDS flag is not advisory; it is an
 instruction the client MUST honor.  When I/O through the
-metadata server is required (for example, via the encoding-
-negotiation fallback path in {{sec-encoding-negotiation}}),
+metadata server is required (for example, via the
+encoding-negotiation fallback path in {{sec-encoding-negotiation}}),
 the metadata server MUST clear NO_IO_THRU_MDS on the
 fallback layout it issues.  A client MUST NOT interpret
 a set NO_IO_THRU_MDS flag as advisory or bypass it.
@@ -3763,7 +3763,7 @@ Guard:
 
 Owner:
 :  an XDR chunk_owner4 owner triple
-   triple identifying the writer's cohort (see
+   identifying the writer's cohort (see
    {{sec-chunk_owner4}}).  The owner is the identity that
    lifecycle operations (CHUNK_FINALIZE, CHUNK_COMMIT,
    CHUNK_ROLLBACK) address.
@@ -4262,7 +4262,7 @@ steady-state operation and its frequency is a function of
 racing-writer and data-server-failure rates in the deployment
 rather than of normal client workload.  Implementations SHOULD
 treat the CB_CHUNK_REPAIR handler as rare-path code and avoid
-over-optimising it.  Implementations SHOULD, however, provision
+over-optimizing it.  Implementations SHOULD, however, provision
 enough client-side compute to handle a repair transaction
 without stalling their foreground I/O, because foreground
 throughput during repair is the externally observable cost of
@@ -6963,7 +6963,8 @@ Live TRUST_STATEID entry for the file:
 : Under trusted-stateid tight coupling
   ({{sec-tight-coupling-control}}), a live trust entry for the
   file registered via TRUST_STATEID
-  identifies the file as under FFv2 management.  This is a
+  identifies the file as under flexible file v2 layout
+  management.  This is a
   fallback for data servers that do not yet support
   fattr4_chunked_data_file, and it is per-client rather
   than per-file, but it is sufficient to trigger the "MUST
@@ -6976,7 +6977,8 @@ Deployment namespace convention:
   means of preventing a misconfigured or malicious client from
   reaching data files through a normal NFS mount.  A data server
   MAY apply the "MUST reject" rules to every file in a
-  namespace configured for FFv2 data-file service, without
+  namespace configured for flexible file v2 layout data-file
+  service, without
   per-file classification.  Note that a separate NFS export
   does not close direct filesystem access on the data server
   host itself; that is outside the scope of this specification.
@@ -8299,7 +8301,8 @@ The new attribute fattr4_chunked_data_file (see
 attribute a data server uses to classify a data file as a
 chunked-encoding data file for the purpose of enforcing the client
 restrictions in {{sec-ops-client}}.  When set to TRUE, the file is
-under FFv2 chunked-encoding management by a metadata server; the
+under flexible file v2 layout chunked-encoding management by a
+metadata server; the
 data server MUST apply the "MUST reject" rules on client operations
 against such files (see {{sec-data-file-identification}}).  When
 FALSE or absent, no such enforcement is triggered by this attribute
@@ -12366,8 +12369,8 @@ reconstructs authoritative bytes from surviving shards
 writes them via CHUNK_WRITE_REPAIR under a new owner
 triple of its own choosing.  The result is a distinct
 generation for lifecycle purposes: it carries the
-repair actor's own owner triple
-triple, NOT the released predecessor's triple.  The released
+repair actor's own owner triple,
+NOT the released predecessor's triple.  The released
 predecessor is not resurrected by any operation defined
 in this document, including this fallback; a subsequent
 lifecycle operation naming the released predecessor's
@@ -14674,7 +14677,7 @@ Compromised data server:
    adversarial content ({{sec-security-checksum-scope}}).
    This is the same as the RAID-stripe trust model:
    each shard host can lie about its shard.  Deployment
-   defences are encryption at rest, an integrity-protected
+   defenses are encryption at rest, an integrity-protected
    transport (RPCSEC_GSS_KRB5I or TLS), and
    physical or logical isolation of data servers.
 
@@ -15482,7 +15485,7 @@ approximately +4%.
 
 This shifts the deployment conversation away from "is erasure
 coding cheap enough to enable" and toward "which encoding and
-geometry minimise the compromise."  The compromise that remains is
+geometry minimize the compromise."  The compromise that remains is
 not the cost of fault tolerance; it is the cost of write-time
 encoding, which is bounded (under 60% at 1 MB, under 25% at 64 KB),
 and the cost of crash-safe durability via the chunk state machine
@@ -15912,7 +15915,7 @@ Two coupled requirements:
 
 1.  The metadata server must be able to mutate where data lives -- replace a
     failing data server, redirect to a spare, rebalance, repair --
-    without serialising every layout-holding client through a
+    without serializing every layout-holding client through a
     CB_LAYOUTRECALL round-trip.  A recall is global with respect
     to the layout: every client holding it must drain in-flight I/O
     and DELEGRETURN before the metadata server can mutate.  In an erasure-coded
