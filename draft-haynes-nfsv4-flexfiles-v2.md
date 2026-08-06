@@ -15271,9 +15271,9 @@ driver above), and wire-compatibility between them on the
 CHUNK operation data path has been demonstrated against the `reffs`
 metadata server.  In addition, the Mojette encoders in this
 document have been cross-verified against an independent
-Mojette implementation with byte-identical output on the
+Mojette implementation with byte-identical output for
 FFV2_ENCODING_MOJETTE_SYSTEMATIC and
-FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC surfaces.
+FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC.
 
 The benchmark suite is now organized to distinguish two costs
 that were previously conflated in a single-host Docker
