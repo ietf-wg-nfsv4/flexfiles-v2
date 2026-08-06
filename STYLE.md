@@ -113,6 +113,14 @@ neither were the eight above, so no stem could have found them. A word
 list only finds the words someone already thought of. §11 greps `-our`
 and `-ise` generically instead.
 
+Exclude by **stem plus inflection**, not by whole word. A list of
+`advertise|advertised` still reports `advertising`; `resource` matches
+the `-our` pattern outright and needs its own exemption, as does any
+`-wise` compound. The first version of this grep shipped with a
+whole-word list and returned 11 hits, every one a false positive —
+`resources`, `bytewise`, `exercising`, `advertising` — which is the
+state that gets a check ignored.
+
 Watch the leading `\b`. `\b(…|initialis|…)` does **not** match
 `uninitialised` — there is no word boundary between `un` and
 `initialis` — which is how two of those sat in the tree through every
@@ -559,7 +567,7 @@ D=draft-haynes-nfsv4-flexfiles-v2.md      # or the companion draft
 
 grep -nE '\b(defence|analyse|licence|centre)[a-z]*'            $D   # no shared pattern
 grep -onE '[A-Za-z]{4,}(ise|ised|ises|ising|isation|isations)\b|[a-z]{3,}our[a-z]*' $D \
-  | grep -viE ':(enterprise|comprise[sd]?|comprising|otherwise|bitwise|likewise|advertise[sd]?|compromise[sd]?|promise[sd]?|precise|concise|exercise[sd]?|revise[sd]?|devise[sd]?|advise[sd]?|surprise[sd]?)$'
+  | grep -viE ':((enterpris|compris|advertis|compromis|promis|exercis|revis|devis|advis|supervis|surpris|franchis|merchandis|improvis|disguis|rais|prais|nois)(e|es|ed|ing)|precise|concise|[a-z]*wise|resources?)$'
 grep -nE '\b(MDS|DS|DSes|FFv1|FFv2)\b' $D          # expect only identifiers, tables, artwork
 grep -niE 'inband|CHUNK_\*|repair client'          $D
 grep -nE '\*\*[^*]+\*\*|(^|[^*])\*[^* ][^*]*\*'    $D   # emphasis
