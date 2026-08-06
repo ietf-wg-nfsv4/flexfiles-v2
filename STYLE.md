@@ -180,7 +180,7 @@ levels at which a claim holds — wire format versus semantics.
 |---|---|---|
 | Struct types | `ffv2_<name>4`. When a field's type changes relative to RFC 8435, **fork** the struct under an `ffv2_` name rather than mutating the inherited one. | `377742e8` |
 | Field prefixes | Carry the full `ffv2` stem plus struct initials: `ffv2dv_`, `ffv2da_`, `ffv2lu_`. A bare `f` plus initials is not used. On collision, take one letter per word of the struct name. | `f197effa`, `8ada8899` |
-| Enums | The type name must agree with the prefix of its values: `ffv2_encoding_type4` because every value is `FFV2_ENCODING_*`. | `9258b9e7` |
+| Enums | The type name must agree with the prefix of its values: `ffv2_encoding_type4` because every value is `FFV2_ENCODING_*`. The rename does not stop at the enum: the union switching on it, that union's field prefix, and the member carrying it move too, or the mismatch just relocates one level up. | `9258b9e7`, `69f822225425` |
 | Constants | `FFV2_` screaming caps, never the field-prefix form. Name after the client-visible mechanism, not a vague descriptor. | `377742e8` |
 | Error codes | `NFS4ERR_<TERM>` matching current vocabulary. Rename identifier **and** section anchor together; the numeric value never changes. | `c8f9a638` |
 | Attributes | `fattr4_<name>` / `FATTR4_<NAME>` — no `ffv2_` infix, even for attributes this document introduces. Follow the sibling attribute's shape. | `f51577fc` |
@@ -413,7 +413,6 @@ Outstanding:
 
 | Item | Where |
 |---|---|
-| `ffv2_coding_type_data4`, `ffv2ctd_coding`, `ffv2m_coding_type_data` | base — enum/value mismatch of the kind `9258b9e7` fixed one level up. These are XDR identifiers, so renaming them is a wire-facing naming change rather than an editorial fix; it needs a deliberate decision, not a sweep. |
 | The companion drafts have not been swept at all | see their `STYLE.md` |
 
 ---
