@@ -3780,66 +3780,88 @@ its own ffv2dv_coupling value, set independently.<a href="#section-6.4.1-5" clas
 tight coupling capable storage device at startup.  On this session
 the metadata server acts as the storage device's client and
 presents EXCHGID4_FLAG_USE_PNFS_MDS in its EXCHANGE_ID args.<a href="#section-6.4.2-1" class="pilcrow">¶</a></p>
-<p id="section-6.4.2-2">The storage device <span class="bcp14">MUST</span> verify that any incoming TRUST_STATEID,
+<p id="section-6.4.2-2">That is a repurposing of the flag, and implementers should
+understand it as one.  <span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.1" class="relref">Section 13.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> determines a
+server's pNFS role from the eir_flags it returns, not from what
+the client asks for, and treats the argument flags as role
+requests; read literally, EXCHGID4_FLAG_USE_PNFS_MDS in the args
+asks the peer to act as this client's metadata server, which is
+not what a metadata server wants from a storage device.  The flag
+is used here precisely because it carries no other meaning on this
+path.  <span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.1" class="relref">Section 13.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> does name a flag for a client
+connecting to a data server, EXCHGID4_FLAG_USE_PNFS_DS, but a pNFS
+client presents that one too, so it cannot separate a metadata
+server from a client.  EXCHGID4_FLAG_USE_PNFS_MDS is the one role
+request a client has no reason to make of a storage device, and
+that is what leaves it free to mark the control session.<a href="#section-6.4.2-2" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-3">Presenting it does not conflict with <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.
+<span><a href="https://rfc-editor.org/rfc/rfc8881#section-13.1" class="relref">Section 13.1</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> permits a client to request zero or
+more of the three role flags even where the combination requested
+is contradictory, and constrains only the combinations a server
+may return in its eir_flags.  A storage device that also serves a
+metadata server role, and that selects among its roles from the
+requested ones, should account for this document's use of the flag
+when composing its eir_flags.<a href="#section-6.4.2-3" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-4">The storage device <span class="bcp14">MUST</span> verify that any incoming TRUST_STATEID,
 REVOKE_STATEID, or BULK_REVOKE_STATEID compound arrives on a
 session whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS
 in its EXCHANGE_ID args.  Requests that arrive on any other
 session <span class="bcp14">MUST</span> be rejected with NFS4ERR_PERM.  This is the sole
 access control on these operations; a pNFS client connecting to
 the storage device does not present EXCHGID4_FLAG_USE_PNFS_MDS
-and therefore cannot invoke them.<a href="#section-6.4.2-2" class="pilcrow">¶</a></p>
-<p id="section-6.4.2-3">The EXCHGID4_FLAG_USE_PNFS_MDS check replaces any path- or
+and therefore cannot invoke them.<a href="#section-6.4.2-4" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-5">The EXCHGID4_FLAG_USE_PNFS_MDS check replaces any path- or
 filehandle-level gating.  TRUST_STATEID operates on a filehandle
 that may be any file on the storage device, and the metadata
 server is the sole authority that can legitimately speak this
-protocol.<a href="#section-6.4.2-3" class="pilcrow">¶</a></p>
-<p id="section-6.4.2-4">Because the EXCHGID4_FLAG_USE_PNFS_MDS check relies on the
+protocol.<a href="#section-6.4.2-5" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-6">Because the EXCHGID4_FLAG_USE_PNFS_MDS check relies on the
 owning client's self-declaration at EXCHANGE_ID time, the
 storage device cannot by itself distinguish a legitimate
 metadata server from any other host that sets the flag.  The
 wire protocol provides no primitive that binds a request to a
 particular pNFS role; the flag is a hint whose operational
 meaning is only as strong as the deployment's authentication
-or isolation choice.<a href="#section-6.4.2-4" class="pilcrow">¶</a></p>
-<p id="section-6.4.2-5">The deployment requirement is that only entities the
+or isolation choice.<a href="#section-6.4.2-6" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-7">The deployment requirement is that only entities the
 deployment considers legitimate metadata servers can (a)
 establish a control session with EXCHGID4_FLAG_USE_PNFS_MDS
 against the storage device and (b) invoke TRUST_STATEID,
 REVOKE_STATEID, or BULK_REVOKE_STATEID on it.  Deployments
 have historically satisfied this requirement using one or more
 of the following mechanisms; the wire protocol does not
-prescribe which is chosen:<a href="#section-6.4.2-5" class="pilcrow">¶</a></p>
+prescribe which is chosen:<a href="#section-6.4.2-7" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-6.4.2-6.1">
-              <p id="section-6.4.2-6.1.1">RPCSEC_GSS with a machine principal that the storage device
+<li class="normal" id="section-6.4.2-8.1">
+              <p id="section-6.4.2-8.1.1">RPCSEC_GSS with a machine principal that the storage device
 has been configured to accept as a metadata server.  The
 storage device validates the principal against a local
-policy list before accepting the flag.<a href="#section-6.4.2-6.1.1" class="pilcrow">¶</a></p>
+policy list before accepting the flag.<a href="#section-6.4.2-8.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-6.4.2-6.2">
-              <p id="section-6.4.2-6.2.1">TLS (<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) with a client certificate that the storage
+            <li class="normal" id="section-6.4.2-8.2">
+              <p id="section-6.4.2-8.2.1">TLS (<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) with a client certificate that the storage
 device has been configured to accept as a metadata server.
 The storage device validates the certificate against a local
-policy list before accepting the flag.<a href="#section-6.4.2-6.2.1" class="pilcrow">¶</a></p>
+policy list before accepting the flag.<a href="#section-6.4.2-8.2.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-6.4.2-6.3">
-              <p id="section-6.4.2-6.3.1">Network-path isolation: the control-session path runs on a
+            <li class="normal" id="section-6.4.2-8.3">
+              <p id="section-6.4.2-8.3.1">Network-path isolation: the control-session path runs on a
 network segment (dedicated management VLAN, private link,
 or similar) that pNFS clients cannot reach, so only
-configured metadata servers can open a session at all.<a href="#section-6.4.2-6.3.1" class="pilcrow">¶</a></p>
+configured metadata servers can open a session at all.<a href="#section-6.4.2-8.3.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-6.4.2-6.4">
-              <p id="section-6.4.2-6.4.1">Operating-system-level filesystem access control on the
+            <li class="normal" id="section-6.4.2-8.4">
+              <p id="section-6.4.2-8.4.1">Operating-system-level filesystem access control on the
 storage device: the underlying export that backs the pNFS
 data files is configured so that only the metadata server's
 OS identity (typically root, or a dedicated privileged uid)
 can access it.  A pNFS client that reaches the storage
 device but presents any other uid receives permission
 errors before it can invoke any operation, control-plane
-or otherwise.<a href="#section-6.4.2-6.4.1" class="pilcrow">¶</a></p>
+or otherwise.<a href="#section-6.4.2-8.4.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
-<p id="section-6.4.2-7">A single host <span class="bcp14">MAY</span> legitimately act in multiple pNFS roles
+<p id="section-6.4.2-9">A single host <span class="bcp14">MAY</span> legitimately act in multiple pNFS roles
 against the same storage device -- for example, an entity
 that is a metadata server for one export and a plain pNFS
 client for another.  The wire protocol does not distinguish
@@ -3848,12 +3870,12 @@ responsible for arranging that the storage device can tell
 them apart, typically by using distinct credentials or
 distinct sessions for the two roles (each session presents
 EXCHGID4_FLAG_USE_PNFS_MDS according to the role the entity
-is acting in on that session).<a href="#section-6.4.2-7" class="pilcrow">¶</a></p>
-<p id="section-6.4.2-8">The security consequences of these choices -- what an
+is acting in on that session).<a href="#section-6.4.2-9" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-10">The security consequences of these choices -- what an
 unauthenticated attacker can invoke if none of the mechanisms
 above is deployed, and what an authenticated caller can still
 achieve by misrepresenting role -- are discussed in
-<a href="#sec-security-trust-stateid" class="auto internal xref">Section 28.7</a>.<a href="#section-6.4.2-8" class="pilcrow">¶</a></p>
+<a href="#sec-security-trust-stateid" class="auto internal xref">Section 28.7</a>.<a href="#section-6.4.2-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-tight-coupling-layoutget">

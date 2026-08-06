@@ -1630,6 +1630,30 @@ Table of Contents
    metadata server acts as the storage device's client and presents
    EXCHGID4_FLAG_USE_PNFS_MDS in its EXCHANGE_ID args.
 
+   That is a repurposing of the flag, and implementers should understand
+   it as one.  Section 13.1 of [RFC8881] determines a server's pNFS role
+   from the eir_flags it returns, not from what the client asks for, and
+   treats the argument flags as role requests; read literally,
+   EXCHGID4_FLAG_USE_PNFS_MDS in the args asks the peer to act as this
+   client's metadata server, which is not what a metadata server wants
+   from a storage device.  The flag is used here precisely because it
+   carries no other meaning on this path.  Section 13.1 of [RFC8881]
+   does name a flag for a client connecting to a data server,
+   EXCHGID4_FLAG_USE_PNFS_DS, but a pNFS client presents that one too,
+   so it cannot separate a metadata server from a client.
+   EXCHGID4_FLAG_USE_PNFS_MDS is the one role request a client has no
+   reason to make of a storage device, and that is what leaves it free
+   to mark the control session.
+
+   Presenting it does not conflict with [RFC8881].  Section 13.1 of
+   [RFC8881] permits a client to request zero or more of the three role
+   flags even where the combination requested is contradictory, and
+   constrains only the combinations a server may return in its
+   eir_flags.  A storage device that also serves a metadata server role,
+   and that selects among its roles from the requested ones, should
+   account for this document's use of the flag when composing its
+   eir_flags.
+
    The storage device MUST verify that any incoming TRUST_STATEID,
    REVOKE_STATEID, or BULK_REVOKE_STATEID compound arrives on a session
    whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS in its
