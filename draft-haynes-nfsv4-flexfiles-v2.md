@@ -2176,7 +2176,7 @@ this otherwise opaque value, ffv2_layout4.
    ///     FFV2_ENCODING_MOJETTE_SYSTEMATIC      = 2,
    ///     FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC  = 3,
    ///     FFV2_ENCODING_RS_VANDERMONDE          = 4,
-   ///     FFV2_ENCODING_REPLICATED                = 5,
+   ///     FFV2_ENCODING_REPLICATED              = 5,
    ///     FFV2_ENCODING_XOR_PARITY              = 6,
    ///     FFV2_ENCODING_LINUX_MD_RAID           = 7
    /// };
