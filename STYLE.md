@@ -573,7 +573,8 @@ grep -onE '[A-Za-z]{4,}(ise|ised|ises|ising|isation|isations)\b|[a-z]{3,}our[a-z
   | grep -viE ':((enterpris|compris|advertis|compromis|promis|exercis|revis|devis|advis|supervis|surpris|franchis|merchandis|improvis|disguis|rais|prais|nois)(e|es|ed|ing)|precise|concise|[a-z]*wise|resources?)$'
 grep -nE '\b(MDS|DS|DSes|FFv1|FFv2)\b' $D          # expect only identifiers, tables, artwork
 grep -niE 'inband|CHUNK_\*|repair client'          $D
-grep -nE '\*\*[^*]+\*\*|(^|[^*])\*[^* ][^*]*\*'    $D   # emphasis
+grep -nE '(^|[^*])\*[^* ][^*]*\*'                 $D   # single-* emphasis
+python3 tools/emphasis.py $D                            # **...**, multiline
 grep -nE '\\\[|\\\]'                               $D   # escaped brackets
 grep -nE '[a-z_] == '                              $D   # C-style equality
 grep -nE '[a-z]-$'                                 $D   # line ends mid-compound (ignore hits inside ~~~ artwork)
