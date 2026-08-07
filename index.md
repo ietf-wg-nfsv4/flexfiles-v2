@@ -24,3 +24,9 @@ View [saved issues](issues.html), or the latest GitHub [issues](https://github.c
 | ----- | --- | --- | --- |
 | [Flex File Layout v2](sorin-review-2026-07-23/draft-haynes-nfsv4-flexfiles-v2.html "Parallel NFS (pNFS) Flexible File Layout Version 2 (HTML)") | [plain text](sorin-review-2026-07-23/draft-haynes-nfsv4-flexfiles-v2.txt "Parallel NFS (pNFS) Flexible File Layout Version 2 (Text)") | [diff with main](https://author-tools.ietf.org/api/iddiff?url_1=https://ietf-wg-nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2.txt&url_2=https://ietf-wg-nfsv4.github.io/flexfiles-v2/sorin-review-2026-07-23/draft-haynes-nfsv4-flexfiles-v2.txt) |
 
+## Preview for branch [draft-haynes-nfsv4-flexfiles-v2-08](draft-haynes-nfsv4-flexfiles-v2-08)
+
+| Draft |     |     |     |
+| ----- | --- | --- | --- |
+| [Flex File Layout v2](draft-haynes-nfsv4-flexfiles-v2-08/draft-haynes-nfsv4-flexfiles-v2.html "Parallel NFS (pNFS) Flexible File Layout Version 2 (HTML)") | [plain text](draft-haynes-nfsv4-flexfiles-v2-08/draft-haynes-nfsv4-flexfiles-v2.txt "Parallel NFS (pNFS) Flexible File Layout Version 2 (Text)") | [diff with main](https://author-tools.ietf.org/api/iddiff?url_1=https://ietf-wg-nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2.txt&url_2=https://ietf-wg-nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2-08/draft-haynes-nfsv4-flexfiles-v2.txt) |
+
