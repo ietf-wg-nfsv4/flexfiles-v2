@@ -6415,8 +6415,8 @@ state:
     invariant "a chunk with a live lock has exactly one logical
     owner at any instant" is preserved across revocation.
 
-Across multiple chunks the protocol makes **no multi-chunk
-atomicity or ordering guarantee**.  A reader that reads chunk A
+Across multiple chunks the protocol makes no multi-chunk
+atomicity or ordering guarantee.  A reader that reads chunk A
 at one offset and chunk B at another MAY observe A's new value
 and B's old value simultaneously.  Applications that require
 multi-chunk atomicity MUST layer it above this protocol -- for
@@ -6477,7 +6477,7 @@ Rollback invariant:
 :  The data server MUST retain the prior FINALIZED or COMMITTED
    content of a chunk while any successor PENDING or FINALIZED
    chunk exists.
-   A corollary of this rule is the **lowest-guard-recoverable**
+   A corollary of this rule is the lowest-guard-recoverable
    property: as long as at least k data servers in the mirror
    set retain the chunk at some generation G or lower, the
    payload that was COMMITTED at generation G (or earlier) can
@@ -7032,8 +7032,8 @@ supported on data files as on any NFSv4.2 file.
 
 ### Stateid Model on the Data Server {#sec-ds-stateid-model}
 
-The stateid presented on a CHUNK operation is a **layout
-stateid** returned by a prior LAYOUTGET against the metadata
+The stateid presented on a CHUNK operation is a layout
+stateid returned by a prior LAYOUTGET against the metadata
 server (see {{Section 18.43 of RFC8881}}), NOT an open
 stateid, byte range lock stateid, or delegation stateid.  A
 pNFS client does NOT issue OPEN against the data server.
@@ -8915,7 +8915,10 @@ Signature algorithm (mandatory-to-implement):
   ECDSA-P256 with identifier -7, RSASSA-PSS-SHA256
   with identifier -37) MAY be registered as
   additional profiles per the IANA Considerations.
-- **kid header parameter**: OPTIONAL.  A deployment
+
+kid header parameter:
+
+: OPTIONAL.  A deployment
   with a single trust anchor MAY omit it; a
   deployment supporting key rotation or multiple
   trust anchors SHOULD include it so a data server
@@ -8923,6 +8926,7 @@ Signature algorithm (mandatory-to-implement):
   kid, the data server attempts verification
   against each configured trust anchor and accepts
   on the first match.
+
 Payload map fields:
 
 : the signed CBOR payload is a map with integer-keyed fields
@@ -11550,7 +11554,7 @@ NFS4ERR_NO_PREDECESSOR:
   the two codes.
 
 The caller then consults whatever fallback the deployment
-provides.  A repair client MAY reconstruct authoritative bytes
+provides.  A repair actor MAY reconstruct authoritative bytes
 from surviving shards and issue CHUNK_WRITE_REPAIR to write a
 new generation carrying those bytes under a new owner triple.
 That new generation is a distinct generation for lifecycle
@@ -13900,7 +13904,7 @@ only when three conditions all hold at the moment a
 CHUNK_ROLLBACK is issued
 against the named predecessor:
 
-1. **Present at acquisition.**  The predecessor
+1. Present at acquisition.  The predecessor
    generation must have existed on the data server at
    the time the qualifying CHUNK_LOCK or metadata-server escrow
    was acquired.  Predecessors that had already been
@@ -13908,7 +13912,7 @@ against the named predecessor:
    ({{sec-system-model-retention-scope}}) before any
    qualifying lock or escrow was acquired are not
    covered.
-2. **Continuous custody.**  The lock or escrow
+2. Continuous custody.  The lock or escrow
    custody chain must have remained uninterrupted
    through the rollback decision window.  Custody
    handoffs are permitted (a client-owned lock
@@ -13920,7 +13924,7 @@ against the named predecessor:
    which the predecessor was covered by neither a
    qualifying lock nor a metadata-server escrow lock breaks
    continuity.
-3. **Payload remains AVAILABLE.**  The predecessor's
+3. Payload remains AVAILABLE.  The predecessor's
    payload MUST be in the AVAILABLE read-time state
    ({{sec-system-model-read-time-status}}).  A
    predecessor whose payload has become ERRORED
@@ -15279,14 +15283,19 @@ The benchmark suite is now organized to distinguish two costs
 that were previously conflated in a single-host Docker
 measurement:
 
-1. **Algorithm cost** -- the CPU + memory-bandwidth cost of
-   encoding and decoding, measured against pre-allocated RAM
-   buffers with no I/O and no network.  This is the encoder
-   ceiling on a given host.
-2. **Transmit cost** -- the end-to-end cost of a write or read
-   on a real NFSv4.2 mount across three hosts on a LAN,
-   including RPC round-trips, fsync commits, and network
-   serialization.
+Algorithm cost:
+
+: the CPU + memory-bandwidth cost of
+  encoding and decoding, measured against pre-allocated RAM
+  buffers with no I/O and no network.  This is the encoder
+  ceiling on a given host.
+
+Transmit cost:
+
+: the end-to-end cost of a write or read
+  on a real NFSv4.2 mount across three hosts on a LAN,
+  including RPC round-trips, fsync commits, and network
+  serialization.
 
 The two-axis measurement makes explicit what the previous
 single-host measurement obscured: on a real network, encoder
@@ -15381,8 +15390,8 @@ Median write throughput at 1 MiB was:
   1.1 to 2.2 MB/s across encoders.
 
 The key finding: an approximately three-order-of-magnitude
-algorithm-cost spread across encoders **collapses to
-approximately 1.15x wire spread** at the client-direct FFv2
+algorithm-cost spread across encoders collapses to
+approximately 1.15x wire spread at the client-direct FFv2
 variant (variant c) at 1 MiB.  End-to-end throughput on this
 topology is dominated by RPC round-trips, fsync commits, and
 network serialization; encoder algorithm cost is a rounding-error
