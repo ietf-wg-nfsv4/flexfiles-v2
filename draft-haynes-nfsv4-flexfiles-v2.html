@@ -1052,7 +1052,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Haynes</td>
-<td class="center">Expires 7 February 2027</td>
+<td class="center">Expires 8 February 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,12 +1065,12 @@ svg {
 <dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-08-06" class="published">6 August 2026</time>
+<time datetime="2026-08-07" class="published">7 August 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-02-07">7 February 2027</time></dd>
+<dd class="expires"><time datetime="2027-02-08">8 February 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1135,7 +1135,7 @@ discussion venue, latest rendering, and source location.<a href="#section-note.2
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 7 February 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 8 February 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -10334,8 +10334,8 @@ invariant "a chunk with a live lock has exactly one logical
 owner at any instant" is preserved across revocation.<a href="#section-12.8-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-12.8-3">Across multiple chunks the protocol makes <strong>no multi-chunk
-atomicity or ordering guarantee</strong>.  A reader that reads chunk A
+<p id="section-12.8-3">Across multiple chunks the protocol makes no multi-chunk
+atomicity or ordering guarantee.  A reader that reads chunk A
 at one offset and chunk B at another <span class="bcp14">MAY</span> observe A's new value
 and B's old value simultaneously.  Applications that require
 multi-chunk atomicity <span class="bcp14">MUST</span> layer it above this protocol -- for
@@ -10404,7 +10404,7 @@ current guard.<a href="#section-12.8-8.2.1" class="pilcrow">¶</a></p>
             <p id="section-12.8-8.4.1">The data server <span class="bcp14">MUST</span> retain the prior FINALIZED or COMMITTED
 content of a chunk while any successor PENDING or FINALIZED
 chunk exists.
-A corollary of this rule is the <strong>lowest-guard-recoverable</strong>
+A corollary of this rule is the lowest-guard-recoverable
 property: as long as at least k data servers in the mirror
 set retain the chunk at some generation G or lower, the
 payload that was COMMITTED at generation G (or earlier) can
@@ -11094,8 +11094,8 @@ supported on data files as on any NFSv4.2 file.<a href="#section-13.2.2-3" class
           <h4 id="name-stateid-model-on-the-data-s">
 <a href="#section-13.2.3" class="section-number selfRef">13.2.3. </a><a href="#name-stateid-model-on-the-data-s" class="section-name selfRef">Stateid Model on the Data Server</a>
           </h4>
-<p id="section-13.2.3-1">The stateid presented on a CHUNK operation is a <strong>layout
-stateid</strong> returned by a prior LAYOUTGET against the metadata
+<p id="section-13.2.3-1">The stateid presented on a CHUNK operation is a layout
+stateid returned by a prior LAYOUTGET against the metadata
 server (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.43" class="relref">Section 18.43</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>), NOT an open
 stateid, byte range lock stateid, or delegation stateid.  A
 pNFS client does NOT issue OPEN against the data server.
@@ -13835,21 +13835,24 @@ Ed25519; a conforming verifier <span class="bcp14">MUST</span> accept
 Ed25519.  Other signature algorithms (e.g.,
 ECDSA-P256 with identifier -7, RSASSA-PSS-SHA256
 with identifier -37) <span class="bcp14">MAY</span> be registered as
-additional profiles per the IANA Considerations.
-- <strong>kid header parameter</strong>: <span class="bcp14">OPTIONAL</span>.  A deployment
+additional profiles per the IANA Considerations.<a href="#section-24.6.1-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-24.6.1-3.3">kid header parameter:</dt>
+            <dd style="margin-left: 1.5em" id="section-24.6.1-3.4">
+              <p id="section-24.6.1-3.4.1"><span class="bcp14">OPTIONAL</span>.  A deployment
 with a single trust anchor <span class="bcp14">MAY</span> omit it; a
 deployment supporting key rotation or multiple
 trust anchors <span class="bcp14">SHOULD</span> include it so a data server
 can select the correct verification key.  Absent
 kid, the data server attempts verification
 against each configured trust anchor and accepts
-on the first match.
-Payload map fields:<a href="#section-24.6.1-3.2.1" class="pilcrow">¶</a></p>
+on the first match.<a href="#section-24.6.1-3.4.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-24.6.1-3.3"></dt>
-            <dd style="margin-left: 1.5em" id="section-24.6.1-3.4">
-              <p id="section-24.6.1-3.4.1">the signed CBOR payload is a map with integer-keyed fields
+<dt id="section-24.6.1-3.5">Payload map fields:</dt>
+            <dd style="margin-left: 1.5em" id="section-24.6.1-3.6">
+              <p id="section-24.6.1-3.6.1">the signed CBOR payload is a map with integer-keyed fields
 (per <span>[<a href="#RFC9053" class="cite xref">RFC9053</a>]</span> convention for compact wire size).
 The mandatory-profile keys are:
  - 1 = principal (CBOR text string): the
@@ -13899,7 +13902,7 @@ The mandatory-profile keys are:
    admissible.  Same encoding constraints as
    issued_at.
  - 6 = token_id (CBOR byte string, 16 bytes):
-   a nonce for replay detection.<a href="#section-24.6.1-3.4.1" class="pilcrow">¶</a></p>
+   a nonce for replay detection.<a href="#section-24.6.1-3.6.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
@@ -17344,7 +17347,7 @@ the two codes.<a href="#section-25.9.3.2.2-3.4.1" class="pilcrow">¶</a></p>
               <dd class="break"></dd>
 </dl>
 <p id="section-25.9.3.2.2-4">The caller then consults whatever fallback the deployment
-provides.  A repair client <span class="bcp14">MAY</span> reconstruct authoritative bytes
+provides.  A repair actor <span class="bcp14">MAY</span> reconstruct authoritative bytes
 from surviving shards and issue CHUNK_WRITE_REPAIR to write a
 new generation carrying those bytes under a new owner triple.
 That new generation is a distinct generation for lifecycle
@@ -20465,7 +20468,7 @@ CHUNK_ROLLBACK is issued
 against the named predecessor:<a href="#section-27.1-1" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-27.1-2">
 <li id="section-27.1-2.1">
-            <p id="section-27.1-2.1.1"><strong>Present at acquisition.</strong>  The predecessor
+            <p id="section-27.1-2.1.1">Present at acquisition.  The predecessor
 generation must have existed on the data server at
 the time the qualifying CHUNK_LOCK or metadata-server escrow
 was acquired.  Predecessors that had already been
@@ -20475,7 +20478,7 @@ qualifying lock or escrow was acquired are not
 covered.<a href="#section-27.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-27.1-2.2">
-            <p id="section-27.1-2.2.1"><strong>Continuous custody.</strong>  The lock or escrow
+            <p id="section-27.1-2.2.1">Continuous custody.  The lock or escrow
 custody chain must have remained uninterrupted
 through the rollback decision window.  Custody
 handoffs are permitted (a client-owned lock
@@ -20489,7 +20492,7 @@ qualifying lock nor a metadata-server escrow lock breaks
 continuity.<a href="#section-27.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-27.1-2.3">
-            <p id="section-27.1-2.3.1"><strong>Payload remains AVAILABLE.</strong>  The predecessor's
+            <p id="section-27.1-2.3.1">Payload remains AVAILABLE.  The predecessor's
 payload <span class="bcp14">MUST</span> be in the AVAILABLE read-time state
 (<a href="#sec-system-model-read-time-status" class="auto internal xref">Section 12.7</a>).  A
 predecessor whose payload has become ERRORED
@@ -22529,20 +22532,24 @@ FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC.<a href="#appendix-A.3-1" class="pilcrow">�
 <p id="appendix-A.3-2">The benchmark suite is now organized to distinguish two costs
 that were previously conflated in a single-host Docker
 measurement:<a href="#appendix-A.3-2" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="appendix-A.3-3">
-<li id="appendix-A.3-3.1">
-            <p id="appendix-A.3-3.1.1"><strong>Algorithm cost</strong> -- the CPU + memory-bandwidth cost of
+<span class="break"></span><dl class="dlParallel" id="appendix-A.3-3">
+          <dt id="appendix-A.3-3.1">Algorithm cost:</dt>
+          <dd style="margin-left: 1.5em" id="appendix-A.3-3.2">
+            <p id="appendix-A.3-3.2.1">the CPU + memory-bandwidth cost of
 encoding and decoding, measured against pre-allocated RAM
 buffers with no I/O and no network.  This is the encoder
-ceiling on a given host.<a href="#appendix-A.3-3.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.3-3.2">
-            <p id="appendix-A.3-3.2.1"><strong>Transmit cost</strong> -- the end-to-end cost of a write or read
+ceiling on a given host.<a href="#appendix-A.3-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="appendix-A.3-3.3">Transmit cost:</dt>
+          <dd style="margin-left: 1.5em" id="appendix-A.3-3.4">
+            <p id="appendix-A.3-3.4.1">the end-to-end cost of a write or read
 on a real NFSv4.2 mount across three hosts on a LAN,
 including RPC round-trips, fsync commits, and network
-serialization.<a href="#appendix-A.3-3.2.1" class="pilcrow">¶</a></p>
-</li>
-        </ol>
+serialization.<a href="#appendix-A.3-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
 <p id="appendix-A.3-4">The two-axis measurement makes explicit what the previous
 single-host measurement obscured: on a real network, encoder
 algorithm cost is a small fraction of end-to-end transmit
@@ -22682,8 +22689,8 @@ integrity in every cell.<a href="#appendix-A.3.3-3" class="pilcrow">¶</a></p>
 </li>
           </ul>
 <p id="appendix-A.3.3-6">The key finding: an approximately three-order-of-magnitude
-algorithm-cost spread across encoders <strong>collapses to
-approximately 1.15x wire spread</strong> at the client-direct FFv2
+algorithm-cost spread across encoders collapses to
+approximately 1.15x wire spread at the client-direct FFv2
 variant (variant c) at 1 MiB.  End-to-end throughput on this
 topology is dominated by RPC round-trips, fsync commits, and
 network serialization; encoder algorithm cost is a rounding-error

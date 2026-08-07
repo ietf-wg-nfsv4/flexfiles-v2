@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                           6 August 2026
-Expires: 7 February 2027
+Intended status: Standards Track                           7 August 2026
+Expires: 8 February 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 7 February 2027.
+   This Internet-Draft will expire on 8 February 2027.
 
 Copyright Notice
 
@@ -6388,9 +6388,9 @@ Table of Contents
        with a live lock has exactly one logical owner at any instant" is
        preserved across revocation.
 
-   Across multiple chunks the protocol makes *no multi-chunk atomicity
-   or ordering guarantee*.  A reader that reads chunk A at one offset
-   and chunk B at another MAY observe A's new value and B's old value
+   Across multiple chunks the protocol makes no multi-chunk atomicity or
+   ordering guarantee.  A reader that reads chunk A at one offset and
+   chunk B at another MAY observe A's new value and B's old value
    simultaneously.  Applications that require multi-chunk atomicity MUST
    layer it above this protocol -- for example, via file-level
    checksums, application-level generation fields, or external
@@ -6442,8 +6442,8 @@ Table of Contents
 
    Rollback invariant:  The data server MUST retain the prior FINALIZED
       or COMMITTED content of a chunk while any successor PENDING or
-      FINALIZED chunk exists.  A corollary of this rule is the *lowest-
-      guard-recoverable* property: as long as at least k data servers in
+      FINALIZED chunk exists.  A corollary of this rule is the lowest-
+      guard-recoverable property: as long as at least k data servers in
       the mirror set retain the chunk at some generation G or lower, the
       payload that was COMMITTED at generation G (or earlier) can be
       reconstructed.  This is the correctness basis for CHUNK_ROLLBACK
@@ -6926,7 +6926,7 @@ Table of Contents
 
 13.2.3.  Stateid Model on the Data Server
 
-   The stateid presented on a CHUNK operation is a *layout stateid*
+   The stateid presented on a CHUNK operation is a layout stateid
    returned by a prior LAYOUTGET against the metadata server (see
    Section 18.43 of [RFC8881]), NOT an open stateid, byte range lock
    stateid, or delegation stateid.  A pNFS client does NOT issue OPEN
@@ -8842,36 +8842,37 @@ Table of Contents
       Ed25519; a conforming verifier MUST accept Ed25519.  Other
       signature algorithms (e.g., ECDSA-P256 with identifier -7, RSASSA-
       PSS-SHA256 with identifier -37) MAY be registered as additional
-      profiles per the IANA Considerations. - *kid header parameter*:
-      OPTIONAL.  A deployment with a single trust anchor MAY omit it; a
-      deployment supporting key rotation or multiple trust anchors
-      SHOULD include it so a data server can select the correct
-      verification key.  Absent kid, the data server attempts
-      verification against each configured trust anchor and accepts on
-      the first match.  Payload map fields:
+      profiles per the IANA Considerations.
 
-      the signed CBOR payload is a map with integer-keyed fields (per
-      [RFC9053] convention for compact wire size).  The mandatory-
-      profile keys are: - 1 = principal (CBOR text string): the
-      metadata-server principal that holds this incarnation.  Comparison
-      is byte-for-byte against the RPCSEC_GSS authenticated name of the
-      presenter (Section 5 of [RFC7861]), with no Unicode normalization
-      or case folding; a deployment MUST provision the authority to sign
-      tokens whose principal field is exactly the RPC-authenticated name
-      the data server will observe.  - 2 = epoch (CBOR uint): the
-      metadata-server epoch value being claimed.  On presentation in
-      CHUNK_ESCROW_TAKEOVER the data server MUST verify that this field
-      equals ceta_new_epoch in the operation arguments; any mismatch is
-      a signature-and-payload check failure at step 4 of "Presentation
-      and Verification" below and returns NFS4ERR_ACCESS.  - 3 = scope
-      (CBOR text string): identifier of the data server or data-server
-      set the token is valid for.  Comparison is byte-for-byte against
-      the data-server-side value the deployment provisions at trust-
-      anchor setup (see "Trust Anchor Provisioning" below); a data
-      server accepts a token whose scope field exactly matches any scope
-      identifier it has been provisioned to serve, and rejects any other
-      value.  The scope namespace is deployment-local -- this
-      specification neither defines a format nor constrains the
+   kid header parameter:  OPTIONAL.  A deployment with a single trust
+      anchor MAY omit it; a deployment supporting key rotation or
+      multiple trust anchors SHOULD include it so a data server can
+      select the correct verification key.  Absent kid, the data server
+      attempts verification against each configured trust anchor and
+      accepts on the first match.
+
+   Payload map fields:  the signed CBOR payload is a map with integer-
+      keyed fields (per [RFC9053] convention for compact wire size).
+      The mandatory-profile keys are: - 1 = principal (CBOR text
+      string): the metadata-server principal that holds this
+      incarnation.  Comparison is byte-for-byte against the RPCSEC_GSS
+      authenticated name of the presenter (Section 5 of [RFC7861]), with
+      no Unicode normalization or case folding; a deployment MUST
+      provision the authority to sign tokens whose principal field is
+      exactly the RPC-authenticated name the data server will observe.
+      - 2 = epoch (CBOR uint): the metadata-server epoch value being
+      claimed.  On presentation in CHUNK_ESCROW_TAKEOVER the data server
+      MUST verify that this field equals ceta_new_epoch in the operation
+      arguments; any mismatch is a signature-and-payload check failure
+      at step 4 of "Presentation and Verification" below and returns
+      NFS4ERR_ACCESS.  - 3 = scope (CBOR text string): identifier of the
+      data server or data-server set the token is valid for.  Comparison
+      is byte-for-byte against the data-server-side value the deployment
+      provisions at trust-anchor setup (see "Trust Anchor Provisioning"
+      below); a data server accepts a token whose scope field exactly
+      matches any scope identifier it has been provisioned to serve, and
+      rejects any other value.  The scope namespace is deployment-local
+      -- this specification neither defines a format nor constrains the
       character set beyond requiring UTF-8 CBOR text.  - 4 = issued_at
       (CBOR tag-1 epoch-based date/time per [RFC8949] Section 3.4.2):
       the instant the authority signed the token.  A conforming issuer
@@ -11088,7 +11089,7 @@ Table of Contents
       elapsed.  See Section 21.1.7 for the choice between the two codes.
 
    The caller then consults whatever fallback the deployment provides.
-   A repair client MAY reconstruct authoritative bytes from surviving
+   A repair actor MAY reconstruct authoritative bytes from surviving
    shards and issue CHUNK_WRITE_REPAIR to write a new generation
    carrying those bytes under a new owner triple.  That new generation
    is a distinct generation for lifecycle purposes; it is not the
@@ -13028,14 +13029,14 @@ Table of Contents
    failures.  It applies only when three conditions all hold at the
    moment a CHUNK_ROLLBACK is issued against the named predecessor:
 
-   1.  *Present at acquisition.* The predecessor generation must have
+   1.  Present at acquisition.  The predecessor generation must have
        existed on the data server at the time the qualifying CHUNK_LOCK
        or metadata-server escrow was acquired.  Predecessors that had
        already been released under the retention scope (Section 12.9)
        before any qualifying lock or escrow was acquired are not
        covered.
 
-   2.  *Continuous custody.* The lock or escrow custody chain must have
+   2.  Continuous custody.  The lock or escrow custody chain must have
        remained uninterrupted through the rollback decision window.
        Custody handoffs are permitted (a client-owned lock adopted from
        a metadata-server escrow lock preserves the escrow_id4 per
@@ -13045,7 +13046,7 @@ Table of Contents
        predecessor was covered by neither a qualifying lock nor a
        metadata-server escrow lock breaks continuity.
 
-   3.  *Payload remains AVAILABLE.* The predecessor's payload MUST be in
+   3.  Payload remains AVAILABLE.  The predecessor's payload MUST be in
        the AVAILABLE read-time state (Section 12.7).  A predecessor
        whose payload has become ERRORED through media loss,
        unrecoverable corruption, loss of all redundant data servers, or
@@ -14474,13 +14475,13 @@ Interoperability and Benchmarks
    The benchmark suite is now organized to distinguish two costs that
    were previously conflated in a single-host Docker measurement:
 
-   1.  *Algorithm cost* -- the CPU + memory-bandwidth cost of encoding
-       and decoding, measured against pre-allocated RAM buffers with no
-       I/O and no network.  This is the encoder ceiling on a given host.
+   Algorithm cost:  the CPU + memory-bandwidth cost of encoding and
+      decoding, measured against pre-allocated RAM buffers with no I/O
+      and no network.  This is the encoder ceiling on a given host.
 
-   2.  *Transmit cost* -- the end-to-end cost of a write or read on a
-       real NFSv4.2 mount across three hosts on a LAN, including RPC
-       round-trips, fsync commits, and network serialization.
+   Transmit cost:  the end-to-end cost of a write or read on a real
+      NFSv4.2 mount across three hosts on a LAN, including RPC round-
+      trips, fsync commits, and network serialization.
 
    The two-axis measurement makes explicit what the previous single-host
    measurement obscured: on a real network, encoder algorithm cost is a
@@ -14580,8 +14581,8 @@ Transmit cost -- three-host real-network sweep
       across encoders.
 
    The key finding: an approximately three-order-of-magnitude algorithm-
-   cost spread across encoders *collapses to approximately 1.15x wire
-   spread* at the client-direct FFv2 variant (variant c) at 1 MiB.  End-
+   cost spread across encoders collapses to approximately 1.15x wire
+   spread at the client-direct FFv2 variant (variant c) at 1 MiB.  End-
    to-end throughput on this topology is dominated by RPC round-trips,
    fsync commits, and network serialization; encoder algorithm cost is a
    rounding-error contributor at these operating points.
