@@ -2312,7 +2312,7 @@ Table of Contents
       ///     FFV2_ENCODING_MOJETTE_SYSTEMATIC      = 2,
       ///     FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC  = 3,
       ///     FFV2_ENCODING_RS_VANDERMONDE          = 4,
-      ///     FFV2_ENCODING_REPLICATED                = 5,
+      ///     FFV2_ENCODING_REPLICATED              = 5,
       ///     FFV2_ENCODING_XOR_PARITY              = 6,
       ///     FFV2_ENCODING_LINUX_MD_RAID           = 7
       /// };
@@ -5027,8 +5027,8 @@ Table of Contents
 
    XOR_PARITY produces a parity shard byte-identical to the P (first)
    parity row of Reed-Solomon Vandermonde encoding at m=1 and to the P
-   row of Linux md/raid6 at any m >= 1.  This follows from using the
-   same primitive coefficients:
+   row of Linux md/raid6, whose m is fixed at 2.  This follows from
+   using the same primitive coefficients:
 
    *  RS Vandermonde at m=1 uses parity row [1, 1, ..., 1] in GF(2^8),
       which reduces to bitwise XOR (see Section 11.8).
@@ -5037,10 +5037,10 @@ Table of Contents
       shard, identical to XOR_PARITY's parity by construction.
 
    A receiver capable of FFV2_ENCODING_RS_VANDERMONDE at m=1 or
-   FFV2_ENCODING_LINUX_MD_RAID at m >= 1 therefore consumes an
-   XOR_PARITY-encoded chunk without re-encoding, provided the k matches.
-   Conversely, an XOR_PARITY receiver consumes the P row of any GF(2^8)
-   family encoding at m >= 1 unchanged.
+   FFV2_ENCODING_LINUX_MD_RAID therefore consumes an XOR_PARITY-encoded
+   chunk without re-encoding, provided the k matches.  Conversely, an
+   XOR_PARITY receiver consumes the P row of any GF(2^8) family encoding
+   at m >= 1 unchanged.
 
 11.6.5.  XOR_PARITY Interoperability Test Vectors
 
@@ -14147,7 +14147,11 @@ Table of Contents
 31.1.  Normative References
 
    [I-D.haynes-nfsv4-flexfiles-v2-delta-writes]
-              "*** BROKEN REFERENCE ***".
+              Haynes, T., "Delta-Write Extension for the Flexible File
+              Version 2 Layout Type", Work in Progress, Internet-Draft,
+              draft-haynes-nfsv4-flexfiles-v2-delta-writes-00, 7 August
+              2026, <https://datatracker.ietf.org/doc/html/draft-haynes-
+              nfsv4-flexfiles-v2-delta-writes-00>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -14255,9 +14259,9 @@ Table of Contents
    [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]
               Haynes, T., "Proxy-Driven Server for Flexible Files
               Version 2", Work in Progress, Internet-Draft, draft-
-              haynes-nfsv4-flexfiles-v2-proxy-server-03, 24 July 2026,
+              haynes-nfsv4-flexfiles-v2-proxy-server-04, 7 August 2026,
               <https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-
-              flexfiles-v2-proxy-server-03>.
+              flexfiles-v2-proxy-server-04>.
 
    [IANA-PEN] IANA, "Private Enterprise Numbers",
               <https://www.iana.org/assignments/enterprise-numbers/>.

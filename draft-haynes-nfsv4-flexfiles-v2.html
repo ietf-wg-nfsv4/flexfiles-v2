@@ -4571,7 +4571,7 @@ this otherwise opaque value, ffv2_layout4.<a href="#section-8-5" class="pilcrow"
    ///     FFV2_ENCODING_MOJETTE_SYSTEMATIC      = 2,
    ///     FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC  = 3,
    ///     FFV2_ENCODING_RS_VANDERMONDE          = 4,
-   ///     FFV2_ENCODING_REPLICATED                = 5,
+   ///     FFV2_ENCODING_REPLICATED              = 5,
    ///     FFV2_ENCODING_XOR_PARITY              = 6,
    ///     FFV2_ENCODING_LINUX_MD_RAID           = 7
    /// };
@@ -8012,8 +8012,8 @@ FFV2_ENCODING_RS_VANDERMONDE (configurable m).<a href="#section-11.6.3-4" class=
           </h4>
 <p id="section-11.6.4-1">XOR_PARITY produces a parity shard byte-identical to the P
 (first) parity row of Reed-Solomon Vandermonde encoding at m=1
-and to the P row of Linux md/raid6 at any m &gt;= 1.  This
-follows from using the same primitive coefficients:<a href="#section-11.6.4-1" class="pilcrow">¶</a></p>
+and to the P row of Linux md/raid6, whose m is fixed at 2.
+This follows from using the same primitive coefficients:<a href="#section-11.6.4-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-11.6.4-2.1">
               <p id="section-11.6.4-2.1.1">RS Vandermonde at m=1 uses parity row <code>[1, 1, ..., 1]</code> in
@@ -8027,7 +8027,7 @@ construction.<a href="#section-11.6.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 <p id="section-11.6.4-3">A receiver capable of FFV2_ENCODING_RS_VANDERMONDE at m=1 or
-FFV2_ENCODING_LINUX_MD_RAID at m &gt;= 1 therefore consumes an
+FFV2_ENCODING_LINUX_MD_RAID therefore consumes an
 XOR_PARITY-encoded chunk without re-encoding, provided the k
 matches.  Conversely, an XOR_PARITY receiver consumes the P
 row of any GF(2^8) family encoding at m &gt;= 1 unchanged.<a href="#section-11.6.4-3" class="pilcrow">¶</a></p>
@@ -22131,7 +22131,7 @@ code snippets belong in their respective areas of that XDR.<a href="#section-30-
 <dl class="references">
 <dt id="I-D.haynes-nfsv4-flexfiles-v2-delta-writes">[I-D.haynes-nfsv4-flexfiles-v2-delta-writes]</dt>
         <dd>
-<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Delta-Write Extension for the Flexible File Version 2 Layout Type"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-haynes-nfsv4-flexfiles-v2-delta-writes-00</span>, <time datetime="2026-08-07" class="refDate">7 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-delta-writes-00">https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-delta-writes-00</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC2119">[RFC2119]</dt>
         <dd>
@@ -22232,7 +22232,7 @@ code snippets belong in their respective areas of that XDR.<a href="#section-30-
 <dd class="break"></dd>
 <dt id="I-D.haynes-nfsv4-flexfiles-v2-proxy-server">[I-D.haynes-nfsv4-flexfiles-v2-proxy-server]</dt>
         <dd>
-<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Proxy-Driven Server for Flexible Files Version 2"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-haynes-nfsv4-flexfiles-v2-proxy-server-03</span>, <time datetime="2026-07-24" class="refDate">24 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-03">https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-03</a>&gt;</span>. </dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Proxy-Driven Server for Flexible Files Version 2"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-haynes-nfsv4-flexfiles-v2-proxy-server-04</span>, <time datetime="2026-08-07" class="refDate">7 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-04">https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-04</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="IANA-PEN">[IANA-PEN]</dt>
         <dd>
