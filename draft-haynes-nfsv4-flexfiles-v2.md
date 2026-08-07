@@ -5009,8 +5009,8 @@ FFV2_ENCODING_RS_VANDERMONDE (configurable m).
 
 XOR_PARITY produces a parity shard byte-identical to the P
 (first) parity row of Reed-Solomon Vandermonde encoding at m=1
-and to the P row of Linux md/raid6 at any m >= 1.  This
-follows from using the same primitive coefficients:
+and to the P row of Linux md/raid6, whose m is fixed at 2.
+This follows from using the same primitive coefficients:
 
 - RS Vandermonde at m=1 uses parity row `[1, 1, ..., 1]` in
   GF(2^8), which reduces to bitwise XOR (see
@@ -5020,7 +5020,7 @@ follows from using the same primitive coefficients:
   construction.
 
 A receiver capable of FFV2_ENCODING_RS_VANDERMONDE at m=1 or
-FFV2_ENCODING_LINUX_MD_RAID at m >= 1 therefore consumes an
+FFV2_ENCODING_LINUX_MD_RAID therefore consumes an
 XOR_PARITY-encoded chunk without re-encoding, provided the k
 matches.  Conversely, an XOR_PARITY receiver consumes the P
 row of any GF(2^8) family encoding at m >= 1 unchanged.
