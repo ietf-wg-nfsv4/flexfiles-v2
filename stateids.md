@@ -67,6 +67,9 @@ compound).
 ```
 TRUST_STATEID4args {
     stateid4      tsa_layout_stateid;  /* layout stateid granted by MDS */
+    clientid4     tsa_pnfs_clientid;   /* pNFS client whose layout is
+                                        * being authorized */
+    uint32_t      tsa_client_id;       /* ffv2 writer identity */
     layoutiomode4 tsa_iomode;          /* LAYOUTIOMODE4_READ or _RW */
     nfstime4      tsa_expire;          /* expiry time -- see Lease section */
     utf8str_cs    tsa_principal;       /* client's authenticated identity;
@@ -78,7 +81,11 @@ TRUST_STATEID4res {
 };
 ```
 
-`tsa_principal` is the client's GSS display name as authenticated to
+`tsa_pnfs_clientid` identifies the pNFS client whose layout is being
+authorized, while `tsa_client_id` identifies the ffv2 writer identity
+assigned in that layout.  The DS records both separately from the
+MDS clientid4 that owns the control session; that MDS identity is the
+issuer used to scope revocation.  `tsa_principal` is the client's GSS display name as authenticated to
 the MDS at LAYOUTGET time (e.g., `alice@REALM` for Kerberos).  The
 empty string means no principal binding: the DS validates the stateid
 but does not check the caller's identity.  For AUTH_SYS and TLS
@@ -91,8 +98,9 @@ The MDS probes whether the DS supports TRUST_STATEID during session
 setup, before any runway or layout work:
 
 ```
-SEQUENCE + PUTROOTFH + TRUST_STATEID(anon_stid, LAYOUTIOMODE4_READ,
-                                     expire=0, principal="")
+SEQUENCE + PUTROOTFH + TRUST_STATEID(anon_stid, 0, 0,
+                                     LAYOUTIOMODE4_READ, expire=0,
+                                     principal="")
 ```
 
 The anonymous stateid (`{seqid=0, other=all-zeros}`) is a special
@@ -117,11 +125,14 @@ anonymous stateid) in CHUNK_WRITE and other data-path ops.
 ### Compound placement
 
 ```
-SEQUENCE + PUTFH(ds_file_fh) + TRUST_STATEID(layout_stid, iomode, ...)
+SEQUENCE + PUTFH(ds_file_fh) + TRUST_STATEID(layout_stid,
+                                             pnfs_clientid,
+                                             ffv2_client_id,
+                                             iomode, ...)
 ```
 
 TRUST_STATEID is sent on the MDS-to-DS control session
-(`EXCHGID4_FLAG_USE_NON_PNFS` from the MDS's perspective).  It is
+(`EXCHGID4_FLAG_USE_PNFS_MDS` from the MDS's perspective).  It is
 not callable by pNFS clients.
 
 ### Flow (AUTH_SYS or TLS)
@@ -130,8 +141,11 @@ not callable by pNFS clients.
    If `NFS4ERR_INVAL`, tight coupling is available for this DS.
 2. Client calls LAYOUTGET on the MDS.
 3. MDS fans out TRUST_STATEID to each DS in the mirror set with
+   `tsa_pnfs_clientid` set to the layout client's clientid4,
+   `tsa_client_id` set to the layout's ffv2 writer identity, and
    `tsa_principal = ""`.
-4. DS stores the trusted stateid in its per-file trust table.
+4. DS stores the stateid and both client identities in its per-file
+   trust table.
 5. MDS returns the layout with `ffdv_tightly_coupled = true`.
 6. Client sends CHUNK_WRITE (or READ/WRITE) to the DS using the
    real layout stateid.
@@ -142,8 +156,11 @@ not callable by pNFS clients.
 
 1. Same capability probe at session setup.
 2. Client calls LAYOUTGET on the MDS, authenticated as `alice@REALM`.
-3. MDS fans out TRUST_STATEID with `tsa_principal = "alice@REALM"`.
-4. DS stores the trusted stateid bound to `alice@REALM`.
+3. MDS fans out TRUST_STATEID with the layout client's
+   `tsa_pnfs_clientid`, its `tsa_client_id`, and
+   `tsa_principal = "alice@REALM"`.
+4. DS stores the stateid and both client identities bound to
+   `alice@REALM`.
 5. MDS returns the layout with `ffdv_tightly_coupled = true`.
 6. Client independently obtains a Kerberos service ticket for
    `nfs/ds-host@REALM` from the KDC.  The KDC must have a keytab
@@ -297,15 +314,15 @@ SEQUENCE + PUTFH(ds_file_fh) + REVOKE_STATEID(layout_stid)
 
 ## Proposal: BULK_REVOKE_STATEID
 
-BULK_REVOKE_STATEID revokes all trust entries for a given client in
+BULK_REVOKE_STATEID revokes all trust entries for a given target client in
 a single compound, avoiding the N PUTFH + REVOKE_STATEID compounds
 that per-file revocation requires when a client holds many layouts.
 
 ```
 BULK_REVOKE_STATEID4args {
-    clientid4  brsa_clientid;  /* revoke all stateids for this client;
-                                * the special all-zeros clientid revokes
-                                * the entire DS trust table */
+    clientid4  brsa_clientid;  /* revoke entries for this target client;
+                                * all-zeros selects entries owned by
+                                * the calling metadata server */
 };
 
 BULK_REVOKE_STATEID4res {
@@ -325,11 +342,11 @@ SEQUENCE + BULK_REVOKE_STATEID(clientid4)
 1. **Client lease expiry** -- the MDS expires a client.  BULK_REVOKE
    replaces the per-file REVOKE_STATEID fan-out with a single op per DS.
 2. **CB_LAYOUTRECALL LAYOUTRECALL4_ALL** -- the MDS is recalling all
-   layouts for a client.  BULK_REVOKE_STATEID(clientid) is the DS-side
+   layouts for a client.  BULK_REVOKE_STATEID(target_clientid) is the DS-side
    complement.
 3. **MDS reboot cleanup** -- after establishing new DS sessions, the
-   MDS sends BULK_REVOKE_STATEID(all-zeros) to each DS to clear stale
-   entries, then re-issues TRUST_STATEID as clients reclaim layouts
+   MDS sends BULK_REVOKE_STATEID(all-zeros) to each DS to clear its own
+   stale entries, then re-issues TRUST_STATEID as clients reclaim layouts
    during grace.  See MDS Crash Recovery below.
 
 ### Error handling
@@ -391,8 +408,9 @@ that some operations will stall until the MDS is healthy.
 ### Re-authorization flow
 
 1. MDS reconnects to each DS; sends BULK_REVOKE_STATEID(all-zeros)
-   to clear the prior trust table (optional but cleaner than waiting
-   for expiry).
+   to clear its own prior trust entries (optional but cleaner than
+   waiting for expiry).  The operation MUST NOT clear entries issued
+   by another MDS.
 2. MDS enters grace.  Clients reclaim layouts via LAYOUTGET.
 3. For each reclaimed layout, MDS fans out TRUST_STATEID to the
    relevant DSes, reusing the same layout stateid where possible or
