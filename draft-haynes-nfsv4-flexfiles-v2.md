@@ -1306,8 +1306,9 @@ Scope of this document.  The wire-level control-protocol
 operations this document defines -- TRUST_STATEID,
 REVOKE_STATEID, and BULK_REVOKE_STATEID
 ({{sec-tight-coupling-control}}) -- carry only the association
-between a layout stateid, the ffv2m_client_id the metadata
-server assigned to the client, and (for TRUST_STATEID) the
+between a layout stateid, the NFSv4 clientid4 of the client
+whose layout is authorized, the ffv2m_client_id the metadata
+server assigned to that client, and (for TRUST_STATEID) the
 iomode, expiry, and principal.  They do NOT carry openowner,
 lockowner, byte range, lock-type, the identity of an
 associated open stateid, or delegation-type.
