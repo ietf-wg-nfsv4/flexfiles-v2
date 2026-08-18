@@ -3600,8 +3600,9 @@ corresponding storage devices.<a href="#section-6.3.2-5.6.1" class="pilcrow">¶<
 operations this document defines -- TRUST_STATEID,
 REVOKE_STATEID, and BULK_REVOKE_STATEID
 (<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>) -- carry only the association
-between a layout stateid, the ffv2m_client_id the metadata
-server assigned to the client, and (for TRUST_STATEID) the
+between a layout stateid, the NFSv4 clientid4 of the client
+whose layout is authorized, the ffv2m_client_id the metadata
+server assigned to that client, and (for TRUST_STATEID) the
 iomode, expiry, and principal.  They do NOT carry openowner,
 lockowner, byte range, lock-type, the identity of an
 associated open stateid, or delegation-type.<a href="#section-6.3.2-6" class="pilcrow">¶</a></p>
