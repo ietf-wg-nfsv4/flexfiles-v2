@@ -617,6 +617,8 @@ during control-session setup:
 ~~~
 SEQUENCE + PUTROOTFH + TRUST_STATEID(
     tsa_layout_stateid = ANONYMOUS_STATEID,
+    tsa_pnfs_clientid  = 0,
+    tsa_client_id      = 0,
     tsa_iomode         = LAYOUTIOMODE4_READ,
     tsa_expire         = 0,
     tsa_principal      = "")
@@ -1104,6 +1106,8 @@ MUST NOT be sent by pNFS clients.
    /// struct TRUST_STATEID4args {
    ///     /* CURRENT_FH: file */
    ///     stateid4        tsa_layout_stateid;
+   ///     clientid4       tsa_pnfs_clientid;
+   ///     uint32_t        tsa_client_id;
    ///     layoutiomode4   tsa_iomode;
    ///     nfstime4        tsa_expire;
    ///     utf8str_cs      tsa_principal;
@@ -1128,7 +1132,12 @@ MUST NOT be sent by pNFS clients.
 TRUST_STATEID registers a layout stateid with the data
 server so that subsequent CHUNK_* operations presenting that
 stateid can be validated against the data server's per-file
-trust table.  It is the mechanism by which tight coupling
+trust table.  The registration binds the stateid to both the
+NFSv4 clientid4 whose layout is being authorized
+(tsa_pnfs_clientid) and the ffv2m_client_id (tsa_client_id)
+assigned to that client in the layout.  The data server keeps
+those identities distinct from the metadata-server identity
+that owns the control session.  It is the mechanism by which tight coupling
 (see {{sec-tight-coupling-control}}) is established between
 the metadata server and the data server for a particular
 layout.
@@ -1166,6 +1175,25 @@ tsa_layout_stateid:
    reject the request with NFS4ERR_INVAL -- that
    rejection is the positive response to the probe.
 
+tsa_pnfs_clientid:
+:  the NFSv4 clientid4 of the pNFS client whose layout stateid
+   is being registered.  The data server records this value
+   separately from the metadata-server clientid4 that owns the
+   control session.  BULK_REVOKE_STATEID uses its brsa_clientid
+   argument to match this target identity; a zero brsa_clientid
+   selects all target clients belonging to the issuing metadata
+   server.  For a normal registration this field MUST be non-zero;
+   in the capability probe it MUST be zero.
+
+tsa_client_id:
+:  the ffv2m_client_id assigned to the client in the layout that
+   produced tsa_layout_stateid.  The data server records this
+   writer identity alongside the stateid and uses it to authorize
+   cwa_client_id on CHUNK_WRITE and cg_client_id in any
+   chunk_guard4 CAS submitted with the same stateid.  A mismatch
+   MUST be rejected with NFS4ERR_BAD_STATEID.  In the capability
+   probe the metadata server SHOULD set tsa_client_id to zero.
+
 tsa_iomode:
 :  the iomode of the layout (LAYOUTIOMODE4_READ or
    LAYOUTIOMODE4_RW).  The data server MAY enforce this
@@ -1191,22 +1219,23 @@ tsa_principal:
    {{sec-tight-coupling-principal}}.
 
 If a trust entry already exists for the same
-tsa_layout_stateid on the same current filehandle,
-TRUST_STATEID atomically updates tsa_expire and
-tsa_principal; this is the renewal path (see
+tsa_layout_stateid on the same current filehandle and with the
+same issuer, target, and writer identities, TRUST_STATEID
+atomically updates tsa_expire and tsa_principal; this is the
+renewal path (see
 {{sec-tight-coupling-lease}}).
 
 At registration time the data server tags the new trust
 entry with the identity of the metadata server, derived
-from the clientid of the owning client of the control
-session on which TRUST_STATEID arrived.  This tag is
-consulted by REVOKE_STATEID ({{sec-REVOKE_STATEID}}) and
-BULK_REVOKE_STATEID ({{sec-BULK_REVOKE_STATEID}}) so that
-revocation only affects entries registered by the same
-metadata server.  In a multi-metadata-server deployment
-sharing a single data server, each metadata server
-registers and revokes only its own entries; the tag is
-opaque to pNFS clients and is not carried on the wire.
+from the clientid4 of the owning client of the control
+session on which TRUST_STATEID arrived.  This issuer tag and
+tsa_pnfs_clientid are distinct fields.  REVOKE_STATEID
+matches the issuer tag together with the current filehandle
+and stateid; BULK_REVOKE_STATEID matches the issuer tag and
+its brsa_clientid target.  In a multi-metadata-server
+deployment sharing a single data server, each metadata server
+registers and revokes only its own entries; neither identity is
+inferred from or folded into tsa_client_id.
 
 TRUST_STATEID returns only a top-level status; there is
 no result body beyond the nfsstat4 discriminant.
