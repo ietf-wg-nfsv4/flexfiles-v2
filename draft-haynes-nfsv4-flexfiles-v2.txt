@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                           7 August 2026
-Expires: 8 February 2027
+Intended status: Standards Track                          18 August 2026
+Expires: 19 February 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 8 February 2027.
+   This Internet-Draft will expire on 19 February 2027.
 
 Copyright Notice
 
@@ -1587,6 +1587,7 @@ Table of Contents
 
    SEQUENCE + PUTROOTFH + TRUST_STATEID(
        tsa_layout_stateid = ANONYMOUS_STATEID,
+       tsa_pnfs_clientid  = 0,
        tsa_client_id      = 0,
        tsa_iomode         = LAYOUTIOMODE4_READ,
        tsa_expire         = 0,
@@ -11941,6 +11942,7 @@ Table of Contents
       /// struct TRUST_STATEID4args {
       ///     /* CURRENT_FH: file */
       ///     stateid4        tsa_layout_stateid;
+      ///     clientid4       tsa_pnfs_clientid;
       ///     uint32_t        tsa_client_id;
       ///     layoutiomode4   tsa_iomode;
       ///     nfstime4        tsa_expire;
@@ -11965,11 +11967,14 @@ Table of Contents
    TRUST_STATEID registers a layout stateid with the data server so that
    subsequent CHUNK operations presenting that stateid can be validated
    against the data server's per-file trust table.  The registration
-   also binds the stateid to the ffv2m_client_id (tsa_client_id) the
-   metadata server assigned to the client at LAYOUTGET time; the data
-   server uses that binding to authorize the writer identity carried in
-   cwa_client_id on CHUNK_WRITE and in cg_client_id in any chunk_guard4
-   CAS (Section 24.2).  TRUST_STATEID is the mechanism by which tight
+   binds the stateid to both the NFSv4 clientid4 whose layout is being
+   authorized (tsa_pnfs_clientid) and the ffv2m_client_id
+   (tsa_client_id) assigned to that client in the layout.  The data
+   server keeps those identities distinct from the metadata-server
+   identity that owns the control session and uses tsa_client_id to
+   authorize cwa_client_id on CHUNK_WRITE and cg_client_id in any
+   chunk_guard4 CAS (Section 24.2).  A mismatch is rejected with
+   NFS4ERR_BAD_STATEID.  TRUST_STATEID is the mechanism by which tight
    coupling (see Section 6.4) is established between the metadata server
    and the data server for a particular layout.
 
@@ -12004,6 +12009,15 @@ Table of Contents
       server MUST reject the request with NFS4ERR_INVAL -- that
       rejection is the positive response to the probe.
 
+   tsa_pnfs_clientid:  the NFSv4 clientid4 of the pNFS client whose
+      layout stateid is being registered.  The data server records this
+      value separately from the metadata-server clientid4 that owns the
+      control session.  BULK_REVOKE_STATEID uses its brsa_clientid
+      argument to match this target identity; a zero brsa_clientid
+      selects all target clients belonging to the issuing metadata
+      server.  For a normal registration this field MUST be non-zero; in
+      the capability probe it MUST be zero.
+
    tsa_client_id:  the ffv2m_client_id (Section 8.9) the metadata server
       assigned to the client in the layout that produced
       tsa_layout_stateid.  The data server records tsa_client_id
@@ -12037,19 +12051,20 @@ Table of Contents
       CHUNK operations.  See Section 6.4.4.
 
    If a trust entry already exists for the same tsa_layout_stateid on
-   the same current filehandle, TRUST_STATEID atomically updates
-   tsa_expire and tsa_principal; this is the renewal path (see
-   Section 6.4.6).
+   the same current filehandle and with the same issuer, target, and
+   writer identities, TRUST_STATEID atomically updates tsa_expire and
+   tsa_principal; this is the renewal path (see Section 6.4.6).
 
    At registration time the data server tags the new trust entry with
-   the identity of the metadata server, derived from the clientid of the
-   owning client of the control session on which TRUST_STATEID arrived.
-   This tag is consulted by REVOKE_STATEID and BULK_REVOKE_STATEID so
-   that revocation only affects entries registered by the same metadata
-   server.  In a multi-metadata-server deployment sharing a single data
-   server, each metadata server registers and revokes only its own
-   entries; the tag is opaque to pNFS clients and is not carried on the
-   wire.
+   the identity of the metadata server, derived from the clientid4 of
+   the owning client of the control session on which TRUST_STATEID
+   arrived.  This issuer tag and tsa_pnfs_clientid are distinct fields.
+   REVOKE_STATEID matches the issuer tag together with the current
+   filehandle and stateid; BULK_REVOKE_STATEID matches the issuer tag
+   and its brsa_clientid target.  In a multi-metadata-server deployment
+   sharing a single data server, each metadata server registers and
+   revokes only its own entries; neither identity is inferred from or
+   folded into tsa_client_id.
 
    TRUST_STATEID returns only a top-level status; there is no result
    body beyond the nfsstat4 discriminant.
