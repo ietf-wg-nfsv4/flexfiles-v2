@@ -7395,6 +7395,7 @@ MAY:
  | ACL-scoped GETATTR/SETATTR bits   | MUST NOT                   | MAY                |
  | TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID | MUST NOT  | REQUIRED (tight coupling) |
  | CHUNK_ESCROW_INSTALL, CHUNK_ESCROW_RELEASE, CHUNK_ESCROW_ENUMERATE, CHUNK_ESCROW_TAKEOVER | MUST NOT | REQUIRED |
+ | CHUNK_LOCK_DESIGNATE            | MUST NOT                   | REQUIRED (live-client takeover) |
 {: #tbl-ops-allowed title="NFSv4.2 operations allowed on data files"}
 
 The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-server
@@ -8233,6 +8234,7 @@ are defined in {{Section 15 of RFC8881}} and {{Section 11 of RFC7862}}.
  | CHUNK_ESCROW_RELEASE   | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT, NFS4ERR_STALE_ESCROW, NFS4ERR_STALE_MDS_EPOCH |
  | CHUNK_ESCROW_ENUMERATE | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH |
  | CHUNK_ESCROW_TAKEOVER  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT, NFS4ERR_STALE_MDS_EPOCH |
+ | CHUNK_LOCK_DESIGNATE   | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE, NFS4ERR_NOTSUPP, NFS4ERR_PERM, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
 {: #tbl-ops-and-errors title="Operations and Their Valid Errors"}
 
 ## Callback Operations and Their Valid Errors
@@ -9286,6 +9288,10 @@ different algorithm.
    ///  OP_CHUNK_ESCROW_ENUMERATE = 94,
    ///  OP_CHUNK_ESCROW_TAKEOVER  = 95,
    ///
+   /// /* live-client lock-transfer authorization */
+   ///
+   ///  OP_CHUNK_LOCK_DESIGNATE   = 101,
+   ///
 ~~~
 {: #fig-ops-xdr title="Operations XDR" }
 
@@ -9323,6 +9329,8 @@ XDR applies these amendments at the union's extension point.
    ///     CHUNK_ESCROW_ENUMERATE4args opchunkescrowenumerate;
    /// case OP_CHUNK_ESCROW_TAKEOVER:
    ///     CHUNK_ESCROW_TAKEOVER4args opchunkescrowtakeover;
+   /// case OP_CHUNK_LOCK_DESIGNATE:
+   ///     CHUNK_LOCK_DESIGNATE4args opchunklockdesignate;
 ~~~
 {: #fig-nfs_argop4-amend title="nfs_argop4 amendment block"}
 
@@ -9354,6 +9362,8 @@ XDR applies these amendments at the union's extension point.
    ///     CHUNK_ESCROW_ENUMERATE4res opchunkescrowenumerate;
    /// case OP_CHUNK_ESCROW_TAKEOVER:
    ///     CHUNK_ESCROW_TAKEOVER4res opchunkescrowtakeover;
+   /// case OP_CHUNK_LOCK_DESIGNATE:
+   ///     CHUNK_LOCK_DESIGNATE4res opchunklockdesignate;
 ~~~
 {: #fig-nfs_resop4-amend title="nfs_resop4 amendment block"}
 
@@ -9370,6 +9380,11 @@ pNFS clients.  The escrow control-plane operations (92 through
 loose- or tight coupling deployment; the tight coupling section
 is cited for its description of the session itself, not to
 restrict availability to the tight coupling profile.
+
+Operation 101 (CHUNK_LOCK_DESIGNATE) is also sent by the
+metadata server to a data server on that control session.  It
+creates the authorization record consumed by a live-client
+CHUNK_LOCK takeover and MUST NOT be sent by a pNFS client.
 
 All CHUNK operations MUST be issued under an active flexible
 file v2 layout obtained via LAYOUTGET against the metadata
@@ -9418,6 +9433,7 @@ interface.
    | CHUNK_ESCROW_RELEASE   | 93     | data server (metadata server control)  | {{sec-CHUNK_ESCROW_RELEASE}} |
    | CHUNK_ESCROW_ENUMERATE | 94     | data server (metadata server control)  | {{sec-CHUNK_ESCROW_ENUMERATE}} |
    | CHUNK_ESCROW_TAKEOVER  | 95     | data server (metadata server control)  | {{sec-CHUNK_ESCROW_TAKEOVER}} |
+   | CHUNK_LOCK_DESIGNATE   | 101    | data server (metadata server control)  | {{sec-CHUNK_LOCK_DESIGNATE}} |
 {: #tbl-protocol-ops title="Protocol OPs"}
 
 ## Bounds on Chunk-Operation Arrays {#sec-chunk-op-bounds}
@@ -13291,6 +13307,9 @@ NFS4ERR_ACCESS:
 NFS4ERR_BADXDR:
 :  arguments could not be decoded.
 
+NFS4ERR_NOFILEHANDLE:
+:  CURRENT_FH was not set to the data-server file.
+
 NFS4ERR_INVAL:
 :  cera_offset or cera_count is malformed.
 
@@ -13614,6 +13633,138 @@ NFS4ERR_STALE_MDS_EPOCH:
    TAKEOVER has already advanced past it, or the
    caller has been fenced by a superseding
    takeover.
+
+## Operation 101: CHUNK_LOCK_DESIGNATE - Designate a live-client lock successor {#sec-CHUNK_LOCK_DESIGNATE}
+
+### ARGUMENTS
+
+~~~ xdr
+   /// const CHUNK_LOCK_DESIGNATION_TOKEN_MAX4 = 256;
+   ///
+   /// struct CHUNK_LOCK_DESIGNATE4args {
+   ///     /* CURRENT_FH: data-server file */
+   ///     stateid4    clda_predecessor_stateid;
+   ///     stateid4    clda_successor_stateid;
+   ///     chunk_owner4 clda_predecessor;
+   ///     chunk_owner4 clda_successor;
+   ///     offset4     clda_offset;
+   ///     count4      clda_count;
+   ///     clientid4   clda_issuer_clientid;
+   ///     nfstime4    clda_expire;
+   ///     opaque      clda_token<CHUNK_LOCK_DESIGNATION_TOKEN_MAX4>;
+   /// };
+~~
+{: #fig-CHUNK_LOCK_DESIGNATE4args title="XDR for CHUNK_LOCK_DESIGNATE4args" }
+
+### RESULTS
+
+~~~ xdr
+   /// struct CHUNK_LOCK_DESIGNATE4res {
+   ///     nfsstat4    cldr_status;
+   /// };
+~~
+{: #fig-CHUNK_LOCK_DESIGNATE4res title="XDR for CHUNK_LOCK_DESIGNATE4res" }
+
+### DESCRIPTION
+
+CHUNK_LOCK_DESIGNATE is sent by the metadata server to a
+data server on the metadata-server-to-data-server control
+session.  CURRENT_FH identifies the data-server file whose
+lock table is being updated.  The operation creates a durable,
+range-bound designation authorizing the successor named by
+clda_successor to take over the live lock held by
+clda_predecessor.  The designation is consumed by a later
+CHUNK_LOCK carrying CHUNK_LOCK_FLAGS_TAKEOVER; it does not
+change lock ownership by itself.
+
+The designation binds all of the following values:
+
+clda_predecessor_stateid:
+:  the layout stateid stored with the current live lock.  The
+   data server MUST compare it byte-for-byte with the lock it
+   is asked to transfer.
+
+clda_successor_stateid:
+:  the layout stateid the successor will present on
+   CHUNK_LOCK_FLAGS_TAKEOVER and subsequent chunk operations.
+
+clda_predecessor and clda_successor:
+:  the complete owner triples for the current lock holder and
+   its replacement.  The data server MUST reject a takeover
+   whose owner does not match the corresponding designation.
+
+clda_offset and clda_count:
+:  the exact chunk-index range covered by the designation.  A
+   designation MUST NOT authorize a partially overlapping
+   CHUNK_LOCK takeover.
+
+clda_issuer_clientid:
+:  the metadata-server client identity that issued the
+   designation.  It MUST identify the authenticated control
+   session's metadata server.
+
+clda_expire:
+:  an absolute expiry time.  The data server MUST reject a
+   designation after this time and MUST persist the expiry with
+   the rest of the designation record.
+
+clda_token:
+:  a non-empty, opaque, bounded identity for the designation.
+   Retransmission of the same request with the same token and
+   byte-identical bindings is idempotent.  A token that names a
+   different binding MUST NOT replace the existing designation.
+
+The data server MUST validate the control-session identity,
+filehandle, range, owner values, stateids, expiry, and token
+before recording the designation.  Recording a designation and
+replacing an existing identical record are atomic with respect
+to CHUNK_LOCK_FLAGS_TAKEOVER.  A crash or lost reply MUST NOT
+leave a partially written designation.  The designation MUST
+survive restart, or the data server MUST reject any subsequent
+TAKEOVER that names a designation not recovered from durable
+state.
+
+The data server MUST NOT infer designation from TRUST_STATEID.
+An ordinary trusted layout stateid authorizes chunk I/O but does
+not authorize replacing another live owner's lock.  Only a
+matching, unexpired designation record may authorize
+CHUNK_LOCK_FLAGS_TAKEOVER.
+
+### RESPONSE CODES
+
+NFS4_OK:
+:  the designation was durably recorded, or an identical
+   retransmission was already recorded.
+
+NFS4ERR_ACCESS:
+:  the issuer or control-session credentials are not authorized
+   to designate a successor, or a requested binding does not
+   match the authority's designation.
+
+NFS4ERR_BADXDR:
+:  arguments could not be decoded.
+
+NFS4ERR_NOFILEHANDLE:
+:  CURRENT_FH was not set to the data-server file.
+
+NFS4ERR_INVAL:
+:  the range, owner, stateid, expiry, or token is malformed, or
+   the token conflicts with a previously recorded binding.
+
+NFS4ERR_NOTSUPP:
+:  the data server does not implement
+   CHUNK_LOCK_DESIGNATE.
+
+NFS4ERR_PERM:
+:  the request arrived on a session whose owning client did not
+   present EXCHGID4_FLAG_USE_PNFS_MDS (see
+   {{sec-tight-coupling-control-session}}).
+
+NFS4ERR_SERVERFAULT:
+:  the data server failed while persisting the designation.
+
+NFS4ERR_STALE:
+:  CURRENT_FH does not identify a valid data-server file.
 
 # New NFSv4.2 Callback Operations
 
