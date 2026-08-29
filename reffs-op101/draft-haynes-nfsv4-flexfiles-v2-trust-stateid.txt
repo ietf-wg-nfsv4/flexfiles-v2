@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                            24 July 2026
-Expires: 25 January 2027
+Intended status: Standards Track                          29 August 2026
+Expires: 2 March 2027
 
 
 Trusted Stateid Control Protocol for the Flexible File Version 2 Layout
@@ -64,7 +64,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 25 January 2027.
+   This Internet-Draft will expire on 2 March 2027.
 
 Copyright Notice
 
@@ -672,6 +672,8 @@ Table of Contents
 
    SEQUENCE + PUTROOTFH + TRUST_STATEID(
        tsa_layout_stateid = ANONYMOUS_STATEID,
+       tsa_pnfs_clientid  = 0,
+       tsa_client_id      = 0,
        tsa_iomode         = LAYOUTIOMODE4_READ,
        tsa_expire         = 0,
        tsa_principal      = "")
@@ -1137,6 +1139,8 @@ Table of Contents
       /// struct TRUST_STATEID4args {
       ///     /* CURRENT_FH: file */
       ///     stateid4        tsa_layout_stateid;
+      ///     clientid4       tsa_pnfs_clientid;
+      ///     uint32_t        tsa_client_id;
       ///     layoutiomode4   tsa_iomode;
       ///     nfstime4        tsa_expire;
       ///     utf8str_cs      tsa_principal;
@@ -1159,7 +1163,12 @@ Table of Contents
 
    TRUST_STATEID registers a layout stateid with the data server so that
    subsequent CHUNK_* operations presenting that stateid can be
-   validated against the data server's per-file trust table.  It is the
+   validated against the data server's per-file trust table.  The
+   registration binds the stateid to both the NFSv4 clientid4 whose
+   layout is being authorized (tsa_pnfs_clientid) and the
+   ffv2m_client_id (tsa_client_id) assigned to that client in the
+   layout.  The data server keeps those identities distinct from the
+   metadata-server identity that owns the control session.  It is the
    mechanism by which tight coupling (see Section 4.4) is established
    between the metadata server and the data server for a particular
    layout.
@@ -1192,6 +1201,23 @@ Table of Contents
       server MUST reject the request with NFS4ERR_INVAL -- that
       rejection is the positive response to the probe.
 
+   tsa_pnfs_clientid:  the NFSv4 clientid4 of the pNFS client whose
+      layout stateid is being registered.  The data server records this
+      value separately from the metadata-server clientid4 that owns the
+      control session.  BULK_REVOKE_STATEID uses its brsa_clientid
+      argument to match this target identity; a zero brsa_clientid
+      selects all target clients belonging to the issuing metadata
+      server.  For a normal registration this field MUST be non-zero; in
+      the capability probe it MUST be zero.
+
+   tsa_client_id:  the ffv2m_client_id assigned to the client in the
+      layout that produced tsa_layout_stateid.  The data server records
+      this writer identity alongside the stateid and uses it to
+      authorize cwa_client_id on CHUNK_WRITE and cg_client_id in any
+      chunk_guard4 CAS submitted with the same stateid.  A mismatch MUST
+      be rejected with NFS4ERR_BAD_STATEID.  In the capability probe the
+      metadata server SHOULD set tsa_client_id to zero.
+
    tsa_iomode:  the iomode of the layout (LAYOUTIOMODE4_READ or
       LAYOUTIOMODE4_RW).  The data server MAY enforce this against the
       CHUNK_* operation presented later: a READ-iomode trust entry does
@@ -1210,19 +1236,20 @@ Table of Contents
       CHUNK operations.  See Section 4.4.4.
 
    If a trust entry already exists for the same tsa_layout_stateid on
-   the same current filehandle, TRUST_STATEID atomically updates
-   tsa_expire and tsa_principal; this is the renewal path (see
-   Section 4.4.6).
+   the same current filehandle and with the same issuer, target, and
+   writer identities, TRUST_STATEID atomically updates tsa_expire and
+   tsa_principal; this is the renewal path (see Section 4.4.6).
 
    At registration time the data server tags the new trust entry with
-   the identity of the metadata server, derived from the clientid of the
-   owning client of the control session on which TRUST_STATEID arrived.
-   This tag is consulted by REVOKE_STATEID (Section 6.3) and
-   BULK_REVOKE_STATEID (Section 6.4) so that revocation only affects
-   entries registered by the same metadata server.  In a multi-metadata-
-   server deployment sharing a single data server, each metadata server
-   registers and revokes only its own entries; the tag is opaque to pNFS
-   clients and is not carried on the wire.
+   the identity of the metadata server, derived from the clientid4 of
+   the owning client of the control session on which TRUST_STATEID
+   arrived.  This issuer tag and tsa_pnfs_clientid are distinct fields.
+   REVOKE_STATEID matches the issuer tag together with the current
+   filehandle and stateid; BULK_REVOKE_STATEID matches the issuer tag
+   and its brsa_clientid target.  In a multi-metadata-server deployment
+   sharing a single data server, each metadata server registers and
+   revokes only its own entries; neither identity is inferred from or
+   folded into tsa_client_id.
 
    TRUST_STATEID returns only a top-level status; there is no result
    body beyond the nfsstat4 discriminant.
@@ -1733,9 +1760,9 @@ Informative References
    [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]
               Haynes, T., "Proxy-Driven Server for Flexible Files
               Version 2", Work in Progress, Internet-Draft, draft-
-              haynes-nfsv4-flexfiles-v2-proxy-server-02, 25 May 2026,
+              haynes-nfsv4-flexfiles-v2-proxy-server-04, 7 August 2026,
               <https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-
-              flexfiles-v2-proxy-server-02>.
+              flexfiles-v2-proxy-server-04>.
 
    [RFC4519]  Sciberras, A., Ed., "Lightweight Directory Access Protocol
               (LDAP): Schema for User Applications", RFC 4519,

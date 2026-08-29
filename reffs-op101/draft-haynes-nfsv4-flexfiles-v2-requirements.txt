@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Informational                              27 July 2026
-Expires: 28 January 2027
+Intended status: Informational                            29 August 2026
+Expires: 2 March 2027
 
 
  Requirements and Rationale for the Flexible File Version 2 Layout Type
@@ -62,7 +62,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 28 January 2027.
+   This Internet-Draft will expire on 2 March 2027.
 
 Copyright Notice
 
@@ -302,31 +302,32 @@ Table of Contents
 
 4.  Use Cases
 
-   The protocol is designed around three workload classes.  The labels
-   below reflect the relative frequency of each class in installations
-   that choose flexible file v2 layout for its combination of integrity
-   and performance; individual deployments may diverge.
+   The protocol is designed around three workload classes.  The
+   percentages below reflect the expected deployment mix in
+   installations that choose flexible file v2 layout for its combination
+   of integrity and performance; individual deployments may diverge.
 
-   Single writer, multiple readers (the common case):  A file written by
-      one client and subsequently read by many.  Examples include
-      artifacts deposited by batch jobs, container images, and media
-      files.  The protocol is optimized for this case; see
+   Single writer, multiple readers:  Approximately 90% of expected
+      deployments.  The common case is a file written by one client and
+      subsequently read by many.  Examples include artifacts deposited
+      by batch jobs, container images, and media files.  The protocol is
+      optimized for this case; see
       [I-D.haynes-nfsv4-flexfiles-v2-chunks].
 
-   Multiple writers without sustained contention (occasional):  Files
-      with multiple concurrent writers where races on the same chunk are
-      rare.  Examples include shared-directory append-only logs and
-      distributed builds.  The chunk_guard4 CAS primitive and per-chunk
-      locking cover this case without penalizing the common single-
-      writer path.
+   Multiple writers without sustained contention:  Approximately 9% of
+      expected deployments.  Files with multiple concurrent writers
+      where races on the same chunk are rare.  Examples include shared-
+      directory append-only logs and distributed builds.  The
+      chunk_guard4 CAS primitive and per-chunk locking cover this case
+      without penalizing the common single-writer path.
 
-   Multiple writers, disjoint regions (rare):  High-performance
-      computing (HPC) checkpoint workloads, in which many ranks write
-      disjoint regions of the same file in lockstep.  The protocol
-      relies on block alignment to keep per-chunk contention rare
-      despite overall high writer count.  Contention that does occur is
-      resolved via the deterministic tiebreaker rule defined in
-      [I-D.haynes-nfsv4-flexfiles-v2-chunks].
+   Multiple writers, disjoint regions:  Approximately 1% of expected
+      deployments.  High-performance computing (HPC) checkpoint
+      workloads, in which many ranks write disjoint regions of the same
+      file in lockstep.  The protocol relies on block alignment to keep
+      per-chunk contention rare despite overall high writer count.
+      Contention that does occur is resolved via the deterministic
+      tiebreaker rule defined in [I-D.haynes-nfsv4-flexfiles-v2-chunks].
 
    Scale targets include multi-thousand-client deployments (on the order
    of tens of thousands of concurrent clients for HPC checkpointing),
@@ -590,14 +591,14 @@ Acknowledgments
    goals of [I-D.haynes-nfsv4-flexfiles-v2-chunks].
 
    The authors thank Dave Noveck, Chuck Lever, Tigran Mkrtchyan, Rick
-   Macklem, Christoph Hellwig, and Sorin Faibish for their detailed
-   review of earlier revisions of the parent draft.  Their comments
-   shaped the system model presentation, the chunk lifecycle and guard
-   semantics, the trusted-stateid design, and many smaller choices
-   recorded throughout the family.
+   Macklem, and Christoph Hellwig for their detailed review of earlier
+   revisions of the parent draft.  Their comments shaped the system
+   model presentation, the chunk lifecycle and guard semantics, the
+   trusted-stateid design, and many smaller choices recorded throughout
+   the family.
 
-   Chris Inacio, Brian Pawlowski, Chuck Lever, and Gorry Fairhurst
-   guided this process.
+   Chris Inacio, Brian Pawlowski, and Gorry Fairhurst guided this
+   process.
 
    Mojette-specific acknowledgments are carried by
    [I-D.haynes-nfsv4-flexfiles-v2-mojette].
@@ -1075,9 +1076,9 @@ Informative References
    [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]
               Haynes, T., "Proxy-Driven Server for Flexible Files
               Version 2", Work in Progress, Internet-Draft, draft-
-              haynes-nfsv4-flexfiles-v2-proxy-server-03, 24 July 2026,
+              haynes-nfsv4-flexfiles-v2-proxy-server-04, 7 August 2026,
               <https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-
-              flexfiles-v2-proxy-server-03>.
+              flexfiles-v2-proxy-server-04>.
 
    [I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde]
               "*** BROKEN REFERENCE ***".

@@ -1,0 +1,13 @@
+# Editor's drafts for reffs-op101 branch of [ietf-wg-nfsv4/flexfiles-v2](https://github.com/ietf-wg-nfsv4/flexfiles-v2/tree/reffs-op101)
+
+| Draft |     |     |     |
+| ----- | --- | --- | --- |
+| [FFv2 Trust-Stateid](./draft-haynes-nfsv4-flexfiles-v2-trust-stateid.html "Trusted Stateid Control Protocol for the Flexible File Version 2 Layout Type (HTML)") | [plain text](./draft-haynes-nfsv4-flexfiles-v2-trust-stateid.txt "Trusted Stateid Control Protocol for the Flexible File Version 2 Layout Type (Text)") | same as main |
+| [FFv2 Encoding Registry](./draft-haynes-nfsv4-flexfiles-v2-encoding-registry.html "Erasure Coding Type Registry for the Flexible File Version 2 Layout Type (HTML)") | [plain text](./draft-haynes-nfsv4-flexfiles-v2-encoding-registry.txt "Erasure Coding Type Registry for the Flexible File Version 2 Layout Type (Text)") | same as main |
+| [FFv2 RS-Vandermonde](./draft-haynes-nfsv4-flexfiles-v2-rs-vandermonde.html "Reed-Solomon Vandermonde Encoding for the Flexible File Version 2 Layout Type (HTML)") | [plain text](./draft-haynes-nfsv4-flexfiles-v2-rs-vandermonde.txt "Reed-Solomon Vandermonde Encoding for the Flexible File Version 2 Layout Type (Text)") | same as main |
+| [FFv2 Chunks](./draft-haynes-nfsv4-flexfiles-v2-chunks.html "Chunk Substrate and CHUNK Operations for the Flexible File Version 2 Layout Type (HTML)") | [plain text](./draft-haynes-nfsv4-flexfiles-v2-chunks.txt "Chunk Substrate and CHUNK Operations for the Flexible File Version 2 Layout Type (Text)") | same as main |
+| [Flex File Layout v2](./draft-haynes-nfsv4-flexfiles-v2.html "Parallel NFS (pNFS) Flexible File Layout Version 2 (HTML)") | [plain text](./draft-haynes-nfsv4-flexfiles-v2.txt "Parallel NFS (pNFS) Flexible File Layout Version 2 (Text)") | same as main |
+| [FFv2 Requirements](./draft-haynes-nfsv4-flexfiles-v2-requirements.html "Requirements and Rationale for the Flexible File Version 2 Layout Type (HTML)") | [plain text](./draft-haynes-nfsv4-flexfiles-v2-requirements.txt "Requirements and Rationale for the Flexible File Version 2 Layout Type (Text)") | same as main |
+| [FFv2 Mojette](./draft-haynes-nfsv4-flexfiles-v2-mojette.html "Mojette Transform Encoding for the Flexible File Version 2 Layout Type (HTML)") | [plain text](./draft-haynes-nfsv4-flexfiles-v2-mojette.txt "Mojette Transform Encoding for the Flexible File Version 2 Layout Type (Text)") | same as main |
+| [FFv2 Layout](./draft-haynes-nfsv4-flexfiles-v2-layout.html "The Flexible File Version 2 Layout Type (HTML)") | [plain text](./draft-haynes-nfsv4-flexfiles-v2-layout.txt "The Flexible File Version 2 Layout Type (Text)") | same as main |
+

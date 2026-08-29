@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                            27 July 2026
-Expires: 28 January 2027
+Intended status: Standards Track                          29 August 2026
+Expires: 2 March 2027
 
 
   Chunk Substrate and CHUNK Operations for the Flexible File Version 2
@@ -64,7 +64,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 28 January 2027.
+   This Internet-Draft will expire on 2 March 2027.
 
 Copyright Notice
 
@@ -5448,16 +5448,6 @@ Table of Contents
    control protocol to validate the RPC credentials to the metadata
    server.
 
-   A repair client reconstructs and writes shards on behalf of other
-   clients via CHUNK_WRITE_REPAIR.  A malicious or buggy repair client
-   is therefore a write path into data it did not originate; the
-   metadata server MUST validate repaired shards against the file's
-   registered checksum before accepting them, and integrity against a
-   malicious data server (as opposed to bit-flips) requires a
-   cryptographic checksum_algorithm together with transport security.
-   CHECKSUM_ALG_NONE and the CRC variants provide bit-flip detection
-   only.
-
 14.  IANA Considerations
 
 14.1.  New NFSv4.2 Operation Assignments
@@ -5738,9 +5728,9 @@ Informative References
    [I-D.haynes-nfsv4-flexfiles-v2-proxy-server]
               Haynes, T., "Proxy-Driven Server for Flexible Files
               Version 2", Work in Progress, Internet-Draft, draft-
-              haynes-nfsv4-flexfiles-v2-proxy-server-03, 24 July 2026,
+              haynes-nfsv4-flexfiles-v2-proxy-server-04, 7 August 2026,
               <https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-
-              flexfiles-v2-proxy-server-03>.
+              flexfiles-v2-proxy-server-04>.
 
    [I-D.haynes-nfsv4-flexfiles-v2-rs-vandermonde]
               "*** BROKEN REFERENCE ***".
