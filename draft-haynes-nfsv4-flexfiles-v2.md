@@ -8218,9 +8218,9 @@ are defined in {{Section 15 of RFC8881}} and {{Section 11 of RFC7862}}.
  | CHUNK_COMMIT       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_ERROR        | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_FINALIZE     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
- | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_REP_TOO_BIG, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_HEADER_READ  | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_LOST, NFS4ERR_REP_TOO_BIG, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_LOCK         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_NO_ADOPTABLE_LOCK, NFS4ERR_SERVERFAULT |
- | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
+ | CHUNK_READ         | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_LOST, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE |
  | CHUNK_REPAIRED     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
  | CHUNK_ROLLBACK     | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_NO_PREDECESSOR, NFS4ERR_SERVERFAULT |
  | CHUNK_UNLOCK       | NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_INVAL, NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT |
@@ -8258,7 +8258,7 @@ are defined in {{Section 18 of RFC8881}} and {{Section 15 of RFC7862}}.
  | NFS4ERR_PAYLOAD_NOT_ATOMIC       | CHUNK_READ                  |
  | NFS4ERR_CHUNK_LOCKED             | CHUNK_LOCK, CHUNK_WRITE, CHUNK_ESCROW_INSTALL |
  | NFS4ERR_CHUNK_GUARDED            | CHUNK_WRITE                 |
- | NFS4ERR_PAYLOAD_LOST             | CB_CHUNK_REPAIR             |
+ | NFS4ERR_PAYLOAD_LOST             | CHUNK_HEADER_READ, CHUNK_READ, CB_CHUNK_REPAIR |
  | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | LAYOUTGET              |
  | NFS4ERR_NO_PREDECESSOR           | CHUNK_ROLLBACK              |
  | NFS4ERR_NO_ADOPTABLE_LOCK        | CHUNK_LOCK                  |
@@ -10524,6 +10524,13 @@ NFS4ERR_NOENT:
    written at this offset).  The chunk_owner4 in the
    corresponding chrr_owners slot is unspecified.
 
+NFS4ERR_PAYLOAD_LOST:
+:  the chunk is terminally lost or tombstoned and cannot be
+   reconstructed.  The corresponding metadata entries identify
+   the last retained generation where available; the payload is
+   not returned and the client MUST treat the condition as
+   terminal rather than retrying repair on another data server.
+
 CHUNK_HEADER_READ never returns NFS4ERR_CHUNK_LOCKED in
 chrr_status; lock state is reported orthogonally via
 chrr_locked so that locked chunks still surface their
@@ -10555,6 +10562,13 @@ NFS4ERR_FHEXPIRED:
 
 NFS4ERR_IO:
 :  an I/O error occurred while reading chunk headers.
+
+NFS4ERR_PAYLOAD_LOST:
+:  the requested header range is terminally lost or
+   tombstoned and no header result can be returned.  For a
+   partially affected range, the operation returns NFS4_OK
+   with NFS4ERR_PAYLOAD_LOST in the corresponding chrr_status
+   entries instead.
 
 NFS4ERR_NOTSUPP:
 :  the data server does not implement
@@ -10989,6 +11003,10 @@ cr_status:
    is undefined; see {{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}}.
    NFS4ERR_NOENT indicates the chunk is EMPTY (no
    COMMITTED generation has been written at this offset).
+   NFS4ERR_PAYLOAD_LOST indicates that the chunk is
+   terminally lost or tombstoned; cr_chunk is empty and the
+   client MUST surface a terminal error rather than retrying
+   repair on another data server.
 
 cr_chunk:
 :  the chunk payload bytes.  Empty for cr_status values
@@ -11137,6 +11155,12 @@ NFS4ERR_NOTSUPP:
 NFS4ERR_PAYLOAD_NOT_ATOMIC:
 :  one or more chunks failed their
    persisted guard or CRC check.  See {{sec-NFS4ERR_PAYLOAD_NOT_ATOMIC}}.
+
+NFS4ERR_PAYLOAD_LOST:
+:  one or more requested chunks are terminally lost or
+   tombstoned.  The operation returns no payload for those
+   entries; the client MUST surface the terminal condition and
+   MUST NOT treat it as a transient retry or ordinary I/O error.
 
 NFS4ERR_SERVERFAULT:
 :  the data server failed while processing
