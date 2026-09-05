@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                          18 August 2026
-Expires: 19 February 2027
+Intended status: Standards Track                        5 September 2026
+Expires: 9 March 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 19 February 2027.
+   This Internet-Draft will expire on 9 March 2027.
 
 Copyright Notice
 
@@ -8088,123 +8088,125 @@ Table of Contents
    error codes not defined in this document are defined in Section 15 of
    [RFC8881] and Section 11 of [RFC7862].
 
-    +========================+=======================================+
-    | Operation              | Errors                                |
-    +========================+=======================================+
-    | CHUNK_COMMIT           | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,     |
-    |                        | NFS4ERR_INVAL, NFS4ERR_IO,            |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, |
-    |                        | NFS4ERR_STALE                         |
-    +------------------------+---------------------------------------+
-    | CHUNK_ERROR            | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,       |
-    |                        | NFS4ERR_SERVERFAULT                   |
-    +------------------------+---------------------------------------+
-    | CHUNK_FINALIZE         | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,     |
-    |                        | NFS4ERR_INVAL, NFS4ERR_IO,            |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, |
-    |                        | NFS4ERR_STALE                         |
-    +------------------------+---------------------------------------+
-    | CHUNK_HEADER_READ      | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,     |
-    |                        | NFS4ERR_INVAL, NFS4ERR_IO,            |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_REP_TOO_BIG, |
-    |                        | NFS4ERR_SERVERFAULT, NFS4ERR_STALE    |
-    +------------------------+---------------------------------------+
-    | CHUNK_LOCK             | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL,  |
-    |                        | NFS4ERR_NOTSUPP,                      |
-    |                        | NFS4ERR_NO_ADOPTABLE_LOCK,            |
-    |                        | NFS4ERR_SERVERFAULT                   |
-    +------------------------+---------------------------------------+
-    | CHUNK_READ             | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,     |
-    |                        | NFS4ERR_IO, NFS4ERR_NOTSUPP,          |
-    |                        | NFS4ERR_PAYLOAD_NOT_ATOMIC,           |
-    |                        | NFS4ERR_SERVERFAULT, NFS4ERR_STALE    |
-    +------------------------+---------------------------------------+
-    | CHUNK_REPAIRED         | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,       |
-    |                        | NFS4ERR_SERVERFAULT                   |
-    +------------------------+---------------------------------------+
-    | CHUNK_ROLLBACK         | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,       |
-    |                        | NFS4ERR_NO_PREDECESSOR,               |
-    |                        | NFS4ERR_SERVERFAULT                   |
-    +------------------------+---------------------------------------+
-    | CHUNK_UNLOCK           | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,       |
-    |                        | NFS4ERR_SERVERFAULT                   |
-    +------------------------+---------------------------------------+
-    | CHUNK_WRITE            | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_CHUNK_GUARDED,                |
-    |                        | NFS4ERR_CHUNK_LOCKED, NFS4ERR_DELAY,  |
-    |                        | NFS4ERR_FHEXPIRED, NFS4ERR_IO,        |
-    |                        | NFS4ERR_NOSPC, NFS4ERR_NOTSUPP,       |
-    |                        | NFS4ERR_SERVERFAULT, NFS4ERR_STALE    |
-    +------------------------+---------------------------------------+
-    | CHUNK_WRITE_REPAIR     | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,  |
-    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,     |
-    |                        | NFS4ERR_IO, NFS4ERR_NOSPC,            |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT, |
-    |                        | NFS4ERR_STALE                         |
-    +------------------------+---------------------------------------+
-    | TRUST_STATEID          | NFS4_OK, NFS4ERR_BADXDR,              |
-    |                        | NFS4ERR_BAD_STATEID, NFS4ERR_DELAY,   |
-    |                        | NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE,  |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,        |
-    |                        | NFS4ERR_SERVERFAULT                   |
-    +------------------------+---------------------------------------+
-    | REVOKE_STATEID         | NFS4_OK, NFS4ERR_BADXDR,              |
-    |                        | NFS4ERR_BAD_STATEID, NFS4ERR_DELAY,   |
-    |                        | NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE,  |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,        |
-    |                        | NFS4ERR_SERVERFAULT                   |
-    +------------------------+---------------------------------------+
-    | BULK_REVOKE_STATEID    | NFS4_OK, NFS4ERR_BADXDR,              |
-    |                        | NFS4ERR_DELAY, NFS4ERR_NOTSUPP,       |
-    |                        | NFS4ERR_PERM, NFS4ERR_SERVERFAULT     |
-    +------------------------+---------------------------------------+
-    | CHUNK_ESCROW_INSTALL   | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_CHUNK_LOCKED, |
-    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,       |
-    |                        | NFS4ERR_PERM, NFS4ERR_SERVERFAULT,    |
-    |                        | NFS4ERR_STALE_MDS_EPOCH               |
-    +------------------------+---------------------------------------+
-    | CHUNK_ESCROW_RELEASE   | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_INVAL,        |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,        |
-    |                        | NFS4ERR_SERVERFAULT,                  |
-    |                        | NFS4ERR_STALE_ESCROW,                 |
-    |                        | NFS4ERR_STALE_MDS_EPOCH               |
-    +------------------------+---------------------------------------+
-    | CHUNK_ESCROW_ENUMERATE | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_INVAL,        |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,        |
-    |                        | NFS4ERR_SERVERFAULT,                  |
-    |                        | NFS4ERR_STALE_MDS_EPOCH               |
-    +------------------------+---------------------------------------+
-    | CHUNK_ESCROW_TAKEOVER  | NFS4_OK, NFS4ERR_ACCESS,              |
-    |                        | NFS4ERR_BADXDR, NFS4ERR_INVAL,        |
-    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,        |
-    |                        | NFS4ERR_SERVERFAULT,                  |
-    |                        | NFS4ERR_STALE_MDS_EPOCH               |
-    +------------------------+---------------------------------------+
+    +========================+========================================+
+    | Operation              | Errors                                 |
+    +========================+========================================+
+    | CHUNK_COMMIT           | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,      |
+    |                        | NFS4ERR_INVAL, NFS4ERR_IO,             |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT,  |
+    |                        | NFS4ERR_STALE                          |
+    +------------------------+----------------------------------------+
+    | CHUNK_ERROR            | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,        |
+    |                        | NFS4ERR_SERVERFAULT                    |
+    +------------------------+----------------------------------------+
+    | CHUNK_FINALIZE         | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,      |
+    |                        | NFS4ERR_INVAL, NFS4ERR_IO,             |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT,  |
+    |                        | NFS4ERR_STALE                          |
+    +------------------------+----------------------------------------+
+    | CHUNK_HEADER_READ      | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,      |
+    |                        | NFS4ERR_INVAL, NFS4ERR_IO,             |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_LOST, |
+    |                        | NFS4ERR_REP_TOO_BIG,                   |
+    |                        | NFS4ERR_SERVERFAULT, NFS4ERR_STALE     |
+    +------------------------+----------------------------------------+
+    | CHUNK_LOCK             | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_CHUNK_LOCKED, NFS4ERR_INVAL,   |
+    |                        | NFS4ERR_NOTSUPP,                       |
+    |                        | NFS4ERR_NO_ADOPTABLE_LOCK,             |
+    |                        | NFS4ERR_SERVERFAULT                    |
+    +------------------------+----------------------------------------+
+    | CHUNK_READ             | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,      |
+    |                        | NFS4ERR_IO, NFS4ERR_NOTSUPP,           |
+    |                        | NFS4ERR_PAYLOAD_LOST,                  |
+    |                        | NFS4ERR_PAYLOAD_NOT_ATOMIC,            |
+    |                        | NFS4ERR_SERVERFAULT, NFS4ERR_STALE     |
+    +------------------------+----------------------------------------+
+    | CHUNK_REPAIRED         | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,        |
+    |                        | NFS4ERR_SERVERFAULT                    |
+    +------------------------+----------------------------------------+
+    | CHUNK_ROLLBACK         | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,        |
+    |                        | NFS4ERR_NO_PREDECESSOR,                |
+    |                        | NFS4ERR_SERVERFAULT                    |
+    +------------------------+----------------------------------------+
+    | CHUNK_UNLOCK           | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,        |
+    |                        | NFS4ERR_SERVERFAULT                    |
+    +------------------------+----------------------------------------+
+    | CHUNK_WRITE            | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_CHUNK_GUARDED,                 |
+    |                        | NFS4ERR_CHUNK_LOCKED, NFS4ERR_DELAY,   |
+    |                        | NFS4ERR_FHEXPIRED, NFS4ERR_IO,         |
+    |                        | NFS4ERR_NOSPC, NFS4ERR_NOTSUPP,        |
+    |                        | NFS4ERR_SERVERFAULT, NFS4ERR_STALE     |
+    +------------------------+----------------------------------------+
+    | CHUNK_WRITE_REPAIR     | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID,   |
+    |                        | NFS4ERR_DELAY, NFS4ERR_FHEXPIRED,      |
+    |                        | NFS4ERR_IO, NFS4ERR_NOSPC,             |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_SERVERFAULT,  |
+    |                        | NFS4ERR_STALE                          |
+    +------------------------+----------------------------------------+
+    | TRUST_STATEID          | NFS4_OK, NFS4ERR_BADXDR,               |
+    |                        | NFS4ERR_BAD_STATEID, NFS4ERR_DELAY,    |
+    |                        | NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE,   |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,         |
+    |                        | NFS4ERR_SERVERFAULT                    |
+    +------------------------+----------------------------------------+
+    | REVOKE_STATEID         | NFS4_OK, NFS4ERR_BADXDR,               |
+    |                        | NFS4ERR_BAD_STATEID, NFS4ERR_DELAY,    |
+    |                        | NFS4ERR_INVAL, NFS4ERR_NOFILEHANDLE,   |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,         |
+    |                        | NFS4ERR_SERVERFAULT                    |
+    +------------------------+----------------------------------------+
+    | BULK_REVOKE_STATEID    | NFS4_OK, NFS4ERR_BADXDR,               |
+    |                        | NFS4ERR_DELAY, NFS4ERR_NOTSUPP,        |
+    |                        | NFS4ERR_PERM, NFS4ERR_SERVERFAULT      |
+    +------------------------+----------------------------------------+
+    | CHUNK_ESCROW_INSTALL   | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_CHUNK_LOCKED,  |
+    |                        | NFS4ERR_INVAL, NFS4ERR_NOTSUPP,        |
+    |                        | NFS4ERR_PERM, NFS4ERR_SERVERFAULT,     |
+    |                        | NFS4ERR_STALE_MDS_EPOCH                |
+    +------------------------+----------------------------------------+
+    | CHUNK_ESCROW_RELEASE   | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_INVAL,         |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,         |
+    |                        | NFS4ERR_SERVERFAULT,                   |
+    |                        | NFS4ERR_STALE_ESCROW,                  |
+    |                        | NFS4ERR_STALE_MDS_EPOCH                |
+    +------------------------+----------------------------------------+
+    | CHUNK_ESCROW_ENUMERATE | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_INVAL,         |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,         |
+    |                        | NFS4ERR_SERVERFAULT,                   |
+    |                        | NFS4ERR_STALE_MDS_EPOCH                |
+    +------------------------+----------------------------------------+
+    | CHUNK_ESCROW_TAKEOVER  | NFS4_OK, NFS4ERR_ACCESS,               |
+    |                        | NFS4ERR_BADXDR, NFS4ERR_INVAL,         |
+    |                        | NFS4ERR_NOTSUPP, NFS4ERR_PERM,         |
+    |                        | NFS4ERR_SERVERFAULT,                   |
+    |                        | NFS4ERR_STALE_MDS_EPOCH                |
+    +------------------------+----------------------------------------+
 
-               Table 14: Operations and Their Valid Errors
+                Table 14: Operations and Their Valid Errors
 
 21.3.  Callback Operations and Their Valid Errors
 
@@ -8247,7 +8249,9 @@ Table of Contents
     +---------------------------------------+-------------------------+
     | NFS4ERR_CHUNK_GUARDED                 | CHUNK_WRITE             |
     +---------------------------------------+-------------------------+
-    | NFS4ERR_PAYLOAD_LOST                  | CB_CHUNK_REPAIR         |
+    | NFS4ERR_PAYLOAD_LOST                  | CHUNK_HEADER_READ,      |
+    |                                       | CHUNK_READ,             |
+    |                                       | CB_CHUNK_REPAIR         |
     +---------------------------------------+-------------------------+
     | NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED | LAYOUTGET               |
     +---------------------------------------+-------------------------+
@@ -10223,6 +10227,12 @@ Table of Contents
       written at this offset).  The chunk_owner4 in the corresponding
       chrr_owners slot is unspecified.
 
+   NFS4ERR_PAYLOAD_LOST:  the chunk is terminally lost or tombstoned and
+      cannot be reconstructed.  The corresponding metadata entries
+      identify the last retained generation where available; the payload
+      is not returned and the client MUST treat the condition as
+      terminal rather than retrying repair on another data server.
+
    CHUNK_HEADER_READ never returns NFS4ERR_CHUNK_LOCKED in chrr_status;
    lock state is reported orthogonally via chrr_locked so that locked
    chunks still surface their chunk_owner4 to the inspector.
@@ -10246,6 +10256,12 @@ Table of Contents
    NFS4ERR_FHEXPIRED:  the current filehandle has expired.
 
    NFS4ERR_IO:  an I/O error occurred while reading chunk headers.
+
+   NFS4ERR_PAYLOAD_LOST:  the requested header range is terminally lost
+      or tombstoned and no header result can be returned.  For a
+      partially affected range, the operation returns NFS4_OK with
+      NFS4ERR_PAYLOAD_LOST in the corresponding chrr_status entries
+      instead.
 
    NFS4ERR_NOTSUPP:  the data server does not implement
       CHUNK_HEADER_READ.
@@ -10612,7 +10628,10 @@ Table of Contents
       chunk's persisted checksum or guard check failed at read time, in
       which case cr_chunk content is undefined; see Section 21.1.2.
       NFS4ERR_NOENT indicates the chunk is EMPTY (no COMMITTED
-      generation has been written at this offset).
+      generation has been written at this offset).  NFS4ERR_PAYLOAD_LOST
+      indicates that the chunk is terminally lost or tombstoned;
+      cr_chunk is empty and the client MUST surface a terminal error
+      rather than retrying repair on another data server.
 
    cr_chunk:  the chunk payload bytes.  Empty for cr_status values other
       than NFS4_OK.
@@ -10740,6 +10759,11 @@ Table of Contents
 
    NFS4ERR_PAYLOAD_NOT_ATOMIC:  one or more chunks failed their
       persisted guard or CRC check.  See Section 21.1.2.
+
+   NFS4ERR_PAYLOAD_LOST:  one or more requested chunks are terminally
+      lost or tombstoned.  The operation returns no payload for those
+      entries; the client MUST surface the terminal condition and MUST
+      NOT treat it as a transient retry or ordinary I/O error.
 
    NFS4ERR_SERVERFAULT:  the data server failed while processing the
       request.

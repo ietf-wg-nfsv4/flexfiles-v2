@@ -28,11 +28,11 @@ erasure coding algorithms are used for data protection.
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.11.3
+    platformdirs 4.11.7
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.2
+    wcwidth 0.8.3
 -->
 <link href="draft-haynes-nfsv4-flexfiles-v2.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1048,11 +1048,11 @@ svg {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">Flex File Layout v2</td>
-<td class="right">August 2026</td>
+<td class="right">September 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">Haynes</td>
-<td class="center">Expires 19 February 2027</td>
+<td class="center">Expires 9 March 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,12 +1065,12 @@ svg {
 <dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-08-18" class="published">18 August 2026</time>
+<time datetime="2026-09-05" class="published">5 September 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-02-19">19 February 2027</time></dd>
+<dd class="expires"><time datetime="2027-03-09">9 March 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1135,7 +1135,7 @@ discussion venue, latest rendering, and source location.<a href="#section-note.2
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 19 February 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 9 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -12891,7 +12891,7 @@ are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-15" cla
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">CHUNK_HEADER_READ</td>
-              <td class="text-left" rowspan="1" colspan="1">NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_REP_TOO_BIG, NFS4ERR_SERVERFAULT, NFS4ERR_STALE</td>
+              <td class="text-left" rowspan="1" colspan="1">NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_INVAL, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_LOST, NFS4ERR_REP_TOO_BIG, NFS4ERR_SERVERFAULT, NFS4ERR_STALE</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">CHUNK_LOCK</td>
@@ -12899,7 +12899,7 @@ are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-15" cla
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">CHUNK_READ</td>
-              <td class="text-left" rowspan="1" colspan="1">NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE</td>
+              <td class="text-left" rowspan="1" colspan="1">NFS4_OK, NFS4ERR_ACCESS, NFS4ERR_BADXDR, NFS4ERR_BAD_STATEID, NFS4ERR_DELAY, NFS4ERR_FHEXPIRED, NFS4ERR_IO, NFS4ERR_NOTSUPP, NFS4ERR_PAYLOAD_LOST, NFS4ERR_PAYLOAD_NOT_ATOMIC, NFS4ERR_SERVERFAULT, NFS4ERR_STALE</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">CHUNK_REPAIRED</td>
@@ -13023,7 +13023,7 @@ are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18" cla
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">NFS4ERR_PAYLOAD_LOST</td>
-              <td class="text-left" rowspan="1" colspan="1">CB_CHUNK_REPAIR</td>
+              <td class="text-left" rowspan="1" colspan="1">CHUNK_HEADER_READ, CHUNK_READ, CB_CHUNK_REPAIR</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">NFS4ERR_LAYOUT_CHECKSUM_NOT_SUPPORTED</td>
@@ -15986,6 +15986,15 @@ names the writer of that in-progress generation.<a href="#section-25.5.3.1-2.4.1
 written at this offset).  The chunk_owner4 in the
 corresponding chrr_owners slot is unspecified.<a href="#section-25.5.3.1-2.6.1" class="pilcrow">¶</a></p>
 </dd>
+              <dd class="break"></dd>
+<dt id="section-25.5.3.1-2.7">NFS4ERR_PAYLOAD_LOST:</dt>
+              <dd style="margin-left: 1.5em" id="section-25.5.3.1-2.8">
+                <p id="section-25.5.3.1-2.8.1">the chunk is terminally lost or tombstoned and cannot be
+reconstructed.  The corresponding metadata entries identify
+the last retained generation where available; the payload is
+not returned and the client <span class="bcp14">MUST</span> treat the condition as
+terminal rather than retrying repair on another data server.<a href="#section-25.5.3.1-2.8.1" class="pilcrow">¶</a></p>
+</dd>
             <dd class="break"></dd>
 </dl>
 <p id="section-25.5.3.1-3">CHUNK_HEADER_READ never returns NFS4ERR_CHUNK_LOCKED in
@@ -16041,22 +16050,31 @@ the request.<a href="#section-25.5.4-1.10.1" class="pilcrow">¶</a></p>
               <p id="section-25.5.4-1.14.1">an I/O error occurred while reading chunk headers.<a href="#section-25.5.4-1.14.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.5.4-1.15">NFS4ERR_NOTSUPP:</dt>
+<dt id="section-25.5.4-1.15">NFS4ERR_PAYLOAD_LOST:</dt>
             <dd style="margin-left: 1.5em" id="section-25.5.4-1.16">
-              <p id="section-25.5.4-1.16.1">the data server does not implement
-CHUNK_HEADER_READ.<a href="#section-25.5.4-1.16.1" class="pilcrow">¶</a></p>
+              <p id="section-25.5.4-1.16.1">the requested header range is terminally lost or
+tombstoned and no header result can be returned.  For a
+partially affected range, the operation returns NFS4_OK
+with NFS4ERR_PAYLOAD_LOST in the corresponding chrr_status
+entries instead.<a href="#section-25.5.4-1.16.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.5.4-1.17">NFS4ERR_SERVERFAULT:</dt>
+<dt id="section-25.5.4-1.17">NFS4ERR_NOTSUPP:</dt>
             <dd style="margin-left: 1.5em" id="section-25.5.4-1.18">
-              <p id="section-25.5.4-1.18.1">the data server failed while processing
-the request.<a href="#section-25.5.4-1.18.1" class="pilcrow">¶</a></p>
+              <p id="section-25.5.4-1.18.1">the data server does not implement
+CHUNK_HEADER_READ.<a href="#section-25.5.4-1.18.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.5.4-1.19">NFS4ERR_STALE:</dt>
+<dt id="section-25.5.4-1.19">NFS4ERR_SERVERFAULT:</dt>
             <dd style="margin-left: 1.5em" id="section-25.5.4-1.20">
-              <p id="section-25.5.4-1.20.1">the current filehandle no longer identifies a
-valid file.<a href="#section-25.5.4-1.20.1" class="pilcrow">¶</a></p>
+              <p id="section-25.5.4-1.20.1">the data server failed while processing
+the request.<a href="#section-25.5.4-1.20.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-25.5.4-1.21">NFS4ERR_STALE:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.5.4-1.22">
+              <p id="section-25.5.4-1.22.1">the current filehandle no longer identifies a
+valid file.<a href="#section-25.5.4-1.22.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
@@ -16608,7 +16626,11 @@ indicates the chunk's persisted checksum or guard check
 failed at read time, in which case cr_chunk content
 is undefined; see <a href="#sec-NFS4ERR_PAYLOAD_NOT_ATOMIC" class="auto internal xref">Section 21.1.2</a>.
 NFS4ERR_NOENT indicates the chunk is EMPTY (no
-COMMITTED generation has been written at this offset).<a href="#section-25.7.3-6.14.1" class="pilcrow">¶</a></p>
+COMMITTED generation has been written at this offset).
+NFS4ERR_PAYLOAD_LOST indicates that the chunk is
+terminally lost or tombstoned; cr_chunk is empty and the
+client <span class="bcp14">MUST</span> surface a terminal error rather than retrying
+repair on another data server.<a href="#section-25.7.3-6.14.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
 <dt id="section-25.7.3-6.15">cr_chunk:</dt>
@@ -16791,16 +16813,24 @@ the request.<a href="#section-25.7.4-1.10.1" class="pilcrow">¶</a></p>
 persisted guard or CRC check.  See <a href="#sec-NFS4ERR_PAYLOAD_NOT_ATOMIC" class="auto internal xref">Section 21.1.2</a>.<a href="#section-25.7.4-1.18.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.7.4-1.19">NFS4ERR_SERVERFAULT:</dt>
+<dt id="section-25.7.4-1.19">NFS4ERR_PAYLOAD_LOST:</dt>
             <dd style="margin-left: 1.5em" id="section-25.7.4-1.20">
-              <p id="section-25.7.4-1.20.1">the data server failed while processing
-the request.<a href="#section-25.7.4-1.20.1" class="pilcrow">¶</a></p>
+              <p id="section-25.7.4-1.20.1">one or more requested chunks are terminally lost or
+tombstoned.  The operation returns no payload for those
+entries; the client <span class="bcp14">MUST</span> surface the terminal condition and
+<span class="bcp14">MUST NOT</span> treat it as a transient retry or ordinary I/O error.<a href="#section-25.7.4-1.20.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-25.7.4-1.21">NFS4ERR_STALE:</dt>
+<dt id="section-25.7.4-1.21">NFS4ERR_SERVERFAULT:</dt>
             <dd style="margin-left: 1.5em" id="section-25.7.4-1.22">
-              <p id="section-25.7.4-1.22.1">the current filehandle no longer identifies a
-valid file.<a href="#section-25.7.4-1.22.1" class="pilcrow">¶</a></p>
+              <p id="section-25.7.4-1.22.1">the data server failed while processing
+the request.<a href="#section-25.7.4-1.22.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-25.7.4-1.23">NFS4ERR_STALE:</dt>
+            <dd style="margin-left: 1.5em" id="section-25.7.4-1.24">
+              <p id="section-25.7.4-1.24.1">the current filehandle no longer identifies a
+valid file.<a href="#section-25.7.4-1.24.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
