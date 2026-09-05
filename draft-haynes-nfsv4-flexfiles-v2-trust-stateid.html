@@ -1,0 +1,3574 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Trusted Stateid Control Protocol for the Flexible File Version 2 Layout Type</title>
+<meta content="Thomas Haynes" name="author">
+<meta content="
+       This document specifies the trusted-stateid control protocol
+between the Metadata Server and Data Servers in the Flexible
+File Version 2 Layout Type.  Three new NFSv4.2 operations
+(TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID) replace
+Flexible File v1's synthetic uid/gid fencing with revoke-now
+admission control.  The Metadata Server remains the single
+state authority; Data Servers are admission gates.  This
+document also specifies the tight-coupling control protocol
+(capability discovery, control sessions, crash recovery on
+both sides) and the security considerations specific to
+trusted stateids. 
+    " name="description">
+<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="pNFS" name="keyword">
+<meta content="flexfiles" name="keyword">
+<meta content="trusted stateid" name="keyword">
+<meta content="revoke-now" name="keyword">
+<meta content="draft-haynes-nfsv4-flexfiles-v2-trust-stateid-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.0
+    Python 3.14.7
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.11.7
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.8.3
+-->
+<link href="draft-haynes-nfsv4-flexfiles-v2-trust-stateid.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">FFv2 Trust-Stateid</td>
+<td class="right">September 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Haynes</td>
+<td class="center">Expires 9 March 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network File System Version 4</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-trust-stateid-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-09-05" class="published">5 September 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-03-09">9 March 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">T. Haynes</div>
+<div class="org">Hammerspace</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Trusted Stateid Control Protocol for the Flexible File Version 2 Layout Type</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document specifies the trusted-stateid control protocol
+between the Metadata Server and Data Servers in the Flexible
+File Version 2 Layout Type.  Three new NFSv4.2 operations
+(TRUST_STATEID, REVOKE_STATEID, BULK_REVOKE_STATEID) replace
+Flexible File v1's synthetic uid/gid fencing with revoke-now
+admission control.  The Metadata Server remains the single
+state authority; Data Servers are admission gates.  This
+document also specifies the tight-coupling control protocol
+(capability discovery, control sessions, crash recovery on
+both sides) and the security considerations specific to
+trusted stateids.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://ietf-wg-nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2-trust-stateid.html">https://ietf-wg-nfsv4.github.io/flexfiles-v2/draft-haynes-nfsv4-flexfiles-v2-trust-stateid.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2-trust-stateid/">https://datatracker.ietf.org/doc/draft-haynes-nfsv4-flexfiles-v2-trust-stateid/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Network File System Version 4 Working Group mailing list (<span><a href="mailto:nfsv4@ietf.org">mailto:nfsv4@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/nfsv4/">https://mailarchive.ietf.org/arch/browse/nfsv4/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/nfsv4/">https://www.ietf.org/mailman/listinfo/nfsv4/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/ietf-wg-nfsv4/flexfiles-v2">https://github.com/ietf-wg-nfsv4/flexfiles-v2</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<section class="note" id="section-note.2">
+      <h2 id="name-note-to-readers">
+<a href="#name-note-to-readers" class="section-name selfRef">Note to Readers</a>
+      </h2>
+<p id="section-note.2-1">This is an individual submission and does not reflect Working Group
+consensus.  The "About This Document" section above has the current
+discussion venue, latest rendering, and source location.<a href="#section-note.2-1" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 9 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-requirements-language" class="internal xref">Requirements Language</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-definitions" class="internal xref">Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-coupling-of-storage-devices" class="internal xref">Coupling of Storage Devices</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-layoutcommit" class="internal xref">LAYOUTCOMMIT</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-fencing-clients-from-the-st" class="internal xref">Fencing Clients from the Storage Device</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2.2.1">
+                    <p id="section-toc.1-1.4.2.2.2.1.1"><a href="#section-4.2.1" class="auto internal xref">4.2.1</a>.  <a href="#name-implementation-notes-for-sy" class="internal xref">Implementation Notes for Synthetic uids/gids</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2.2.2">
+                    <p id="section-toc.1-1.4.2.2.2.2.1"><a href="#section-4.2.2" class="auto internal xref">4.2.2</a>.  <a href="#name-example-of-using-synthetic-" class="internal xref">Example of using Synthetic uids/gids</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-state-and-locking-models" class="internal xref">State and Locking Models</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.1">
+                    <p id="section-toc.1-1.4.2.3.2.1.1"><a href="#section-4.3.1" class="auto internal xref">4.3.1</a>.  <a href="#name-loosely-coupled-locking-mod" class="internal xref">Loosely Coupled Locking Model</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.2">
+                    <p id="section-toc.1-1.4.2.3.2.2.1"><a href="#section-4.3.2" class="auto internal xref">4.3.2</a>.  <a href="#name-tightly-coupled-locking-mod" class="internal xref">Tightly Coupled Locking Model</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-tight-coupling-control-prot" class="internal xref">Tight Coupling Control Protocol</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.1">
+                    <p id="section-toc.1-1.4.2.4.2.1.1"><a href="#section-4.4.1" class="auto internal xref">4.4.1</a>.  <a href="#name-capability-discovery" class="internal xref">Capability Discovery</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.2">
+                    <p id="section-toc.1-1.4.2.4.2.2.1"><a href="#section-4.4.2" class="auto internal xref">4.4.2</a>.  <a href="#name-control-session" class="internal xref">Control Session</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.3">
+                    <p id="section-toc.1-1.4.2.4.2.3.1"><a href="#section-4.4.3" class="auto internal xref">4.4.3</a>.  <a href="#name-flow-at-layoutget" class="internal xref">Flow at LAYOUTGET</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.4">
+                    <p id="section-toc.1-1.4.2.4.2.4.1"><a href="#section-4.4.4" class="auto internal xref">4.4.4</a>.  <a href="#name-principal-binding-and-the-k" class="internal xref">Principal Binding and the Kerberos Gap</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.5">
+                    <p id="section-toc.1-1.4.2.4.2.5.1"><a href="#section-4.4.5" class="auto internal xref">4.4.5</a>.  <a href="#name-client-detected-trust-gap" class="internal xref">Client-Detected Trust Gap</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.6">
+                    <p id="section-toc.1-1.4.2.4.2.6.1"><a href="#section-4.4.6" class="auto internal xref">4.4.6</a>.  <a href="#name-lease-and-renewal" class="internal xref">Lease and Renewal</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.7">
+                    <p id="section-toc.1-1.4.2.4.2.7.1"><a href="#section-4.4.7" class="auto internal xref">4.4.7</a>.  <a href="#name-storage-device-crash-recove" class="internal xref">Storage Device Crash Recovery</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.8">
+                    <p id="section-toc.1-1.4.2.4.2.8.1"><a href="#section-4.4.8" class="auto internal xref">4.4.8</a>.  <a href="#name-metadata-server-crash-recov" class="internal xref">Metadata Server Crash Recovery</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.9">
+                    <p id="section-toc.1-1.4.2.4.2.9.1"><a href="#section-4.4.9" class="auto internal xref">4.4.9</a>.  <a href="#name-backward-compatibility" class="internal xref">Backward Compatibility</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-layout-revocation-and-fenci" class="internal xref">Layout Revocation and Fencing</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-new-nfsv42-trust-stateid-op" class="internal xref">New NFSv4.2 Trust-Stateid Operations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-operation-numbers-and-xdr-a" class="internal xref">Operation Numbers and XDR Amendments</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-operation-89-trust_stateid-" class="internal xref">Operation 89: TRUST_STATEID - Register Layout Stateid on Data Server</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2.2.1">
+                    <p id="section-toc.1-1.6.2.2.2.1.1"><a href="#section-6.2.1" class="auto internal xref">6.2.1</a>.  <a href="#name-arguments" class="internal xref">ARGUMENTS</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2.2.2">
+                    <p id="section-toc.1-1.6.2.2.2.2.1"><a href="#section-6.2.2" class="auto internal xref">6.2.2</a>.  <a href="#name-results" class="internal xref">RESULTS</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2.2.3">
+                    <p id="section-toc.1-1.6.2.2.2.3.1"><a href="#section-6.2.3" class="auto internal xref">6.2.3</a>.  <a href="#name-description" class="internal xref">DESCRIPTION</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2.2.4">
+                    <p id="section-toc.1-1.6.2.2.2.4.1"><a href="#section-6.2.4" class="auto internal xref">6.2.4</a>.  <a href="#name-response-codes" class="internal xref">RESPONSE CODES</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-operation-90-revoke_stateid" class="internal xref">Operation 90: REVOKE_STATEID - Revoke Registered Stateid on Data Server</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3.2.1">
+                    <p id="section-toc.1-1.6.2.3.2.1.1"><a href="#section-6.3.1" class="auto internal xref">6.3.1</a>.  <a href="#name-arguments-2" class="internal xref">ARGUMENTS</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3.2.2">
+                    <p id="section-toc.1-1.6.2.3.2.2.1"><a href="#section-6.3.2" class="auto internal xref">6.3.2</a>.  <a href="#name-results-2" class="internal xref">RESULTS</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3.2.3">
+                    <p id="section-toc.1-1.6.2.3.2.3.1"><a href="#section-6.3.3" class="auto internal xref">6.3.3</a>.  <a href="#name-description-2" class="internal xref">DESCRIPTION</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3.2.4">
+                    <p id="section-toc.1-1.6.2.3.2.4.1"><a href="#section-6.3.4" class="auto internal xref">6.3.4</a>.  <a href="#name-response-codes-2" class="internal xref">RESPONSE CODES</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4">
+                <p id="section-toc.1-1.6.2.4.1"><a href="#section-6.4" class="auto internal xref">6.4</a>.  <a href="#name-operation-91-bulk_revoke_st" class="internal xref">Operation 91: BULK_REVOKE_STATEID - Revoke All Stateids for a Client</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4.2.1">
+                    <p id="section-toc.1-1.6.2.4.2.1.1"><a href="#section-6.4.1" class="auto internal xref">6.4.1</a>.  <a href="#name-arguments-3" class="internal xref">ARGUMENTS</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4.2.2">
+                    <p id="section-toc.1-1.6.2.4.2.2.1"><a href="#section-6.4.2" class="auto internal xref">6.4.2</a>.  <a href="#name-results-3" class="internal xref">RESULTS</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4.2.3">
+                    <p id="section-toc.1-1.6.2.4.2.3.1"><a href="#section-6.4.3" class="auto internal xref">6.4.3</a>.  <a href="#name-description-3" class="internal xref">DESCRIPTION</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4.2.4">
+                    <p id="section-toc.1-1.6.2.4.2.4.1"><a href="#section-6.4.4" class="auto internal xref">6.4.4</a>.  <a href="#name-response-codes-3" class="internal xref">RESPONSE CODES</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-trusted-stateids" class="internal xref">Trusted Stateids</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1.2.1">
+                    <p id="section-toc.1-1.7.2.1.2.1.1"><a href="#section-7.1.1" class="auto internal xref">7.1.1</a>.  <a href="#name-interaction-with-kerberos-a" class="internal xref">Interaction with Kerberos and RPCSEC_GSS</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1.2.2">
+                    <p id="section-toc.1-1.7.2.1.2.2.1"><a href="#section-7.1.2" class="auto internal xref">7.1.2</a>.  <a href="#name-attack-surfaces-and-mitigat" class="internal xref">Attack Surfaces and Mitigations</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref"></a><a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref"></a><a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref"></a><a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">The Flexible File Version 2 Layout Type
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-requirements" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-requirements</a>]</span> extends pNFS
+with a control-plane protocol that replaces Flexible File v1's
+synthetic uid/gid fencing with revoke-now admission control.
+This document specifies:<a href="#section-1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-2.1">
+          <p id="section-1-2.1.1">The Coupling of Storage Devices model: fencing, state and
+locking, and the tight-coupling control protocol between
+the Metadata Server and its Data Servers.<a href="#section-1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.2">
+          <p id="section-1-2.2.1">The Layout Revocation and Fencing procedure.<a href="#section-1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.3">
+          <p id="section-1-2.3.1">Three new NFSv4.2 operations (TRUST_STATEID,
+REVOKE_STATEID, BULK_REVOKE_STATEID) that the Metadata
+Server issues to Data Servers to push and clear per-client
+stateids.<a href="#section-1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-2.4">
+          <p id="section-1-2.4.1">The Trusted Stateids Security Considerations.<a href="#section-1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="requirements-language">
+<section id="section-2">
+      <h2 id="name-requirements-language">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-requirements-language" class="section-name selfRef">Requirements Language</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="definitions">
+<section id="section-3">
+      <h2 id="name-definitions">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-definitions" class="section-name selfRef">Definitions</a>
+      </h2>
+<p id="section-3-1">The following terms are used with meanings defined in
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-requirements" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-requirements</a>]</span>:<a href="#section-3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3-2.1">
+          <p id="section-3-2.1.1">data server (DS), metadata server (MDS)<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.2">
+          <p id="section-3-2.2.1">layout, <code>ffv2_layout4</code><a href="#section-3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-3-3">Local terms defined in this document:<a href="#section-3-3" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-3-4">
+        <dt id="section-3-4.1">Admission table:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-4.2">
+          <p id="section-3-4.2.1">A per-DS data structure holding the set of stateids for
+which the DS accepts I/O; entries are inserted by
+TRUST_STATEID and removed by REVOKE_STATEID (or all at once
+by BULK_REVOKE_STATEID).<a href="#section-3-4.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-4.3">Stateid-owner:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-4.4">
+          <p id="section-3-4.4.1">The client identified by a stateid registered in a DS's
+admission table.<a href="#section-3-4.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-4.5">Trust-stateid mechanism:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-4.6">
+          <p id="section-3-4.6.1">The mechanism by which the MDS pushes stateids to DSes
+before client I/O and revokes them before yielding the
+layout to another writer, providing revoke-now admission
+control without dependence on lease expiry.<a href="#section-3-4.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-4.7">Layout revocation window:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-4.8">
+          <p id="section-3-4.8.1">The bounded interval between REVOKE_STATEID fan-out from
+the MDS to all DSes in a layout and the DSes' rejection of
+subsequent I/O bearing the revoked stateid.<a href="#section-3-4.8.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="coupling-of-storage-devices">
+<section id="section-4">
+      <h2 id="name-coupling-of-storage-devices">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-coupling-of-storage-devices" class="section-name selfRef">Coupling of Storage Devices</a>
+      </h2>
+<p id="section-4-1">A server implementation may choose either a loosely coupled model or a
+tightly coupled model between the metadata server and the storage devices.
+<span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span> describes the general problems facing pNFS implementations.
+This document details how the new flexible file v2 layout addresses
+these issues.  To implement the tightly coupled model, a control protocol
+has to be defined.  As the flexible file v2 layout imposes no special
+requirements on the client, the control protocol will need to provide:<a href="#section-4-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4-2">
+<li id="section-4-2.1">
+          <p id="section-4-2.1.1">management of both security and LAYOUTCOMMITs and<a href="#section-4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-4-2.2">
+          <p id="section-4-2.2.1">a global stateid model and management of these stateids.<a href="#section-4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="section-4-3">When implementing the loosely coupled model, the only control protocol
+will be a version of NFS, with no ability to provide a global stateid
+model or to prevent clients from using layouts inappropriately.  To enable
+client use in that environment, this document specifies how security,
+state, and locking are managed.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<p id="section-4-4">The loosely and tightly coupled locking models defined in Section 2.3
+of <span>[<a href="#RFC8435" class="cite xref">RFC8435</a>]</span> apply equally to this layout type, including the use of
+anonymous stateids with loosely coupled storage devices, the handling
+of lock and delegation stateids, and the mandatory byte-range lock
+requirements for the tightly coupled model.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<div id="layoutcommit">
+<section id="section-4.1">
+        <h3 id="name-layoutcommit">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-layoutcommit" class="section-name selfRef">LAYOUTCOMMIT</a>
+        </h3>
+<p id="section-4.1-1">Regardless of the coupling model, the metadata server has the
+responsibility, upon receiving a LAYOUTCOMMIT (see Section 18.42 of
+<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>) to ensure that the semantics of pNFS are respected (see
+Section 3.1 of <span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span>).  These do include a requirement that data
+written to a data storage device be stable before the occurrence of
+the LAYOUTCOMMIT.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">It is the responsibility of the client to make sure the data file is
+stable before the metadata server begins to query the storage devices
+about the changes to the file.  If any WRITE to a storage device did not
+result with stable_how equal to FILE_SYNC, a LAYOUTCOMMIT to the metadata
+server <span class="bcp14">MUST</span> be preceded by a COMMIT to the storage devices written to.
+Note that if the client has not done a COMMIT to the storage device, then
+the LAYOUTCOMMIT might not be synchronized to the last WRITE operation
+to the storage device.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-Fencing-Clients">
+<section id="section-4.2">
+        <h3 id="name-fencing-clients-from-the-st">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-fencing-clients-from-the-st" class="section-name selfRef">Fencing Clients from the Storage Device</a>
+        </h3>
+<p id="section-4.2-1">With loosely coupled storage devices, the metadata server uses synthetic
+uids (user ids) and gids (group ids) for the data file, where the uid
+owner of the data file is allowed read/write access and the gid owner
+is allowed read-only access.  As part of the layout (see ffv2ds_user
+and ffv2ds_group in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-layout" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-layout</a>]</span>), the client is provided
+with the user and group to be used in the Remote Procedure Call
+(RPC) <span>[<a href="#RFC5531" class="cite xref">RFC5531</a>]</span> credentials needed to access the data file.
+Fencing off of clients is achieved by the metadata server changing
+the synthetic uid and/or gid owners of the data file on the storage
+device to implicitly revoke the outstanding RPC credentials.  A
+client presenting the wrong credential for the desired access will
+get an NFS4ERR_ACCESS error.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2">With this loosely coupled model, the metadata server is not able to fence
+off a single client; it is forced to fence off all clients.  However,
+as the other clients react to the fencing, returning their layouts and
+trying to get new ones, the metadata server can hand out a new uid and
+gid to allow access.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">It is <span class="bcp14">RECOMMENDED</span> to implement common access control methods at the
+storage device file system to allow only the metadata server root
+(super user) access to the storage device and to set the owner of all
+directories holding data files to the root user.  This approach provides
+a practical model to enforce access control and fence off cooperative
+clients, but it cannot protect against malicious clients; hence, it
+provides a level of security equivalent to AUTH_SYS.  It is <span class="bcp14">RECOMMENDED</span>
+that the communication between the metadata server and storage device
+be secure from eavesdroppers and man-in-the-middle protocol tampering.
+The security measure could be physical security (e.g., the servers
+are co-located in a physically secure area), encrypted communications,
+or some other technique.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.2-4">With tightly coupled storage devices, the metadata server
+and the storage device agree on the authorization decision
+for each client access: a client allowed by the metadata
+server to read or write a file is allowed the same access
+at the storage device, and a client denied at the metadata
+server is denied at the storage device.  How the storage
+device reaches that decision is not constrained by this
+specification.  Some storage devices replicate the user,
+group, mode bits, and ACL of the metadata file onto a
+POSIX-shaped local representation of the data file and let
+their native filesystem enforce the decision; others (such
+as storage devices backed by an object store, a
+control-protocol-driven backend, or a backend with no
+exposed file namespace) consult the control protocol
+directly without ever materializing a POSIX file
+representation.  Both approaches are conformant; the
+specification's requirement is the authorization-outcome
+parity, not the mechanism that produces it.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
+<p id="section-4.2-5">The client authenticates with the storage device and
+receives the same authorization outcome it would have
+received via the metadata server.  In the case of tight
+coupling, fencing is the responsibility of the control
+protocol and is not described in detail in this document.
+Implementations of the tightly coupled locking model (see
+<a href="#sec-state-locking" class="auto internal xref">Section 4.3</a>) will need a way to prevent access by
+certain clients to specific files by invalidating the
+corresponding stateids on the storage device; in such a
+scenario, the client receives NFS4ERR_BAD_STATEID.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
+<p id="section-4.2-6">The client need not know the model used between the metadata server and
+the storage device.  It need only react consistently to any errors in
+interacting with the storage device.  It <span class="bcp14">SHOULD</span> both return the layout
+and error to the metadata server and ask for a new layout.  At that point,
+the metadata server can either hand out a new layout, hand out no layout
+(forcing the I/O through it), or deny the client further access to
+the file.<a href="#section-4.2-6" class="pilcrow">¶</a></p>
+<div id="implementation-notes-for-synthetic-uidsgids">
+<section id="section-4.2.1">
+          <h4 id="name-implementation-notes-for-sy">
+<a href="#section-4.2.1" class="section-number selfRef">4.2.1. </a><a href="#name-implementation-notes-for-sy" class="section-name selfRef">Implementation Notes for Synthetic uids/gids</a>
+          </h4>
+<p id="section-4.2.1-1">The selection method for the synthetic uids and gids to be used for
+fencing in loosely coupled storage devices is strictly an implementation
+issue.  That is, an administrator might restrict a range of such ids
+available to the Lightweight Directory Access Protocol (LDAP) 'uid' field
+<span>[<a href="#RFC4519" class="cite xref">RFC4519</a>]</span>.  The administrator might also be able to choose an id that
+would never be used to grant access.  Then, when the metadata server had
+a request to access a file, a SETATTR would be sent to the storage device
+to set the owner and group of the data file.  The user and group might
+be selected in a round-robin fashion from the range of available ids.<a href="#section-4.2.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.2.1-2">Those ids would be sent back as ffv2ds_user and ffv2ds_group to the
+client, who would present them as the RPC credentials to the storage
+device.  When the client is done accessing the file and the metadata
+server knows that no other client is accessing the file, it can
+reset the owner and group to restrict access to the data file.<a href="#section-4.2.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.2.1-3">When the metadata server wants to fence off a client, it changes the
+synthetic uid and/or gid to the restricted ids.  Note that using a
+restricted id ensures that there is a change of owner and at least one
+id available that never gets allowed access.<a href="#section-4.2.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.2.1-4">Under an AUTH_SYS security model, synthetic uids and gids of 0 <span class="bcp14">SHOULD</span> be
+avoided.  These typically either grant super access to files on a storage
+device or are mapped to an anonymous id.  In the first case, even if the
+data file is fenced, the client might still be able to access the file.
+In the second case, multiple ids might be mapped to the anonymous ids.<a href="#section-4.2.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="example-of-using-synthetic-uidsgids">
+<section id="section-4.2.2">
+          <h4 id="name-example-of-using-synthetic-">
+<a href="#section-4.2.2" class="section-number selfRef">4.2.2. </a><a href="#name-example-of-using-synthetic-" class="section-name selfRef">Example of using Synthetic uids/gids</a>
+          </h4>
+<p id="section-4.2.2-1">The user loghyr creates a file "ompha.c" on the metadata server, which
+then creates a corresponding data file on the storage device.<a href="#section-4.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2.2-2">The metadata server entry may look like:<a href="#section-4.2.2-2" class="pilcrow">¶</a></p>
+<span id="name-metadatas-view-of-omphac"></span><div id="fig-meta-ompha">
+<figure id="figure-1">
+            <div class="lang-shell sourcecode" id="section-4.2.2-3.1">
+<pre>
+-rw-r--r--    1 loghyr  staff    1697 Dec  4 11:31 ompha.c
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-metadatas-view-of-omphac" class="selfRef">Metadata's view of ompha.c</a>
+            </figcaption></figure>
+</div>
+<p id="section-4.2.2-4">On the storage device, the file may be assigned some unpredictable
+synthetic uid/gid to deny access:<a href="#section-4.2.2-4" class="pilcrow">¶</a></p>
+<span id="name-datas-view-of-omphac"></span><div id="fig-data-ompha">
+<figure id="figure-2">
+            <div class="lang-shell sourcecode" id="section-4.2.2-5.1">
+<pre>
+-rw-r-----    1 19452   28418    1697 Dec  4 11:31 data_ompha.c
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-datas-view-of-omphac" class="selfRef">Data's view of ompha.c</a>
+            </figcaption></figure>
+</div>
+<p id="section-4.2.2-6">When the file is opened on a client and accessed, the user will try to
+get a layout for the data file.  Since the layout knows nothing about
+the user (and does not care), it does not matter whether the user loghyr
+or garbo opens the file.  The client has to present an uid of 19452
+to get write permission.  If it presents any other value for the uid,
+then it must give a gid of 28418 to get read access.<a href="#section-4.2.2-6" class="pilcrow">¶</a></p>
+<p id="section-4.2.2-7">Further, if the metadata server decides to fence the file, it <span class="bcp14">SHOULD</span>
+change the uid and/or gid such that these values neither match earlier
+values for that file nor match a predictable change based on an earlier
+fencing.<a href="#section-4.2.2-7" class="pilcrow">¶</a></p>
+<span id="name-fenced-datas-view-of-omphac"></span><div id="fig-fenced-ompha">
+<figure id="figure-3">
+            <div class="lang-shell sourcecode" id="section-4.2.2-8.1">
+<pre>
+-rw-r-----    1 19453   28419    1697 Dec  4 11:31 data_ompha.c
+</pre>
+</div>
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<a href="#name-fenced-datas-view-of-omphac" class="selfRef">Fenced Data's view of ompha.c</a>
+            </figcaption></figure>
+</div>
+<p id="section-4.2.2-9">The set of synthetic gids on the storage device <span class="bcp14">SHOULD</span> be selected such
+that there is no mapping in any of the name services used by the storage
+device, i.e., each group <span class="bcp14">SHOULD</span> have no members.<a href="#section-4.2.2-9" class="pilcrow">¶</a></p>
+<p id="section-4.2.2-10">If the layout segment has an iomode of LAYOUTIOMODE4_READ, then the
+metadata server <span class="bcp14">SHOULD</span> return a synthetic uid that is not set on the
+storage device.  Only the synthetic gid would be valid.<a href="#section-4.2.2-10" class="pilcrow">¶</a></p>
+<p id="section-4.2.2-11">The client is thus solely responsible for enforcing file permissions
+in a loosely coupled model.  To allow loghyr write access, it will send
+an RPC to the storage device with a credential of 1066:1067.  To allow
+garbo read access, it will send an RPC to the storage device with a
+credential of 1067:1067.  The value of the uid does not matter as long
+as it is not the synthetic uid granted when getting the layout.<a href="#section-4.2.2-11" class="pilcrow">¶</a></p>
+<p id="section-4.2.2-12">While pushing the enforcement of permission checking onto the client
+may seem to weaken security, the client may already be responsible
+for enforcing permissions before modifications are sent to a server.
+With cached writes, the client is always responsible for tracking who is
+modifying a file and making sure to not coalesce requests from multiple
+users into one request.<a href="#section-4.2.2-12" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-state-locking">
+<section id="section-4.3">
+        <h3 id="name-state-and-locking-models">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-state-and-locking-models" class="section-name selfRef">State and Locking Models</a>
+        </h3>
+<p id="section-4.3-1">The coupling model in effect for a given metadata-server /
+storage-device pair is not negotiated over the NFS protocol.
+The metadata server determines the coupling model from
+out-of-band signals: administrative configuration, the
+choice and capabilities of the control protocol between
+the metadata server and the storage device, the storage
+device's data-path protocol version, and the storage
+device's backend architecture.  At the NFS protocol level,
+the metadata server's expectations of the storage device
+follow these classifications:<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.3-2.1">
+            <p id="section-4.3-2.1.1">Storage devices implementing the NFSv3 or NFSv4.0
+protocols on the data path are treated as loosely
+coupled.<a href="#section-4.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.2">
+            <p id="section-4.3-2.2.1">NFSv4.1+ storage devices that do not return the
+EXCHGID4_FLAG_USE_PNFS_DS flag in EXCHANGE_ID indicate
+that they are to be treated as loosely coupled.  From
+the locking viewpoint, they are treated in the same way
+as NFSv4.0 storage devices.<a href="#section-4.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.3">
+            <p id="section-4.3-2.3.1">NFSv4.1+ storage devices that identify themselves with
+the EXCHGID4_FLAG_USE_PNFS_DS flag set in EXCHANGE_ID
+can potentially be tightly coupled.  They use a back-end
+control protocol to implement the global stateid model
+described in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.<a href="#section-4.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.3-3">Tight coupling additionally requires a control protocol
+between the metadata server and the storage device,
+discovered or advertised out-of-band as described above.<a href="#section-4.3-3" class="pilcrow">¶</a></p>
+<p id="section-4.3-4">Some storage devices cannot operate under the loosely
+coupled model at all.  The loose-coupling model in this
+specification relies on the storage device authorizing
+client access against synthetic uid and gid values
+(<a href="#sec-Fencing-Clients" class="auto internal xref">Section 4.2</a>), which presupposes that the data
+file has a local representation on the storage device
+against which POSIX-style ownership checks can be applied.
+Storage devices whose backend has no exposed file namespace
+-- for example, object-store-backed data servers, or data
+servers driven entirely through a control protocol against
+a non-POSIX backend -- do not have that local representation
+and <span class="bcp14">MUST</span> operate in the tightly coupled model with a
+control protocol that conveys the authorization decision
+directly.  A metadata server deploying with such a storage
+device cannot fall back to loose coupling.<a href="#section-4.3-4" class="pilcrow">¶</a></p>
+<div id="loosely-coupled-locking-model">
+<section id="section-4.3.1">
+          <h4 id="name-loosely-coupled-locking-mod">
+<a href="#section-4.3.1" class="section-number selfRef">4.3.1. </a><a href="#name-loosely-coupled-locking-mod" class="section-name selfRef">Loosely Coupled Locking Model</a>
+          </h4>
+<p id="section-4.3.1-1">When locking-related operations are requested, they are primarily dealt
+with by the metadata server, which generates the appropriate stateids.
+When an NFSv4 version is used as the data access protocol, the metadata
+server may make stateid-related requests of the storage devices.  However,
+it is not required to do so, and the resulting stateids are known only
+to the metadata server and the storage device.<a href="#section-4.3.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-2">Given this basic structure, locking-related operations are handled
+as follows:<a href="#section-4.3.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.3.1-3.1">
+              <p id="section-4.3.1-3.1.1">OPENs are dealt with by the metadata server.  Stateids are
+selected by the metadata server and associated with the client
+ID describing the client's connection to the metadata server.
+The metadata server may need to interact with the storage device to
+locate the file to be opened, but no locking-related functionality
+need be used on the storage device.<a href="#section-4.3.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.1-3.2">
+              <p id="section-4.3.1-3.2.1">OPEN_DOWNGRADE and CLOSE only require local execution on the
+metadata server.<a href="#section-4.3.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.1-3.3">
+              <p id="section-4.3.1-3.3.1">Advisory byte-range locks can be implemented locally on the
+metadata server.  As in the case of OPENs, the stateids associated
+with byte-range locks are assigned by the metadata server and only
+used on the metadata server.<a href="#section-4.3.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.1-3.4">
+              <p id="section-4.3.1-3.4.1">Delegations are assigned by the metadata server that initiates
+recalls when conflicting OPENs are processed.  No storage device
+involvement is required.<a href="#section-4.3.1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.1-3.5">
+              <p id="section-4.3.1-3.5.1">TEST_STATEID and FREE_STATEID are processed locally on the
+metadata server, without storage device involvement.<a href="#section-4.3.1-3.5.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4.3.1-4">All I/O operations to the storage device are done using the anonymous
+stateid.  Thus, the storage device has no information about the openowner
+and lockowner responsible for issuing a particular I/O operation.
+As a result:<a href="#section-4.3.1-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.3.1-5.1">
+              <p id="section-4.3.1-5.1.1">Mandatory byte-range locking cannot be supported because the
+storage device has no way of distinguishing I/O done on behalf of
+the lock owner from those done by others.<a href="#section-4.3.1-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.1-5.2">
+              <p id="section-4.3.1-5.2.1">Enforcement of share reservations is the responsibility of the
+client.  Even though I/O is done using the anonymous stateid, the
+client <span class="bcp14">MUST</span> ensure that it has a valid stateid associated with the
+openowner.<a href="#section-4.3.1-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4.3.1-6">In the event that a stateid is revoked, the metadata server is responsible
+for preventing client access, since it has no way of being sure that
+the client is aware that the stateid in question has been revoked.<a href="#section-4.3.1-6" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-7">As the client never receives a stateid generated by a storage device,
+there is no client lease on the storage device and no prospect of lease
+expiration, even when access is via NFSv4 protocols.  Clients will
+have leases on the metadata server.  In dealing with lease expiration,
+the metadata server may need to use fencing to prevent revoked stateids
+from being relied upon by a client unaware of the fact that they have
+been revoked.<a href="#section-4.3.1-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="tightly-coupled-locking-model">
+<section id="section-4.3.2">
+          <h4 id="name-tightly-coupled-locking-mod">
+<a href="#section-4.3.2" class="section-number selfRef">4.3.2. </a><a href="#name-tightly-coupled-locking-mod" class="section-name selfRef">Tightly Coupled Locking Model</a>
+          </h4>
+<p id="section-4.3.2-1">When locking-related operations are requested, they are primarily dealt
+with by the metadata server, which generates the appropriate stateids.
+These stateids <span class="bcp14">MUST</span> be made known to the storage device using control
+protocol facilities.  This document defines one such control protocol
+-- the TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID
+operations in <a href="#sec-tight-coupling-control" class="auto internal xref">Section 4.4</a> -- for deployments in
+which the storage devices are NFSv4.2 servers willing to implement
+the new operations.  A storage device with its own established
+back-end control protocol that provides the equivalent functional
+capabilities is conformant under this specification without
+implementing the TRUST_STATEID family; see
+<a href="#sec-tight-coupling-control" class="auto internal xref">Section 4.4</a> for the conformance framing.<a href="#section-4.3.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.3.2-2">When using the TRUST_STATEID control protocol defined in
+<a href="#sec-tight-coupling-control" class="auto internal xref">Section 4.4</a>, the metadata server and a storage
+device establish that they can use it via a two-part handshake,
+both parts of which <span class="bcp14">MUST</span> succeed before the metadata server may
+issue TRUST_STATEID against that storage device for production
+traffic:<a href="#section-4.3.2-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-4.3.2-3">
+            <dt id="section-4.3.2-3.1">Capability probe:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.2-3.2">
+              <p id="section-4.3.2-3.2.1">At control-session setup the metadata
+server sends a TRUST_STATEID against the anonymous stateid
+(see <a href="#sec-tight-coupling-probe" class="auto internal xref">Section 4.4.1</a>).  A storage device that
+supports tight coupling <span class="bcp14">MUST</span> reject the probe with
+NFS4ERR_INVAL; a storage device that does not support tight
+coupling returns NFS4ERR_NOTSUPP and the metadata server
+falls back to loose coupling.  The metadata server records
+the result per storage device in ffdv_tightly_coupled.<a href="#section-4.3.2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.2-3.3">Control-session gating:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.2-3.4">
+              <p id="section-4.3.2-3.4.1">The metadata server presents
+EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID when it opens the
+control session to the storage device
+(see <a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 4.4.2</a>).  The storage
+device <span class="bcp14">MUST</span> reject any incoming TRUST_STATEID,
+REVOKE_STATEID, or BULK_REVOKE_STATEID that does not arrive
+on such a session with NFS4ERR_PERM.  This is the
+authorization mechanism that distinguishes the metadata
+server from ordinary pNFS clients, which connect with
+EXCHGID4_FLAG_USE_PNFS_DS or EXCHGID4_FLAG_USE_NON_PNFS and
+are therefore structurally unable to invoke these operations.<a href="#section-4.3.2-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-4.3.2-4">Given this basic structure, locking-related operations are handled
+as follows:<a href="#section-4.3.2-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.3.2-5.1">
+              <p id="section-4.3.2-5.1.1">OPENs are dealt with primarily on the metadata server.  Stateids
+are selected by the metadata server and associated with the client
+ID describing the client's connection to the metadata server.
+The metadata server needs to interact with the storage device to
+locate the file to be opened and to make the storage device aware of
+the association between the metadata-server-chosen stateid and the
+client and openowner that it represents.  OPEN_DOWNGRADE and CLOSE
+are executed initially on the metadata server, but the state change
+<span class="bcp14">MUST</span> be propagated to the storage device.<a href="#section-4.3.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.2-5.2">
+              <p id="section-4.3.2-5.2.1">Advisory byte-range locks can be implemented locally on the
+metadata server.  As in the case of OPENs, the stateids associated
+with byte-range locks are assigned by the metadata server and are
+available for use on the metadata server.  Because I/O operations
+are allowed to present lock stateids, the metadata server needs the
+ability to make the storage device aware of the association between
+the metadata-server-chosen stateid and the corresponding open stateid
+it is associated with.<a href="#section-4.3.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.2-5.3">
+              <p id="section-4.3.2-5.3.1">Mandatory byte-range locks can be supported when both the metadata
+server and the storage devices have the appropriate support.  As in
+the case of advisory byte-range locks, these are assigned by the
+metadata server and are available for use on the metadata server.
+To enable mandatory lock enforcement on the storage device, the
+metadata server needs the ability to make the storage device aware
+of the association between the metadata-server-chosen stateid and
+the client, openowner, and lock (i.e., lockowner, byte-range, and
+lock-type) that it represents.  Because I/O operations are allowed
+to present lock stateids, this information needs to be propagated to
+all storage devices to which I/O might be directed rather than only
+to storage device that contain the locked region.<a href="#section-4.3.2-5.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.2-5.4">
+              <p id="section-4.3.2-5.4.1">Delegations are assigned by the metadata server that initiates
+recalls when conflicting OPENs are processed.  Because I/O operations
+are allowed to present delegation stateids, the metadata server
+requires the ability:<a href="#section-4.3.2-5.4.1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.3.2-5.4.2">
+<li id="section-4.3.2-5.4.2.1">
+                  <p id="section-4.3.2-5.4.2.1.1">to make the storage device aware of the association between
+the metadata-server-chosen stateid and the filehandle and
+delegation type it represents<a href="#section-4.3.2-5.4.2.1.1" class="pilcrow">¶</a></p>
+</li>
+                <li id="section-4.3.2-5.4.2.2">
+                  <p id="section-4.3.2-5.4.2.2.1">to break such an association.<a href="#section-4.3.2-5.4.2.2.1" class="pilcrow">¶</a></p>
+</li>
+              </ol>
+</li>
+            <li class="normal" id="section-4.3.2-5.5">
+              <p id="section-4.3.2-5.5.1">TEST_STATEID is processed locally on the metadata server, without
+storage device involvement.<a href="#section-4.3.2-5.5.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.3.2-5.6">
+              <p id="section-4.3.2-5.6.1">FREE_STATEID is processed on the metadata server, but the metadata
+server requires the ability to propagate the request to the
+corresponding storage devices.<a href="#section-4.3.2-5.6.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4.3.2-6">Because the client will possess and use stateids valid on the storage
+device, there will be a client lease on the storage device, and the
+possibility of lease expiration does exist.  The best approach for the
+storage device is to retain these locks as a courtesy.  However, if it
+does not do so, control protocol facilities need to provide the means
+to synchronize lock state between the metadata server and storage device.<a href="#section-4.3.2-6" class="pilcrow">¶</a></p>
+<p id="section-4.3.2-7">Clients will also have leases on the metadata server that are subject
+to expiration.  In dealing with lease expiration, the metadata server
+would be expected to use control protocol facilities enabling it to
+invalidate revoked stateids on the storage device.  In the event the
+client is not responsive, the metadata server may need to use fencing
+to prevent revoked stateids from being acted upon by the storage device.<a href="#section-4.3.2-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-tight-coupling-control">
+<section id="section-4.4">
+        <h3 id="name-tight-coupling-control-prot">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-tight-coupling-control-prot" class="section-name selfRef">Tight Coupling Control Protocol</a>
+        </h3>
+<p id="section-4.4-1">When an NFSv4.2 storage device participates in a tightly coupled
+deployment, the metadata server and the storage devices need a
+control protocol that:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.4-2">
+<li id="section-4.4-2.1">
+            <p id="section-4.4-2.1.1">registers the layout stateid with each storage device so the
+storage device can validate client I/O independently; and<a href="#section-4.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-4.4-2.2">
+            <p id="section-4.4-2.2.1">revokes trust promptly when the metadata server withdraws the
+client's authorization -- for example, on CB_LAYOUTRECALL
+timeout, lease expiry, or layout return after error.<a href="#section-4.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-4.4-3">This specification defines one such control protocol, designated
+<em>trusted-stateid tight coupling</em>, as three new NFSv4.2 operations:
+TRUST_STATEID (<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>), REVOKE_STATEID
+(<a href="#sec-REVOKE_STATEID" class="auto internal xref">Section 6.3</a>), and BULK_REVOKE_STATEID
+(<a href="#sec-BULK_REVOKE_STATEID" class="auto internal xref">Section 6.4</a>).  These operations are sent by the
+metadata server to each storage device over a dedicated control
+session (see <a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 4.4.2</a>) and <span class="bcp14">MUST NOT</span>
+be sent by pNFS clients.<a href="#section-4.4-3" class="pilcrow">¶</a></p>
+<p id="section-4.4-4">Other tight-coupling control protocols may exist or be defined
+elsewhere.  Existing pNFS server implementations with established
+back-end control protocols -- for example, dCache, which has its
+own control protocol between its metadata service and its data
+servers -- satisfy the tightly-coupled locking model
+(<a href="#sec-state-locking" class="auto internal xref">Section 4.3</a>) through their own mechanisms and are
+conformant under this specification provided they meet the
+functional capabilities described there.  Such implementations
+need not adopt the TRUST_STATEID family, and their interoperability
+with the TRUST_STATEID family is outside the scope of this
+document.<a href="#section-4.4-4" class="pilcrow">¶</a></p>
+<p id="section-4.4-5">A storage device that does not implement TRUST_STATEID is treated
+as not supporting trusted-stateid tight coupling specifically; the
+capability probe in <a href="#sec-tight-coupling-probe" class="auto internal xref">Section 4.4.1</a> detects this and
+the metadata server falls back to loose coupling
+(<a href="#sec-tight-coupling-compat" class="auto internal xref">Section 4.4.9</a>) or, if the storage device's own
+control protocol is in use, that protocol governs.  Within the
+remainder of <a href="#sec-tight-coupling-control" class="auto internal xref">Section 4.4</a> and its subsections,
+unqualified references to "tight coupling" or "tightly coupled"
+refer to the trusted-stateid variant defined here.<a href="#section-4.4-5" class="pilcrow">¶</a></p>
+<p id="section-4.4-6">The receiver of these operations is any server the metadata
+server delegates client-I/O admission to.  In this document that
+is the storage device (data server).  The same mechanism applies to a
+proxy server <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span> -- a proxy server may or may not additionally act as a data server, but in
+either role it needs the metadata server to register a layout
+stateid before it can admit client I/O.  Where this section
+says "storage device," read it as "storage device, or proxy
+server <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span>"; the flag
+check and the three operations are identical for both roles.<a href="#section-4.4-6" class="pilcrow">¶</a></p>
+<div id="sec-tight-coupling-probe">
+<section id="section-4.4.1">
+          <h4 id="name-capability-discovery">
+<a href="#section-4.4.1" class="section-number selfRef">4.4.1. </a><a href="#name-capability-discovery" class="section-name selfRef">Capability Discovery</a>
+          </h4>
+<p id="section-4.4.1-1">A storage device indicates support for trusted-stateid tight
+coupling implicitly, by processing TRUST_STATEID rather than
+returning NFS4ERR_NOTSUPP.  (A storage device that supports a
+non-TRUST_STATEID form of tight coupling but not the
+trusted-stateid variant defined here will return NFS4ERR_NOTSUPP
+on this probe; from this specification's perspective it is
+treated the same as a storage device that does not support tight
+coupling at all.)  The metadata server probes each storage device
+during control-session setup:<a href="#section-4.4.1-1" class="pilcrow">¶</a></p>
+<span id="name-trust_stateid-capability-pr"></span><div id="fig-trust-stateid-probe">
+<figure id="figure-4">
+            <div class="alignLeft art-text artwork" id="section-4.4.1-2.1">
+<pre>
+SEQUENCE + PUTROOTFH + TRUST_STATEID(
+    tsa_layout_stateid = ANONYMOUS_STATEID,
+    tsa_pnfs_clientid  = 0,
+    tsa_client_id      = 0,
+    tsa_iomode         = LAYOUTIOMODE4_READ,
+    tsa_expire         = 0,
+    tsa_principal      = "")
+</pre>
+</div>
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<a href="#name-trust_stateid-capability-pr" class="selfRef">TRUST_STATEID capability probe</a>
+            </figcaption></figure>
+</div>
+<p id="section-4.4.1-3">The anonymous stateid is used deliberately: a correctly implemented
+storage device <span class="bcp14">MUST</span> reject it (see <a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>), so the
+probe cannot accidentally register garbage in the trust table.  The
+metadata server interprets the probe response as follows:<a href="#section-4.4.1-3" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-4.4.1-4">
+            <dt id="section-4.4.1-4.1">NFS4ERR_NOTSUPP:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.4.1-4.2">
+              <p id="section-4.4.1-4.2.1">trusted-stateid tight coupling is not supported on this
+storage device.  The metadata server falls back to loose coupling
+(anonymous stateid plus fencing) and sets ffdv_tightly_coupled
+to false for this storage device.<a href="#section-4.4.1-4.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.4.1-4.3">NFS4ERR_INVAL:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.4.1-4.4">
+              <p id="section-4.4.1-4.4.1">trusted-stateid tight coupling is supported.  The anonymous
+stateid was correctly rejected.  The metadata server records the
+capability and sets ffdv_tightly_coupled to true for this
+storage device.<a href="#section-4.4.1-4.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.4.1-4.5">NFS4_OK:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.4.1-4.6">
+              <p id="section-4.4.1-4.6.1">the storage device accepted an anonymous stateid into
+its trust table.  This is a storage device bug.  The metadata
+server <span class="bcp14">MAY</span> treat the capability as confirmed to avoid
+downgrading to loose coupling, but it <span class="bcp14">MUST</span> immediately issue
+REVOKE_STATEID to remove the bogus entry.<a href="#section-4.4.1-4.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-4.4.1-5">The capability is recorded per storage device, not per file.
+Partial support across a mirror set is permitted: each
+ff_device_versions4 entry returned by GETDEVICEINFO carries its
+own ffdv_tightly_coupled flag, set independently.<a href="#section-4.4.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-tight-coupling-control-session">
+<section id="section-4.4.2">
+          <h4 id="name-control-session">
+<a href="#section-4.4.2" class="section-number selfRef">4.4.2. </a><a href="#name-control-session" class="section-name selfRef">Control Session</a>
+          </h4>
+<p id="section-4.4.2-1">The metadata server establishes an NFSv4.2 session to each
+tight-coupling-capable storage device at startup.  On this session
+the metadata server acts as the storage device's client and
+presents EXCHGID4_FLAG_USE_PNFS_MDS in its EXCHANGE_ID args.<a href="#section-4.4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.4.2-2">The storage device <span class="bcp14">MUST</span> verify that any incoming TRUST_STATEID,
+REVOKE_STATEID, or BULK_REVOKE_STATEID compound arrives on a
+session whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS
+in its EXCHANGE_ID args.  Requests that arrive on any other
+session <span class="bcp14">MUST</span> be rejected with NFS4ERR_PERM.  This is the sole
+access control on these operations; a pNFS client connecting to
+the storage device does not present EXCHGID4_FLAG_USE_PNFS_MDS
+and therefore cannot invoke them.<a href="#section-4.4.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.4.2-3">The EXCHGID4_FLAG_USE_PNFS_MDS check replaces any path- or
+filehandle-level gating.  TRUST_STATEID operates on a filehandle
+that may be any file on the storage device, and the metadata
+server is the sole authority that can legitimately speak this
+protocol.<a href="#section-4.4.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.4.2-4">Because the EXCHGID4_FLAG_USE_PNFS_MDS check relies on the owning
+client's self-declaration at EXCHANGE_ID time, the storage device
+cannot by itself distinguish a legitimate metadata server from any
+other host that sets the flag.  Deployments are therefore
+responsible for constraining who can establish a control session
+in the first place.  Two mechanisms are <span class="bcp14">RECOMMENDED</span>:<a href="#section-4.4.2-4" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.4.2-5">
+<li id="section-4.4.2-5.1">
+              <p id="section-4.4.2-5.1.1">The control session <span class="bcp14">SHOULD</span> use RPCSEC_GSS with a machine
+principal that the storage device has been configured to
+accept as a metadata server.  The storage device validates
+the principal before accepting EXCHANGE_ID with
+EXCHGID4_FLAG_USE_PNFS_MDS.<a href="#section-4.4.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.2-5.2">
+              <p id="section-4.4.2-5.2.1">Alternatively, the control session <span class="bcp14">SHOULD</span> run over a
+network path isolated from pNFS clients (for example, a
+dedicated management VLAN or mutual TLS (<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) with
+an allowlisted client certificate), such that only
+configured metadata servers can reach the storage device on
+that path.<a href="#section-4.4.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-4.4.2-6">Deploying neither mechanism reduces the authorization strength
+of TRUST_STATEID and the revocation operations to "any host
+that can reach the storage device can invoke them"; a strict
+deployment <span class="bcp14">MUST</span> apply at least one of the above.<a href="#section-4.4.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-tight-coupling-layoutget">
+<section id="section-4.4.3">
+          <h4 id="name-flow-at-layoutget">
+<a href="#section-4.4.3" class="section-number selfRef">4.4.3. </a><a href="#name-flow-at-layoutget" class="section-name selfRef">Flow at LAYOUTGET</a>
+          </h4>
+<p id="section-4.4.3-1">For each new or refreshed layout segment, the metadata server:<a href="#section-4.4.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.4.3-2">
+<li id="section-4.4.3-2.1">
+              <p id="section-4.4.3-2.1.1">chooses the layout stateid (as it would without tight coupling);<a href="#section-4.4.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.3-2.2">
+              <p id="section-4.4.3-2.2.1">identifies the tight-coupling-capable storage devices in the
+mirror set (those for which ffdv_tightly_coupled is true);<a href="#section-4.4.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.3-2.3">
+              <p id="section-4.4.3-2.3.1">fans out TRUST_STATEID to each such storage device,
+specifying the layout stateid, the layout iomode, a
+tsa_expire derived from the metadata server's lease (see
+<a href="#sec-tight-coupling-lease" class="auto internal xref">Section 4.4.6</a>), and the client's authenticated
+identity in tsa_principal;<a href="#section-4.4.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.3-2.4">
+              <p id="section-4.4.3-2.4.1">waits for all fan-outs to complete (or reach their per-storage-device timeout) before returning the layout.<a href="#section-4.4.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-4.4.3-3">If every storage device in the mirror set rejects the TRUST_STATEID
+fan-out, the metadata server <span class="bcp14">MUST NOT</span> return the layout; instead it
+returns NFS4ERR_LAYOUTTRYLATER.  If some storage devices accept and
+others reject, the metadata server <span class="bcp14">MAY</span> return a layout covering
+only the accepting storage devices, subject to the mirror-set rules
+for minimum acceptable coverage.  A storage device that returns
+NFS4ERR_DELAY is retried until either success or the metadata
+server's LAYOUTGET-response budget is exhausted.  If a storage
+device returns NFS4ERR_NOTSUPP at this time (having accepted the
+probe earlier), the metadata server <span class="bcp14">MUST</span> clear
+ffdv_tightly_coupled for this storage device, fall back to loose
+coupling, and re-issue the layout accordingly.<a href="#section-4.4.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-tight-coupling-principal">
+<section id="section-4.4.4">
+          <h4 id="name-principal-binding-and-the-k">
+<a href="#section-4.4.4" class="section-number selfRef">4.4.4. </a><a href="#name-principal-binding-and-the-k" class="section-name selfRef">Principal Binding and the Kerberos Gap</a>
+          </h4>
+<p id="section-4.4.4-1">The flexible file v1 layout has a known gap: a client authenticated
+to the metadata server with Kerberos has no way to present the same
+authenticated identity to the storage device, because flexible file
+v1 layouts carry only ffds_user / ffds_group (POSIX uid/gid for
+AUTH_SYS).  A strict Kerberos deployment on the flexible file v1
+layout must either allow AUTH_SYS from the metadata server's subnet
+or accept that the flexible file v1 layout's data path is not
+Kerberos-protected.<a href="#section-4.4.4-1" class="pilcrow">¶</a></p>
+<p id="section-4.4.4-2">The tsa_principal field in TRUST_STATEID closes that gap.  When a
+client authenticates to the metadata server as a Kerberos
+principal (e.g., alice@REALM), the metadata server passes that
+principal name to each storage device in tsa_principal.  The
+storage device then enforces a two-part check on each CHUNK
+operation that presents the layout stateid:<a href="#section-4.4.4-2" class="pilcrow">¶</a></p>
+<p id="section-4.4.4-3">a.  the stateid is in the trust table and has not expired; and<a href="#section-4.4.4-3" class="pilcrow">¶</a></p>
+<p id="section-4.4.4-4">b.  the caller's authenticated identity (the RPCSEC_GSS display
+    name on the CHUNK compound) matches tsa_principal.<a href="#section-4.4.4-4" class="pilcrow">¶</a></p>
+<p id="section-4.4.4-5">Both conditions <span class="bcp14">MUST</span> hold.  On principal mismatch the storage
+device <span class="bcp14">MUST</span> return NFS4ERR_ACCESS -- the semantics are "you do
+not have an authorized layout for this file", which matches the
+existing fencing error and avoids the confusion of
+NFS4ERR_WRONGSEC (which directs the client to re-authenticate
+with a different flavor) or NFS4ERR_BAD_STATEID (which directs
+the client to return the layout).<a href="#section-4.4.4-5" class="pilcrow">¶</a></p>
+<p id="section-4.4.4-6">The metadata server <span class="bcp14">MUST</span> populate tsa_principal with the
+RPCSEC_GSS display name of the authenticated client when the
+client authenticated to the metadata server via RPCSEC_GSS.  The
+metadata server <span class="bcp14">MUST</span> set tsa_principal to the empty string only
+for AUTH_SYS and TLS clients (for which there is no server-verified per-user identity).  Setting tsa_principal to the empty
+string for an RPCSEC_GSS client disables the principal check on
+the storage device and silently re-opens the flexible file v1 layout
+Kerberos gap; it is a metadata server bug, not a protocol option.<a href="#section-4.4.4-6" class="pilcrow">¶</a></p>
+<p id="section-4.4.4-7">If tsa_principal is the empty string, no principal check applies.
+This is the expected setting for AUTH_SYS and TLS clients:<a href="#section-4.4.4-7" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.4.4-8.1">
+              <p id="section-4.4.4-8.1.1">AUTH_SYS clients have no server-verified identity.  The
+storage device's stateid check and the AUTH_SYS uid/gid on the
+data file together constitute the authorization.  In a tightly
+coupled deployment the data file's owner/group need not match
+the metadata file's, since ffv2ds_user and ffv2ds_group are
+ignored (see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-layout" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-layout</a>]</span>).<a href="#section-4.4.4-8.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.4.4-8.2">
+              <p id="section-4.4.4-8.2.1">TLS clients have transport-layer authentication via mutual TLS
+(<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>).  The TLS layer authenticates the client machine;
+the stateid check confirms the metadata server authorized that
+machine to access this file.  The machine-level authentication
+is handled beneath the RPC layer and is not reflected in
+tsa_principal.  Opportunistic TLS (STARTTLS without certificate
+verification) provides encryption but not authentication, and
+therefore has the same authorization properties as plain
+AUTH_SYS.<a href="#section-4.4.4-8.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4.4.4-9">When a client's I/O is routed through a proxy server -- that
+is, the layout the metadata server returns to the client has
+FFV2_DS_FLAGS_PROXY set on the proxy's ffv2_data_server4 entry,
+per <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span> -- the storage device observes
+CHUNK operations arriving from the proxy server's address rather than from
+the client directly.  The tsa_principal the metadata server
+populates in TRUST_STATEID is the principal the <em>storage device</em>
+will observe on those CHUNK operations, and <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span>'s credential-forwarding rules (in particular rule 1,
+"Credential pass-through") require the proxy server to forward the
+client's credentials verbatim on every CHUNK operation it issues
+on the client's behalf.  Therefore:<a href="#section-4.4.4-9" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.4.4-10.1">
+              <p id="section-4.4.4-10.1.1">For an RPCSEC_GSS client whose I/O is proxied through a proxy server,
+the metadata server <span class="bcp14">MUST</span> set tsa_principal to the client's
+RPCSEC_GSS display name (identical to the non-proxied case).
+The storage device's principal check on CHUNK operations will
+match against the client's principal on the forwarded
+compound, not the proxy server's service identity.<a href="#section-4.4.4-10.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.4.4-10.2">
+              <p id="section-4.4.4-10.2.1">For an AUTH_SYS client whose I/O is proxied through a proxy server,
+the metadata server <span class="bcp14">MUST</span> set tsa_principal to the empty
+string (identical to the non-proxied case).  The proxy server forwards
+the client's AUTH_SYS uid/gid; the storage device's stateid
+check plus the forwarded AUTH_SYS uid/gid constitute the
+authorization.<a href="#section-4.4.4-10.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4.4.4-11">The metadata server <span class="bcp14">MUST NOT</span> set tsa_principal to the proxy server's own
+service principal.  Doing so would require the proxy server to
+authenticate to the storage device as itself (bypassing
+credential forwarding) which is explicitly prohibited by rule 4 of <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-proxy-server" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-proxy-server</a>]</span> ("proxy server service identity is for the
+control plane only").<a href="#section-4.4.4-11" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-tight-coupling-trust-gap">
+<section id="section-4.4.5">
+          <h4 id="name-client-detected-trust-gap">
+<a href="#section-4.4.5" class="section-number selfRef">4.4.5. </a><a href="#name-client-detected-trust-gap" class="section-name selfRef">Client-Detected Trust Gap</a>
+          </h4>
+<p id="section-4.4.5-1">A window exists between a successful TRUST_STATEID fan-out and
+the client's first I/O to the storage device.  A transient failure
+may cause the storage device to forget or reject the entry before
+the client's first CHUNK_WRITE arrives.  The client cannot
+distinguish this case from legitimate revocation; both surface as
+NFS4ERR_BAD_STATEID on the storage device.<a href="#section-4.4.5-1" class="pilcrow">¶</a></p>
+<p id="section-4.4.5-2">The recovery path:<a href="#section-4.4.5-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.4.5-3">
+<li id="section-4.4.5-3.1">
+              <p id="section-4.4.5-3.1.1">The client sends LAYOUTERROR(layout_stateid, device_id,
+NFS4ERR_BAD_STATEID) to the metadata server.<a href="#section-4.4.5-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.5-3.2">
+              <p id="section-4.4.5-3.2.1">The metadata server retries TRUST_STATEID against the
+reporting storage device.  If the retry succeeds, the
+metadata server returns NFS4_OK for LAYOUTERROR.  The client
+retries the original I/O.<a href="#section-4.4.5-3.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.5-3.3">
+              <p id="section-4.4.5-3.3.1">If the retry fails -- the storage device is unreachable or
+returns a hard error -- the metadata server issues
+CB_LAYOUTRECALL for that device and the client returns the
+layout segment covering that storage device.  The client is
+expected to re-request via LAYOUTGET.<a href="#section-4.4.5-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-4.4.5-4">This is the same LAYOUTERROR path used for NFS4ERR_ACCESS or
+NFS4ERR_PERM in the fencing model (see <a href="#sec-Fencing-Clients" class="auto internal xref">Section 4.2</a>),
+with the metadata server's action being "retry TRUST_STATEID"
+instead of "rotate uid/gid".<a href="#section-4.4.5-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-tight-coupling-lease">
+<section id="section-4.4.6">
+          <h4 id="name-lease-and-renewal">
+<a href="#section-4.4.6" class="section-number selfRef">4.4.6. </a><a href="#name-lease-and-renewal" class="section-name selfRef">Lease and Renewal</a>
+          </h4>
+<p id="section-4.4.6-1">tsa_expire in a TRUST_STATEID request is a wall-clock expiry
+instant expressed as an nfstime4.  The metadata server <span class="bcp14">MUST</span> set
+tsa_expire to the current wall-clock time plus the metadata
+server's client lease period.<a href="#section-4.4.6-1" class="pilcrow">¶</a></p>
+<p id="section-4.4.6-2">Clock-synchronization assumption: the metadata server and each
+storage device <span class="bcp14">MUST</span> maintain wall-clock synchronization within
+one lease period, e.g., via NTP <span>[<a href="#RFC5905" class="cite xref">RFC5905</a>]</span> or an equivalent
+mechanism.  Under this assumption, a tsa_expire computed by the
+metadata server and evaluated by the storage device is
+interpreted consistently within the storage device's local
+clock.  Deployments unable to guarantee sub-lease-period clock
+synchronization <span class="bcp14">MUST</span> either (a) shorten the effective TRUST_STATEID
+lease so it exceeds the worst-case skew by at least 2x, or (b)
+use the metadata-server-inband fallback path (no tight-coupling
+control session, no TRUST_STATEID) so lease enforcement stays
+on the metadata server's clock alone.  A storage device that
+detects sustained clock divergence from the metadata server
+(e.g., via periodic wall-clock exchange as part of its
+tight-coupling control-session heartbeats) <span class="bcp14">SHOULD</span> log the
+divergence and <span class="bcp14">MAY</span> refuse further TRUST_STATEID entries with
+NFS4ERR_DELAY until the divergence is corrected.<a href="#section-4.4.6-2" class="pilcrow">¶</a></p>
+<p id="section-4.4.6-3">The metadata server <span class="bcp14">MUST</span> re-issue TRUST_STATEID for an entry
+before tsa_expire while the corresponding layout is outstanding.
+The <span class="bcp14">RECOMMENDED</span> trigger is: when an entry is within half the
+lease period of its tsa_expire, re-issue TRUST_STATEID with a
+refreshed tsa_expire.  Renewing on every SEQUENCE that keeps the
+layout stateid alive is correct but produces
+metadata-server-to-storage-device traffic proportional to the
+client's SEQUENCE rate, which is undesirable in steady state.<a href="#section-4.4.6-3" class="pilcrow">¶</a></p>
+<p id="section-4.4.6-4">If an entry expires on the storage device before the metadata
+server renews it -- for example, because the metadata server is
+partitioned from the storage device for longer than the lease
+period -- the storage device <span class="bcp14">MUST</span> return NFS4ERR_BAD_STATEID to
+the client on the next CHUNK operation.  The client returns the
+layout to the metadata server and re-requests.  This is the same
+recovery path as the trust gap described above.<a href="#section-4.4.6-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-tight-coupling-ds-crash">
+<section id="section-4.4.7">
+          <h4 id="name-storage-device-crash-recove">
+<a href="#section-4.4.7" class="section-number selfRef">4.4.7. </a><a href="#name-storage-device-crash-recove" class="section-name selfRef">Storage Device Crash Recovery</a>
+          </h4>
+<p id="section-4.4.7-1">A storage device <span class="bcp14">MAY</span> persist its trust table across restarts.  An
+implementation that does so <span class="bcp14">MUST</span> also persist its server-instance
+identity, returning the same eir_server_owner.so_minor_id on
+EXCHANGE_ID after the restart (per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> S18.35), so that
+clients and the metadata server observe the device as
+continuously available and the persisted trust entries remain
+valid against the layout stateids that were issued before the
+restart.<a href="#section-4.4.7-1" class="pilcrow">¶</a></p>
+<p id="section-4.4.7-2">A storage device that does NOT persist its trust table empties
+the table on restart and <span class="bcp14">MUST</span> present a new server instance
+(incremented so_minor_id) so that clients detect the restart.
+The remainder of this section describes the recovery path for
+the volatile case.<a href="#section-4.4.7-2" class="pilcrow">¶</a></p>
+<p id="section-4.4.7-3">The client detects a volatile storage device restart via
+NFS4ERR_BADSESSION or NFS4ERR_STALE_CLIENTID on its data server
+session.  The client returns the affected layout segment to the
+metadata server via LAYOUTRETURN and re-requests via LAYOUTGET.
+The metadata server then fans out fresh TRUST_STATEID operations
+to the recovered storage device.<a href="#section-4.4.7-3" class="pilcrow">¶</a></p>
+<p id="section-4.4.7-4">Planned storage device restarts (software upgrade, etc.) <span class="bcp14">SHOULD</span>
+drain in-flight CHUNK operations before shutting down.<a href="#section-4.4.7-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-tight-coupling-mds-crash">
+<section id="section-4.4.8">
+          <h4 id="name-metadata-server-crash-recov">
+<a href="#section-4.4.8" class="section-number selfRef">4.4.8. </a><a href="#name-metadata-server-crash-recov" class="section-name selfRef">Metadata Server Crash Recovery</a>
+          </h4>
+<p id="section-4.4.8-1">A metadata server <span class="bcp14">MAY</span> persist all its trust-management state
+across restarts.  An implementation that does so <span class="bcp14">MUST</span> also
+persist its server-instance identity, returning the same
+eir_server_owner.so_minor_id on EXCHANGE_ID after the restart
+(per <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> S18.35), so that storage devices observe the
+metadata server as continuously available and accept incoming
+TRUST_STATEID and REVOKE_STATEID operations against the existing
+trust entries without revalidation.  No grace period is required.<a href="#section-4.4.8-1" class="pilcrow">¶</a></p>
+<p id="section-4.4.8-2">A metadata server that presents a new server instance
+(incremented so_minor_id) on restart follows the recovery path
+in the remainder of this section.<a href="#section-4.4.8-2" class="pilcrow">¶</a></p>
+<p id="section-4.4.8-3">When the metadata server restarts as a new instance, its control
+sessions to the storage devices are lost.  Trust entries remain
+on the storage devices until tsa_expire, but the metadata server
+is no longer renewing them; the entries are effectively orphaned
+until the metadata server completes grace.<a href="#section-4.4.8-3" class="pilcrow">¶</a></p>
+<p id="section-4.4.8-4">When the metadata server reconnects to a storage device with a
+new boot epoch -- that is, the EXCHANGE_ID returns a new server
+owner on the storage device's view of the metadata server -- the
+storage device <span class="bcp14">SHOULD</span> mark all trust entries established under
+the prior metadata-server epoch as pending-revalidation.  While an
+entry is pending-revalidation:<a href="#section-4.4.8-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.4.8-5.1">
+              <p id="section-4.4.8-5.1.1">I/O that presents the entry's stateid <span class="bcp14">MUST</span> receive
+NFS4ERR_DELAY, not NFS4ERR_BAD_STATEID.  NFS4ERR_DELAY tells
+the client to retry with the same stateid -- the metadata
+server is recovering and may yet revalidate the entry.
+NFS4ERR_BAD_STATEID would instead cause the client to return
+the layout immediately, producing a thundering herd against
+the metadata server during grace.<a href="#section-4.4.8-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.4.8-5.2">
+              <p id="section-4.4.8-5.2.1">An entry remains pending-revalidation until the metadata
+server either re-issues TRUST_STATEID for it (which transitions
+it back to trusted) or until the entry's tsa_expire elapses
+(which removes it).<a href="#section-4.4.8-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4.4.8-6">The metadata server's recovery sequence is:<a href="#section-4.4.8-6" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.4.8-7">
+<li id="section-4.4.8-7.1">
+              <p id="section-4.4.8-7.1.1">Reconnect to each storage device and establish a fresh
+control session.<a href="#section-4.4.8-7.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.8-7.2">
+              <p id="section-4.4.8-7.2.1">Optionally issue BULK_REVOKE_STATEID with an all-zeros
+clientid to each storage device.  This clears the prior trust
+table eagerly; skipping this step is correct, because orphan
+entries expire via tsa_expire.<a href="#section-4.4.8-7.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.8-7.3">
+              <p id="section-4.4.8-7.3.1">Enter grace and accept RECLAIM operations from clients.  For
+each reclaimed layout, fan out TRUST_STATEID to the relevant
+storage devices.<a href="#section-4.4.8-7.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.8-7.4">
+              <p id="section-4.4.8-7.4.1">Exit grace.  Clients that did not reclaim in time have their
+state revoked; the metadata server issues REVOKE_STATEID or
+BULK_REVOKE_STATEID on their behalf.<a href="#section-4.4.8-7.4.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-4.4.8-8">Metadata servers <span class="bcp14">SHOULD</span> persist the set of outstanding
+TRUST_STATEID entries (clientid, layout stateid, storage device
+address, tsa_expire) to stable storage.  With this persistence
+the metadata server can re-issue TRUST_STATEID for all known
+entries immediately upon reconnecting to each storage device,
+before clients begin reclaiming.  This shrinks the window during
+which the storage device returns NFS4ERR_DELAY for client I/O.
+Persistence is a latency optimization, not a correctness
+requirement: the re-layout path handles recovery in all cases.<a href="#section-4.4.8-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-tight-coupling-compat">
+<section id="section-4.4.9">
+          <h4 id="name-backward-compatibility">
+<a href="#section-4.4.9" class="section-number selfRef">4.4.9. </a><a href="#name-backward-compatibility" class="section-name selfRef">Backward Compatibility</a>
+          </h4>
+<ul class="normal">
+<li class="normal" id="section-4.4.9-1.1">
+              <p id="section-4.4.9-1.1.1">NFSv3 storage devices are unchanged.  They are always treated
+as loosely coupled; TRUST_STATEID does not exist on NFSv3
+servers.<a href="#section-4.4.9-1.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.4.9-1.2">
+              <p id="section-4.4.9-1.2.1">NFSv4.2 storage devices for which the TRUST_STATEID probe
+returns NFS4ERR_NOTSUPP are treated as loosely coupled;
+fencing is the only revocation mechanism, the same as for
+NFSv3.<a href="#section-4.4.9-1.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.4.9-1.3">
+              <p id="section-4.4.9-1.3.1">NFSv4.2 storage devices for which the probe returns
+NFS4ERR_INVAL support tight coupling; the metadata server uses
+TRUST_STATEID at LAYOUTGET and REVOKE_STATEID or
+BULK_REVOKE_STATEID for revocation instead of fencing.<a href="#section-4.4.9-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4.4.9-2">A single deployment <span class="bcp14">MAY</span> contain a mix of tight-coupled and
+loose-coupled storage devices; each is negotiated independently
+via the probe.<a href="#section-4.4.9-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="layout-revocation-and-fencing">
+<section id="section-5">
+      <h2 id="name-layout-revocation-and-fenci">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-layout-revocation-and-fenci" class="section-name selfRef">Layout Revocation and Fencing</a>
+      </h2>
+<p id="section-5-1">In cases where clients are uncommunicative and their lease has
+expired, or when clients fail to return recalled layouts within
+a lease period, the metadata server <span class="bcp14">MAY</span> revoke client layouts
+and reassign these resources to other clients (see Section
+12.5.5 of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).  To avoid data corruption from a
+revoked client continuing to issue I/O, the metadata server
+<span class="bcp14">MUST</span> fence the revoked client from the affected data files.
+The mechanism varies by coupling model and by whether the
+client's layout stateid has been registered with the data
+servers via TRUST_STATEID:<a href="#section-5-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5-2">
+        <dt id="section-5-2.1">Loosely coupled, untrusted stateid:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.2">
+          <p id="section-5-2.2.1">The metadata server rotates the synthetic uid/gid on the
+affected data files per <a href="#sec-Fencing-Clients" class="auto internal xref">Section 4.2</a>.  The
+revoked client presents stale RPC credentials and receives
+NFS4ERR_ACCESS from the data server.  This is the
+FFv1-style fencing mechanism; it operates per data file and
+does not distinguish between clients that hold layouts on
+the same file.<a href="#section-5-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.3">Tightly coupled, trusted stateid:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.4">
+          <p id="section-5-2.4.1">When the metadata server has registered a client's layout
+stateid with the data servers via TRUST_STATEID
+(<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>), it can revoke per-client access
+without rotating credentials by issuing REVOKE_STATEID
+(<a href="#sec-REVOKE_STATEID" class="auto internal xref">Section 6.3</a>) to each affected data server, or
+BULK_REVOKE_STATEID (<a href="#sec-BULK_REVOKE_STATEID" class="auto internal xref">Section 6.4</a>) when
+revoking all stateids belonging to a single clientid4
+across a data server.  Subsequent I/O from the revoked
+client carrying the revoked stateid receives
+NFS4ERR_BAD_STATEID.  This is the preferred mechanism for
+erasure-coded layouts because it is per-client and avoids
+the FFv1 limitation of fencing all clients on a data file
+when only one needs to be revoked.<a href="#section-5-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.5">Mixed:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.6">
+          <p id="section-5-2.6.1">A metadata server <span class="bcp14">MAY</span> combine the two mechanisms when a
+file's layout includes both PASSTHROUGH mirrors (where
+stateid registration is not in play) and erasure-coded
+mirrors with trusted stateids.  The metadata server rotates
+synthetic ids for the PASSTHROUGH mirror's data file and
+issues REVOKE_STATEID for the erasure-coded mirror's data
+servers.<a href="#section-5-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="new-nfsv42-trust-stateid-operations">
+<section id="section-6">
+      <h2 id="name-new-nfsv42-trust-stateid-op">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-new-nfsv42-trust-stateid-op" class="section-name selfRef">New NFSv4.2 Trust-Stateid Operations</a>
+      </h2>
+<div id="operation-numbers-and-xdr-amendments">
+<section id="section-6.1">
+        <h3 id="name-operation-numbers-and-xdr-a">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-operation-numbers-and-xdr-a" class="section-name selfRef">Operation Numbers and XDR Amendments</a>
+        </h3>
+<p id="section-6.1-1">This document defines three new NFSv4.2 operations, opnums 89 through 91.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<span id="name-trust-stateid-opnum-xdr-chu"></span><figure id="figure-5">
+          <div class="lang-xdr sourcecode" id="section-6.1-2.1">
+<pre>
+   /// /* MDS-to-DS control-plane operations for tight coupling */
+   ///
+   ///  OP_TRUST_STATEID       = 89,
+   ///  OP_REVOKE_STATEID      = 90,
+   ///  OP_BULK_REVOKE_STATEID = 91,
+</pre>
+</div>
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<a href="#name-trust-stateid-opnum-xdr-chu" class="selfRef">Trust-stateid opnum XDR (CHUNK_* opnums 78-88 live in [I-D.haynes-nfsv4-flexfiles-v2-chunks])</a>
+          </figcaption></figure>
+<span id="name-nfs_argop4-amendment-trust-"></span><figure id="figure-6">
+          <div class="lang-xdr sourcecode" id="section-6.1-3.1">
+<pre>
+   /// /* nfs_argop4 amendment block (trust-stateid arms) */
+   ///
+   /// case OP_TRUST_STATEID: TRUST_STATEID4args optruststateid;
+   /// case OP_REVOKE_STATEID: REVOKE_STATEID4args oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:
+   ///     BULK_REVOKE_STATEID4args opbulkrevokestateid;
+</pre>
+</div>
+<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
+<a href="#name-nfs_argop4-amendment-trust-" class="selfRef">nfs_argop4 amendment (trust-stateid arms only; CHUNK arms live in [I-D.haynes-nfsv4-flexfiles-v2-chunks])</a>
+          </figcaption></figure>
+<span id="name-nfs_resop4-amendment-trust-"></span><figure id="figure-7">
+          <div class="lang-xdr sourcecode" id="section-6.1-4.1">
+<pre>
+   /// /* nfs_resop4 amendment block (trust-stateid arms) */
+   ///
+   /// case OP_TRUST_STATEID: TRUST_STATEID4res optruststateid;
+   /// case OP_REVOKE_STATEID: REVOKE_STATEID4res oprevokestateid;
+   /// case OP_BULK_REVOKE_STATEID:
+   ///     BULK_REVOKE_STATEID4res opbulkrevokestateid;
+</pre>
+</div>
+<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
+<a href="#name-nfs_resop4-amendment-trust-" class="selfRef">nfs_resop4 amendment (trust-stateid arms only)</a>
+          </figcaption></figure>
+<p id="section-6.1-5">TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID are
+sent by the metadata server to storage devices on the MDS-to-DS
+control session (see <a href="#sec-tight-coupling-control" class="auto internal xref">Section 4.4</a>); they
+<span class="bcp14">MUST NOT</span> be sent by pNFS clients.<a href="#section-6.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-TRUST_STATEID">
+<section id="section-6.2">
+        <h3 id="name-operation-89-trust_stateid-">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-operation-89-trust_stateid-" class="section-name selfRef">Operation 89: TRUST_STATEID - Register Layout Stateid on Data Server</a>
+        </h3>
+<div id="arguments">
+<section id="section-6.2.1">
+          <h4 id="name-arguments">
+<a href="#section-6.2.1" class="section-number selfRef">6.2.1. </a><a href="#name-arguments" class="section-name selfRef">ARGUMENTS</a>
+          </h4>
+<span id="name-xdr-for-trust_stateid4args"></span><div id="fig-TRUST_STATEID4args">
+<figure id="figure-8">
+            <div class="lang-xdr sourcecode" id="section-6.2.1-1.1">
+<pre>
+   /// struct TRUST_STATEID4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4        tsa_layout_stateid;
+   ///     clientid4       tsa_pnfs_clientid;
+   ///     uint32_t        tsa_client_id;
+   ///     layoutiomode4   tsa_iomode;
+   ///     nfstime4        tsa_expire;
+   ///     utf8str_cs      tsa_principal;
+   /// };
+</pre>
+</div>
+<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
+<a href="#name-xdr-for-trust_stateid4args" class="selfRef">XDR for TRUST_STATEID4args</a>
+            </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="results">
+<section id="section-6.2.2">
+          <h4 id="name-results">
+<a href="#section-6.2.2" class="section-number selfRef">6.2.2. </a><a href="#name-results" class="section-name selfRef">RESULTS</a>
+          </h4>
+<span id="name-xdr-for-trust_stateid4res"></span><div id="fig-TRUST_STATEID4res">
+<figure id="figure-9">
+            <div class="lang-xdr sourcecode" id="section-6.2.2-1.1">
+<pre>
+   /// union TRUST_STATEID4res switch (nfsstat4 tsr_status) {
+   ///     case NFS4_OK:
+   ///         void;
+   ///     default:
+   ///         void;
+   /// };
+</pre>
+</div>
+<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
+<a href="#name-xdr-for-trust_stateid4res" class="selfRef">XDR for TRUST_STATEID4res</a>
+            </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="description">
+<section id="section-6.2.3">
+          <h4 id="name-description">
+<a href="#section-6.2.3" class="section-number selfRef">6.2.3. </a><a href="#name-description" class="section-name selfRef">DESCRIPTION</a>
+          </h4>
+<p id="section-6.2.3-1">TRUST_STATEID registers a layout stateid with the data
+server so that subsequent CHUNK_* operations presenting that
+stateid can be validated against the data server's per-file
+trust table.  The registration binds the stateid to both the
+NFSv4 clientid4 whose layout is being authorized
+(tsa_pnfs_clientid) and the ffv2m_client_id (tsa_client_id)
+assigned to that client in the layout.  The data server keeps
+those identities distinct from the metadata-server identity
+that owns the control session.  It is the mechanism by which tight coupling
+(see <a href="#sec-tight-coupling-control" class="auto internal xref">Section 4.4</a>) is established between
+the metadata server and the data server for a particular
+layout.<a href="#section-6.2.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.2.3-2">TRUST_STATEID has no analog in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>: pNFS layouts in
+RFC 8881 do not register the layout stateid with data
+servers; data servers in the loose-coupling model trust the
+synthetic uid/gid the metadata server inserts on each I/O
+(<a href="#sec-Fencing-Clients" class="auto internal xref">Section 4.2</a>).  TRUST_STATEID is the new MDS-
+to-DS control-plane operation that replaces synthetic-uid
+fencing with per-client stateid-table validation for
+deployments that opt into tight coupling.<a href="#section-6.2.3-2" class="pilcrow">¶</a></p>
+<p id="section-6.2.3-3">TRUST_STATEID is an MDS-to-DS operation; pNFS clients <span class="bcp14">MUST NOT</span> send it.  The data server <span class="bcp14">MUST</span> verify that the
+operation arrived on a session whose owning client presented
+EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID and reject any
+TRUST_STATEID received on a regular client session with
+NFS4ERR_PERM.  TRUST_STATEID operates on the current
+filehandle; a PUTFH naming the data server's file <span class="bcp14">MUST</span>
+precede it in the same compound (except in the capability
+probe case, where the current filehandle is the root).<a href="#section-6.2.3-3" class="pilcrow">¶</a></p>
+<p id="section-6.2.3-4">The metadata server provides:<a href="#section-6.2.3-4" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-6.2.3-5">
+            <dt id="section-6.2.3-5.1">tsa_layout_stateid:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.3-5.2">
+              <p id="section-6.2.3-5.2.1">the stateid the metadata server issued in the
+LAYOUTGET that produced this layout.  <span class="bcp14">MUST NOT</span> be a
+special stateid (anonymous, invalid, read-bypass, or
+current).  The sole exception is the capability probe
+described in <a href="#sec-tight-coupling-probe" class="auto internal xref">Section 4.4.1</a>: when the
+metadata server sends TRUST_STATEID with
+tsa_layout_stateid set to the anonymous stateid
+against the root filehandle, the data server <span class="bcp14">MUST</span>
+reject the request with NFS4ERR_INVAL -- that
+rejection is the positive response to the probe.<a href="#section-6.2.3-5.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.3-5.3">tsa_pnfs_clientid:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.3-5.4">
+              <p id="section-6.2.3-5.4.1">the NFSv4 clientid4 of the pNFS client whose layout stateid
+is being registered.  The data server records this value
+separately from the metadata-server clientid4 that owns the
+control session.  BULK_REVOKE_STATEID uses its brsa_clientid
+argument to match this target identity; a zero brsa_clientid
+selects all target clients belonging to the issuing metadata
+server.  For a normal registration this field <span class="bcp14">MUST</span> be non-zero;
+in the capability probe it <span class="bcp14">MUST</span> be zero.<a href="#section-6.2.3-5.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.3-5.5">tsa_client_id:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.3-5.6">
+              <p id="section-6.2.3-5.6.1">the ffv2m_client_id assigned to the client in the layout that
+produced tsa_layout_stateid.  The data server records this
+writer identity alongside the stateid and uses it to authorize
+cwa_client_id on CHUNK_WRITE and cg_client_id in any
+chunk_guard4 CAS submitted with the same stateid.  A mismatch
+<span class="bcp14">MUST</span> be rejected with NFS4ERR_BAD_STATEID.  In the capability
+probe the metadata server <span class="bcp14">SHOULD</span> set tsa_client_id to zero.<a href="#section-6.2.3-5.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.3-5.7">tsa_iomode:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.3-5.8">
+              <p id="section-6.2.3-5.8.1">the iomode of the layout (LAYOUTIOMODE4<em>READ or
+LAYOUTIOMODE4_RW).  The data server <span class="bcp14">MAY</span> enforce this
+against the CHUNK</em>* operation presented later: a
+READ-iomode trust entry does not authorize
+CHUNK_WRITE.<a href="#section-6.2.3-5.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.3-5.9">tsa_expire:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.3-5.10">
+              <p id="section-6.2.3-5.10.1">the absolute wall-clock time at which the trust
+entry becomes invalid if not renewed (see
+<a href="#sec-tight-coupling-lease" class="auto internal xref">Section 4.4.6</a>).  The data server <span class="bcp14">MUST</span>
+reject a TRUST_STATEID whose tsa_expire has
+tv_nseconds &gt;= 10^9 with NFS4ERR_INVAL.<a href="#section-6.2.3-5.10.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.3-5.11">tsa_principal:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.3-5.12">
+              <p id="section-6.2.3-5.12.1">the client's authenticated identity as verified by
+the metadata server at LAYOUTGET time.  For
+RPCSEC_GSS clients this is the GSS display name
+(e.g., "alice@REALM").  For AUTH_SYS and TLS
+clients, tsa_principal <span class="bcp14">MUST</span> be the empty string,
+indicating that no principal binding is enforced on
+subsequent CHUNK operations.  See
+<a href="#sec-tight-coupling-principal" class="auto internal xref">Section 4.4.4</a>.<a href="#section-6.2.3-5.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-6.2.3-6">If a trust entry already exists for the same
+tsa_layout_stateid on the same current filehandle and with the
+same issuer, target, and writer identities, TRUST_STATEID
+atomically updates tsa_expire and tsa_principal; this is the
+renewal path (see
+<a href="#sec-tight-coupling-lease" class="auto internal xref">Section 4.4.6</a>).<a href="#section-6.2.3-6" class="pilcrow">¶</a></p>
+<p id="section-6.2.3-7">At registration time the data server tags the new trust
+entry with the identity of the metadata server, derived
+from the clientid4 of the owning client of the control
+session on which TRUST_STATEID arrived.  This issuer tag and
+tsa_pnfs_clientid are distinct fields.  REVOKE_STATEID
+matches the issuer tag together with the current filehandle
+and stateid; BULK_REVOKE_STATEID matches the issuer tag and
+its brsa_clientid target.  In a multi-metadata-server
+deployment sharing a single data server, each metadata server
+registers and revokes only its own entries; neither identity is
+inferred from or folded into tsa_client_id.<a href="#section-6.2.3-7" class="pilcrow">¶</a></p>
+<p id="section-6.2.3-8">TRUST_STATEID returns only a top-level status; there is
+no result body beyond the nfsstat4 discriminant.<a href="#section-6.2.3-8" class="pilcrow">¶</a></p>
+<p id="section-6.2.3-9">If the current filehandle is not an ordinary file
+(except in the capability-probe case, where the current
+filehandle is the root and the operation is expected to
+be rejected with NFS4ERR_INVAL), an error <span class="bcp14">MUST</span> be
+returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).<a href="#section-6.2.3-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="response-codes">
+<section id="section-6.2.4">
+          <h4 id="name-response-codes">
+<a href="#section-6.2.4" class="section-number selfRef">6.2.4. </a><a href="#name-response-codes" class="section-name selfRef">RESPONSE CODES</a>
+          </h4>
+<span class="break"></span><dl class="dlParallel" id="section-6.2.4-1">
+            <dt id="section-6.2.4-1.1">NFS4_OK:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.2">
+              <p id="section-6.2.4-1.2.1">the trust entry is registered (or updated).<a href="#section-6.2.4-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.4-1.3">NFS4ERR_BADXDR:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.4">
+              <p id="section-6.2.4-1.4.1">arguments could not be decoded.<a href="#section-6.2.4-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.4-1.5">NFS4ERR_BAD_STATEID:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.6">
+              <p id="section-6.2.4-1.6.1">tsa_layout_stateid was a special stateid
+other than the anonymous stateid on the root filehandle.<a href="#section-6.2.4-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.4-1.7">NFS4ERR_DELAY:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.8">
+              <p id="section-6.2.4-1.8.1">the data server is temporarily unable to process
+the request; the metadata server <span class="bcp14">SHOULD</span> retry.<a href="#section-6.2.4-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.4-1.9">NFS4ERR_INVAL:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.10">
+              <p id="section-6.2.4-1.10.1">tsa_layout_stateid was the anonymous stateid
+and the current filehandle is not the root filehandle;
+tsa_expire is malformed; or the current filehandle is a
+directory (except in the capability-probe case).<a href="#section-6.2.4-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.4-1.11">NFS4ERR_NOFILEHANDLE:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.12">
+              <p id="section-6.2.4-1.12.1">no current filehandle is set.<a href="#section-6.2.4-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.4-1.13">NFS4ERR_NOTSUPP:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.14">
+              <p id="section-6.2.4-1.14.1">the data server does not implement
+TRUST_STATEID.  This is the capability-probe response (see
+<a href="#sec-tight-coupling-probe" class="auto internal xref">Section 4.4.1</a>).<a href="#section-6.2.4-1.14.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.4-1.15">NFS4ERR_PERM:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.16">
+              <p id="section-6.2.4-1.16.1">the request arrived on a session whose owning
+client did not present EXCHGID4_FLAG_USE_PNFS_MDS.<a href="#section-6.2.4-1.16.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.2.4-1.17">NFS4ERR_SERVERFAULT:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.2.4-1.18">
+              <p id="section-6.2.4-1.18.1">the data server failed while processing
+the request.<a href="#section-6.2.4-1.18.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-REVOKE_STATEID">
+<section id="section-6.3">
+        <h3 id="name-operation-90-revoke_stateid">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-operation-90-revoke_stateid" class="section-name selfRef">Operation 90: REVOKE_STATEID - Revoke Registered Stateid on Data Server</a>
+        </h3>
+<div id="arguments-1">
+<section id="section-6.3.1">
+          <h4 id="name-arguments-2">
+<a href="#section-6.3.1" class="section-number selfRef">6.3.1. </a><a href="#name-arguments-2" class="section-name selfRef">ARGUMENTS</a>
+          </h4>
+<span id="name-xdr-for-revoke_stateid4args"></span><div id="fig-REVOKE_STATEID4args">
+<figure id="figure-10">
+            <div class="lang-xdr sourcecode" id="section-6.3.1-1.1">
+<pre>
+   /// struct REVOKE_STATEID4args {
+   ///     /* CURRENT_FH: file */
+   ///     stateid4        rsa_layout_stateid;
+   /// };
+</pre>
+</div>
+<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
+<a href="#name-xdr-for-revoke_stateid4args" class="selfRef">XDR for REVOKE_STATEID4args</a>
+            </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="results-1">
+<section id="section-6.3.2">
+          <h4 id="name-results-2">
+<a href="#section-6.3.2" class="section-number selfRef">6.3.2. </a><a href="#name-results-2" class="section-name selfRef">RESULTS</a>
+          </h4>
+<span id="name-xdr-for-revoke_stateid4res"></span><div id="fig-REVOKE_STATEID4res">
+<figure id="figure-11">
+            <div class="lang-xdr sourcecode" id="section-6.3.2-1.1">
+<pre>
+   /// union REVOKE_STATEID4res switch (nfsstat4 rsr_status) {
+   ///     case NFS4_OK:
+   ///         void;
+   ///     default:
+   ///         void;
+   /// };
+</pre>
+</div>
+<figcaption><a href="#figure-11" class="selfRef">Figure 11</a>:
+<a href="#name-xdr-for-revoke_stateid4res" class="selfRef">XDR for REVOKE_STATEID4res</a>
+            </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="description-1">
+<section id="section-6.3.3">
+          <h4 id="name-description-2">
+<a href="#section-6.3.3" class="section-number selfRef">6.3.3. </a><a href="#name-description-2" class="section-name selfRef">DESCRIPTION</a>
+          </h4>
+<p id="section-6.3.3-1">REVOKE_STATEID invalidates a single trust entry on the
+data server.  Subsequent CHUNK_* operations that present
+the revoked stateid <span class="bcp14">MUST</span> fail with NFS4ERR_BAD_STATEID.
+REVOKE_STATEID is the per-file revoke counterpart to
+TRUST_STATEID (<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>) -- registration and
+revocation form the matched pair that drives the per-file
+trust table for a tightly coupled deployment.<a href="#section-6.3.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.3.3-2">REVOKE_STATEID has no analog in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.  RFC 8881
+revokes pNFS layouts via LAYOUTRETURN with a special
+all-files marker or via implicit lease expiry;
+REVOKE_STATEID is the new MDS-to-DS surface that lets the
+metadata server force per-client invalidation at the data
+server without waiting for tsa_expire and without
+unsetting other clients' trust entries.<a href="#section-6.3.3-2" class="pilcrow">¶</a></p>
+<p id="section-6.3.3-3">REVOKE_STATEID is an MDS-to-DS operation; pNFS clients
+<span class="bcp14">MUST NOT</span> send it.  The data server <span class="bcp14">MUST</span> verify that the
+operation arrived on a session whose owning client
+presented EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID and
+reject any REVOKE_STATEID received on a regular client
+session with NFS4ERR_PERM.  REVOKE_STATEID operates on
+the current filehandle; a PUTFH naming the data server's
+file <span class="bcp14">MUST</span> precede it in the same compound.<a href="#section-6.3.3-3" class="pilcrow">¶</a></p>
+<p id="section-6.3.3-4">The metadata server provides:<a href="#section-6.3.3-4" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-6.3.3-5">
+            <dt id="section-6.3.3-5.1">rsa_layout_stateid:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.3-5.2">
+              <p id="section-6.3.3-5.2.1">the stateid to revoke.  Together with the current
+filehandle this identifies the trust entry to remove.
+<span class="bcp14">MUST NOT</span> be a special stateid; the anonymous stateid
+is rejected with NFS4ERR_INVAL and other special
+stateids with NFS4ERR_BAD_STATEID.<a href="#section-6.3.3-5.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-6.3.3-6">The metadata server calls REVOKE_STATEID in any of the
+following situations:<a href="#section-6.3.3-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.3.3-7.1">
+              <p id="section-6.3.3-7.1.1">CB_LAYOUTRECALL timeout: the client did not return the
+layout within the recall timeout.  REVOKE_STATEID
+terminates the client's ability to issue further I/O
+to the data server without waiting for tsa_expire.<a href="#section-6.3.3-7.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6.3.3-7.2">
+              <p id="section-6.3.3-7.2.1">LAYOUTERROR with NFS4ERR_ACCESS or NFS4ERR_PERM: the
+data server rejected the client's I/O; the trust
+entry is stale and must be removed.  This mirrors the
+fencing case in the loose-coupled model
+(<a href="#sec-Fencing-Clients" class="auto internal xref">Section 4.2</a>).<a href="#section-6.3.3-7.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6.3.3-7.3">
+              <p id="section-6.3.3-7.3.1">Explicit LAYOUTRETURN: the client returned the layout
+cleanly.  The metadata server <span class="bcp14">MAY</span> issue REVOKE_STATEID
+at this time or <span class="bcp14">MAY</span> rely on tsa_expire; either is
+correct.<a href="#section-6.3.3-7.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-6.3.3-8">In-flight CHUNK_* operations that arrived before
+REVOKE_STATEID completes <span class="bcp14">MAY</span> be allowed to finish.  The
+data server <span class="bcp14">MUST NOT</span> process new CHUNK_* operations
+presenting rsa_layout_stateid after REVOKE_STATEID
+returns.<a href="#section-6.3.3-8" class="pilcrow">¶</a></p>
+<p id="section-6.3.3-9">Lock state (see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) held by the revoked
+stateid is NOT released as part of REVOKE_STATEID; the
+data server <span class="bcp14">MUST</span> transfer each held lock to the
+MDS-escrow owner (see <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>).
+Dropping a chunk lock during revocation would permit a
+write hole and is prohibited; the repair coordination
+sequence in <span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span> assumes that locks
+held by a revoked writer remain held until a repair
+client adopts them via CHUNK_LOCK with
+CHUNK_LOCK_FLAGS_ADOPT.<a href="#section-6.3.3-9" class="pilcrow">¶</a></p>
+<p id="section-6.3.3-10">REVOKE_STATEID is scoped to the issuing metadata
+server's entries (see the tagging rule in
+<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>).  The data server <span class="bcp14">MUST NOT</span>
+remove an entry that was registered by a different
+metadata server, even if rsa_layout_stateid happens to
+match.  In a multi-metadata-server deployment, one
+metadata server therefore cannot revoke another
+metadata server's entries.<a href="#section-6.3.3-10" class="pilcrow">¶</a></p>
+<p id="section-6.3.3-11">REVOKE_STATEID is idempotent: revoking a stateid that
+has no matching trust entry (either no entry exists, or
+the entry was registered by a different metadata
+server) returns NFS4_OK.  The metadata server therefore
+does not need to track precisely which entries are
+currently live on which data server in order to revoke
+safely.<a href="#section-6.3.3-11" class="pilcrow">¶</a></p>
+<p id="section-6.3.3-12">REVOKE_STATEID returns only a top-level status; there
+is no result body beyond the nfsstat4 discriminant.<a href="#section-6.3.3-12" class="pilcrow">¶</a></p>
+<p id="section-6.3.3-13">If the current filehandle is not an ordinary file, an
+error <span class="bcp14">MUST</span> be returned (NFS4ERR_ISDIR / NFS4ERR_SYMLINK /
+NFS4ERR_WRONG_TYPE).<a href="#section-6.3.3-13" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="response-codes-1">
+<section id="section-6.3.4">
+          <h4 id="name-response-codes-2">
+<a href="#section-6.3.4" class="section-number selfRef">6.3.4. </a><a href="#name-response-codes-2" class="section-name selfRef">RESPONSE CODES</a>
+          </h4>
+<span class="break"></span><dl class="dlParallel" id="section-6.3.4-1">
+            <dt id="section-6.3.4-1.1">NFS4_OK:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.2">
+              <p id="section-6.3.4-1.2.1">the trust entry was removed, or no matching entry
+existed (idempotent).<a href="#section-6.3.4-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.3.4-1.3">NFS4ERR_BADXDR:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.4">
+              <p id="section-6.3.4-1.4.1">arguments could not be decoded.<a href="#section-6.3.4-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.3.4-1.5">NFS4ERR_BAD_STATEID:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.6">
+              <p id="section-6.3.4-1.6.1">rsa_layout_stateid was a special stateid.<a href="#section-6.3.4-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.3.4-1.7">NFS4ERR_DELAY:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.8">
+              <p id="section-6.3.4-1.8.1">the data server is temporarily unable to process
+the request.<a href="#section-6.3.4-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.3.4-1.9">NFS4ERR_INVAL:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.10">
+              <p id="section-6.3.4-1.10.1">rsa_layout_stateid was the anonymous stateid.<a href="#section-6.3.4-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.3.4-1.11">NFS4ERR_NOFILEHANDLE:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.12">
+              <p id="section-6.3.4-1.12.1">no current filehandle is set.<a href="#section-6.3.4-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.3.4-1.13">NFS4ERR_NOTSUPP:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.14">
+              <p id="section-6.3.4-1.14.1">the data server does not implement
+REVOKE_STATEID.<a href="#section-6.3.4-1.14.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.3.4-1.15">NFS4ERR_PERM:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.16">
+              <p id="section-6.3.4-1.16.1">the request arrived on a session whose owning
+client did not present EXCHGID4_FLAG_USE_PNFS_MDS.<a href="#section-6.3.4-1.16.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.3.4-1.17">NFS4ERR_SERVERFAULT:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.3.4-1.18">
+              <p id="section-6.3.4-1.18.1">the data server failed while processing
+the request.<a href="#section-6.3.4-1.18.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-BULK_REVOKE_STATEID">
+<section id="section-6.4">
+        <h3 id="name-operation-91-bulk_revoke_st">
+<a href="#section-6.4" class="section-number selfRef">6.4. </a><a href="#name-operation-91-bulk_revoke_st" class="section-name selfRef">Operation 91: BULK_REVOKE_STATEID - Revoke All Stateids for a Client</a>
+        </h3>
+<div id="arguments-2">
+<section id="section-6.4.1">
+          <h4 id="name-arguments-3">
+<a href="#section-6.4.1" class="section-number selfRef">6.4.1. </a><a href="#name-arguments-3" class="section-name selfRef">ARGUMENTS</a>
+          </h4>
+<span id="name-xdr-for-bulk_revoke_stateid"></span><div id="fig-BULK_REVOKE_STATEID4args">
+<figure id="figure-12">
+            <div class="lang-xdr sourcecode" id="section-6.4.1-1.1">
+<pre>
+   /// struct BULK_REVOKE_STATEID4args {
+   ///     clientid4       brsa_clientid;
+   /// };
+</pre>
+</div>
+<figcaption><a href="#figure-12" class="selfRef">Figure 12</a>:
+<a href="#name-xdr-for-bulk_revoke_stateid" class="selfRef">XDR for BULK_REVOKE_STATEID4args</a>
+            </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="results-2">
+<section id="section-6.4.2">
+          <h4 id="name-results-3">
+<a href="#section-6.4.2" class="section-number selfRef">6.4.2. </a><a href="#name-results-3" class="section-name selfRef">RESULTS</a>
+          </h4>
+<span id="name-xdr-for-bulk_revoke_stateid4"></span><div id="fig-BULK_REVOKE_STATEID4res">
+<figure id="figure-13">
+            <div class="lang-xdr sourcecode" id="section-6.4.2-1.1">
+<pre>
+   /// union BULK_REVOKE_STATEID4res switch (nfsstat4 brsr_status) {
+   ///     case NFS4_OK:
+   ///         void;
+   ///     default:
+   ///         void;
+   /// };
+</pre>
+</div>
+<figcaption><a href="#figure-13" class="selfRef">Figure 13</a>:
+<a href="#name-xdr-for-bulk_revoke_stateid4" class="selfRef">XDR for BULK_REVOKE_STATEID4res</a>
+            </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="description-2">
+<section id="section-6.4.3">
+          <h4 id="name-description-3">
+<a href="#section-6.4.3" class="section-number selfRef">6.4.3. </a><a href="#name-description-3" class="section-name selfRef">DESCRIPTION</a>
+          </h4>
+<p id="section-6.4.3-1">BULK_REVOKE_STATEID removes every trust entry on the data
+server that was registered on behalf of a single named
+client.  Unlike REVOKE_STATEID (<a href="#sec-REVOKE_STATEID" class="auto internal xref">Section 6.3</a>),
+which removes one entry identified by a (filehandle,
+stateid) pair, BULK_REVOKE_STATEID does not target a
+specific filehandle or stateid; it instructs the data
+server to scan its trust table and remove every entry
+whose owning pNFS client matches brsa_clientid (and whose
+issuing metadata server matches the calling MDS).<a href="#section-6.4.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.4.3-2">BULK_REVOKE_STATEID has no analog in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.  RFC 8881
+recall-all is expressed at the layout layer
+(CB_LAYOUTRECALL with LAYOUTRECALL4_ALL); the per-client
+trust-table sweep introduced here is the data-server-side
+complement, replacing the N per-file REVOKE_STATEID
+compounds that per-entry revocation would require with a
+single round-trip.<a href="#section-6.4.3-2" class="pilcrow">¶</a></p>
+<p id="section-6.4.3-3">BULK_REVOKE_STATEID is an MDS-to-DS operation; pNFS
+clients <span class="bcp14">MUST NOT</span> send it.  The data server <span class="bcp14">MUST</span> verify
+that the operation arrived on a session whose owning
+client presented EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
+and reject any BULK_REVOKE_STATEID received on a regular
+client session with NFS4ERR_PERM.  BULK_REVOKE_STATEID
+does not operate on the current filehandle; no PUTFH is
+required in the compound.<a href="#section-6.4.3-3" class="pilcrow">¶</a></p>
+<p id="section-6.4.3-4">The metadata server provides:<a href="#section-6.4.3-4" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-6.4.3-5">
+            <dt id="section-6.4.3-5.1">brsa_clientid:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.4.3-5.2">
+              <p id="section-6.4.3-5.2.1">the clientid of the pNFS client whose trust entries
+are to be removed.  The special all-zeros value means
+"remove every trust entry owned by the calling
+metadata server, regardless of which pNFS client
+registered it"; the data server <span class="bcp14">MUST</span> interpret this
+value as a sweep of its own entries only, NOT as the
+pNFS client whose clientid happens to be zero and NOT
+as a global cross-MDS table clear.<a href="#section-6.4.3-5.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-6.4.3-6">The metadata server calls BULK_REVOKE_STATEID in any of
+the following situations:<a href="#section-6.4.3-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.4.3-7.1">
+              <p id="section-6.4.3-7.1.1">Client lease expiry: when a client's lease on the
+metadata server expires, the metadata server revokes
+all of that client's layouts.  A single
+BULK_REVOKE_STATEID with brsa_clientid set to the
+expired client's clientid sweeps every per-file trust
+entry the metadata server had registered for that
+client.<a href="#section-6.4.3-7.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6.4.3-7.2">
+              <p id="section-6.4.3-7.2.1">CB_LAYOUTRECALL with LAYOUTRECALL4_ALL: the metadata
+server is recalling all layouts for a client.
+BULK_REVOKE_STATEID is the data-server-side
+complement.<a href="#section-6.4.3-7.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6.4.3-7.3">
+              <p id="section-6.4.3-7.3.1">Metadata server restart cleanup: after the metadata
+server reconnects to a data server, it <span class="bcp14">MAY</span> issue
+BULK_REVOKE_STATEID with brsa_clientid set to
+all-zeros to clear the prior trust table before
+re-issuing TRUST_STATEID as clients reclaim.  See
+<a href="#sec-tight-coupling-mds-crash" class="auto internal xref">Section 4.4.8</a>.<a href="#section-6.4.3-7.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-6.4.3-8">BULK_REVOKE_STATEID is scoped to the issuing metadata
+server's entries (see the tagging rule in
+<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>).  The data server <span class="bcp14">MUST NOT</span> affect
+entries registered by a different metadata server.
+Consequently, in a multi-metadata-server deployment
+sharing a single data server, one metadata server cannot
+clear another metadata server's entries via
+BULK_REVOKE_STATEID.<a href="#section-6.4.3-8" class="pilcrow">¶</a></p>
+<p id="section-6.4.3-9">Like REVOKE_STATEID, BULK_REVOKE_STATEID is idempotent
+(no error is returned if there are no matching entries)
+and preserves chunk locks held under any revoked stateid
+by transferring them to the MDS-escrow owner (see
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>), rather than dropping them.
+Subsequent CHUNK_* operations from the revoked client
+fail with NFS4ERR_BAD_STATEID; locks held under those
+revoked stateids remain until adopted by a repair
+client via CHUNK_LOCK with CHUNK_LOCK_FLAGS_ADOPT
+(<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>).<a href="#section-6.4.3-9" class="pilcrow">¶</a></p>
+<p id="section-6.4.3-10">BULK_REVOKE_STATEID returns only a top-level status;
+there is no result body beyond the nfsstat4 discriminant.<a href="#section-6.4.3-10" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="response-codes-2">
+<section id="section-6.4.4">
+          <h4 id="name-response-codes-3">
+<a href="#section-6.4.4" class="section-number selfRef">6.4.4. </a><a href="#name-response-codes-3" class="section-name selfRef">RESPONSE CODES</a>
+          </h4>
+<span class="break"></span><dl class="dlParallel" id="section-6.4.4-1">
+            <dt id="section-6.4.4-1.1">NFS4_OK:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.4.4-1.2">
+              <p id="section-6.4.4-1.2.1">the matching entries were removed, or there were
+none (idempotent).<a href="#section-6.4.4-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.4.4-1.3">NFS4ERR_BADXDR:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.4.4-1.4">
+              <p id="section-6.4.4-1.4.1">arguments could not be decoded.<a href="#section-6.4.4-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.4.4-1.5">NFS4ERR_DELAY:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.4.4-1.6">
+              <p id="section-6.4.4-1.6.1">the data server is temporarily unable to process
+the request.<a href="#section-6.4.4-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.4.4-1.7">NFS4ERR_NOTSUPP:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.4.4-1.8">
+              <p id="section-6.4.4-1.8.1">the data server does not implement
+BULK_REVOKE_STATEID.<a href="#section-6.4.4-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.4.4-1.9">NFS4ERR_PERM:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.4.4-1.10">
+              <p id="section-6.4.4-1.10.1">the request arrived on a session whose owning
+client did not present EXCHGID4_FLAG_USE_PNFS_MDS.<a href="#section-6.4.4-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-6.4.4-1.11">NFS4ERR_SERVERFAULT:</dt>
+            <dd style="margin-left: 1.5em" id="section-6.4.4-1.12">
+              <p id="section-6.4.4-1.12.1">the data server failed while processing
+the request.<a href="#section-6.4.4-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-7">
+      <h2 id="name-security-considerations">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="sec-security-trust-stateid">
+<section id="section-7.1">
+        <h3 id="name-trusted-stateids">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-trusted-stateids" class="section-name selfRef">Trusted Stateids</a>
+        </h3>
+<p id="section-7.1-1">The TRUST_STATEID, REVOKE_STATEID, and BULK_REVOKE_STATEID
+operations (<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>, <a href="#sec-REVOKE_STATEID" class="auto internal xref">Section 6.3</a>,
+<a href="#sec-BULK_REVOKE_STATEID" class="auto internal xref">Section 6.4</a>) introduce a per-stateid
+authorization channel between the metadata server and the
+data server.  The security implications of that channel are
+distinct from those of the loosely coupled synthetic-uid
+model (<a href="#sec-Fencing-Clients" class="auto internal xref">Section 4.2</a>) and warrant their own
+treatment.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<div id="interaction-with-kerberos-and-rpcsecgss">
+<section id="section-7.1.1">
+          <h4 id="name-interaction-with-kerberos-a">
+<a href="#section-7.1.1" class="section-number selfRef">7.1.1. </a><a href="#name-interaction-with-kerberos-a" class="section-name selfRef">Interaction with Kerberos and RPCSEC_GSS</a>
+          </h4>
+<p id="section-7.1.1-1">Trusted stateids decouple the credential the data server
+uses to authorize I/O from the credential the client uses
+to authenticate to the data server.  Under loose coupling
+(<a href="#sec-Fencing-Clients" class="auto internal xref">Section 4.2</a>), the metadata server inserts a
+synthetic uid/gid into the layout and the client presents
+that synthetic credential on every data-server RPC; the
+data server has no independent verification of the
+client's identity, and a client that learns another
+client's synthetic uid/gid can impersonate it on the data
+path.  Tight coupling via TRUST_STATEID changes this in
+three ways:<a href="#section-7.1.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.1.1-2.1">
+              <p id="section-7.1.1-2.1.1">The metadata server records the client's authenticated
+principal in the trust entry via tsa_principal at
+TRUST_STATEID time (<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>).  Under
+RPCSEC_GSS (typically Kerberos V5 GSS-API per
+<span>[<a href="#RFC4121" class="cite xref">RFC4121</a>]</span>), tsa_principal is the GSS display name
+(for example, "alice@REALM"); under AUTH_SYS and TLS,
+tsa_principal is the empty string.<a href="#section-7.1.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-7.1.1-2.2">
+              <p id="section-7.1.1-2.2.1">The client presents its own RPCSEC_GSS context on each
+CHUNK_* operation against the data server.  Under
+tight coupling with GSS, the data server <span class="bcp14">MUST</span> verify
+that the principal carried in the inbound RPC's
+RPCSEC_GSS context matches the tsa_principal recorded
+for the stateid in its trust table; a mismatch returns
+NFS4ERR_ACCESS.  A client that learned another
+client's layout stateid (from a log file, a packet
+capture of cleartext RPC, or any other leak) cannot
+use it because their own GSS principal would not
+match.<a href="#section-7.1.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-7.1.1-2.3">
+              <p id="section-7.1.1-2.3.1">The data server does NOT need its own Kerberos keytab
+to validate each client principal individually.  In a
+loose-coupling Kerberos deployment the data server
+would have to be a service principal in every realm
+it serves clients from; under tight coupling the data
+server's keytab is only required for its session with
+the metadata server (the control session,
+<a href="#sec-tight-coupling-control" class="auto internal xref">Section 4.4</a>).  Operational
+complexity of Kerberos deployment is meaningfully
+reduced.<a href="#section-7.1.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-7.1.1-3">The mechanism does not authenticate the metadata server
+to the client; it authenticates the client to the data
+server using credentials the metadata server vouched for
+at LAYOUTGET time.  Compromise of the metadata server
+allows an attacker to register arbitrary trust entries;
+the metadata server is the trust anchor for the layout
+grant, unchanged from the existing pNFS layout-issuance
+model.<a href="#section-7.1.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="attack-surfaces-and-mitigations">
+<section id="section-7.1.2">
+          <h4 id="name-attack-surfaces-and-mitigat">
+<a href="#section-7.1.2" class="section-number selfRef">7.1.2. </a><a href="#name-attack-surfaces-and-mitigat" class="section-name selfRef">Attack Surfaces and Mitigations</a>
+          </h4>
+<span class="break"></span><dl class="dlParallel" id="section-7.1.2-1">
+            <dt id="section-7.1.2-1.1">Compromised metadata server:</dt>
+            <dd style="margin-left: 1.5em" id="section-7.1.2-1.2">
+              <p id="section-7.1.2-1.2.1">An attacker controlling the metadata server can issue
+TRUST_STATEID for any (layout stateid, principal)
+pair.  This is the same trust assumption pNFS already
+makes -- the metadata server grants layouts and the
+data servers honour them.  Deployment defence is the
+same: restrict administrative access to the metadata
+server, require RPCSEC_GSS or RPC-over-TLS
+(<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) with mutual authentication on the
+control session (<a href="#sec-tight-coupling-control" class="auto internal xref">Section 4.4</a>), and
+monitor for anomalous TRUST_STATEID volume.<a href="#section-7.1.2-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-7.1.2-1.3">Compromised data server:</dt>
+            <dd style="margin-left: 1.5em" id="section-7.1.2-1.4">
+              <p id="section-7.1.2-1.4.1">A compromised data server sees plaintext chunk
+payloads at rest and on the wire (subject to whatever
+the deployment uses for at-rest encryption and
+transport security).  It can return arbitrary content
+on CHUNK_READ with a correctly computed checksum; the
+checksum protects against transport corruption, not
+adversarial content (<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>).
+This is the same as the RAID-stripe trust model:
+each shard host can lie about its shard.  Deployment
+defences are encryption at rest, an integrity-
+protected transport (RPCSEC_GSS_KRB5I or TLS), and
+physical or logical isolation of data servers.<a href="#section-7.1.2-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-7.1.2-1.5">Stateid leak from client to attacker:</dt>
+            <dd style="margin-left: 1.5em" id="section-7.1.2-1.6">
+              <p id="section-7.1.2-1.6.1">Under tight coupling with RPCSEC_GSS, a leaked
+stateid is not exploitable: the attacker's own RPC
+principal will not match tsa_principal in the trust
+table, and the data server returns NFS4ERR_ACCESS.
+Under tight coupling with AUTH_SYS over TLS (where
+tsa_principal is empty), a leaked stateid is
+exploitable by any attacker who can also forge the
+source-address binding the data server's TLS session
+expects; this is the standard AUTH_SYS-over-TLS
+trust model, unchanged.<a href="#section-7.1.2-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-7.1.2-1.7">Replay of revoked stateid:</dt>
+            <dd style="margin-left: 1.5em" id="section-7.1.2-1.8">
+              <p id="section-7.1.2-1.8.1">After REVOKE_STATEID or BULK_REVOKE_STATEID the data
+server removes the trust entry and subsequent CHUNK_*
+operations presenting the revoked stateid fail with
+NFS4ERR_BAD_STATEID (<a href="#sec-REVOKE_STATEID" class="auto internal xref">Section 6.3</a>).  An
+in-flight CHUNK_* operation that arrived before the
+revoke completed <span class="bcp14">MAY</span> be allowed to finish; the
+chunk_guard4 CAS (<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) bounds the
+worst-case damage from such in-flight I/O to the
+chunks already PENDING at revocation time, and the
+lock-transfer-to-MDS-escrow rule
+(<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-chunks" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-chunks</a>]</span>) prevents a write hole from
+opening during revocation.<a href="#section-7.1.2-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-7.1.2-1.9">Compromised control session:</dt>
+            <dd style="margin-left: 1.5em" id="section-7.1.2-1.10">
+              <p id="section-7.1.2-1.10.1">An attacker who controls the metadata-server-to-data-
+server control session can register or revoke
+arbitrary trust entries.  The control session is the
+most security-sensitive surface introduced by tight
+coupling.  Deployment <span class="bcp14">MUST</span> protect it with RPCSEC_GSS
+(<span>[<a href="#RFC7861" class="cite xref">RFC7861</a>]</span>) using a service principal both sides
+trust, or with RPC-over-TLS (<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) using
+mutual authentication and allowlisted certificates.
+The data server enforces that TRUST_STATEID,
+REVOKE_STATEID, and BULK_REVOKE_STATEID only arrive
+on sessions whose owning client presented
+EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
+(<a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>), but that flag alone does not
+authenticate the metadata server.<a href="#section-7.1.2-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-7.1.2-1.11">Resource exhaustion via trust-table flood:</dt>
+            <dd style="margin-left: 1.5em" id="section-7.1.2-1.12">
+              <p id="section-7.1.2-1.12.1">A misbehaving metadata server could register an
+unbounded number of TRUST_STATEID entries to exhaust
+the data server's trust-table memory.  The mechanism
+defending against this is the tsa_expire lease on
+each entry: trust entries that are not renewed
+before expiry are reaped by the data server.  A data
+server under memory pressure <span class="bcp14">MAY</span> also return
+NFS4ERR_DELAY on new TRUST_STATEID requests, forcing
+the metadata server to back off.<a href="#section-7.1.2-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-7.1.2-1.13">Cross-metadata-server isolation:</dt>
+            <dd style="margin-left: 1.5em" id="section-7.1.2-1.14">
+              <p id="section-7.1.2-1.14.1">In a deployment where two metadata servers share a
+single data server, the per-entry metadata-server
+tag (derived from the control session's owning
+client; see <a href="#sec-TRUST_STATEID" class="auto internal xref">Section 6.2</a>) ensures that
+REVOKE_STATEID and BULK_REVOKE_STATEID from one
+metadata server cannot remove entries registered by
+the other.  A compromised metadata server can,
+however, register entries against any filehandle the
+data server exposes to it.  Deployments concerned
+about cross-metadata-server isolation <span class="bcp14">MUST</span> partition
+the data server's filesystem namespace into
+per-metadata-server exports at the data server,
+rather than rely on the trust table alone to enforce
+file-level boundaries between metadata servers.<a href="#section-7.1.2-1.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-8">
+      <h2 id="name-iana-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-8-1">NFSv4 operation numbers are governed by the publishing
+standards-track document, not by an IANA registry (there is no
+"NFSv4 Operations" IANA registry that assigns opcodes; see
+<span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>, whose operation numbers were similarly assigned by
+the publishing document rather than by IANA action).  This
+document therefore assigns -- rather than requests IANA to assign
+-- the following new NFSv4.2 operation numbers, extending the
+assignments of <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>:<a href="#section-8-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8-2.1">
+          <p id="section-8-2.1.1">Value 89: TRUST_STATEID<a href="#section-8-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-8-2.2">
+          <p id="section-8-2.2.1">Value 90: REVOKE_STATEID<a href="#section-8-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-8-2.3">
+          <p id="section-8-2.3.1">Value 91: BULK_REVOKE_STATEID<a href="#section-8-2.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-8-3">The reference for each is this document.  No IANA action is
+required for this section.<a href="#section-8-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="section-9">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="section-9-1">See the Acknowledgments section of
+<span>[<a href="#I-D.haynes-nfsv4-flexfiles-v2-requirements" class="cite xref">I-D.haynes-nfsv4-flexfiles-v2-requirements</a>]</span>.<a href="#section-9-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-10">
+      <h2 id="name-references">
+<a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-10.1">
+        <h3 id="name-normative-references">
+<a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-layout">[I-D.haynes-nfsv4-flexfiles-v2-layout]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-requirements">[I-D.haynes-nfsv4-flexfiles-v2-requirements]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC4121">[RFC4121]</dt>
+        <dd>
+<span class="refAuthor">Zhu, L.</span>, <span class="refAuthor">Jaganathan, K.</span>, and <span class="refAuthor">S. Hartman</span>, <span class="refTitle">"The Kerberos Version 5 Generic Security Service Application Program Interface (GSS-API) Mechanism: Version 2"</span>, <span class="seriesInfo">RFC 4121</span>, <span class="seriesInfo">DOI 10.17487/RFC4121</span>, <time datetime="2005-07" class="refDate">July 2005</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc4121">https://www.rfc-editor.org/rfc/rfc4121</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC4506">[RFC4506]</dt>
+        <dd>
+<span class="refAuthor">Eisler, M., Ed.</span>, <span class="refTitle">"XDR: External Data Representation Standard"</span>, <span class="seriesInfo">STD 67</span>, <span class="seriesInfo">RFC 4506</span>, <span class="seriesInfo">DOI 10.17487/RFC4506</span>, <time datetime="2006-05" class="refDate">May 2006</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc4506">https://www.rfc-editor.org/rfc/rfc4506</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5531">[RFC5531]</dt>
+        <dd>
+<span class="refAuthor">Thurlow, R.</span>, <span class="refTitle">"RPC: Remote Procedure Call Protocol Specification Version 2"</span>, <span class="seriesInfo">RFC 5531</span>, <span class="seriesInfo">DOI 10.17487/RFC5531</span>, <time datetime="2009-05" class="refDate">May 2009</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5531">https://www.rfc-editor.org/rfc/rfc5531</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5661">[RFC5661]</dt>
+        <dd>
+<span class="refAuthor">Shepler, S., Ed.</span>, <span class="refAuthor">Eisler, M., Ed.</span>, and <span class="refAuthor">D. Noveck, Ed.</span>, <span class="refTitle">"Network File System (NFS) Version 4 Minor Version 1 Protocol"</span>, <span class="seriesInfo">RFC 5661</span>, <span class="seriesInfo">DOI 10.17487/RFC5661</span>, <time datetime="2010-01" class="refDate">January 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5661">https://www.rfc-editor.org/rfc/rfc5661</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7861">[RFC7861]</dt>
+        <dd>
+<span class="refAuthor">Adamson, A.</span> and <span class="refAuthor">N. Williams</span>, <span class="refTitle">"Remote Procedure Call (RPC) Security Version 3"</span>, <span class="seriesInfo">RFC 7861</span>, <span class="seriesInfo">DOI 10.17487/RFC7861</span>, <time datetime="2016-11" class="refDate">November 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7861">https://www.rfc-editor.org/rfc/rfc7861</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7862">[RFC7862]</dt>
+        <dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Network File System (NFS) Version 4 Minor Version 2 Protocol"</span>, <span class="seriesInfo">RFC 7862</span>, <span class="seriesInfo">DOI 10.17487/RFC7862</span>, <time datetime="2016-11" class="refDate">November 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7862">https://www.rfc-editor.org/rfc/rfc7862</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8434">[RFC8434]</dt>
+        <dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Requirements for Parallel NFS (pNFS) Layout Types"</span>, <span class="seriesInfo">RFC 8434</span>, <span class="seriesInfo">DOI 10.17487/RFC8434</span>, <time datetime="2018-08" class="refDate">August 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8434">https://www.rfc-editor.org/rfc/rfc8434</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8881">[RFC8881]</dt>
+        <dd>
+<span class="refAuthor">Noveck, D., Ed.</span> and <span class="refAuthor">C. Lever</span>, <span class="refTitle">"Network File System (NFS) Version 4 Minor Version 1 Protocol"</span>, <span class="seriesInfo">RFC 8881</span>, <span class="seriesInfo">DOI 10.17487/RFC8881</span>, <time datetime="2020-08" class="refDate">August 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8881">https://www.rfc-editor.org/rfc/rfc8881</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9289">[RFC9289]</dt>
+      <dd>
+<span class="refAuthor">Myklebust, T.</span> and <span class="refAuthor">C. Lever, Ed.</span>, <span class="refTitle">"Towards Remote Procedure Call Encryption by Default"</span>, <span class="seriesInfo">RFC 9289</span>, <span class="seriesInfo">DOI 10.17487/RFC9289</span>, <time datetime="2022-09" class="refDate">September 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9289">https://www.rfc-editor.org/rfc/rfc9289</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-10.2">
+        <h3 id="name-informative-references">
+<a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-chunks">[I-D.haynes-nfsv4-flexfiles-v2-chunks]</dt>
+        <dd>
+<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.haynes-nfsv4-flexfiles-v2-proxy-server">[I-D.haynes-nfsv4-flexfiles-v2-proxy-server]</dt>
+        <dd>
+<span class="refAuthor">Haynes, T.</span>, <span class="refTitle">"Proxy-Driven Server for Flexible Files Version 2"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-haynes-nfsv4-flexfiles-v2-proxy-server-04</span>, <time datetime="2026-08-07" class="refDate">7 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-04">https://datatracker.ietf.org/doc/html/draft-haynes-nfsv4-flexfiles-v2-proxy-server-04</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC4519">[RFC4519]</dt>
+        <dd>
+<span class="refAuthor">Sciberras, A., Ed.</span>, <span class="refTitle">"Lightweight Directory Access Protocol (LDAP): Schema for User Applications"</span>, <span class="seriesInfo">RFC 4519</span>, <span class="seriesInfo">DOI 10.17487/RFC4519</span>, <time datetime="2006-06" class="refDate">June 2006</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc4519">https://www.rfc-editor.org/rfc/rfc4519</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5905">[RFC5905]</dt>
+        <dd>
+<span class="refAuthor">Mills, D.</span>, <span class="refAuthor">Martin, J., Ed.</span>, <span class="refAuthor">Burbank, J.</span>, and <span class="refAuthor">W. Kasch</span>, <span class="refTitle">"Network Time Protocol Version 4: Protocol and Algorithms Specification"</span>, <span class="seriesInfo">RFC 5905</span>, <span class="seriesInfo">DOI 10.17487/RFC5905</span>, <time datetime="2010-06" class="refDate">June 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5905">https://www.rfc-editor.org/rfc/rfc5905</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8435">[RFC8435]</dt>
+      <dd>
+<span class="refAuthor">Halevy, B.</span> and <span class="refAuthor">T. Haynes</span>, <span class="refTitle">"Parallel NFS (pNFS) Flexible File Layout"</span>, <span class="seriesInfo">RFC 8435</span>, <span class="seriesInfo">DOI 10.17487/RFC8435</span>, <time datetime="2018-08" class="refDate">August 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8435">https://www.rfc-editor.org/rfc/rfc8435</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-A">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Thomas Haynes</span></div>
+<div dir="auto" class="left"><span class="org">Hammerspace</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:loghyr@gmail.com" class="email">loghyr@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>

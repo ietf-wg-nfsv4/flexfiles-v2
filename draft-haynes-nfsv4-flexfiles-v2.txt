@@ -14187,11 +14187,7 @@ Table of Contents
 31.1.  Normative References
 
    [I-D.haynes-nfsv4-flexfiles-v2-delta-writes]
-              Haynes, T., "Delta-Write Extension for the Flexible File
-              Version 2 Layout Type", Work in Progress, Internet-Draft,
-              draft-haynes-nfsv4-flexfiles-v2-delta-writes-00, 7 August
-              2026, <https://datatracker.ietf.org/doc/html/draft-haynes-
-              nfsv4-flexfiles-v2-delta-writes-00>.
+              "*** BROKEN REFERENCE ***".
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
