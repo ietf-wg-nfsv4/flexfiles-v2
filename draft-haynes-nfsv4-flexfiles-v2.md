@@ -46,6 +46,15 @@ normative:
   RFC9289:
 
 informative:
+  POSIX:
+    title: "IEEE Standard for Information Technology--Portable Operating System Interface (POSIX) Base Specifications, Issue 8"
+    author:
+    - org: IEEE
+    - org: The Open Group
+    seriesinfo:
+      IEEE: Std 1003.1-2024
+    date: 2024
+    target: https://standards.ieee.org/ieee/1003.1/7700/
   Plank97:
     title: A Tutorial on Reed-Solomon Coding for Fault-Tolerance in RAID-like System
     target: http://web.eecs.utk.edu/~jplank/plank/papers/CS-96-332.htm
@@ -15126,8 +15135,10 @@ This document contains the External Data Representation (XDR)
 {{RFC4506}} description of the flexible file v2 layout.  The XDR
 description is embedded in this document in a way that makes it simple
 for the reader to extract into a ready-to-compile form.  The reader can
-feed this document into the shell script in {{fig-extract}} to produce
-the machine-readable XDR description of the flexible file v2 layout.
+feed this document into the shell script in {{fig-extract}}, which
+relies on the sh, grep, and sed utilities as specified by {{POSIX}},
+to produce the machine-readable XDR description of the flexible file
+v2 layout.
 
 ~~~ shell
 #!/bin/sh
