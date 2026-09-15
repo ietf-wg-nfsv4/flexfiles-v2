@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                        5 September 2026
-Expires: 9 March 2027
+Intended status: Standards Track                       15 September 2026
+Expires: 19 March 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 9 March 2027.
+   This Internet-Draft will expire on 19 March 2027.
 
 Copyright Notice
 
@@ -14150,9 +14150,10 @@ Table of Contents
    [RFC4506] description of the flexible file v2 layout.  The XDR
    description is embedded in this document in a way that makes it
    simple for the reader to extract into a ready-to-compile form.  The
-   reader can feed this document into the shell script in Figure 116 to
-   produce the machine-readable XDR description of the flexible file v2
-   layout.
+   reader can feed this document into the shell script in Figure 116,
+   which relies on the sh, grep, and sed utilities as specified by
+   [POSIX], to produce the machine-readable XDR description of the
+   flexible file v2 layout.
 
    #!/bin/sh
    grep '^ *///' $* | sed 's?^ */// ??' | sed 's?^ *///$??'
@@ -14187,7 +14188,11 @@ Table of Contents
 31.1.  Normative References
 
    [I-D.haynes-nfsv4-flexfiles-v2-delta-writes]
-              "*** BROKEN REFERENCE ***".
+              Haynes, T., "Delta-Write Extension for the Flexible File
+              Version 2 Layout Type", Work in Progress, Internet-Draft,
+              draft-haynes-nfsv4-flexfiles-v2-delta-writes-00, 7 August
+              2026, <https://datatracker.ietf.org/doc/html/draft-haynes-
+              nfsv4-flexfiles-v2-delta-writes-00>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -14335,6 +14340,11 @@ Table of Contents
               Tolerance in RAID-like System", September 1997,
               <http://web.eecs.utk.edu/~jplank/plank/papers/CS-
               96-332.htm>.
+
+   [POSIX]    IEEE and The Open Group, "IEEE Standard for Information
+              Technology--Portable Operating System Interface (POSIX)
+              Base Specifications, Issue 8", IEEE Std 1003.1-2024, 2024,
+              <https://standards.ieee.org/ieee/1003.1/7700/>.
 
    [RFC1813]  Callaghan, B., Pawlowski, B., and P. Staubach, "NFS
               Version 3 Protocol Specification", RFC 1813,
