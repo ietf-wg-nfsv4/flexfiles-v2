@@ -200,12 +200,21 @@ control protocol in a Standards Track document.  The requirements for
 a control protocol are specified in {{RFC8881}} and clarified in
 {{RFC8434}}.
 
-The control protocol described in this document is based on NFS.  It
-does not provide for knowledge of stateids to be passed between the
-metadata server and the storage devices.  Instead, the storage
-devices are configured such that the metadata server has full access
-rights to the data file system and then the metadata server uses
-synthetic ids to control client access to individual data files.
+This document defines a control protocol based on NFS: the
+TRUST_STATEID family ({{sec-tight-coupling-control}}), which
+passes the layout stateid from the metadata server to the storage
+device so that the storage device can validate client I/O itself.
+It also retains the control protocol of the flexible file v1
+layout, in which no stateid is passed, the storage devices are
+configured such that the metadata server has full access rights
+to the data file system, and the metadata server uses synthetic
+ids to control client access to individual data files
+({{sec-Fencing-Clients}}).  Which of the two applies to a given
+storage device is not a free choice: the synthetic-id model is
+available only for FFV2_ENCODING_PASSTHROUGH mirrors and for
+NFSv3 storage devices, and every other encoding type requires a
+tight coupling control protocol.  {{sec-ff_device_addr4}} states
+the rules.
 
 In traditional mirroring of data, the server is responsible for
 replicating, validating, and repairing copies of the data file.  With
