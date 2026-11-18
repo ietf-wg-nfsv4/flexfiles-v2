@@ -5192,39 +5192,22 @@ the (k, m) geometry matches.
 
 ### LINUX_MD_RAID Interoperability Test Vectors
 
-Concrete byte-level test vector with `k = 3`, `m = 2`,
-`shard_len = 1`:
-
-| `data[0]` | `data[1]` | `data[2]` | P     | Q     | Notes |
-|---|---|---|---|---|---|
-| `0x00`  | `0x00`  | `0x00`  | `0x00` | `0x00` | zero input                     |
-| `0x01`  | `0x02`  | `0x03`  | `0x00` | `0x09` | 1 XOR (2*2) XOR (4*3) = 1 XOR 4 XOR 12 = 9 |
-| `0x80`  | `0x00`  | `0x00`  | `0x80` | `0x80` | Q = 1 * 0x80 = 0x80            |
-| `0x00`  | `0x80`  | `0x00`  | `0x80` | `0x1d` | Q = 2 * 0x80 = 0x100 -> reduce by 0x11d -> 0x1d |
-| `0x00`  | `0x00`  | `0x80`  | `0x80` | `0x3a` | Q = 4 * 0x80 = 2 * 0x1d = 0x3a |
-| `0x37`  | `0x91`  | `0xac`  | `0x0a` | `0x82` | general non-degenerate case    |
-{: #tbl-linux-md-test-vector title="LINUX_MD_RAID test vector: k=3, m=2"}
-
-Every row above is byte-identical to the k=3, m=2 test vector
-for FFV2_ENCODING_RS_VANDERMONDE ({{tbl-rs-test-vector-k3m2}})
-at the same input.  This is the wire-compat property in
-action: an implementation whose LINUX_MD_RAID output matches
-these bytes is producing the same wire encoding as
-RS_VANDERMONDE at m=2.
+At `m = 2` the LINUX_MD_RAID P + Q construction produces
+byte-identical output to FFV2_ENCODING_RS_VANDERMONDE for the
+same input, so the two encodings share one test vector:
+{{tbl-rs-test-vector-k3m2}}, computed with `k = 3`, `m = 2`,
+`shard_len = 1`.  This is the wire-compat property in action:
+an implementation whose LINUX_MD_RAID output matches those
+bytes is producing the same wire encoding as RS_VANDERMONDE
+at m=2.
 
 ### LINUX_MD_RAID Shard Sizes
 
 All LINUX_MD_RAID shards (data, P, Q) are exactly shard_len
 bytes.  chunk_size equals shard_len for every mirror in the
-layout.  Total storage overhead is `2/k` of payload.
-
-| Configuration | File Size | Shard Size | Total Storage | Overhead |
-|---|---|---|---|---|
-| 4+2 | 4 KB | 1 KB   | 6 KB    | 50% |
-| 4+2 | 1 MB | 256 KB | 1.5 MB  | 50% |
-| 8+2 | 4 KB | 512 B  | 5 KB    | 25% |
-| 8+2 | 1 MB | 128 KB | 1.25 MB | 25% |
-{: #tbl-linux-md-shards title="LINUX_MD_RAID shard sizes for common configurations"}
+layout.  Total storage overhead is `2/k` of payload.  The
+worked configurations are those of RS_VANDERMONDE at m = 2:
+see {{tbl-rs-shards}}.
 
 ## Reed-Solomon Vandermonde Encoding (FFV2_ENCODING_RS_VANDERMONDE) {#sec-rs-encoding}
 
@@ -8257,7 +8240,7 @@ are defined in {{Section 15 of RFC8881}} and {{Section 11 of RFC7862}}.
 
 ## Errors and the Operations That Use Them
 
-The operations and their valid errors are presented in
+The errors and the operations that use them are presented in
 {{tbl-errors-and-ops}}.  All operations not defined in this document
 are defined in {{Section 18 of RFC8881}} and {{Section 15 of RFC7862}}.
 
@@ -8615,11 +8598,8 @@ populating ffv2m_client_id at layout-grant time):
    distinct value.
 
 -  The reserved sentinel CHUNK_GUARD_CLIENT_ID_NONE (0x00000000)
-   MUST NOT be assigned to any client.  Reserving 0 prevents an
-   uninitialized cg_client_id field from passing as a real
-   client and ensures the deterministic tiebreaker (numerically
-   lowest wins) does not encode an implicit priority via
-   assignment of 0.
+   MUST NOT be assigned to any client; {{sec-chunk_guard_none}}
+   gives the reason 0 is reserved.
 
 -  The reserved sentinel CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF)
    MUST NOT be assigned to any client.
