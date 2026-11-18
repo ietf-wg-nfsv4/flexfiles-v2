@@ -3543,6 +3543,24 @@ device.  The client can retry the GETDEVICEINFO to see if the
 metadata server can provide a different combination, or it can fall
 back to doing the I/O through the metadata server.
 
+A coupling mismatch is reported the same way but with a different
+error.  {{sec-ff_device_addr4}} constrains which
+(ffv2dv_version, ffv2dv_minorversion, ffv2dv_coupling) tuples are
+valid for a given encoding type; a client that is granted a layout
+whose mirror names an encoding the storage device's advertised
+tuple cannot serve -- a non-PASSTHROUGH encoding against
+FFV2_COUPLING_SYNTHETIC_UIDS, for instance -- MUST NOT issue I/O
+to that storage device, and reports the storage device in
+ffv2_ioerr4 with de_status set to NFS4ERR_INVAL.  The client's
+recourse is the same as above: retry the GETDEVICEINFO, or fall
+back to doing the I/O through the metadata server.
+NFS4ERR_MINOR_VERS_MISMATCH is not used for this case, because the
+client can communicate with the storage device over the advertised
+version; what it cannot do is use the encoding the layout asks of
+it.  Note that FFV2_COUPLING_SYNTHETIC_UIDS is the zero value of
+ffv2dv_coupling, so this is also what a client sees from a
+metadata server that leaves the field unset.
+
 #  Striping {#sec-striping}
 
 The flexible file v2 layout inherits the dense and sparse striping
