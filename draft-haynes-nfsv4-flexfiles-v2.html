@@ -23524,15 +23524,7 @@ framing is reflected in <a href="#sec-motivation" class="auto internal xref">Sec
 of <a href="#sec-system-model-consistency" class="auto internal xref">Section 12.8</a>.<a href="#appendix-E-4" class="pilcrow">¶</a></p>
 <p id="appendix-E-5">Lucheng Bao asked how a trusted stateid registration is
 protected against an on-path attacker, and why a data server
-under tight coupling would not need its own Kerberos keytab.
-The first question produced the authentication requirement on
-the control session in <a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a>,
-the comparison rule for tsa_principal in
-<a href="#sec-tight-coupling-principal" class="auto internal xref">Section 6.4.4</a>, and the downgrade entry in
-<a href="#sec-security-trust-stateid" class="auto internal xref">Section 28.7</a>.  The second corrected what the
-same section says a data server requires, which is a service
-principal and keytab for every session on which it accepts
-RPCSEC_GSS.<a href="#appendix-E-5" class="pilcrow">¶</a></p>
+under tight coupling would not need its own Kerberos keytab.<a href="#appendix-E-5" class="pilcrow">¶</a></p>
 <p id="appendix-E-6">The authors thank Dave Noveck, Chuck Lever, Tigran
 Mkrtchyan, Rick Macklem, Christoph Hellwig, and Sorin
 Faibish for their detailed review of earlier revisions of
