@@ -2378,12 +2378,21 @@ can either define its own proprietary mechanism or it could define a
 control protocol in a Standards Track document.  The requirements for
 a control protocol are specified in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and clarified in
 <span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
-<p id="section-1-4">The control protocol described in this document is based on NFS.  It
-does not provide for knowledge of stateids to be passed between the
-metadata server and the storage devices.  Instead, the storage
-devices are configured such that the metadata server has full access
-rights to the data file system and then the metadata server uses
-synthetic ids to control client access to individual data files.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-4">This document defines a control protocol based on NFS: the
+TRUST_STATEID family (<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>), which
+passes the layout stateid from the metadata server to the storage
+device so that the storage device can validate client I/O itself.
+It also retains the control protocol of the flexible file v1
+layout, in which no stateid is passed, the storage devices are
+configured such that the metadata server has full access rights
+to the data file system, and the metadata server uses synthetic
+ids to control client access to individual data files
+(<a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>).  Which of the two applies to a given
+storage device is not a free choice: the synthetic-id model is
+available only for FFV2_ENCODING_PASSTHROUGH mirrors and for
+NFSv3 storage devices, and every other encoding type requires a
+tight coupling control protocol.  <a href="#sec-ff_device_addr4" class="auto internal xref">Section 7.1</a> states
+the rules.<a href="#section-1-4" class="pilcrow">¶</a></p>
 <p id="section-1-5">In traditional mirroring of data, the server is responsible for
 replicating, validating, and repairing copies of the data file.  With
 client-side mirroring, the metadata server provides a layout that
@@ -2890,7 +2899,11 @@ storage devices.<a href="#section-5-4.38.1" class="pilcrow">¶</a></p>
         <dd class="break"></dd>
 <dt id="section-5-4.39">loose coupling:</dt>
         <dd style="margin-left: 1.5em" id="section-5-4.40">
-          <p id="section-5-4.40.1">when the control protocol is a storage protocol.<a href="#section-5-4.40.1" class="pilcrow">¶</a></p>
+          <p id="section-5-4.40.1">an arrangement in which there is no control protocol beyond the
+storage protocol used to access the data, so the storage device
+holds no metadata-server-registered stateid for a client and
+authorizes client access by the synthetic uid and gid values on the
+data file (<a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>).<a href="#section-5-4.40.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-5-4.41">(file) metadata:</dt>
@@ -3004,13 +3017,17 @@ Vandermonde and Mojette systematic are examples.<a href="#section-5-4.68.1" clas
         <dd class="break"></dd>
 <dt id="section-5-4.69">tight coupling:</dt>
         <dd style="margin-left: 1.5em" id="section-5-4.70">
-          <p id="section-5-4.70.1">an arrangement in which the control protocol is one designed
-specifically for control communication.  It may be either a proprietary
-protocol adapted specifically to a particular metadata server or a
-protocol based on a Standards Track document.  The specific
+          <p id="section-5-4.70.1">an arrangement in which a control protocol designed for control
+communication exists between the metadata server and the storage
+device, by which the metadata server conveys its authorization
+decision for a client.  It may be either a proprietary protocol
+adapted specifically to a particular metadata server or a protocol
+based on a Standards Track document, and it may be carried in
+operations of the storage protocol or out of band.  The specific
 tight coupling variant defined by this document, in which the
-control protocol is the TRUST_STATEID family, is referred to as
-trusted stateid tight coupling (see <a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>).<a href="#section-5-4.70.1" class="pilcrow">¶</a></p>
+control protocol is the TRUST_STATEID family carried in NFSv4.2
+operations, is referred to as trusted stateid tight coupling (see
+<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>).<a href="#section-5-4.70.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-5-4.71">trusted stateid tight coupling:</dt>
@@ -3135,30 +3152,42 @@ forms above, not the front-matter forms.<a href="#section-5.1-10" class="pilcrow
       <h2 id="name-coupling-of-storage-devices">
 <a href="#section-6" class="section-number selfRef">6. </a><a href="#name-coupling-of-storage-devices" class="section-name selfRef">Coupling of Storage Devices</a>
       </h2>
-<p id="section-6-1">A server implementation may choose either a loosely coupled model or a
-tightly coupled model between the metadata server and the storage devices.
-<span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span> describes the general problems facing pNFS implementations.
-This document details how the new flexible file v2 layout addresses
-these issues.  To implement the tightly coupled model, a control protocol
-has to be defined.  As the flexible file v2 layout imposes no special
-requirements on the client, the control protocol will need to provide:<a href="#section-6-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-6-2">
-<li id="section-6-2.1">
-          <p id="section-6-2.1.1">management of both security and LAYOUTCOMMITs; and<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-6-1">A metadata server and a storage device are either loosely
+coupled or tightly coupled.  <span>[<a href="#RFC8434" class="cite xref">RFC8434</a>]</span> describes the general
+problems facing pNFS implementations.  This document details how
+the new flexible file v2 layout addresses these issues.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">The two models are not interchangeable here.  Loose coupling
+serves FFV2_ENCODING_PASSTHROUGH mirrors and NFSv3 storage
+devices; every other encoding type requires a tight coupling
+control protocol, because the chunk lifecycle depends on a
+metadata-server-registered stateid and on the writer identity the
+storage device checks against it (<a href="#sec-ff_device_addr4" class="auto internal xref">Section 7.1</a> states
+the rule and <a href="#sec-CHUNK_WRITE" class="auto internal xref">Section 25.11</a> the dependency).  A deployment
+that offers only loosely coupled storage devices can serve no
+encoding but PASSTHROUGH.<a href="#section-6-2" class="pilcrow">¶</a></p>
+<p id="section-6-3">A tight coupling control protocol provides:<a href="#section-6-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6-4">
+<li id="section-6-4.1">
+          <p id="section-6-4.1.1">management of both security and LAYOUTCOMMITs; and<a href="#section-6-4.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-6-2.2">
-          <p id="section-6-2.2.1">a global stateid model and management of these stateids.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
+        <li id="section-6-4.2">
+          <p id="section-6-4.2.1">a global stateid model and management of these stateids.<a href="#section-6-4.2.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
-<p id="section-6-3">When implementing the loosely coupled model, the only control protocol
-will be a version of NFS, with no ability to provide a global stateid
-model or to prevent clients from using layouts inappropriately.  To enable
-client use in that environment, this document specifies how security,
-state, and locking are managed.<a href="#section-6-3" class="pilcrow">¶</a></p>
-<p id="section-6-4">The loosely and tightly coupled locking models defined in <span><a href="https://rfc-editor.org/rfc/rfc8435#section-2.3" class="relref">Section 2.3</a> of [<a href="#RFC8435" class="cite xref">RFC8435</a>]</span> apply equally to this layout type, including the use
+<p id="section-6-5">This document defines one such control protocol, the TRUST_STATEID
+family (<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>), carried in NFSv4.2
+operations; that section also covers a deployment whose metadata
+server and storage devices have a back-end control protocol of
+their own.<a href="#section-6-5" class="pilcrow">¶</a></p>
+<p id="section-6-6">Under loose coupling there is no control protocol beyond the
+storage protocol itself, so there is no global stateid model and
+no way to prevent clients from using layouts inappropriately.  To
+enable client use in that environment, this document specifies how
+security, state, and locking are managed.<a href="#section-6-6" class="pilcrow">¶</a></p>
+<p id="section-6-7">The loosely and tightly coupled locking models defined in <span><a href="https://rfc-editor.org/rfc/rfc8435#section-2.3" class="relref">Section 2.3</a> of [<a href="#RFC8435" class="cite xref">RFC8435</a>]</span> apply equally to this layout type, including the use
 of anonymous stateids with loosely coupled storage devices, the
 handling of lock and delegation stateids, and the mandatory byte range
-lock requirements for the tightly coupled model.<a href="#section-6-4" class="pilcrow">¶</a></p>
+lock requirements for the tightly coupled model.<a href="#section-6-7" class="pilcrow">¶</a></p>
 <div id="layoutcommit">
 <section id="section-6.1">
         <h3 id="name-layoutcommit">
@@ -3200,7 +3229,8 @@ get an NFS4ERR_ACCESS error.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
 off a single client; it is forced to fence off all clients.  However,
 as the other clients react to the fencing, returning their layouts and
 trying to get new ones, the metadata server can hand out a new uid and
-gid to allow access.<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+gid to allow access.  Tight coupling does not have this limitation
+(<a href="#sec-layout-revocation" class="auto internal xref">Section 20</a>).<a href="#section-6.2-2" class="pilcrow">¶</a></p>
 <p id="section-6.2-3">It is <span class="bcp14">RECOMMENDED</span> to implement common access control methods at the
 storage device file system to allow only the metadata server root
 (super user) access to the storage device and to set the owner of all
@@ -3235,12 +3265,16 @@ parity, not the mechanism that produces it.<a href="#section-6.2-4" class="pilcr
 receives the same authorization outcome it would have
 received via the metadata server.  In the case of tight
 coupling, fencing is the responsibility of the control
-protocol and is not described in detail in this document.
-Implementations of the tightly coupled locking model (see
-<a href="#sec-state-locking" class="auto internal xref">Section 6.3</a>) will need a way to prevent access by
-certain clients to specific files by invalidating the
-corresponding stateids on the storage device; in such a
-scenario, the client receives NFS4ERR_BAD_STATEID.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
+protocol: it prevents access by a client to a file by
+invalidating the corresponding stateid on the storage device,
+and the client receives NFS4ERR_BAD_STATEID.  For trusted
+stateid tight coupling that is REVOKE_STATEID and
+BULK_REVOKE_STATEID; <a href="#sec-layout-revocation" class="auto internal xref">Section 20</a> gives the
+mechanism for each coupling model, including a file whose
+layout has both PASSTHROUGH and chunked mirrors.  A
+deployment with a back-end control protocol of its own
+achieves the same effect through that protocol, which this
+document does not specify.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
 <p id="section-6.2-6">The client need not know the model used between the metadata server and
 the storage device.  It need only react consistently to any errors in
 interacting with the storage device.  It <span class="bcp14">SHOULD</span> both return the layout
@@ -3359,15 +3393,20 @@ users into one request.<a href="#section-6.2.2-12" class="pilcrow">¶</a></p>
 <a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-state-and-locking-models" class="section-name selfRef">State and Locking Models</a>
         </h3>
 <p id="section-6.3-1">The coupling model in effect for a given metadata-server /
-storage-device pair is not negotiated over the NFS protocol.
-The metadata server determines the coupling model from
-out-of-band signals: administrative configuration, the
-choice and capabilities of the control protocol between
-the metadata server and the storage device, the storage
-device's data-path protocol version, and the storage
-device's backend architecture.  At the NFS protocol level,
-the metadata server's expectations of the storage device
-follow these classifications:<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+storage-device pair is determined by the metadata server, not
+agreed between the two.  For trusted stateid tight coupling the
+metadata server establishes the storage device's support over
+the NFS protocol, by the capability probe in
+<a href="#sec-tight-coupling-probe" class="auto internal xref">Section 6.4.1</a>.  For any other tight coupling
+control protocol, and for the decision to deploy loose coupling
+where the restrictions in <a href="#sec-ff_device_addr4" class="auto internal xref">Section 7.1</a> permit it, the
+metadata server uses out-of-band signals: administrative
+configuration, the choice and capabilities of the control
+protocol between the metadata server and the storage device, the
+storage device's data-path protocol version, and the storage
+device's backend architecture.  At the NFS protocol level, the
+metadata server's expectations of the storage device follow
+these classifications:<a href="#section-6.3-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-6.3-2.1">
             <p id="section-6.3-2.1.1">Storage devices implementing the NFSv3 or NFSv4.0
@@ -3384,14 +3423,18 @@ as NFSv4.0 storage devices.<a href="#section-6.3-2.2.1" class="pilcrow">¶</a></
           <li class="normal" id="section-6.3-2.3">
             <p id="section-6.3-2.3.1">NFSv4.1+ storage devices that identify themselves with
 the EXCHGID4_FLAG_USE_PNFS_DS flag set in EXCHANGE_ID
-can potentially be tightly coupled.  They use a back-end
-control protocol to implement the global stateid model
-described in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>.<a href="#section-6.3-2.3.1" class="pilcrow">¶</a></p>
+can potentially be tightly coupled.  They implement the
+global stateid model described in <span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>, through
+this document's TRUST_STATEID family where the probe in
+<a href="#sec-tight-coupling-probe" class="auto internal xref">Section 6.4.1</a> confirms it and through a
+back-end control protocol otherwise.<a href="#section-6.3-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-6.3-3">Tight coupling additionally requires a control protocol
-between the metadata server and the storage device,
-discovered or advertised out-of-band as described above.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
+<p id="section-6.3-3">The flag establishes only that the storage device can
+potentially be tightly coupled.  Tight coupling additionally
+requires a control protocol between the metadata server and the
+storage device, which the metadata server establishes as
+described above.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
 <p id="section-6.3-4">Some storage devices cannot operate under the loosely
 coupled model at all.  The loose coupling model in this
 specification relies on the storage device authorizing
@@ -6170,6 +6213,23 @@ and ffv2dv_minorversion, the client cannot communicate with the storage
 device.  The client can retry the GETDEVICEINFO to see if the
 metadata server can provide a different combination, or it can fall
 back to doing the I/O through the metadata server.<a href="#section-8.14-2" class="pilcrow">¶</a></p>
+<p id="section-8.14-3">A coupling mismatch is reported the same way but with a different
+error.  <a href="#sec-ff_device_addr4" class="auto internal xref">Section 7.1</a> constrains which
+(ffv2dv_version, ffv2dv_minorversion, ffv2dv_coupling) tuples are
+valid for a given encoding type; a client that is granted a layout
+whose mirror names an encoding the storage device's advertised
+tuple cannot serve -- a non-PASSTHROUGH encoding against
+FFV2_COUPLING_SYNTHETIC_UIDS, for instance -- <span class="bcp14">MUST NOT</span> issue I/O
+to that storage device, and reports the storage device in
+ffv2_ioerr4 with de_status set to NFS4ERR_INVAL.  The client's
+recourse is the same as above: retry the GETDEVICEINFO, or fall
+back to doing the I/O through the metadata server.
+NFS4ERR_MINOR_VERS_MISMATCH is not used for this case, because the
+client can communicate with the storage device over the advertised
+version; what it cannot do is use the encoding the layout asks of
+it.  Note that FFV2_COUPLING_SYNTHETIC_UIDS is the zero value of
+ffv2dv_coupling, so this is also what a client sees from a
+metadata server that leaves the field unset.<a href="#section-8.14-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -10845,9 +10905,14 @@ operation.<a href="#section-13.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.1-2.4">
             <p id="section-13.1-2.4.1">SETATTR (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.30" class="relref">Section 18.30</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>): data file truncate for
-metadata-server-level SETATTR(size) fan-out, synthetic uid/gid rotation
-for fencing, and mode-bit initialization when the metadata
-server binds a data file to a new metadata-level file.<a href="#section-13.1-2.4.1" class="pilcrow">¶</a></p>
+metadata-server-level SETATTR(size) fan-out, and mode-bit
+initialization when the metadata server binds a data file to a
+new metadata-level file.  On a storage device advertising
+FFV2_COUPLING_SYNTHETIC_UIDS, SETATTR also carries the
+synthetic uid and gid rotation that fences clients
+(<a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>); a storage device that serves only
+non-PASSTHROUGH mirrors is never fenced that way
+(<a href="#sec-layout-revocation" class="auto internal xref">Section 20</a>).<a href="#section-13.1-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-13.1-2.5">
             <p id="section-13.1-2.5.1">CREATE (<span><a href="https://rfc-editor.org/rfc/rfc8881#section-18.4" class="relref">Section 18.4</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>): the metadata server's own
@@ -12170,7 +12235,7 @@ client is notified to return layouts of either iomode.<a href="#section-19.1-7" 
 </div>
 </section>
 </div>
-<div id="layout-revocation-and-fencing">
+<div id="sec-layout-revocation">
 <section id="section-20">
       <h2 id="name-layout-revocation-and-fenci">
 <a href="#section-20" class="section-number selfRef">20. </a><a href="#name-layout-revocation-and-fenci" class="section-name selfRef">Layout Revocation and Fencing</a>
@@ -23525,16 +23590,18 @@ of <a href="#sec-system-model-consistency" class="auto internal xref">Section 12
 <p id="appendix-E-5">Lucheng Bao asked how a trusted stateid registration is
 protected against an on-path attacker, and why a data server
 under tight coupling would not need its own Kerberos keytab.<a href="#appendix-E-5" class="pilcrow">¶</a></p>
-<p id="appendix-E-6">The authors thank Dave Noveck, Chuck Lever, Tigran
+<p id="appendix-E-6">Jon Curley observed that these drafts tend to assume loosely
+coupled storage devices.<a href="#appendix-E-6" class="pilcrow">¶</a></p>
+<p id="appendix-E-7">The authors thank Dave Noveck, Chuck Lever, Tigran
 Mkrtchyan, Rick Macklem, Christoph Hellwig, and Sorin
 Faibish for their detailed review of earlier revisions of
 this draft.  Their comments shaped the system model
 presentation, the chunk lifecycle and guard semantics, the
 trusted stateid design, and many smaller choices recorded
 throughout the
-document.<a href="#appendix-E-6" class="pilcrow">¶</a></p>
-<p id="appendix-E-7">Chris Inacio, Brian Pawlowski, Chuck Lever, Zahed Sarker, and
-Gorry Fairhurst guided this process.<a href="#appendix-E-7" class="pilcrow">¶</a></p>
+document.<a href="#appendix-E-7" class="pilcrow">¶</a></p>
+<p id="appendix-E-8">Chris Inacio, Brian Pawlowski, Chuck Lever, Zahed Sarker, and
+Gorry Fairhurst guided this process.<a href="#appendix-E-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">
