@@ -7036,9 +7036,14 @@ when issued by the metadata server:
    the metadata server needs for the same purpose use the same
    operation.
 -  SETATTR ({{Section 18.30 of RFC8881}}): data file truncate for
-   metadata-server-level SETATTR(size) fan-out, synthetic uid/gid rotation
-   for fencing, and mode-bit initialization when the metadata
-   server binds a data file to a new metadata-level file.
+   metadata-server-level SETATTR(size) fan-out, and mode-bit
+   initialization when the metadata server binds a data file to a
+   new metadata-level file.  On a storage device advertising
+   FFV2_COUPLING_SYNTHETIC_UIDS, SETATTR also carries the
+   synthetic uid and gid rotation that fences clients
+   ({{sec-Fencing-Clients}}); a storage device that serves only
+   non-PASSTHROUGH mirrors is never fenced that way
+   ({{sec-layout-revocation}}).
 -  CREATE ({{Section 18.4 of RFC8881}}): the metadata server's own
    allocation of data files on the data server.
 -  REMOVE ({{Section 18.25 of RFC8881}}): cleanup on metadata server file
