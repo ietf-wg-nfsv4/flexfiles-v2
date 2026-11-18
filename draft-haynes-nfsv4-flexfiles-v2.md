@@ -994,7 +994,8 @@ With this loosely coupled model, the metadata server is not able to fence
 off a single client; it is forced to fence off all clients.  However,
 as the other clients react to the fencing, returning their layouts and
 trying to get new ones, the metadata server can hand out a new uid and
-gid to allow access.
+gid to allow access.  Tight coupling does not have this limitation
+({{sec-layout-revocation}}).
 
 It is RECOMMENDED to implement common access control methods at the
 storage device file system to allow only the metadata server root
@@ -1032,12 +1033,16 @@ The client authenticates with the storage device and
 receives the same authorization outcome it would have
 received via the metadata server.  In the case of tight
 coupling, fencing is the responsibility of the control
-protocol and is not described in detail in this document.
-Implementations of the tightly coupled locking model (see
-{{sec-state-locking}}) will need a way to prevent access by
-certain clients to specific files by invalidating the
-corresponding stateids on the storage device; in such a
-scenario, the client receives NFS4ERR_BAD_STATEID.
+protocol: it prevents access by a client to a file by
+invalidating the corresponding stateid on the storage device,
+and the client receives NFS4ERR_BAD_STATEID.  For trusted
+stateid tight coupling that is REVOKE_STATEID and
+BULK_REVOKE_STATEID; {{sec-layout-revocation}} gives the
+mechanism for each coupling model, including a file whose
+layout has both PASSTHROUGH and chunked mirrors.  A
+deployment with a back-end control protocol of its own
+achieves the same effect through that protocol, which this
+document does not specify.
 
 The client need not know the model used between the metadata server and
 the storage device.  It need only react consistently to any errors in
@@ -7888,7 +7893,7 @@ PNFS_FF_RCA4_TYPE_MASK_RW flag notifies the client to return layouts
 of iomode LAYOUTIOMODE4_RW.  When both mask flags are set, the
 client is notified to return layouts of either iomode.
 
-#  Layout Revocation and Fencing
+#  Layout Revocation and Fencing {#sec-layout-revocation}
 
 In cases where clients are uncommunicative and their lease has
 expired, or when clients fail to return recalled layouts within
