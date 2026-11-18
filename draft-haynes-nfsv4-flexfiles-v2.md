@@ -14883,26 +14883,26 @@ uninitialized-field sentinel and MUST NOT be allocated to an
 encoding.
 
 Standards Track (0x0000-0x00FF):
-:  Enencoding types intended for broad interoperability.  The
+:  Encoding types intended for broad interoperability.  The
 specification MUST include a complete mathematical description
 sufficient for independent interoperable implementations (see
 {{encoding-type-interoperability}}).  Allocated by IETF Review.
 
 Experimental (0x0100-0x0FFF):
-:  Enencoding types under development or evaluation.  An Internet-Draft
+:  Encoding types under development or evaluation.  An Internet-Draft
 is sufficient for allocation.  The specification SHOULD include
 enough detail for interoperability testing.  Allocated by Expert
 Review.
 
 Vendor (open) (0x1000-0x7FFF):
-:  Enencoding types with a published specification or patent reference.
+:  Encoding types with a published specification or patent reference.
 Interoperability is expected among implementations that license or
 implement the specification.  The registration MUST include either a
 math specification or a patent reference.  Allocated First Come
 First Served.
 
 Private/proprietary (0x8000-0xFFFE):
-:  Enencoding types for use within a single vendor's ecosystem.
+:  Encoding types for use within a single vendor's ecosystem.
 No IANA registration is required.  Interoperability with other
 implementations is not expected; accidental codepoint collisions
 between independent vendors are possible and are managed
