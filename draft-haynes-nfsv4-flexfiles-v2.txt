@@ -1418,11 +1418,12 @@ Table of Contents
       control session to the storage device (see Section 6.4.2).  The
       storage device MUST reject any incoming TRUST_STATEID,
       REVOKE_STATEID, or BULK_REVOKE_STATEID that does not arrive on
-      such a session with NFS4ERR_PERM.  This is the authorization
-      mechanism that distinguishes the metadata server from ordinary
-      pNFS clients, which connect with EXCHGID4_FLAG_USE_PNFS_DS or
-      EXCHGID4_FLAG_USE_NON_PNFS and are therefore structurally unable
-      to invoke these operations.
+      such a session with NFS4ERR_PERM.  This check distinguishes the
+      metadata server from an ordinary pNFS client, which connects with
+      EXCHGID4_FLAG_USE_PNFS_DS or EXCHGID4_FLAG_USE_NON_PNFS and so
+      does not reach these operations.  The flag is self-declared, so
+      the check does not authenticate the metadata server; the control
+      session's authentication does (Section 6.4.2).
 
    Given this basic structure, locking-related operations are handled as
    follows:
@@ -1681,19 +1682,36 @@ Table of Contents
    considers legitimate metadata servers can (a) establish a control
    session with EXCHGID4_FLAG_USE_PNFS_MDS against the storage device
    and (b) invoke TRUST_STATEID, REVOKE_STATEID, or BULK_REVOKE_STATEID
-   on it.  Deployments have historically satisfied this requirement
-   using one or more of the following mechanisms; the wire protocol does
-   not prescribe which is chosen:
+   on it.  Because the flag is self-declared, the deployment is what
+   makes that requirement hold; the wire protocol does not.
 
-   *  RPCSEC_GSS with a machine principal that the storage device has
-      been configured to accept as a metadata server.  The storage
+   The control session MUST be mutually authenticated and integrity
+   protected, by one of:
+
+   *  RPCSEC_GSS ([RFC7861]) with a machine principal that the storage
+      device has been configured to accept as a metadata server, with at
+      least the integrity service (RPCSEC_GSS_KRB5I).  The storage
       device validates the principal against a local policy list before
       accepting the flag.
 
-   *  TLS ([RFC9289]) with a client certificate that the storage device
-      has been configured to accept as a metadata server.  The storage
-      device validates the certificate against a local policy list
-      before accepting the flag.
+   *  RPC-over-TLS ([RFC9289]) with mutual authentication and a client
+      certificate that the storage device has been configured to accept
+      as a metadata server.  The storage device validates the
+      certificate against a local policy list before accepting the flag.
+
+   AUTH_SYS MUST NOT be used as the authentication flavor of the control
+   session, and the control session MUST NOT run without integrity
+   protection.  An on-path attacker on an unprotected control session
+   can forge a TRUST_STATEID for a stateid and writer identity of its
+   choosing, suppress a REVOKE_STATEID so that a revoked client keeps
+   access, and force the fallback described in Section 28.7.  None of
+   these are detectable from the operations this document defines.
+
+   Restricting which hosts can reach the control-session path is defense
+   in depth rather than a substitute for the above.  It keeps an
+   unauthorized host from opening a session; it does not protect a
+   session once open, and a deployment that relies on it alone carries
+   the forgery exposure just described.  Two such measures are common:
 
    *  Network-path isolation: the control-session path runs on a network
       segment (dedicated management VLAN, private link, or similar) that
@@ -13586,6 +13604,11 @@ Table of Contents
    advertise this via the SECINFO mechanism rather than silently
    dropping connections.
 
+   This permission covers the client-facing paths only.  The metadata-
+   server-to-storage-device control session is not optional in this
+   respect: Section 6.4.2 requires that session to be mutually
+   authenticated and integrity protected.
+
 28.6.  RPCSEC_GSS and Security Services
 
    This document does not specify how RPCSEC_GSS [RFC7861] is used
@@ -13693,9 +13716,9 @@ Table of Contents
       pair.  This is the same trust assumption pNFS already makes -- the
       metadata server grants layouts and the data servers honor them.
       Deployment defense is the same: restrict administrative access to
-      the metadata server, require RPCSEC_GSS or RPC-over-TLS
-      ([RFC9289]) with mutual authentication on the control session
-      (Section 6.4), and monitor for anomalous TRUST_STATEID volume.
+      the metadata server, authenticate the control session as
+      Section 6.4.2 requires, and monitor for anomalous TRUST_STATEID
+      volume.
 
    Compromised data server:  A compromised data server sees plaintext
       chunk payloads at rest and on the wire (subject to whatever the
@@ -13731,15 +13754,30 @@ Table of Contents
    Compromised control session:  An attacker who controls the metadata-
       server-to-data-server control session can register or revoke
       arbitrary trust entries.  The control session is the most
-      security-sensitive element introduced by tight coupling.
-      Deployment MUST protect it with RPCSEC_GSS ([RFC7861]) using a
-      service principal both sides trust, or with RPC-over-TLS
-      ([RFC9289]) using mutual authentication and allowlisted
-      certificates.  The data server enforces that TRUST_STATEID,
+      security-sensitive element introduced by tight coupling, which is
+      why Section 6.4.2 requires it to be mutually authenticated and
+      integrity protected.  The data server enforces that TRUST_STATEID,
       REVOKE_STATEID, and BULK_REVOKE_STATEID only arrive on sessions
       whose owning client presented EXCHGID4_FLAG_USE_PNFS_MDS at
       EXCHANGE_ID (Section 25.13), but that flag alone does not
       authenticate the metadata server.
+
+   Downgrade to loose coupling:  Two paths let a storage device's reply
+      turn tight coupling off for a file.  At the capability probe
+      (Section 6.4.1) NFS4ERR_NOTSUPP leaves the
+      FFV2_COUPLING_TRUSTED_STATEID bit clear, and at LAYOUTGET
+      (Section 6.4.3) the same error requires the metadata server to
+      clear a bit it had already set.  Either way the metadata server
+      falls back to the synthetic-uid model (Section 6.2), which
+      provides a level of security equivalent to AUTH_SYS, and the
+      client is told nothing is wrong.  An on-path attacker that can
+      inject one reply on an unprotected control session therefore
+      selects the weaker of the two coupling models; repeated
+      NFS4ERR_DELAY reaches the same result by exhausting the metadata
+      server's LAYOUTGET-response budget.  The integrity protection
+      Section 6.4.2 requires is what closes both paths: it is the only
+      mechanism here that distinguishes a storage device which does not
+      implement the TRUST_STATEID family from an attacker that says so.
 
    Resource exhaustion via trust-table flood:  A misbehaving metadata
       server could register an unbounded number of TRUST_STATEID entries
@@ -13875,24 +13913,24 @@ Table of Contents
    uninitialized-field sentinel and MUST NOT be allocated to an
    encoding.
 
-   Standards Track (0x0000-0x00FF):  Enencoding types intended for broad
+   Standards Track (0x0000-0x00FF):  Encoding types intended for broad
       interoperability.  The specification MUST include a complete
       mathematical description sufficient for independent interoperable
       implementations (see Section 8.1.2).  Allocated by IETF Review.
 
-   Experimental (0x0100-0x0FFF):  Enencoding types under development or
+   Experimental (0x0100-0x0FFF):  Encoding types under development or
       evaluation.  An Internet-Draft is sufficient for allocation.  The
       specification SHOULD include enough detail for interoperability
       testing.  Allocated by Expert Review.
 
-   Vendor (open) (0x1000-0x7FFF):  Enencoding types with a published
+   Vendor (open) (0x1000-0x7FFF):  Encoding types with a published
       specification or patent reference.  Interoperability is expected
       among implementations that license or implement the specification.
       The registration MUST include either a math specification or a
       patent reference.  Allocated First Come First Served.
 
-   Private/proprietary (0x8000-0xFFFE):  Enencoding types for use within
-      a single vendor's ecosystem.  No IANA registration is required.
+   Private/proprietary (0x8000-0xFFFE):  Encoding types for use within a
+      single vendor's ecosystem.  No IANA registration is required.
       Interoperability with other implementations is not expected;
       accidental codepoint collisions between independent vendors are
       possible and are managed operationally rather than by protocol

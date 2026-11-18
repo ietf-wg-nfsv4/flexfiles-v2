@@ -22,13 +22,13 @@ erasure coding algorithms are used for data protection.
 <!-- Generator version information:
   xml2rfc 3.35.0
     Python 3.14.10
-    ConfigArgParse 1.9.0
+    ConfigArgParse 1.10.1
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.14.3
+    platformdirs 4.14.7
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
@@ -3524,11 +3524,14 @@ control session to the storage device
 (see <a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a>).  The storage
 device <span class="bcp14">MUST</span> reject any incoming TRUST_STATEID,
 REVOKE_STATEID, or BULK_REVOKE_STATEID that does not arrive
-on such a session with NFS4ERR_PERM.  This is the
-authorization mechanism that distinguishes the metadata
-server from ordinary pNFS clients, which connect with
-EXCHGID4_FLAG_USE_PNFS_DS or EXCHGID4_FLAG_USE_NON_PNFS and
-are therefore structurally unable to invoke these operations.<a href="#section-6.3.2-3.4.1" class="pilcrow">¶</a></p>
+on such a session with NFS4ERR_PERM.  This check
+distinguishes the metadata server from an ordinary pNFS
+client, which connects with EXCHGID4_FLAG_USE_PNFS_DS or
+EXCHGID4_FLAG_USE_NON_PNFS and so does not reach these
+operations.  The flag is self-declared, so the check does
+not authenticate the metadata server; the control
+session's authentication does
+(<a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a>).<a href="#section-6.3.2-3.4.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
@@ -3829,41 +3832,61 @@ or isolation choice.<a href="#section-6.4.2-6" class="pilcrow">¶</a></p>
 deployment considers legitimate metadata servers can (a)
 establish a control session with EXCHGID4_FLAG_USE_PNFS_MDS
 against the storage device and (b) invoke TRUST_STATEID,
-REVOKE_STATEID, or BULK_REVOKE_STATEID on it.  Deployments
-have historically satisfied this requirement using one or more
-of the following mechanisms; the wire protocol does not
-prescribe which is chosen:<a href="#section-6.4.2-7" class="pilcrow">¶</a></p>
+REVOKE_STATEID, or BULK_REVOKE_STATEID on it.  Because the
+flag is self-declared, the deployment is what makes that
+requirement hold; the wire protocol does not.<a href="#section-6.4.2-7" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-8">The control session <span class="bcp14">MUST</span> be mutually authenticated and
+integrity protected, by one of:<a href="#section-6.4.2-8" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-6.4.2-8.1">
-              <p id="section-6.4.2-8.1.1">RPCSEC_GSS with a machine principal that the storage device
-has been configured to accept as a metadata server.  The
-storage device validates the principal against a local
-policy list before accepting the flag.<a href="#section-6.4.2-8.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-6.4.2-9.1">
+              <p id="section-6.4.2-9.1.1">RPCSEC_GSS (<span>[<a href="#RFC7861" class="cite xref">RFC7861</a>]</span>) with a machine principal that the
+storage device has been configured to accept as a metadata
+server, with at least the integrity service
+(RPCSEC_GSS_KRB5I).  The storage device validates the
+principal against a local policy list before accepting the
+flag.<a href="#section-6.4.2-9.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-6.4.2-8.2">
-              <p id="section-6.4.2-8.2.1">TLS (<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) with a client certificate that the storage
-device has been configured to accept as a metadata server.
-The storage device validates the certificate against a local
-policy list before accepting the flag.<a href="#section-6.4.2-8.2.1" class="pilcrow">¶</a></p>
+            <li class="normal" id="section-6.4.2-9.2">
+              <p id="section-6.4.2-9.2.1">RPC-over-TLS (<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) with mutual authentication and a
+client certificate that the storage device has been
+configured to accept as a metadata server.  The storage
+device validates the certificate against a local policy
+list before accepting the flag.<a href="#section-6.4.2-9.2.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-6.4.2-8.3">
-              <p id="section-6.4.2-8.3.1">Network-path isolation: the control-session path runs on a
+          </ul>
+<p id="section-6.4.2-10">AUTH_SYS <span class="bcp14">MUST NOT</span> be used as the authentication flavor of the
+control session, and the control session <span class="bcp14">MUST NOT</span> run without
+integrity protection.  An on-path attacker on an unprotected
+control session can forge a TRUST_STATEID for a stateid and
+writer identity of its choosing, suppress a REVOKE_STATEID so
+that a revoked client keeps access, and force the fallback
+described in <a href="#sec-security-trust-stateid" class="auto internal xref">Section 28.7</a>.  None of these
+are detectable from the operations this document defines.<a href="#section-6.4.2-10" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-11">Restricting which hosts can reach the control-session path is
+defense in depth rather than a substitute for the above.  It
+keeps an unauthorized host from opening a session; it does
+not protect a session once open, and a deployment that relies
+on it alone carries the forgery exposure just described.  Two
+such measures are common:<a href="#section-6.4.2-11" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.4.2-12.1">
+              <p id="section-6.4.2-12.1.1">Network-path isolation: the control-session path runs on a
 network segment (dedicated management VLAN, private link,
 or similar) that pNFS clients cannot reach, so only
-configured metadata servers can open a session at all.<a href="#section-6.4.2-8.3.1" class="pilcrow">¶</a></p>
+configured metadata servers can open a session at all.<a href="#section-6.4.2-12.1.1" class="pilcrow">¶</a></p>
 </li>
-            <li class="normal" id="section-6.4.2-8.4">
-              <p id="section-6.4.2-8.4.1">Operating-system-level filesystem access control on the
+            <li class="normal" id="section-6.4.2-12.2">
+              <p id="section-6.4.2-12.2.1">Operating-system-level filesystem access control on the
 storage device: the underlying export that backs the pNFS
 data files is configured so that only the metadata server's
 OS identity (typically root, or a dedicated privileged uid)
 can access it.  A pNFS client that reaches the storage
 device but presents any other uid receives permission
 errors before it can invoke any operation, control-plane
-or otherwise.<a href="#section-6.4.2-8.4.1" class="pilcrow">¶</a></p>
+or otherwise.<a href="#section-6.4.2-12.2.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
-<p id="section-6.4.2-9">A single host <span class="bcp14">MAY</span> legitimately act in multiple pNFS roles
+<p id="section-6.4.2-13">A single host <span class="bcp14">MAY</span> legitimately act in multiple pNFS roles
 against the same storage device -- for example, an entity
 that is a metadata server for one export and a plain pNFS
 client for another.  The wire protocol does not distinguish
@@ -3872,12 +3895,12 @@ responsible for arranging that the storage device can tell
 them apart, typically by using distinct credentials or
 distinct sessions for the two roles (each session presents
 EXCHGID4_FLAG_USE_PNFS_MDS according to the role the entity
-is acting in on that session).<a href="#section-6.4.2-9" class="pilcrow">¶</a></p>
-<p id="section-6.4.2-10">The security consequences of these choices -- what an
+is acting in on that session).<a href="#section-6.4.2-13" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-14">The security consequences of these choices -- what an
 unauthenticated attacker can invoke if none of the mechanisms
 above is deployed, and what an authenticated caller can still
 achieve by misrepresenting role -- are discussed in
-<a href="#sec-security-trust-stateid" class="auto internal xref">Section 28.7</a>.<a href="#section-6.4.2-10" class="pilcrow">¶</a></p>
+<a href="#sec-security-trust-stateid" class="auto internal xref">Section 28.7</a>.<a href="#section-6.4.2-14" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-tight-coupling-layoutget">
@@ -21094,6 +21117,10 @@ mechanism; TLS provides confidentiality and integrity for the transport
 but does not replace the fencing model described in <a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>.
 Servers that require transport security <span class="bcp14">SHOULD</span> advertise this via the
 SECINFO mechanism rather than silently dropping connections.<a href="#section-28.5-1" class="pilcrow">¶</a></p>
+<p id="section-28.5-2">This permission covers the client-facing paths only.  The
+metadata-server-to-storage-device control session is not optional in
+this respect: <a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a> requires that
+session to be mutually authenticated and integrity protected.<a href="#section-28.5-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="rpcsecgss-and-security-services">
@@ -21243,9 +21270,8 @@ pair.  This is the same trust assumption pNFS already
 makes -- the metadata server grants layouts and the
 data servers honor them.  Deployment defense is the
 same: restrict administrative access to the metadata
-server, require RPCSEC_GSS or RPC-over-TLS
-(<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) with mutual authentication on the
-control session (<a href="#sec-tight-coupling-control" class="auto internal xref">Section 6.4</a>), and
+server, authenticate the control session as
+<a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a> requires, and
 monitor for anomalous TRUST_STATEID volume.<a href="#section-28.7.2-1.2.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
@@ -21301,11 +21327,10 @@ opening during revocation.<a href="#section-28.7.2-1.8.1" class="pilcrow">¶</a>
 control session can register or revoke
 arbitrary trust entries.  The control session is the
 most security-sensitive element introduced by tight
-coupling.  Deployment <span class="bcp14">MUST</span> protect it with RPCSEC_GSS
-(<span>[<a href="#RFC7861" class="cite xref">RFC7861</a>]</span>) using a service principal both sides
-trust, or with RPC-over-TLS (<span>[<a href="#RFC9289" class="cite xref">RFC9289</a>]</span>) using
-mutual authentication and allowlisted certificates.
-The data server enforces that TRUST_STATEID,
+coupling, which is why
+<a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a> requires it to be
+mutually authenticated and integrity protected.  The
+data server enforces that TRUST_STATEID,
 REVOKE_STATEID, and BULK_REVOKE_STATEID only arrive
 on sessions whose owning client presented
 EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
@@ -21313,9 +21338,33 @@ EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
 authenticate the metadata server.<a href="#section-28.7.2-1.10.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-28.7.2-1.11">Resource exhaustion via trust-table flood:</dt>
+<dt id="section-28.7.2-1.11">Downgrade to loose coupling:</dt>
             <dd style="margin-left: 1.5em" id="section-28.7.2-1.12">
-              <p id="section-28.7.2-1.12.1">A misbehaving metadata server could register an
+              <p id="section-28.7.2-1.12.1">Two paths let a storage device's reply turn tight
+coupling off for a file.  At the capability probe
+(<a href="#sec-tight-coupling-probe" class="auto internal xref">Section 6.4.1</a>) NFS4ERR_NOTSUPP leaves
+the FFV2_COUPLING_TRUSTED_STATEID bit clear, and at
+LAYOUTGET (<a href="#sec-tight-coupling-layoutget" class="auto internal xref">Section 6.4.3</a>) the same
+error requires the metadata server to clear a bit it
+had already set.  Either way the metadata server falls
+back to the synthetic-uid model
+(<a href="#sec-Fencing-Clients" class="auto internal xref">Section 6.2</a>), which provides a level of
+security equivalent to AUTH_SYS, and the client is told
+nothing is wrong.  An on-path attacker that can inject
+one reply on an unprotected control session therefore
+selects the weaker of the two coupling models; repeated
+NFS4ERR_DELAY reaches the same result by exhausting the
+metadata server's LAYOUTGET-response budget.  The
+integrity protection
+<a href="#sec-tight-coupling-control-session" class="auto internal xref">Section 6.4.2</a> requires is what
+closes both paths: it is the only mechanism here that
+distinguishes a storage device which does not implement
+the TRUST_STATEID family from an attacker that says so.<a href="#section-28.7.2-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-28.7.2-1.13">Resource exhaustion via trust-table flood:</dt>
+            <dd style="margin-left: 1.5em" id="section-28.7.2-1.14">
+              <p id="section-28.7.2-1.14.1">A misbehaving metadata server could register an
 unbounded number of TRUST_STATEID entries to exhaust
 the data server's trust-table memory.  The mechanism
 defending against this is the tsa_expire lease on
@@ -21323,12 +21372,12 @@ each entry: trust entries that are not renewed
 before expiry are reaped by the data server.  A data
 server under memory pressure <span class="bcp14">MAY</span> also return
 NFS4ERR_DELAY on new TRUST_STATEID requests, forcing
-the metadata server to back off.<a href="#section-28.7.2-1.12.1" class="pilcrow">¶</a></p>
+the metadata server to back off.<a href="#section-28.7.2-1.14.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
-<dt id="section-28.7.2-1.13">Cross-metadata-server isolation:</dt>
-            <dd style="margin-left: 1.5em" id="section-28.7.2-1.14">
-              <p id="section-28.7.2-1.14.1">In a deployment where two metadata servers share a
+<dt id="section-28.7.2-1.15">Cross-metadata-server isolation:</dt>
+            <dd style="margin-left: 1.5em" id="section-28.7.2-1.16">
+              <p id="section-28.7.2-1.16.1">In a deployment where two metadata servers share a
 single data server, the per-entry metadata-server
 tag (derived from the control session's owning
 client; see <a href="#sec-TRUST_STATEID" class="auto internal xref">Section 25.13</a>) ensures that
@@ -21341,7 +21390,7 @@ about cross-metadata-server isolation <span class="bcp14">MUST</span> partition
 the data server's filesystem namespace into
 per-metadata-server exports at the data server,
 rather than rely on the trust table alone to enforce
-file-level boundaries between metadata servers.<a href="#section-28.7.2-1.14.1" class="pilcrow">¶</a></p>
+file-level boundaries between metadata servers.<a href="#section-28.7.2-1.16.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
@@ -21567,7 +21616,7 @@ encoding.<a href="#section-29-11" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-29-12">
         <dt id="section-29-12.1">Standards Track (0x0000-0x00FF):</dt>
         <dd style="margin-left: 1.5em" id="section-29-12.2">
-          <p id="section-29-12.2.1">Enencoding types intended for broad interoperability.  The
+          <p id="section-29-12.2.1">Encoding types intended for broad interoperability.  The
 specification <span class="bcp14">MUST</span> include a complete mathematical description
 sufficient for independent interoperable implementations (see
 <a href="#encoding-type-interoperability" class="auto internal xref">Section 8.1.2</a>).  Allocated by IETF Review.<a href="#section-29-12.2.1" class="pilcrow">¶</a></p>
@@ -21575,7 +21624,7 @@ sufficient for independent interoperable implementations (see
         <dd class="break"></dd>
 <dt id="section-29-12.3">Experimental (0x0100-0x0FFF):</dt>
         <dd style="margin-left: 1.5em" id="section-29-12.4">
-          <p id="section-29-12.4.1">Enencoding types under development or evaluation.  An Internet-Draft
+          <p id="section-29-12.4.1">Encoding types under development or evaluation.  An Internet-Draft
 is sufficient for allocation.  The specification <span class="bcp14">SHOULD</span> include
 enough detail for interoperability testing.  Allocated by Expert
 Review.<a href="#section-29-12.4.1" class="pilcrow">¶</a></p>
@@ -21583,7 +21632,7 @@ Review.<a href="#section-29-12.4.1" class="pilcrow">¶</a></p>
         <dd class="break"></dd>
 <dt id="section-29-12.5">Vendor (open) (0x1000-0x7FFF):</dt>
         <dd style="margin-left: 1.5em" id="section-29-12.6">
-          <p id="section-29-12.6.1">Enencoding types with a published specification or patent reference.
+          <p id="section-29-12.6.1">Encoding types with a published specification or patent reference.
 Interoperability is expected among implementations that license or
 implement the specification.  The registration <span class="bcp14">MUST</span> include either a
 math specification or a patent reference.  Allocated First Come
@@ -21592,7 +21641,7 @@ First Served.<a href="#section-29-12.6.1" class="pilcrow">¶</a></p>
         <dd class="break"></dd>
 <dt id="section-29-12.7">Private/proprietary (0x8000-0xFFFE):</dt>
         <dd style="margin-left: 1.5em" id="section-29-12.8">
-          <p id="section-29-12.8.1">Enencoding types for use within a single vendor's ecosystem.
+          <p id="section-29-12.8.1">Encoding types for use within a single vendor's ecosystem.
 No IANA registration is required.  Interoperability with other
 implementations is not expected; accidental codepoint collisions
 between independent vendors are possible and are managed
