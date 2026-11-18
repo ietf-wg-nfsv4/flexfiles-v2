@@ -16285,6 +16285,9 @@ Lucheng Bao asked how a trusted stateid registration is
 protected against an on-path attacker, and why a data server
 under tight coupling would not need its own Kerberos keytab.
 
+Jon Curley observed that these drafts tend to assume loosely
+coupled storage devices.
+
 The authors thank Dave Noveck, Chuck Lever, Tigran
 Mkrtchyan, Rick Macklem, Christoph Hellwig, and Sorin
 Faibish for their detailed review of earlier revisions of
