@@ -1143,15 +1143,20 @@ users into one request.
 ##  State and Locking Models {#sec-state-locking}
 
 The coupling model in effect for a given metadata-server /
-storage-device pair is not negotiated over the NFS protocol.
-The metadata server determines the coupling model from
-out-of-band signals: administrative configuration, the
-choice and capabilities of the control protocol between
-the metadata server and the storage device, the storage
-device's data-path protocol version, and the storage
-device's backend architecture.  At the NFS protocol level,
-the metadata server's expectations of the storage device
-follow these classifications:
+storage-device pair is determined by the metadata server, not
+agreed between the two.  For trusted stateid tight coupling the
+metadata server establishes the storage device's support over
+the NFS protocol, by the capability probe in
+{{sec-tight-coupling-probe}}.  For any other tight coupling
+control protocol, and for the decision to deploy loose coupling
+where the restrictions in {{sec-ff_device_addr4}} permit it, the
+metadata server uses out-of-band signals: administrative
+configuration, the choice and capabilities of the control
+protocol between the metadata server and the storage device, the
+storage device's data-path protocol version, and the storage
+device's backend architecture.  At the NFS protocol level, the
+metadata server's expectations of the storage device follow
+these classifications:
 
 -  Storage devices implementing the NFSv3 or NFSv4.0
    protocols on the data path are treated as loosely
@@ -1165,13 +1170,17 @@ follow these classifications:
 
 -  NFSv4.1+ storage devices that identify themselves with
    the EXCHGID4_FLAG_USE_PNFS_DS flag set in EXCHANGE_ID
-   can potentially be tightly coupled.  They use a back-end
-   control protocol to implement the global stateid model
-   described in {{RFC8881}}.
+   can potentially be tightly coupled.  They implement the
+   global stateid model described in {{RFC8881}}, through
+   this document's TRUST_STATEID family where the probe in
+   {{sec-tight-coupling-probe}} confirms it and through a
+   back-end control protocol otherwise.
 
-Tight coupling additionally requires a control protocol
-between the metadata server and the storage device,
-discovered or advertised out-of-band as described above.
+The flag establishes only that the storage device can
+potentially be tightly coupled.  Tight coupling additionally
+requires a control protocol between the metadata server and the
+storage device, which the metadata server establishes as
+described above.
 
 Some storage devices cannot operate under the loosely
 coupled model at all.  The loose coupling model in this
