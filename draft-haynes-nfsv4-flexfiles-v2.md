@@ -910,23 +910,38 @@ forms above, not the front-matter forms.
 
 #  Coupling of Storage Devices
 
-A server implementation may choose either a loosely coupled model or a
-tightly coupled model between the metadata server and the storage devices.
-{{RFC8434}} describes the general problems facing pNFS implementations.
-This document details how the new flexible file v2 layout addresses
-these issues.  To implement the tightly coupled model, a control protocol
-has to be defined.  As the flexible file v2 layout imposes no special
-requirements on the client, the control protocol will need to provide:
+A metadata server and a storage device are either loosely
+coupled or tightly coupled.  {{RFC8434}} describes the general
+problems facing pNFS implementations.  This document details how
+the new flexible file v2 layout addresses these issues.
+
+The two models are not interchangeable here.  Loose coupling
+serves FFV2_ENCODING_PASSTHROUGH mirrors and NFSv3 storage
+devices; every other encoding type requires a tight coupling
+control protocol, because the chunk lifecycle depends on a
+metadata-server-registered stateid and on the writer identity the
+storage device checks against it ({{sec-ff_device_addr4}} states
+the rule and {{sec-CHUNK_WRITE}} the dependency).  A deployment
+that offers only loosely coupled storage devices can serve no
+encoding but PASSTHROUGH.
+
+A tight coupling control protocol provides:
 
 1. management of both security and LAYOUTCOMMITs; and
 
 2. a global stateid model and management of these stateids.
 
-When implementing the loosely coupled model, the only control protocol
-will be a version of NFS, with no ability to provide a global stateid
-model or to prevent clients from using layouts inappropriately.  To enable
-client use in that environment, this document specifies how security,
-state, and locking are managed.
+This document defines one such control protocol, the TRUST_STATEID
+family ({{sec-tight-coupling-control}}), carried in NFSv4.2
+operations; that section also covers a deployment whose metadata
+server and storage devices have a back-end control protocol of
+their own.
+
+Under loose coupling there is no control protocol beyond the
+storage protocol itself, so there is no global stateid model and
+no way to prevent clients from using layouts inappropriately.  To
+enable client use in that environment, this document specifies how
+security, state, and locking are managed.
 
 The loosely and tightly coupled locking models defined in {{Section
 2.3 of RFC8435}} apply equally to this layout type, including the use
