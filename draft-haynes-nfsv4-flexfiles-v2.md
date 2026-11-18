@@ -1252,11 +1252,14 @@ Control-session gating:
    (see {{sec-tight-coupling-control-session}}).  The storage
    device MUST reject any incoming TRUST_STATEID,
    REVOKE_STATEID, or BULK_REVOKE_STATEID that does not arrive
-   on such a session with NFS4ERR_PERM.  This is the
-   authorization mechanism that distinguishes the metadata
-   server from ordinary pNFS clients, which connect with
-   EXCHGID4_FLAG_USE_PNFS_DS or EXCHGID4_FLAG_USE_NON_PNFS and
-   are therefore structurally unable to invoke these operations.
+   on such a session with NFS4ERR_PERM.  This check
+   distinguishes the metadata server from an ordinary pNFS
+   client, which connects with EXCHGID4_FLAG_USE_PNFS_DS or
+   EXCHGID4_FLAG_USE_NON_PNFS and so does not reach these
+   operations.  The flag is self-declared, so the check does
+   not authenticate the metadata server; the control
+   session's authentication does
+   ({{sec-tight-coupling-control-session}}).
 
 Given this basic structure, locking-related operations are handled
 as follows:
@@ -1530,20 +1533,41 @@ The deployment requirement is that only entities the
 deployment considers legitimate metadata servers can (a)
 establish a control session with EXCHGID4_FLAG_USE_PNFS_MDS
 against the storage device and (b) invoke TRUST_STATEID,
-REVOKE_STATEID, or BULK_REVOKE_STATEID on it.  Deployments
-have historically satisfied this requirement using one or more
-of the following mechanisms; the wire protocol does not
-prescribe which is chosen:
+REVOKE_STATEID, or BULK_REVOKE_STATEID on it.  Because the
+flag is self-declared, the deployment is what makes that
+requirement hold; the wire protocol does not.
 
-- RPCSEC_GSS with a machine principal that the storage device
-  has been configured to accept as a metadata server.  The
-  storage device validates the principal against a local
-  policy list before accepting the flag.
+The control session MUST be mutually authenticated and
+integrity protected, by one of:
 
-- TLS ({{RFC9289}}) with a client certificate that the storage
-  device has been configured to accept as a metadata server.
-  The storage device validates the certificate against a local
-  policy list before accepting the flag.
+- RPCSEC_GSS ({{RFC7861}}) with a machine principal that the
+  storage device has been configured to accept as a metadata
+  server, with at least the integrity service
+  (RPCSEC_GSS_KRB5I).  The storage device validates the
+  principal against a local policy list before accepting the
+  flag.
+
+- RPC-over-TLS ({{RFC9289}}) with mutual authentication and a
+  client certificate that the storage device has been
+  configured to accept as a metadata server.  The storage
+  device validates the certificate against a local policy
+  list before accepting the flag.
+
+AUTH_SYS MUST NOT be used as the authentication flavor of the
+control session, and the control session MUST NOT run without
+integrity protection.  An on-path attacker on an unprotected
+control session can forge a TRUST_STATEID for a stateid and
+writer identity of its choosing, suppress a REVOKE_STATEID so
+that a revoked client keeps access, and force the fallback
+described in {{sec-security-trust-stateid}}.  None of these
+are detectable from the operations this document defines.
+
+Restricting which hosts can reach the control-session path is
+defense in depth rather than a substitute for the above.  It
+keeps an unauthorized host from opening a session; it does
+not protect a session once open, and a deployment that relies
+on it alone carries the forgery exposure just described.  Two
+such measures are common:
 
 - Network-path isolation: the control-session path runs on a
   network segment (dedicated management VLAN, private link,
@@ -14592,6 +14616,11 @@ but does not replace the fencing model described in {{sec-Fencing-Clients}}.
 Servers that require transport security SHOULD advertise this via the
 SECINFO mechanism rather than silently dropping connections.
 
+This permission covers the client-facing paths only.  The
+metadata-server-to-storage-device control session is not optional in
+this respect: {{sec-tight-coupling-control-session}} requires that
+session to be mutually authenticated and integrity protected.
+
 ##  RPCSEC_GSS and Security Services
 
 This document does not specify how RPCSEC_GSS {{RFC7861}} is
@@ -14714,9 +14743,8 @@ Compromised metadata server:
    makes -- the metadata server grants layouts and the
    data servers honor them.  Deployment defense is the
    same: restrict administrative access to the metadata
-   server, require RPCSEC_GSS or RPC-over-TLS
-   ({{RFC9289}}) with mutual authentication on the
-   control session ({{sec-tight-coupling-control}}), and
+   server, authenticate the control session as
+   {{sec-tight-coupling-control-session}} requires, and
    monitor for anomalous TRUST_STATEID volume.
 
 Compromised data server:
@@ -14764,16 +14792,37 @@ Compromised control session:
    control session can register or revoke
    arbitrary trust entries.  The control session is the
    most security-sensitive element introduced by tight
-   coupling.  Deployment MUST protect it with RPCSEC_GSS
-   ({{RFC7861}}) using a service principal both sides
-   trust, or with RPC-over-TLS ({{RFC9289}}) using
-   mutual authentication and allowlisted certificates.
-   The data server enforces that TRUST_STATEID,
+   coupling, which is why
+   {{sec-tight-coupling-control-session}} requires it to be
+   mutually authenticated and integrity protected.  The
+   data server enforces that TRUST_STATEID,
    REVOKE_STATEID, and BULK_REVOKE_STATEID only arrive
    on sessions whose owning client presented
    EXCHGID4_FLAG_USE_PNFS_MDS at EXCHANGE_ID
    ({{sec-TRUST_STATEID}}), but that flag alone does not
    authenticate the metadata server.
+
+Downgrade to loose coupling:
+:  Two paths let a storage device's reply turn tight
+   coupling off for a file.  At the capability probe
+   ({{sec-tight-coupling-probe}}) NFS4ERR_NOTSUPP leaves
+   the FFV2_COUPLING_TRUSTED_STATEID bit clear, and at
+   LAYOUTGET ({{sec-tight-coupling-layoutget}}) the same
+   error requires the metadata server to clear a bit it
+   had already set.  Either way the metadata server falls
+   back to the synthetic-uid model
+   ({{sec-Fencing-Clients}}), which provides a level of
+   security equivalent to AUTH_SYS, and the client is told
+   nothing is wrong.  An on-path attacker that can inject
+   one reply on an unprotected control session therefore
+   selects the weaker of the two coupling models; repeated
+   NFS4ERR_DELAY reaches the same result by exhausting the
+   metadata server's LAYOUTGET-response budget.  The
+   integrity protection
+   {{sec-tight-coupling-control-session}} requires is what
+   closes both paths: it is the only mechanism here that
+   distinguishes a storage device which does not implement
+   the TRUST_STATEID family from an attacker that says so.
 
 Resource exhaustion via trust-table flood:
 :  A misbehaving metadata server could register an
