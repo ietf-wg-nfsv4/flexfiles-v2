@@ -71,6 +71,7 @@ informative:
   RFC1813:
   RFC1950:
   RFC2083:
+  RFC2743:
   RFC3720:
   RFC4519:
   RFC4960:
@@ -1669,6 +1670,49 @@ existing fencing error and avoids the confusion of
 NFS4ERR_WRONGSEC (which directs the client to re-authenticate
 with a different flavor) or NFS4ERR_BAD_STATEID (which directs
 the client to return the layout).
+
+The comparison in (b) is an octet-for-octet comparison.  The
+metadata server MUST set tsa_principal to the GSS display name
+of the client's context as the GSS-API returned it, without
+case folding, realm rewriting, or any other normalization.
+The storage device MUST compare the display name of the
+inbound RPCSEC_GSS context against the stored tsa_principal
+for equality of octets, and MUST NOT case fold or normalize
+either string before comparing.  No partial match is defined:
+a name that differs in any octet is a mismatch.
+
+The rule has to be stated for this field because the generic
+rules for its type do not settle it.  tsa_principal is a
+utf8str_cs, which {{Section 3.2 of RFC8881}} defines as a
+case-sensitive UTF-8 string and {{Section 14.1 of RFC8881}}
+binds to the nfs4_cs_prep profile.  That profile specifies no
+normalization form ({{Section 14.1.4 of RFC8881}}), so either
+end may receive unnormalized characters, and its case-mapping
+hook is conditioned on the case_insensitive and
+case_preserving file system attributes, which describe a file
+system's naming rules and say nothing about an authenticated
+principal.  Comparing octets leaves the metadata server as the
+one authority on the form of the name, which is what the
+two-part check needs: the storage device is answering "is this
+the principal the metadata server authorized", not "does this
+name designate the same user".
+
+The name compared is a printable display name, not a GSS-API
+exported name.  {{Section 1.1.5 of RFC2743}} warns that the
+printable syntax a mechanism produces is a local matter, and
+that a caller wanting portability compares internal-format
+names instead.  That option is not available here: the
+registration travels over the wire as a utf8str_cs, and the
+storage device holds no internal-format name from the metadata
+server to compare against.  Two consequences follow.  The
+metadata server passes the display name through unmodified, as
+required above.  And a client authenticates to the metadata
+server and to the storage device under the same GSS-API
+mechanism; a deployment that offers different mechanisms on
+the two paths cannot use trusted stateid tight coupling for
+the affected clients, whose CHUNK operations present a name
+that cannot match the registered one and fail the principal
+check with NFS4ERR_ACCESS.
 
 The metadata server MUST populate tsa_principal with the
 RPCSEC_GSS display name of the authenticated client when the
