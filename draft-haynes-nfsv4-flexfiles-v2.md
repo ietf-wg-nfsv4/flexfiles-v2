@@ -14758,16 +14758,44 @@ three ways:
    use it because their own GSS principal would not
    match.
 
--  The data server does NOT need its own Kerberos keytab
-   to validate each client principal individually.  In a
+-  The data server needs a service principal and keytab
+   for each session on which it accepts RPCSEC_GSS: the
+   control session, and, where the deployment runs the
+   data path under RPCSEC_GSS, the client's context on
+   each CHUNK compound.  It is the acceptor in both
+   cases.  What tight coupling removes is not that key
+   but the need for an identity for the client.  In a
    loose coupling Kerberos deployment the data server
-   would have to be a service principal in every realm
-   it serves clients from; under tight coupling the data
-   server's keytab is only required for its session with
-   the metadata server (the control session,
-   {{sec-tight-coupling-control}}).  Operational
-   complexity of Kerberos deployment is meaningfully
-   reduced.
+   resolves the authenticated name to a local uid and
+   evaluates the file's mode or ACL against it, which
+   means name-mapping configuration and an account or
+   directory lookup for every user it serves.  Under
+   tight coupling the metadata server made the
+   authorization decision at LAYOUTGET time and the data
+   server compares the context's display name against
+   tsa_principal ({{sec-tight-coupling-principal}})
+   without resolving it.  A client in another realm still
+   requires a cross-realm trust path to the data server's
+   realm, as it does for any Kerberos-protected NFS
+   service.
+
+A deployment that runs the data path under AUTH_SYS or TLS
+needs no client-facing Kerberos at the data server at all,
+and may protect the control session with RPC-over-TLS rather
+than RPCSEC_GSS ({{sec-tight-coupling-control-session}}).
+That choice sets tsa_principal to the empty string and so
+disables the principal check
+({{sec-tight-coupling-principal}}), leaving the stateid as
+the sole authorization for the I/O;
+{{sec-security-trust-stateid}} states what a leaked stateid
+can then do.  This document does not prefer one
+configuration over the other.  They differ in what they
+require of the deployment and in what they protect: the
+RPCSEC_GSS data path closes the flexible file v1 layout's
+Kerberos gap ({{sec-tight-coupling-principal}}) and costs a
+service principal and cross-realm trust at each data server;
+the AUTH_SYS or TLS data path costs neither and leaves the
+gap open.
 
 The mechanism does not authenticate the metadata server
 to the client; it authenticates the client to the data
