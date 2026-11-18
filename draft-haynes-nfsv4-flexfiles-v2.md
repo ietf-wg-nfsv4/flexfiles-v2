@@ -687,7 +687,11 @@ storage devices.
 
 loose coupling:
 
-:  when the control protocol is a storage protocol.
+:  an arrangement in which there is no control protocol beyond the
+storage protocol used to access the data, so the storage device
+holds no metadata-server-registered stateid for a client and
+authorizes client access by the synthetic uid and gid values on the
+data file ({{sec-Fencing-Clients}}).
 
 (file) metadata:
 
@@ -786,13 +790,17 @@ Vandermonde and Mojette systematic are examples.
 
 tight coupling:
 
-:  an arrangement in which the control protocol is one designed
-specifically for control communication.  It may be either a proprietary
-protocol adapted specifically to a particular metadata server or a
-protocol based on a Standards Track document.  The specific
+:  an arrangement in which a control protocol designed for control
+communication exists between the metadata server and the storage
+device, by which the metadata server conveys its authorization
+decision for a client.  It may be either a proprietary protocol
+adapted specifically to a particular metadata server or a protocol
+based on a Standards Track document, and it may be carried in
+operations of the storage protocol or out of band.  The specific
 tight coupling variant defined by this document, in which the
-control protocol is the TRUST_STATEID family, is referred to as
-trusted stateid tight coupling (see {{sec-tight-coupling-control}}).
+control protocol is the TRUST_STATEID family carried in NFSv4.2
+operations, is referred to as trusted stateid tight coupling (see
+{{sec-tight-coupling-control}}).
 
 trusted stateid tight coupling:
 
