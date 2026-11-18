@@ -16,23 +16,23 @@ server and use already-existing protocols.  Data protection is also
 added to provide integrity.  Both Client-side mirroring and the
 erasure coding algorithms are used for data protection. 
     " name="description">
-<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="xml2rfc 3.35.0" name="generator">
 <meta content="Internet-Draft" name="keyword">
 <meta content="draft-haynes-nfsv4-flexfiles-v2-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.34.0
-    Python 3.14.7
-    ConfigArgParse 1.7.5
+  xml2rfc 3.35.0
+    Python 3.14.10
+    ConfigArgParse 1.9.0
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.11.7
+    platformdirs 4.14.3
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.3
+    wcwidth 0.9.4
 -->
 <link href="draft-haynes-nfsv4-flexfiles-v2.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1033,7 +1033,7 @@ svg {
   & :is([stroke="white"], [stroke^="#fff"]) {
     stroke: var(--background-color);
   }
-  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+  & :is([fill="black"], [fill^="#000"], :not([fill], [fill] *)) {
     fill: var(--text-color);
   }
   & :is([fill="white"], [fill^="#fff"]) {
@@ -1048,11 +1048,11 @@ svg {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">Flex File Layout v2</td>
-<td class="right">September 2026</td>
+<td class="right">November 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">Haynes</td>
-<td class="center">Expires 19 March 2027</td>
+<td class="center">Expires 22 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,12 +1065,12 @@ svg {
 <dd class="internet-draft">draft-haynes-nfsv4-flexfiles-v2-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-09-15" class="published">15 September 2026</time>
+<time datetime="2026-11-18" class="published">18 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-03-19">19 March 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-22">22 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1135,7 +1135,7 @@ discussion venue, latest rendering, and source location.<a href="#section-note.2
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 19 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 22 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -4599,7 +4599,7 @@ No CHUNK_WRITE, no CHUNK_READ, no per-chunk CRC.  See
           <li class="normal" id="section-8.1-3.2">
             <p id="section-8.1-3.2.1">Every other standards-track encoding (any FFV2<em>ENCODING</em>*
 value other than FFV2_ENCODING_PASSTHROUGH; see
-<a href="#tbl-coding-types" class="auto internal xref">Table 23</a>) uses the new operations defined here:
+<a href="#tbl-coding-types" class="auto internal xref">Table 21</a>) uses the new operations defined here:
 in particular CHUNK_WRITE and CHUNK_READ, which carry the per-chunk checksum this
 version of the layout type relies on for end-to-end integrity.
 The encoding type selects how chunks are produced from
@@ -4615,7 +4615,7 @@ intended scope -- Standards Track, Experimental, Vendor (open),
 and Private / proprietary -- with different allocation policies
 per range, so that vendors can assign encoding values without
 consuming standards-track codepoints.  See
-<a href="#tbl-coding-ranges" class="auto internal xref">Table 22</a> and the accompanying prose in
+<a href="#tbl-coding-ranges" class="auto internal xref">Table 20</a> and the accompanying prose in
 <a href="#iana-considerations" class="auto internal xref">Section 29</a> for the range assignments and allocation
 policies.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
 <div id="sec-heterogeneous-mirrors">
@@ -7707,7 +7707,7 @@ encodings on the client's behalf.<a href="#section-11.3-5.3.1" class="pilcrow">�
 <p id="section-11.3-8">When performing I/O via a FFV2<em>ENCODING_PASSTHROUGH encoding type,
 the non-transformed data will be used; whereas with any of the
 chunked encoding types (any FFV2_ENCODING</em>* value other than
-FFV2_ENCODING_PASSTHROUGH; see <a href="#tbl-coding-types" class="auto internal xref">Table 23</a>), a metadata
+FFV2_ENCODING_PASSTHROUGH; see <a href="#tbl-coding-types" class="auto internal xref">Table 21</a>), a metadata
 header and transformed block will be sent.  Further, when reading data from the
 instance files, the client <span class="bcp14">MUST</span> be prepared to have one of the
 encoding types supply data and the other type not to supply data.
@@ -8116,7 +8116,7 @@ row of any GF(2^8) family encoding at m &gt;= 1 unchanged.<a href="#section-11.6
                 <td class="text-left" rowspan="1" colspan="1">
                   <code>0x0a</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">matches P from <a href="#tbl-rs-test-vector-k3m2" class="auto internal xref">Table 8</a>
+                <td class="text-left" rowspan="1" colspan="1">matches P from <a href="#tbl-rs-test-vector-k3m2" class="auto internal xref">Table 6</a>
 </td>
               </tr>
               <tr>
@@ -8138,7 +8138,7 @@ row of any GF(2^8) family encoding at m &gt;= 1 unchanged.<a href="#section-11.6
           </table>
 </div>
 <p id="section-11.6.5-3">The fourth row is byte-identical to the P entry of the same
-input in <a href="#tbl-rs-test-vector-k3m2" class="auto internal xref">Table 8</a> -- the wire-compat
+input in <a href="#tbl-rs-test-vector-k3m2" class="auto internal xref">Table 6</a> -- the wire-compat
 property in action.<a href="#section-11.6.5-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -8374,142 +8374,14 @@ the (k, m) geometry matches.<a href="#section-11.7.5-4" class="pilcrow">¶</a></
           <h4 id="name-linux_md_raid-interoperabili">
 <a href="#section-11.7.6" class="section-number selfRef">11.7.6. </a><a href="#name-linux_md_raid-interoperabili" class="section-name selfRef">LINUX_MD_RAID Interoperability Test Vectors</a>
           </h4>
-<p id="section-11.7.6-1">Concrete byte-level test vector with <code>k = 3</code>, <code>m = 2</code>,
-<code>shard_len = 1</code>:<a href="#section-11.7.6-1" class="pilcrow">¶</a></p>
-<span id="name-linux_md_raid-test-vector-k"></span><div id="tbl-linux-md-test-vector">
-<table class="center" id="table-5">
-            <caption>
-<a href="#table-5" class="selfRef">Table 5</a>:
-<a href="#name-linux_md_raid-test-vector-k" class="selfRef">LINUX_MD_RAID test vector: k=3, m=2</a>
-            </caption>
-<thead>
-              <tr>
-                <th class="text-left" rowspan="1" colspan="1">data[0]</th>
-                <th class="text-left" rowspan="1" colspan="1">data[1]</th>
-                <th class="text-left" rowspan="1" colspan="1">data[2]</th>
-                <th class="text-left" rowspan="1" colspan="1">P</th>
-                <th class="text-left" rowspan="1" colspan="1">Q</th>
-                <th class="text-left" rowspan="1" colspan="1">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">zero input</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x01</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x02</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x03</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x09</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">1 XOR (2<em>2) XOR (4</em>3) = 1 XOR 4 XOR 12 = 9</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x80</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x80</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x80</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">Q = 1 * 0x80 = 0x80</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x80</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x80</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x1d</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">Q = 2 * 0x80 = 0x100 -&gt; reduce by 0x11d -&gt; 0x1d</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x00</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x80</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x80</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x3a</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">Q = 4 * 0x80 = 2 * 0x1d = 0x3a</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x37</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x91</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0xac</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x0a</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">
-                  <code>0x82</code>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">general non-degenerate case</td>
-              </tr>
-            </tbody>
-          </table>
-</div>
-<p id="section-11.7.6-3">Every row above is byte-identical to the k=3, m=2 test vector
-for FFV2_ENCODING_RS_VANDERMONDE (<a href="#tbl-rs-test-vector-k3m2" class="auto internal xref">Table 8</a>)
-at the same input.  This is the wire-compat property in
-action: an implementation whose LINUX_MD_RAID output matches
-these bytes is producing the same wire encoding as
-RS_VANDERMONDE at m=2.<a href="#section-11.7.6-3" class="pilcrow">¶</a></p>
+<p id="section-11.7.6-1">At <code>m = 2</code> the LINUX_MD_RAID P + Q construction produces
+byte-identical output to FFV2_ENCODING_RS_VANDERMONDE for the
+same input, so the two encodings share one test vector:
+<a href="#tbl-rs-test-vector-k3m2" class="auto internal xref">Table 6</a>, computed with <code>k = 3</code>, <code>m = 2</code>,
+<code>shard_len = 1</code>.  This is the wire-compat property in action:
+an implementation whose LINUX_MD_RAID output matches those
+bytes is producing the same wire encoding as RS_VANDERMONDE
+at m=2.<a href="#section-11.7.6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="linuxmdraid-shard-sizes">
@@ -8519,54 +8391,9 @@ RS_VANDERMONDE at m=2.<a href="#section-11.7.6-3" class="pilcrow">¶</a></p>
           </h4>
 <p id="section-11.7.7-1">All LINUX_MD_RAID shards (data, P, Q) are exactly shard_len
 bytes.  chunk_size equals shard_len for every mirror in the
-layout.  Total storage overhead is <code>2/k</code> of payload.<a href="#section-11.7.7-1" class="pilcrow">¶</a></p>
-<span id="name-linux_md_raid-shard-sizes-f"></span><div id="tbl-linux-md-shards">
-<table class="center" id="table-6">
-            <caption>
-<a href="#table-6" class="selfRef">Table 6</a>:
-<a href="#name-linux_md_raid-shard-sizes-f" class="selfRef">LINUX_MD_RAID shard sizes for common configurations</a>
-            </caption>
-<thead>
-              <tr>
-                <th class="text-left" rowspan="1" colspan="1">Configuration</th>
-                <th class="text-left" rowspan="1" colspan="1">File Size</th>
-                <th class="text-left" rowspan="1" colspan="1">Shard Size</th>
-                <th class="text-left" rowspan="1" colspan="1">Total Storage</th>
-                <th class="text-left" rowspan="1" colspan="1">Overhead</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">4+2</td>
-                <td class="text-left" rowspan="1" colspan="1">4 KB</td>
-                <td class="text-left" rowspan="1" colspan="1">1 KB</td>
-                <td class="text-left" rowspan="1" colspan="1">6 KB</td>
-                <td class="text-left" rowspan="1" colspan="1">50%</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">4+2</td>
-                <td class="text-left" rowspan="1" colspan="1">1 MB</td>
-                <td class="text-left" rowspan="1" colspan="1">256 KB</td>
-                <td class="text-left" rowspan="1" colspan="1">1.5 MB</td>
-                <td class="text-left" rowspan="1" colspan="1">50%</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">8+2</td>
-                <td class="text-left" rowspan="1" colspan="1">4 KB</td>
-                <td class="text-left" rowspan="1" colspan="1">512 B</td>
-                <td class="text-left" rowspan="1" colspan="1">5 KB</td>
-                <td class="text-left" rowspan="1" colspan="1">25%</td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">8+2</td>
-                <td class="text-left" rowspan="1" colspan="1">1 MB</td>
-                <td class="text-left" rowspan="1" colspan="1">128 KB</td>
-                <td class="text-left" rowspan="1" colspan="1">1.25 MB</td>
-                <td class="text-left" rowspan="1" colspan="1">25%</td>
-              </tr>
-            </tbody>
-          </table>
-</div>
+layout.  Total storage overhead is <code>2/k</code> of payload.  The
+worked configurations are those of RS_VANDERMONDE at m = 2:
+see <a href="#tbl-rs-shards" class="auto internal xref">Table 7</a>.<a href="#section-11.7.7-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -8857,9 +8684,9 @@ E = [ [0x01, 0x00],    // identity block for data shard 0
 <code>parity[j] = data[0][j] XOR data[1][j]</code>.<a href="#section-11.8.7.1-3" class="pilcrow">¶</a></p>
 <p id="section-11.8.7.1-4">Concrete byte-level test vector with <code>shard_len = 1</code>:<a href="#section-11.8.7.1-4" class="pilcrow">¶</a></p>
 <span id="name-rs-vandermonde-test-vector-"></span><div id="tbl-rs-test-vector-k2m1">
-<table class="center" id="table-7">
+<table class="center" id="table-5">
               <caption>
-<a href="#table-7" class="selfRef">Table 7</a>:
+<a href="#table-5" class="selfRef">Table 5</a>:
 <a href="#name-rs-vandermonde-test-vector-" class="selfRef">RS Vandermonde test vector: k=2, m=1</a>
               </caption>
 <thead>
@@ -8961,9 +8788,9 @@ Q[j] = 1 * data[0][j] XOR 2 * data[1][j] XOR 4 * data[2][j]
 <p id="section-11.8.7.2-5">where the multiplication is in GF(2^8) with polynomial <code>0x11d</code>.<a href="#section-11.8.7.2-5" class="pilcrow">¶</a></p>
 <p id="section-11.8.7.2-6">Concrete byte-level test vector with <code>shard_len = 1</code>:<a href="#section-11.8.7.2-6" class="pilcrow">¶</a></p>
 <span id="name-rs-vandermonde-test-vector-k"></span><div id="tbl-rs-test-vector-k3m2">
-<table class="center" id="table-8">
+<table class="center" id="table-6">
               <caption>
-<a href="#table-8" class="selfRef">Table 8</a>:
+<a href="#table-6" class="selfRef">Table 6</a>:
 <a href="#name-rs-vandermonde-test-vector-k" class="selfRef">RS Vandermonde test vector: k=3, m=2</a>
               </caption>
 <thead>
@@ -9107,9 +8934,9 @@ hand-computed; implementations that need m &gt;= 3 verification
 simplifies the CHUNK operation protocol: chunk_size is exactly the
 shard size for all mirrors.<a href="#section-11.8.8-1" class="pilcrow">¶</a></p>
 <span id="name-rs-shard-sizes-for-common-c"></span><div id="tbl-rs-shards">
-<table class="center" id="table-9">
+<table class="center" id="table-7">
             <caption>
-<a href="#table-9" class="selfRef">Table 9</a>:
+<a href="#table-7" class="selfRef">Table 7</a>:
 <a href="#name-rs-shard-sizes-for-common-c" class="selfRef">RS shard sizes for common configurations</a>
             </caption>
 <thead>
@@ -9475,9 +9302,9 @@ direction:<a href="#section-11.9.9-1.6.1" class="pilcrow">¶</a></p>
           <dd class="break"></dd>
 </dl>
 <span id="name-mojette-projection-sizes-fo"></span><div id="tbl-mojette-proj-sizes">
-<table class="center" id="table-10">
+<table class="center" id="table-8">
             <caption>
-<a href="#table-10" class="selfRef">Table 10</a>:
+<a href="#table-8" class="selfRef">Table 8</a>:
 <a href="#name-mojette-projection-sizes-fo" class="selfRef">Mojette projection sizes for 4+2, 4KB shards, W=8</a>
             </caption>
 <thead>
@@ -9529,7 +9356,7 @@ direction:<a href="#section-11.9.9-1.6.1" class="pilcrow">¶</a></p>
 chunks by the following mapping.  Let <code>shard_bytes = B * W</code>
 be the projection shard's total byte size (where B is the
 number of bins per the B formula above
-(<a href="#tbl-mojette-proj-sizes" class="auto internal xref">Table 10</a> uses it) applied to the shard's
+(<a href="#tbl-mojette-proj-sizes" class="auto internal xref">Table 8</a> uses it) applied to the shard's
 direction (p, q) and the grid dimensions (P, Q)):<a href="#section-11.9.9-3.2.1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-11.9.9-3.2.2.1">
@@ -9568,9 +9395,9 @@ short read reporting the shard's true byte length.<a href="#section-11.9.9-4" cl
 <a href="#section-11.10" class="section-number selfRef">11.10. </a><a href="#name-comparison-of-encoding-type" class="section-name selfRef">Comparison of Encoding Types</a>
         </h3>
 <span id="name-comparison-of-erasure-encod"></span><div id="tbl-encoding-comparison">
-<table class="center" id="table-11">
+<table class="center" id="table-9">
           <caption>
-<a href="#table-11" class="selfRef">Table 11</a>:
+<a href="#table-9" class="selfRef">Table 9</a>:
 <a href="#name-comparison-of-erasure-encod" class="selfRef">Comparison of erasure encoding types</a>
           </caption>
 <thead>
@@ -11315,7 +11142,7 @@ CHUNK operations rather than READ / WRITE / COMMIT.  This
 includes FFV2_ENCODING_REPLICATED, whose per-shard payload is
 the input bytes verbatim but is dispatched via the CHUNK
 operations to carry the per-chunk checksum and guard
-(<a href="#tbl-ops-allowed" class="auto internal xref">Table 12</a> legend).<a href="#section-13.2.8-1" class="pilcrow">¶</a></p>
+(<a href="#tbl-ops-allowed" class="auto internal xref">Table 10</a> legend).<a href="#section-13.2.8-1" class="pilcrow">¶</a></p>
 <p id="section-13.2.8-2">Required for all chunked clients:<a href="#section-13.2.8-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-13.2.8-3.1">
@@ -11560,9 +11387,9 @@ path in this document.<a href="#section-13.4-2.8.1" class="pilcrow">¶</a></p>
         <dd class="break"></dd>
 </dl>
 <span id="name-nfsv42-operations-allowed-o"></span><div id="tbl-ops-allowed">
-<table class="center" id="table-12">
+<table class="center" id="table-10">
           <caption>
-<a href="#table-12" class="selfRef">Table 12</a>:
+<a href="#table-10" class="selfRef">Table 10</a>:
 <a href="#name-nfsv42-operations-allowed-o" class="selfRef">NFSv4.2 operations allowed on data files</a>
           </caption>
 <thead>
@@ -11759,7 +11586,7 @@ FFV2<em>ENCODING_PASSTHROUGH (<a href="#sec-encoding-passthrough" class="auto in
 NFSv3 WRITE / READ or NFSv4 READ / WRITE directly and does not
 use the CHUNK operations.  Every other standards-track encoding
 (any FFV2_ENCODING</em>* value other than FFV2_ENCODING_PASSTHROUGH;
-see <a href="#tbl-coding-types" class="auto internal xref">Table 23</a>) is (chunked): it uses CHUNK_WRITE and CHUNK_READ and
+see <a href="#tbl-coding-types" class="auto internal xref">Table 21</a>) is (chunked): it uses CHUNK_WRITE and CHUNK_READ and
 <span class="bcp14">MUST NOT</span> use the RFC 8881 READ / WRITE / COMMIT operations
 against the data server.  FFV2_ENCODING_REPLICATED replicates
 the payload verbatim across N shards but dispatches via the
@@ -12372,9 +12199,9 @@ servers.<a href="#section-20-2.6.1" class="pilcrow">¶</a></p>
 <a href="#section-21.1" class="section-number selfRef">21.1. </a><a href="#name-error-definitions" class="section-name selfRef">Error Definitions</a>
         </h3>
 <span id="name-error-definitions-2"></span><div id="tbl-protocol-errors">
-<table class="center" id="table-13">
+<table class="center" id="table-11">
           <caption>
-<a href="#table-13" class="selfRef">Table 13</a>:
+<a href="#table-11" class="selfRef">Table 11</a>:
 <a href="#name-error-definitions-2" class="selfRef">Error Definitions</a>
           </caption>
 <thead>
@@ -12862,12 +12689,12 @@ of NFS4_OK and per-range failure codes.<a href="#section-21.1.11-2" class="pilcr
 <a href="#section-21.2" class="section-number selfRef">21.2. </a><a href="#name-operations-and-their-valid-" class="section-name selfRef">Operations and Their Valid Errors</a>
         </h3>
 <p id="section-21.2-1">The operations and their valid errors are presented in
-<a href="#tbl-ops-and-errors" class="auto internal xref">Table 14</a>.  All error codes not defined in this document
+<a href="#tbl-ops-and-errors" class="auto internal xref">Table 12</a>.  All error codes not defined in this document
 are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-15" class="relref">Section 15</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and <span><a href="https://rfc-editor.org/rfc/rfc7862#section-11" class="relref">Section 11</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.2-1" class="pilcrow">¶</a></p>
 <span id="name-operations-and-their-valid-e"></span><div id="tbl-ops-and-errors">
-<table class="center" id="table-14">
+<table class="center" id="table-12">
           <caption>
-<a href="#table-14" class="selfRef">Table 14</a>:
+<a href="#table-12" class="selfRef">Table 12</a>:
 <a href="#name-operations-and-their-valid-e" class="selfRef">Operations and Their Valid Errors</a>
           </caption>
 <thead>
@@ -12960,12 +12787,12 @@ are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-15" cla
 <a href="#section-21.3" class="section-number selfRef">21.3. </a><a href="#name-callback-operations-and-the" class="section-name selfRef">Callback Operations and Their Valid Errors</a>
         </h3>
 <p id="section-21.3-1">The callback operations and their valid errors are presented in
-<a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 15</a>.  All error codes not defined in this document
+<a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 13</a>.  All error codes not defined in this document
 are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-15" class="relref">Section 15</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and <span><a href="https://rfc-editor.org/rfc/rfc7862#section-11" class="relref">Section 11</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.3-1" class="pilcrow">¶</a></p>
 <span id="name-callback-operations-and-thei"></span><div id="tbl-cb-ops-and-errors">
-<table class="center" id="table-15">
+<table class="center" id="table-13">
           <caption>
-<a href="#table-15" class="selfRef">Table 15</a>:
+<a href="#table-13" class="selfRef">Table 13</a>:
 <a href="#name-callback-operations-and-thei" class="selfRef">Callback Operations and Their Valid Errors</a>
           </caption>
 <thead>
@@ -12989,13 +12816,13 @@ are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-15" cla
         <h3 id="name-errors-and-the-operations-t">
 <a href="#section-21.4" class="section-number selfRef">21.4. </a><a href="#name-errors-and-the-operations-t" class="section-name selfRef">Errors and the Operations That Use Them</a>
         </h3>
-<p id="section-21.4-1">The operations and their valid errors are presented in
-<a href="#tbl-errors-and-ops" class="auto internal xref">Table 16</a>.  All operations not defined in this document
+<p id="section-21.4-1">The errors and the operations that use them are presented in
+<a href="#tbl-errors-and-ops" class="auto internal xref">Table 14</a>.  All operations not defined in this document
 are defined in <span><a href="https://rfc-editor.org/rfc/rfc8881#section-18" class="relref">Section 18</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> and <span><a href="https://rfc-editor.org/rfc/rfc7862#section-15" class="relref">Section 15</a> of [<a href="#RFC7862" class="cite xref">RFC7862</a>]</span>.<a href="#section-21.4-1" class="pilcrow">¶</a></p>
 <span id="name-errors-and-the-operations-th"></span><div id="tbl-errors-and-ops">
-<table class="center" id="table-16">
+<table class="center" id="table-14">
           <caption>
-<a href="#table-16" class="selfRef">Table 16</a>:
+<a href="#table-14" class="selfRef">Table 14</a>:
 <a href="#name-errors-and-the-operations-th" class="selfRef">Errors and the Operations That Use Them</a>
           </caption>
 <thead>
@@ -13082,7 +12909,7 @@ EXCHGID4_FLAG_USE_ERASURE_DS.  I.e., EXCHGID4_FLAG_USE_ERASURE_DS can
 be used in combination with all of the pNFS flags.<a href="#section-22-2" class="pilcrow">¶</a></p>
 <p id="section-22-3">If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
 EXCHANGE_ID operation, then it <span class="bcp14">MUST</span> support all of the operations
-in <a href="#tbl-protocol-ops" class="auto internal xref">Table 17</a>.  Further, this support is orthogonal to the
+in <a href="#tbl-protocol-ops" class="auto internal xref">Table 15</a>.  Further, this support is orthogonal to the
 Erasure Encoding Type selected.  The data server is unaware of which type
 is driving the I/O.<a href="#section-22-3" class="pilcrow">¶</a></p>
 </section>
@@ -13470,11 +13297,8 @@ distinct value.<a href="#section-24.2.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-24.2.1-2.2">
               <p id="section-24.2.1-2.2.1">The reserved sentinel CHUNK_GUARD_CLIENT_ID_NONE (0x00000000)
-<span class="bcp14">MUST NOT</span> be assigned to any client.  Reserving 0 prevents an
-uninitialized cg_client_id field from passing as a real
-client and ensures the deterministic tiebreaker (numerically
-lowest wins) does not encode an implicit priority via
-assignment of 0.<a href="#section-24.2.1-2.2.1" class="pilcrow">¶</a></p>
+<span class="bcp14">MUST NOT</span> be assigned to any client; <a href="#sec-chunk_guard_none" class="auto internal xref">Section 24.2.3</a>
+gives the reason 0 is reserved.<a href="#section-24.2.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-24.2.1-2.3">
               <p id="section-24.2.1-2.3.1">The reserved sentinel CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF)
@@ -14403,9 +14227,9 @@ appropriate).  See <a href="#sec-system-model-chunk-not-block" class="auto inter
 distinction between the CHUNK operations and a generic block I/O
 interface.<a href="#section-25-7" class="pilcrow">¶</a></p>
 <span id="name-protocol-ops"></span><div id="tbl-protocol-ops">
-<table class="center" id="table-17">
+<table class="center" id="table-15">
         <caption>
-<a href="#table-17" class="selfRef">Table 17</a>:
+<a href="#table-15" class="selfRef">Table 15</a>:
 <a href="#name-protocol-ops" class="selfRef">Protocol OPs</a>
         </caption>
 <thead>
@@ -20474,7 +20298,7 @@ server <span class="bcp14">MUST</span> reject the callback response.  See
 </dd>
           <dd class="break"></dd>
 </dl>
-<p id="section-26.1.4-3">All other error codes listed in <a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 15</a> are
+<p id="section-26.1.4-3">All other error codes listed in <a href="#tbl-cb-ops-and-errors" class="auto internal xref">Table 13</a> are
 treated by the metadata server as retriable: the metadata server
 <span class="bcp14">MAY</span> issue a subsequent CB_CHUNK_REPAIR to the same or a
 different client.  If the client becomes unreachable (no
@@ -21544,11 +21368,11 @@ only.<a href="#section-28.7.2-2" class="pilcrow">¶</a></p>
 <p id="section-29-1"><span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> introduced the "pNFS Layout Types Registry"; new layout
 type numbers in this registry need to be assigned by IANA.  This
 document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
-(see <a href="#tbl_layout_types" class="auto internal xref">Table 18</a>).<a href="#section-29-1" class="pilcrow">¶</a></p>
+(see <a href="#tbl_layout_types" class="auto internal xref">Table 16</a>).<a href="#section-29-1" class="pilcrow">¶</a></p>
 <span id="name-layout-type-assignments"></span><div id="tbl_layout_types">
-<table class="center" id="table-18">
+<table class="center" id="table-16">
         <caption>
-<a href="#table-18" class="selfRef">Table 18</a>:
+<a href="#table-16" class="selfRef">Table 16</a>:
 <a href="#name-layout-type-assignments" class="selfRef">Layout Type Assignments</a>
         </caption>
 <thead>
@@ -21574,11 +21398,11 @@ document defines a new layout type number: LAYOUT4_FLEX_FILES_V2
 <p id="section-29-3"><span>[<a href="#RFC8881" class="cite xref">RFC8881</a>]</span> also introduced the "NFSv4 Recallable Object Types
 Registry".  This document defines new recallable objects for
 RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX
-(see <a href="#tbl_recallables" class="auto internal xref">Table 19</a>).<a href="#section-29-3" class="pilcrow">¶</a></p>
+(see <a href="#tbl_recallables" class="auto internal xref">Table 17</a>).<a href="#section-29-3" class="pilcrow">¶</a></p>
 <span id="name-recallable-object-type-assi"></span><div id="tbl_recallables">
-<table class="center" id="table-19">
+<table class="center" id="table-17">
         <caption>
-<a href="#table-19" class="selfRef">Table 19</a>:
+<a href="#table-17" class="selfRef">Table 17</a>:
 <a href="#name-recallable-object-type-assi" class="selfRef">Recallable Object Type Assignments</a>
         </caption>
 <thead>
@@ -21617,9 +21441,9 @@ case the numeric value in <a href="#fig-EXCHGID4_FLAG_USE_ERASURE_DS" class="aut
 and its uses throughout the document are updated to match the
 assignment.<a href="#section-29-5" class="pilcrow">¶</a></p>
 <span id="name-exchgid4-flag-assignments"></span><div id="tbl_exchgid_flags">
-<table class="center" id="table-20">
+<table class="center" id="table-18">
         <caption>
-<a href="#table-20" class="selfRef">Table 20</a>:
+<a href="#table-18" class="selfRef">Table 18</a>:
 <a href="#name-exchgid4-flag-assignments" class="selfRef">EXCHGID4 Flag Assignments</a>
         </caption>
 <thead>
@@ -21644,9 +21468,9 @@ assignment.<a href="#section-29-5" class="pilcrow">¶</a></p>
 <p id="section-29-7">This document requests IANA to allocate two attribute numbers in
 the NFSv4 attribute-number registry (see <span><a href="https://rfc-editor.org/rfc/rfc8881#section-20" class="relref">Section 20</a> of [<a href="#RFC8881" class="cite xref">RFC8881</a>]</span>).<a href="#section-29-7" class="pilcrow">¶</a></p>
 <span id="name-nfsv4-attribute-assignments"></span><div id="tbl_attribute_assignments">
-<table class="center" id="table-21">
+<table class="center" id="table-19">
         <caption>
-<a href="#table-21" class="selfRef">Table 21</a>:
+<a href="#table-19" class="selfRef">Table 19</a>:
 <a href="#name-nfsv4-attribute-assignments" class="selfRef">NFSv4 Attribute Assignments</a>
         </caption>
 <thead>
@@ -21680,11 +21504,11 @@ the NFSv4 attribute-number registry (see <span><a href="https://rfc-editor.org/r
 <p id="section-29-9">This document introduces the 'Flexible File Version 2 Layout Type
 Erasure Encoding Type Registry'.  The registry uses a 32-bit value
 space partitioned into ranges based on the intended scope of the
-encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table 22</a>).<a href="#section-29-9" class="pilcrow">¶</a></p>
+encoding type (see <a href="#tbl-coding-ranges" class="auto internal xref">Table 20</a>).<a href="#section-29-9" class="pilcrow">¶</a></p>
 <span id="name-erasure-encoding-type-value"></span><div id="tbl-coding-ranges">
-<table class="center" id="table-22">
+<table class="center" id="table-20">
         <caption>
-<a href="#table-22" class="selfRef">Table 22</a>:
+<a href="#table-20" class="selfRef">Table 20</a>:
 <a href="#name-erasure-encoding-type-value" class="selfRef">Erasure Encoding Type Value Ranges (32-bit space)</a>
         </caption>
 <thead>
@@ -21787,11 +21611,11 @@ what level of interoperability to expect.<a href="#section-29-13" class="pilcrow
 <p id="section-29-14">This document defines seven encoding types: the flexible file v1 layout-compatible
 PASSTHROUGH (see <a href="#sec-encoding-passthrough" class="auto internal xref">Section 11.4</a>), the chunked
 MIRRORED (see <a href="#sec-encoding-replicated" class="auto internal xref">Section 11.5</a>), and five chunked
-erasure encoding types (see <a href="#tbl-coding-types" class="auto internal xref">Table 23</a>).<a href="#section-29-14" class="pilcrow">¶</a></p>
+erasure encoding types (see <a href="#tbl-coding-types" class="auto internal xref">Table 21</a>).<a href="#section-29-14" class="pilcrow">¶</a></p>
 <span id="name-flexible-file-version-2-layout-t"></span><div id="tbl-coding-types">
-<table class="center" id="table-23">
+<table class="center" id="table-21">
         <caption>
-<a href="#table-23" class="selfRef">Table 23</a>:
+<a href="#table-21" class="selfRef">Table 21</a>:
 <a href="#name-flexible-file-version-2-layout-t" class="selfRef">Flexible File Version 2 Layout Type Encoding Type Assignments</a>
         </caption>
 <thead>
@@ -21889,11 +21713,11 @@ registration).<a href="#section-29.1-3.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-29.1-4">Initial registrations are listed in
-<a href="#tbl-checksum-algorithms" class="auto internal xref">Table 24</a>.<a href="#section-29.1-4" class="pilcrow">¶</a></p>
+<a href="#tbl-checksum-algorithms" class="auto internal xref">Table 22</a>.<a href="#section-29.1-4" class="pilcrow">¶</a></p>
 <span id="name-initial-checksum-algorithm-"></span><div id="tbl-checksum-algorithms">
-<table class="center" id="table-24">
+<table class="center" id="table-22">
           <caption>
-<a href="#table-24" class="selfRef">Table 24</a>:
+<a href="#table-22" class="selfRef">Table 22</a>:
 <a href="#name-initial-checksum-algorithm-" class="selfRef">Initial Checksum Algorithm Registrations</a>
           </caption>
 <thead>
@@ -22027,7 +21851,7 @@ in the byte order defined by <span>[<a href="#BLAKE3-SPEC" class="cite xref">BLA
 <p id="section-29.1-12">A checksum4 whose cs_value length does not match the
 registered cs_value bytes for its cs_algorithm <span class="bcp14">MUST</span> be
 rejected with NFS4ERR_INVAL.<a href="#section-29.1-12" class="pilcrow">¶</a></p>
-<p id="section-29.1-13">The "Class" column in <a href="#tbl-checksum-algorithms" class="auto internal xref">Table 24</a> is
+<p id="section-29.1-13">The "Class" column in <a href="#tbl-checksum-algorithms" class="auto internal xref">Table 22</a> is
 informational and indicates the threat model the algorithm
 supports; see <a href="#sec-security-checksum-scope" class="auto internal xref">Section 28.1</a>.<a href="#section-29.1-13" class="pilcrow">¶</a></p>
 </section>
@@ -22074,11 +21898,11 @@ defined in this document or its cited references
 </li>
         </ul>
 <p id="section-29.2-4">Initial registrations are listed in
-<a href="#tbl-proof-profiles" class="auto internal xref">Table 25</a>.<a href="#section-29.2-4" class="pilcrow">¶</a></p>
+<a href="#tbl-proof-profiles" class="auto internal xref">Table 23</a>.<a href="#section-29.2-4" class="pilcrow">¶</a></p>
 <span id="name-initial-proof-profile-regis"></span><div id="tbl-proof-profiles">
-<table class="center" id="table-25">
+<table class="center" id="table-23">
           <caption>
-<a href="#table-25" class="selfRef">Table 25</a>:
+<a href="#table-23" class="selfRef">Table 23</a>:
 <a href="#name-initial-proof-profile-regis" class="selfRef">Initial Proof-Profile Registrations</a>
           </caption>
 <thead>
@@ -22684,8 +22508,8 @@ others without re-encoding.<a href="#appendix-A.3.2-3" class="pilcrow">¶</a></p
 host (kernel NFSv4.2 mount), one proxy server host, and one
 host running both the metadata server and the data servers.
 Four wire-path variants are distinguished:<a href="#appendix-A.3.3-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-26">
-            <caption><a href="#table-26" class="selfRef">Table 26</a></caption>
+<table class="center" id="table-24">
+            <caption><a href="#table-24" class="selfRef">Table 24</a></caption>
 <thead>
               <tr>
                 <th class="text-left" rowspan="1" colspan="1">Variant</th>
@@ -22755,8 +22579,8 @@ vs 10.0-13.5 MB/s) is the extra client to proxy server hop,
 not the encoder.<a href="#appendix-A.3.3-7" class="pilcrow">¶</a></p>
 <p id="appendix-A.3.3-8">Decomposing a 1 MiB write on this topology into cost
 components:<a href="#appendix-A.3.3-8" class="pilcrow">¶</a></p>
-<table class="center" id="table-27">
-            <caption><a href="#table-27" class="selfRef">Table 27</a></caption>
+<table class="center" id="table-25">
+            <caption><a href="#table-25" class="selfRef">Table 25</a></caption>
 <thead>
               <tr>
                 <th class="text-left" rowspan="1" colspan="1">Cost item</th>

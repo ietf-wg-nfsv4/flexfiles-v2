@@ -4,8 +4,8 @@
 
 Network File System Version 4                                  T. Haynes
 Internet-Draft                                               Hammerspace
-Intended status: Standards Track                       15 September 2026
-Expires: 19 March 2027
+Intended status: Standards Track                        18 November 2026
+Expires: 22 May 2027
 
 
            Parallel NFS (pNFS) Flexible File Layout Version 2
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 19 March 2027.
+   This Internet-Draft will expire on 22 May 2027.
 
 Copyright Notice
 
@@ -2334,7 +2334,7 @@ Table of Contents
       Section 11.4.
 
    *  Every other standards-track encoding (any FFV2_ENCODING_* value
-      other than FFV2_ENCODING_PASSTHROUGH; see Table 23) uses the new
+      other than FFV2_ENCODING_PASSTHROUGH; see Table 21) uses the new
       operations defined here: in particular CHUNK_WRITE and CHUNK_READ,
       which carry the per-chunk checksum this version of the layout type
       relies on for end-to-end integrity.  The encoding type selects how
@@ -2348,7 +2348,7 @@ Table of Contents
    scope -- Standards Track, Experimental, Vendor (open), and Private /
    proprietary -- with different allocation policies per range, so that
    vendors can assign encoding values without consuming standards-track
-   codepoints.  See Table 22 and the accompanying prose in Section 29
+   codepoints.  See Table 20 and the accompanying prose in Section 29
    for the range assignments and allocation policies.
 
 8.1.1.  Heterogeneous Mirror Sets
@@ -4781,7 +4781,7 @@ Table of Contents
    When performing I/O via a FFV2_ENCODING_PASSTHROUGH encoding type,
    the non-transformed data will be used; whereas with any of the
    chunked encoding types (any FFV2_ENCODING_* value other than
-   FFV2_ENCODING_PASSTHROUGH; see Table 23), a metadata header and
+   FFV2_ENCODING_PASSTHROUGH; see Table 21), a metadata header and
    transformed block will be sent.  Further, when reading data from the
    instance files, the client MUST be prepared to have one of the
    encoding types supply data and the other type not to supply data.
@@ -5060,7 +5060,7 @@ Table of Contents
    |         |         |         |        | XOR 0x04 = 0x07            |
    +---------+---------+---------+--------+----------------------------+
    | 0x37    | 0x91    | 0xac    | 0x0a   | matches P from             |
-   |         |         |         |        | Table 8                    |
+   |         |         |         |        | Table 6                    |
    +---------+---------+---------+--------+----------------------------+
    | 0xff    | 0xff    | 0x00    | 0x00   | 0xff XOR 0xff              |
    |         |         |         |        | XOR 0x00 = 0x00            |
@@ -5069,7 +5069,7 @@ Table of Contents
                  Table 3: XOR_PARITY test vector: k=3, m=1
 
    The fourth row is byte-identical to the P entry of the same input in
-   Table 8 -- the wire-compat property in action.
+   Table 6 -- the wire-compat property in action.
 
 11.6.6.  XOR_PARITY Shard Sizes
 
@@ -5207,59 +5207,19 @@ Table of Contents
 
 11.7.6.  LINUX_MD_RAID Interoperability Test Vectors
 
-   Concrete byte-level test vector with k = 3, m = 2, shard_len = 1:
-
-   +=========+=========+=========+======+======+=======================+
-   | data[0] | data[1] | data[2] | P    | Q    | Notes                 |
-   +=========+=========+=========+======+======+=======================+
-   | 0x00    | 0x00    | 0x00    | 0x00 | 0x00 | zero input            |
-   +---------+---------+---------+------+------+-----------------------+
-   | 0x01    | 0x02    | 0x03    | 0x00 | 0x09 | 1 XOR (2_2) XOR       |
-   |         |         |         |      |      | (4_3) = 1 XOR 4       |
-   |         |         |         |      |      | XOR 12 = 9            |
-   +---------+---------+---------+------+------+-----------------------+
-   | 0x80    | 0x00    | 0x00    | 0x80 | 0x80 | Q = 1 * 0x80 =        |
-   |         |         |         |      |      | 0x80                  |
-   +---------+---------+---------+------+------+-----------------------+
-   | 0x00    | 0x80    | 0x00    | 0x80 | 0x1d | Q = 2 * 0x80 =        |
-   |         |         |         |      |      | 0x100 -> reduce       |
-   |         |         |         |      |      | by 0x11d -> 0x1d      |
-   +---------+---------+---------+------+------+-----------------------+
-   | 0x00    | 0x00    | 0x80    | 0x80 | 0x3a | Q = 4 * 0x80 = 2      |
-   |         |         |         |      |      | * 0x1d = 0x3a         |
-   +---------+---------+---------+------+------+-----------------------+
-   | 0x37    | 0x91    | 0xac    | 0x0a | 0x82 | general non-          |
-   |         |         |         |      |      | degenerate case       |
-   +---------+---------+---------+------+------+-----------------------+
-
-                Table 5: LINUX_MD_RAID test vector: k=3, m=2
-
-   Every row above is byte-identical to the k=3, m=2 test vector for
-   FFV2_ENCODING_RS_VANDERMONDE (Table 8) at the same input.  This is
-   the wire-compat property in action: an implementation whose
-   LINUX_MD_RAID output matches these bytes is producing the same wire
-   encoding as RS_VANDERMONDE at m=2.
+   At m = 2 the LINUX_MD_RAID P + Q construction produces byte-identical
+   output to FFV2_ENCODING_RS_VANDERMONDE for the same input, so the two
+   encodings share one test vector: Table 6, computed with k = 3, m = 2,
+   shard_len = 1.  This is the wire-compat property in action: an
+   implementation whose LINUX_MD_RAID output matches those bytes is
+   producing the same wire encoding as RS_VANDERMONDE at m=2.
 
 11.7.7.  LINUX_MD_RAID Shard Sizes
 
    All LINUX_MD_RAID shards (data, P, Q) are exactly shard_len bytes.
    chunk_size equals shard_len for every mirror in the layout.  Total
-   storage overhead is 2/k of payload.
-
-   +===============+===========+============+===============+==========+
-   | Configuration | File Size | Shard Size | Total         | Overhead |
-   |               |           |            | Storage       |          |
-   +===============+===========+============+===============+==========+
-   | 4+2           | 4 KB      | 1 KB       | 6 KB          | 50%      |
-   +---------------+-----------+------------+---------------+----------+
-   | 4+2           | 1 MB      | 256 KB     | 1.5 MB        | 50%      |
-   +---------------+-----------+------------+---------------+----------+
-   | 8+2           | 4 KB      | 512 B      | 5 KB          | 25%      |
-   +---------------+-----------+------------+---------------+----------+
-   | 8+2           | 1 MB      | 128 KB     | 1.25 MB       | 25%      |
-   +---------------+-----------+------------+---------------+----------+
-
-        Table 6: LINUX_MD_RAID shard sizes for common configurations
+   storage overhead is 2/k of payload.  The worked configurations are
+   those of RS_VANDERMONDE at m = 2: see Table 7.
 
 11.8.  Reed-Solomon Vandermonde Encoding (FFV2_ENCODING_RS_VANDERMONDE)
 
@@ -5464,7 +5424,7 @@ Table of Contents
            | 0x80    | 0x80    | 0x00   | 0x80 XOR 0x80 = 0x00 |
            +---------+---------+--------+----------------------+
 
-               Table 7: RS Vandermonde test vector: k=2, m=1
+               Table 5: RS Vandermonde test vector: k=2, m=1
 
 11.8.7.2.  k=3, m=2
 
@@ -5509,7 +5469,7 @@ Table of Contents
    |         |         |         |      |      | degenerate case       |
    +---------+---------+---------+------+------+-----------------------+
 
-               Table 8: RS Vandermonde test vector: k=3, m=2
+               Table 6: RS Vandermonde test vector: k=3, m=2
 
    Implementations that produce different values for any row of either
    table disagree with this specification and will not interoperate.  m
@@ -5537,7 +5497,7 @@ Table of Contents
    | 8+2           | 1 MB      | 128 KB     | 1.25 MB       | 25%      |
    +---------------+-----------+------------+---------------+----------+
 
-             Table 9: RS shard sizes for common configurations
+             Table 7: RS shard sizes for common configurations
 
 11.9.  Mojette Transform Encoding (FFV2_ENCODING_MOJETTE_SYSTEMATIC,
        FFV2_ENCODING_MOJETTE_NON_SYSTEMATIC)
@@ -5783,13 +5743,13 @@ Table of Contents
     | (3, 1)           | 521                     | 4168              |
     +------------------+-------------------------+-------------------+
 
-       Table 10: Mojette projection sizes for 4+2, 4KB shards, W=8
+        Table 8: Mojette projection sizes for 4+2, 4KB shards, W=8
 
    Chunk sizing for variable-length projections:  When a projection
       shard is written via CHUNK_WRITE / CHUNK_FINALIZE / CHUNK_COMMIT,
       the shard is divided into chunks by the following mapping.  Let
       shard_bytes = B * W be the projection shard's total byte size
-      (where B is the number of bins per the B formula above (Table 10
+      (where B is the number of bins per the B formula above (Table 8
       uses it) applied to the shard's direction (p, q) and the grid
       dimensions (P, Q)):
 
@@ -5834,7 +5794,7 @@ Table of Contents
    |                  | (GF(2^8))        |            |                |
    +------------------+------------------+------------+----------------+
 
-               Table 11: Comparison of erasure encoding types
+               Table 9: Comparison of erasure encoding types
 
    Reed-Solomon uses uniform shard sizes and GF(2^8) operations.
    Mojette systematic provides zero-cost healthy reads with variable
@@ -7089,7 +7049,7 @@ Table of Contents
    than READ / WRITE / COMMIT.  This includes FFV2_ENCODING_REPLICATED,
    whose per-shard payload is the input bytes verbatim but is dispatched
    via the CHUNK operations to carry the per-chunk checksum and guard
-   (Table 12 legend).
+   (Table 10 legend).
 
    Required for all chunked clients:
 
@@ -7335,14 +7295,14 @@ Table of Contents
    | CHUNK_ESCROW_TAKEOVER          |                     |            |
    +--------------------------------+---------------------+------------+
 
-             Table 12: NFSv4.2 operations allowed on data files
+             Table 10: NFSv4.2 operations allowed on data files
 
    The (PASSTHROUGH) and (chunked) qualifiers in the client-to-data-
    server column select by the mirror's ffv2m_encoding_type_data value.
    FFV2_ENCODING_PASSTHROUGH (Section 11.4) uses NFSv3 WRITE / READ or
    NFSv4 READ / WRITE directly and does not use the CHUNK operations.
    Every other standards-track encoding (any FFV2_ENCODING_* value other
-   than FFV2_ENCODING_PASSTHROUGH; see Table 23) is (chunked): it uses
+   than FFV2_ENCODING_PASSTHROUGH; see Table 21) is (chunked): it uses
    CHUNK_WRITE and CHUNK_READ and MUST NOT use the RFC 8881 READ / WRITE
    / COMMIT operations against the data server.
    FFV2_ENCODING_REPLICATED replicates the payload verbatim across N
@@ -7809,7 +7769,7 @@ Table of Contents
    | NFS4ERR_PARTIAL                       | 10107  | Section 21.1.11 |
    +---------------------------------------+--------+-----------------+
 
-                       Table 13: Error Definitions
+                       Table 11: Error Definitions
 
 21.1.1.  NFS4ERR_ENCODING_NOT_SUPPORTED (Error Code 10097)
 
@@ -8084,7 +8044,7 @@ Table of Contents
 
 21.2.  Operations and Their Valid Errors
 
-   The operations and their valid errors are presented in Table 14.  All
+   The operations and their valid errors are presented in Table 12.  All
    error codes not defined in this document are defined in Section 15 of
    [RFC8881] and Section 11 of [RFC7862].
 
@@ -8206,12 +8166,12 @@ Table of Contents
     |                        | NFS4ERR_STALE_MDS_EPOCH                |
     +------------------------+----------------------------------------+
 
-                Table 14: Operations and Their Valid Errors
+                Table 12: Operations and Their Valid Errors
 
 21.3.  Callback Operations and Their Valid Errors
 
    The callback operations and their valid errors are presented in
-   Table 15.  All error codes not defined in this document are defined
+   Table 13.  All error codes not defined in this document are defined
    in Section 15 of [RFC8881] and Section 11 of [RFC7862].
 
    +=================+================================================+
@@ -8227,13 +8187,13 @@ Table of Contents
    |                 | NFS4ERR_SERVERFAULT, NFS4ERR_STALE             |
    +-----------------+------------------------------------------------+
 
-           Table 15: Callback Operations and Their Valid Errors
+           Table 13: Callback Operations and Their Valid Errors
 
 21.4.  Errors and the Operations That Use Them
 
-   The operations and their valid errors are presented in Table 16.  All
-   operations not defined in this document are defined in Section 18 of
-   [RFC8881] and Section 15 of [RFC7862].
+   The errors and the operations that use them are presented in
+   Table 14.  All operations not defined in this document are defined in
+   Section 18 of [RFC8881] and Section 15 of [RFC7862].
 
     +=======================================+=========================+
     | Error                                 | Operations              |
@@ -8269,7 +8229,7 @@ Table of Contents
     | NFS4ERR_PARTIAL                       | CB_CHUNK_REPAIR         |
     +---------------------------------------+-------------------------+
 
-             Table 16: Errors and the Operations That Use Them
+             Table 14: Errors and the Operations That Use Them
 
 22.  EXCHGID4_FLAG_USE_ERASURE_DS
 
@@ -8289,7 +8249,7 @@ Table of Contents
 
    If the data server sets EXCHGID4_FLAG_USE_ERASURE_DS during the
    EXCHANGE_ID operation, then it MUST support all of the operations in
-   Table 17.  Further, this support is orthogonal to the Erasure
+   Table 15.  Further, this support is orthogonal to the Erasure
    Encoding Type selected.  The data server is unaware of which type is
    driving the I/O.
 
@@ -8580,10 +8540,8 @@ Table of Contents
       read layout need not be assigned a distinct value.
 
    *  The reserved sentinel CHUNK_GUARD_CLIENT_ID_NONE (0x00000000) MUST
-      NOT be assigned to any client.  Reserving 0 prevents an
-      uninitialized cg_client_id field from passing as a real client and
-      ensures the deterministic tiebreaker (numerically lowest wins)
-      does not encode an implicit priority via assignment of 0.
+      NOT be assigned to any client; Section 24.2.3 gives the reason 0
+      is reserved.
 
    *  The reserved sentinel CHUNK_GUARD_CLIENT_ID_MDS (0xFFFFFFFF) MUST
       NOT be assigned to any client.
@@ -9312,7 +9270,7 @@ Table of Contents
     |                        |        | server control) |             |
     +------------------------+--------+-----------------+-------------+
 
-                           Table 17: Protocol OPs
+                           Table 15: Protocol OPs
 
 25.1.  Bounds on Chunk-Operation Arrays
 
@@ -13045,7 +13003,7 @@ Table of Contents
       ccrr_range_status array is malformed and the metadata server MUST
       reject the callback response.  See Section 21.1.11.
 
-   All other error codes listed in Table 15 are treated by the metadata
+   All other error codes listed in Table 13 are treated by the metadata
    server as retriable: the metadata server MAY issue a subsequent
    CB_CHUNK_REPAIR to the same or a different client.  If the client
    becomes unreachable (no response within the deadline), the metadata
@@ -13820,7 +13778,7 @@ Table of Contents
    [RFC8881] introduced the "pNFS Layout Types Registry"; new layout
    type numbers in this registry need to be assigned by IANA.  This
    document defines a new layout type number: LAYOUT4_FLEX_FILES_V2 (see
-   Table 18).
+   Table 16).
 
     +=======================+=======+==========+=====+================+
     | Layout Type Name      | Value | RFC      | How | Minor Versions |
@@ -13828,12 +13786,12 @@ Table of Contents
     | LAYOUT4_FLEX_FILES_V2 | 0x6   | RFCTBD10 | L   | 1              |
     +-----------------------+-------+----------+-----+----------------+
 
-                     Table 18: Layout Type Assignments
+                     Table 16: Layout Type Assignments
 
    [RFC8881] also introduced the "NFSv4 Recallable Object Types
    Registry".  This document defines new recallable objects for
    RCA4_TYPE_MASK_FF2_LAYOUT_MIN and RCA4_TYPE_MASK_FF2_LAYOUT_MAX (see
-   Table 19).
+   Table 17).
 
     +===============================+=======+==========+===+==========+
     | Recallable Object Type Name   | Value | RFC      |How| Minor    |
@@ -13844,7 +13802,7 @@ Table of Contents
     | RCA4_TYPE_MASK_FF2_LAYOUT_MAX | 21    | RFCTBD10 |L  | 1        |
     +-------------------------------+-------+----------+---+----------+
 
-                Table 19: Recallable Object Type Assignments
+                Table 17: Recallable Object Type Assignments
 
    This document also requests IANA to register a new bit in the
    "EXCHGID4_FLAG_*" flag space for the ExchangeID operation from
@@ -13862,7 +13820,7 @@ Table of Contents
    |                              |            |          | doc        |
    +------------------------------+------------+----------+------------+
 
-                    Table 20: EXCHGID4 Flag Assignments
+                    Table 18: EXCHGID4 Flag Assignments
 
    This document requests IANA to allocate two attribute numbers in the
    NFSv4 attribute-number registry (see Section 20 of [RFC8881]).
@@ -13878,12 +13836,12 @@ Table of Contents
       |           |                          |          | 23.2      |
       +-----------+--------------------------+----------+-----------+
 
-                   Table 21: NFSv4 Attribute Assignments
+                   Table 19: NFSv4 Attribute Assignments
 
    This document introduces the 'Flexible File Version 2 Layout Type
    Erasure Encoding Type Registry'.  The registry uses a 32-bit value
    space partitioned into ranges based on the intended scope of the
-   encoding type (see Table 22).
+   encoding type (see Table 20).
 
       +=======================+=================+===================+
       | Range                 | Purpose         | Allocation Policy |
@@ -13907,7 +13865,7 @@ Table of Contents
       |                       | range)          | future partition  |
       +-----------------------+-----------------+-------------------+
 
-        Table 22: Erasure Encoding Type Value Ranges (32-bit space)
+        Table 20: Erasure Encoding Type Value Ranges (32-bit space)
 
    The upper 16 bits of the 32-bit value space (0x00010000 through
    0xFFFFFFFF) are reserved for future range extensions.  A receiver
@@ -13951,7 +13909,7 @@ Table of Contents
    This document defines seven encoding types: the flexible file v1
    layout-compatible PASSTHROUGH (see Section 11.4), the chunked
    MIRRORED (see Section 11.5), and five chunked erasure encoding types
-   (see Table 23).
+   (see Table 21).
 
    +======================================+=====+========+===+========+
    | Encoding Type Name                   |Value|RFC     |How|Minor   |
@@ -13972,7 +13930,7 @@ Table of Contents
    | FFV2_ENCODING_LINUX_MD_RAID          |7    |RFCTBD10|L  |2       |
    +--------------------------------------+-----+--------+---+--------+
 
-       Table 23: Flexible File Version 2 Layout Type Encoding Type
+       Table 21: Flexible File Version 2 Layout Type Encoding Type
                                Assignments
 
 29.1.  Checksum Algorithm Registry
@@ -13997,7 +13955,7 @@ Table of Contents
       decline to register an algorithm whose output overlaps
       substantially with an existing registration).
 
-   Initial registrations are listed in Table 24.
+   Initial registrations are listed in Table 22.
 
    +========================+=====+========+===============+==========+
    | Name                   |Value|cs_value| Class         | RFC      |
@@ -14018,7 +13976,7 @@ Table of Contents
    | CHECKSUM_ALG_BLAKE3    |6    |32      | cryptographic | RFCTBD10 |
    +------------------------+-----+--------+---------------+----------+
 
-            Table 24: Initial Checksum Algorithm Registrations
+            Table 22: Initial Checksum Algorithm Registrations
 
    CHECKSUM_ALG_NONE (value 0) indicates that no protocol-level checksum
    is computed.  The deployment relies on transport-layer integrity
@@ -14086,7 +14044,7 @@ Table of Contents
    cs_value bytes for its cs_algorithm MUST be rejected with
    NFS4ERR_INVAL.
 
-   The "Class" column in Table 24 is informational and indicates the
+   The "Class" column in Table 22 is informational and indicates the
    threat model the algorithm supports; see Section 28.1.
 
 29.2.  Proof-Profile Registry
@@ -14118,7 +14076,7 @@ Table of Contents
       profile that requires wire negotiation not defined in this
       document or its cited references MUST be declined).
 
-   Initial registrations are listed in Table 25.
+   Initial registrations are listed in Table 23.
 
    +====================================+=====+========================+
    | Name                               |Value|Reference               |
@@ -14131,7 +14089,7 @@ Table of Contents
    |                                    |     |Profile"                |
    +------------------------------------+-----+------------------------+
 
-               Table 25: Initial Proof-Profile Registrations
+               Table 23: Initial Proof-Profile Registrations
 
    Additional profiles named in Section 24.6 (ECDSA-P256 alg -7, RSASSA-
    PSS-SHA256 alg -37) MAY be added later per the Specification Required
@@ -14610,7 +14568,7 @@ Transmit cost -- three-host real-network sweep
     | d       | FFv2 -> PS -> DSes | proxy server        | 2         |
     +---------+--------------------+---------------------+-----------+
 
-                                 Table 26
+                                 Table 24
 
    A 180-cell sweep across five encoders x four variants x three file
    sizes x three iterations verified end-to-end data integrity in every
@@ -14661,7 +14619,7 @@ Transmit cost -- three-host real-network sweep
       | Variant d: FFv2 via PS (PS EC)                   | 610-910 |
       +--------------------------------------------------+---------+
 
-                                 Table 27
+                                 Table 25
 
    The variant c wire floor of approximately 92 ms/MiB is where end-to-
    end throughput lives; encoder algorithm cost accounts for well under
