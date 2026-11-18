@@ -16215,14 +16215,6 @@ of {{sec-system-model-consistency}}.
 Lucheng Bao asked how a trusted stateid registration is
 protected against an on-path attacker, and why a data server
 under tight coupling would not need its own Kerberos keytab.
-The first question produced the authentication requirement on
-the control session in {{sec-tight-coupling-control-session}},
-the comparison rule for tsa_principal in
-{{sec-tight-coupling-principal}}, and the downgrade entry in
-{{sec-security-trust-stateid}}.  The second corrected what the
-same section says a data server requires, which is a service
-principal and keytab for every session on which it accepts
-RPCSEC_GSS.
 
 The authors thank Dave Noveck, Chuck Lever, Tigran
 Mkrtchyan, Rick Macklem, Christoph Hellwig, and Sorin
